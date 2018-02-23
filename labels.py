@@ -34,13 +34,13 @@ class A5160(object):
     """
 
     # The first two are restrictions imposed by my printer!
-    n_chars_wide = 80
+    n_chars_wide = 80  # The Avery labels are wider ?84 I think?
     n_lines_long = 64
 
     n_labels_per_page = 30
     n_labels_per_row = 3
     n_rows_per_page = n_labels_per_page // n_labels_per_row
-    n_lines_per_label = 6
+    n_lines_per_label = 6   # Limits 'spill over' of long lines.
 
     # Because of the n_chars_wide restriction, can't use the full
     # width of the labels :
@@ -51,6 +51,11 @@ class A5160(object):
     #             |  |  |   # These numbers refer to the room to be
     #             v  v  v   # left before and between the labels.
     separation = (2, 4, 5)
+    line_length_needed = 0
+    for n in separation:
+        line_length_needed += n
+    line_length_needed += n_labels_per_row * n_chars_per_field
+
     top_margin = 2  # The number of blank lines at top of each page.
 
     empty_label = [""] * n_lines_per_label
@@ -69,11 +74,7 @@ class A5160(object):
         """
         Provides a 'sanity check'.
         """
-        n_chars = 0
-        for n in cls.separation:
-            n_chars += n
-        n_chars += cls.n_labels_per_row * cls.n_chars_per_field
-        if n_chars > cls.n_chars_wide:
+        if cls.line_length_needed > cls.n_chars_wide:
             print("Label designations are incompatable!")
             sys.exit()
 
@@ -107,32 +108,52 @@ class Source(object):
         self.label.self_check()
 
 
-    def prn_split(self, field):
+    def prn_split(self, field, criteria):
         """
-        <field> is a string and if its length is within the
-        limit, it is returned as a singleton array.
-        If len(field) is > self.label.n_chars_per_field
-        more than the one string is returned.
-        Returns None if fails to constrain itself to two lines.
-        Returned strings are always n_chars_per_field long:
+        <field> is a string and if its length is within the limit set
+        by criteria.n_chars_per_field, it is returned in a singleton array.
+        If len(field) is greater than the limit, more than the one string
+        is returned, each within that limit.
+        Returns None and prints an error message if any word in field is
+        longer than the specified limit.
+        Returned strings are always criteria.n_chars_per_field long:
         left based if the beginning of a field,
-        right based if consisting of the 'overflow.'
+        right based if constituting the 'overflow.'
+        'criteria' must have attributes 'left_formatter' and
+        'right_formatter' as well as 'n_chars_per_field'
         """
-        if len(field) > self.label.n_chars_per_field:
+        if len(field) > criteria.n_chars_per_field:
+    #       print("field is {} chars long".format(len(field)))
             words = field.split()
-            for i in range(len(words)-1,0,-1):
-                field1 = " ".join(words[:i])
-                field2 = " ".join(words[i:])
-                if ((len(field1) <= label.n_chars_per_field)
-                and (len(field2) <= label.n_chars_per_field)):
-                    return [
-                        label.left_formatter
-                            .format(field1),
-                        label.right_formatter
-                            .format(field2),
-                        ]
+            for word in words:
+                if len(word) > criteria.n_chars_per_field:
+                    print("# Unable to process the following field...")
+                    print(field)
+                    print("...because has word(s) longer than {}."
+                        .format(criteria.n_chars_per_field))
+                    return
+    #       print("field is split into {}".format(words))
+            format_left = True
+            ok_lines = []
+            line = []
+            for word in words:
+                line.append(word)
+                if len(" ".join(line)) > criteria.n_chars_per_field:
+                    ok = " ".join(line[:-1])
+                    if format_left:
+                        ok_lines.append(
+                            criteria.left_formatter.format(ok))
+                        format_left = False
+                    else:
+                        ok_lines.append(
+                            criteria.right_formatter.format(ok))
+                    line = [word, ]
+            if line:
+                ok = " ".join(line)
+                ok_lines.append(criteria.right_formatter.format(ok))
+            return ok_lines
         else:
-            return [label.left_formatter.format(field), ]
+            return [criteria.left_formatter.format(field), ]
 
     def get_fields(self, csv_record):
         """
@@ -144,10 +165,12 @@ class Source(object):
         self.label.n_lines_per_label.
         Formats the csv fields, splitting fields into more than
         one line as necessary to remain within constraints.
-        Terminates program (with a warning) if unsuccessful.
+        Returns None and prints a warning if unable to remain within
+        constraints.
         """
         res = []
         lines = []
+        # Specify the three fields we want for the label:
         lines.append("{} {}".format(
             csv_record[self.i_first], csv_record[self.i_second]))
         lines.append("{}".format(csv_record[self.i_address1]))
@@ -155,24 +178,23 @@ class Source(object):
             csv_record[self.i_City],
             csv_record[self.i_State],
             csv_record[self.i_Zip]))
-        for line in lines:
-            new_lines =  self.prn_split(line)
+        for line in lines:  # Deal with long lines:
+            new_lines =  self.prn_split(line, label)
             if new_lines:
                 res.extend(new_lines)
             else:
                 print(
-                    "## Exit- following field...")
+                    "## Unable to process line...")
                 print(line)
                 print("... in the following record...")
                 print(csv_record)
-                print("...requires more than two lines.")
-                print("Fix data base and try again.")
-                sys.exit()
+                print("... so it will not be reflected in output!.")
+                return
         if len(res) > self.label.n_lines_per_label:
-            print("## Exit- following record too long for label:")
+            print("## Following record is too long...")
             for line in lines:
                 print("\t{}".format(line))
-            sys.exit()
+            return
         n_fields = len(res)
         if n_fields <  self.label.n_lines_per_label:
             n_empty_lines = self.label.n_lines_per_label - n_fields
@@ -222,16 +244,31 @@ class Source(object):
                 # add a row at a time:
                 row_of_data = []
                 # collect records to fill a row:
-                for i in range(self.label.n_labels_per_row):
+#               print("Collect records to fill a row:)")
+                while len(row_of_data) < self.label.n_labels_per_row:
                     try:
-                        row_of_data.append(
-                            self.get_fields(next(record_reader)))
+#                       print("About to 'next(record_reader)'")
+                        next_record = next(record_reader)
+#                       print("Just did  'next(record_reader)'")
                     except StopIteration:
-                        # complete the row with blanks:
+#                       print("StopIteration")
+#                       _ = input("Enter to continue")
+                        next_record = None
                         quit = True
-                        for j in range(len(row_of_data),
-                                    label.n_labels_per_row):
-                            row_of_data.append(label.empty_label)
+                    if next_record:
+                        valid_row = self.get_fields(next_record)
+                        if valid_row:
+                            row_of_data.append(valid_row)
+                        else:
+                            print("## Input item being left out!")
+                            # failure probably because of non
+                            # conforming input data.
+                    else:
+#                       print(
+#                           "No next_recorde- appending emtpy_label")
+                        row_of_data.append(label.empty_label)
+#                   print("len(row_of_data) is {}"
+#                       .format(len(row_of_data)))
                 # We have a row of records but we
                 # want columns of record fields:
                 for j in range(self.label.n_lines_per_label):
