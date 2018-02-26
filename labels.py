@@ -20,6 +20,40 @@ output_file = 'output.tmp'
 # These classes need never be instantiated.
 # They are used only to maintain a set of constants.
 
+# Classes that define parameters pertaining to that onto
+# which data is to be printed (i.e. label page, envelope...)
+# are named beginning with a letter (A - Avery, E - Envelope, ...)
+# followed by a 4 digit number: A5160, E0000, ... .
+# Clients typically refer to these as <params>.
+
+class E0000(object):
+    """
+    Custom envelopes used by the Bolinas Rod & Boat Club
+    to send out requests for dues.
+    """
+    n_chars_wide = 60
+    n_lines_long = 45
+    n_labels_page = 1
+    n_lines_per_label = 10
+
+    n_chars_per_field = 25
+    separation = (34, )
+    top_margin = 32
+
+    left_formatter = (" " * separation[0] + "{{:<{}}}"
+        .format(n_chars_per_field))
+    right_formatter = (" " * separation[0] + "{{:>{}}}"
+        .format(n_chars_per_field))
+    empty_line = ""
+
+    @classmethod
+    def self_check(cls):
+        """
+        No need for the sanity check in this case.
+        """
+        pass
+
+
 class A5160(object):
     """
     Avery 5160 labels  3 x 10 grid
@@ -28,8 +62,7 @@ class A5160(object):
         3, 9, 15, 21, 27, 33, 39, 45, 51, 57
         (max content 5 lines of 25 characters each)
     Uses "letter size" blanks.
-    BUT: there was a complication- my printer does an unrequested line
-    feed if a line exceeds 80 characters!
+    BUT: there was a complication- my printer "wraps" at 80 chars.
     So each line could not exceed 80 characters.
     """
 
@@ -78,10 +111,9 @@ class A5160(object):
             print("Label designations are incompatable!")
             sys.exit()
 
-label = A5160
 
 # Specify input file and its data:
-class Source(object):
+class MbshpLabels(object):
     """
     Create such an object not only for each data base used but also
     for each way the data of that data base is being displayed.
@@ -99,13 +131,13 @@ class Source(object):
     i_Mooring = 9
     i_Kayak = 10
 
-    def __init__(self, label):
+    def __init__(self, params):
         """
         Each instance must know the format
         of the labels to be used.
         """
-        self.label = label
-        self.label.self_check()
+        self.params = params
+        self.params.self_check()
 
 
     def prn_split(self, field, criteria):
@@ -162,7 +194,7 @@ class Source(object):
         Takes a record returned by csv.reader.
         Returns an array of strings. The length of the array
         (padded with empty strings as necessary) will match 
-        self.label.n_lines_per_label.
+        self.params.n_lines_per_label.
         Formats the csv fields, splitting fields into more than
         one line as necessary to remain within constraints.
         Returns None and prints a warning if unable to remain within
@@ -179,7 +211,7 @@ class Source(object):
             csv_record[self.i_State],
             csv_record[self.i_Zip]))
         for line in lines:  # Deal with long lines:
-            new_lines =  self.prn_split(line, label)
+            new_lines =  self.prn_split(line, self.params)
             if new_lines:
                 res.extend(new_lines)
             else:
@@ -190,35 +222,63 @@ class Source(object):
                 print(csv_record)
                 print("... so it will not be reflected in output!.")
                 return
-        if len(res) > self.label.n_lines_per_label:
+        if len(res) > self.params.n_lines_per_label:
             print("## Following record is too long...")
             for line in lines:
                 print("\t{}".format(line))
             return
         n_fields = len(res)
-        if n_fields <  self.label.n_lines_per_label:
-            n_empty_lines = self.label.n_lines_per_label - n_fields
+        if n_fields <  self.params.n_lines_per_label:
+            n_empty_lines = self.params.n_lines_per_label - n_fields
             n_bottom_blanks = n_top_blanks = n_empty_lines // 2
             n_top_blanks += n_empty_lines % 2
             res = (
-                [self.label.empty_line] * n_top_blanks + 
+                [self.params.empty_line] * n_top_blanks + 
                 res + 
-                [self.label.empty_line] * n_bottom_blanks
+                [self.params.empty_line] * n_bottom_blanks
                 )
         return res
 
+    def print_custom_envelopes(self, source_file):
+        """
+        Gets names and addresses from <source_file>
+        and prints custom envelopes.
+        """
 
-    def get_data2print(self, source_file):
-        """
-        Returns a text file ready to be sent to a printer.
-        See comments about plans to change this behavior.
-        """
+        import subprocess
 
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
+
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            fields = self.get_fields(next_record)
+#           print("fields INITIALLY: {}".format(fields))
+            fields = [""] * self.params.top_margin + fields
+#           print("fields AFTER format: {}".format(fields))
+            for_printer = "\n".join(fields)
+            temp_file = "temp_envelope_address.txt"
+            with open(temp_file, "w") as fileobj:
+                fileobj.write(for_printer)
+            subprocess.run(["lpr", temp_file])
+#           print(for_printer)
+#           _ = input("Enter to continue.")
+
+
+
+    def get_labels2print(self, source_file):
+        """
+        Returns a text file ready to be sent to a printer.
+        See comments about plans to change this behavior.
+        """
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
         pages = []
-        quit = False
             
         def deal_with_page(page):
 #           print("Page contains {} records".format(n_records))
@@ -232,20 +292,21 @@ class Source(object):
         
 
         # Deal with a page at a time:
+        time2quit = False
         while True:
             # deal with one page at a time:
             page = []
 
             # put empty lines at top of page:
-            for _ in range(self.label.top_margin):
+            for _ in range(self.params.top_margin):
                 page.append("")
             # set up all the rows in the page:
-            for _ in range(self.label.n_rows_per_page):
+            for _ in range(self.params.n_rows_per_page):
                 # add a row at a time:
                 row_of_data = []
                 # collect records to fill a row:
 #               print("Collect records to fill a row:)")
-                while len(row_of_data) < self.label.n_labels_per_row:
+                while len(row_of_data) < self.params.n_labels_per_row:
                     try:
 #                       print("About to 'next(record_reader)'")
                         next_record = next(record_reader)
@@ -254,7 +315,7 @@ class Source(object):
 #                       print("StopIteration")
 #                       _ = input("Enter to continue")
                         next_record = None
-                        quit = True
+                        time2quit = True
                     if next_record:
                         valid_row = self.get_fields(next_record)
                         if valid_row:
@@ -266,25 +327,25 @@ class Source(object):
                     else:
 #                       print(
 #                           "No next_recorde- appending emtpy_label")
-                        row_of_data.append(label.empty_label)
+                        row_of_data.append(self.params.empty_label)
 #                   print("len(row_of_data) is {}"
 #                       .format(len(row_of_data)))
                 # We have a row of records but we
                 # want columns of record fields:
-                for j in range(self.label.n_lines_per_label):
+                for j in range(self.params.n_lines_per_label):
                     # the next set of lines
                     line_components = []
-                    for i in range(self.label.n_labels_per_row):
+                    for i in range(self.params.n_labels_per_row):
                         line_components.append(row_of_data[i][j])
                     line = ""
-                    for l in range(self.label.n_labels_per_row):
+                    for l in range(self.params.n_labels_per_row):
                         line = (line +
-                            " " * self.label.separation[l] + 
+                            " " * self.params.separation[l] + 
                             line_components[l])
                     line = line.rstrip()
-                    if len(line) > self.label.n_chars_wide:
+                    if len(line) > self.params.n_chars_wide:
                         original = line
-                        line = line[:self.label.n_chars_wide]
+                        line = line[:self.params.n_chars_wide]
                         print("Too long a line...")
                         print(original)
                         print("...is being stripped to:")
@@ -292,20 +353,31 @@ class Source(object):
                     page.append(line)
 
             deal_with_page(page)
-            if quit:
+            if time2quit:
                 break
         print("{} pages ready to print".format(len(pages)))
         return "\f".join(pages) 
 
+def print_statement_envelopes():
+    source = MbshpLabels(E0000)
+#   source_file = './Jan18TotalLIST.csv'
+#   source_file = 'test_mbrs.csv'
+    source_file = 'test_mbrs.csv'
+    data = source.print_custom_envelopes(source_file)
+#   print(data, end='')
 
-if __name__ == "__main__":
-    source = Source(label)
+def print_labels():
+    source = MbshpLabels(A5160)
 #   source_file = './Jan18TotalLIST.csv'
     source_file = '../Lists/membership.csv'
-    data = source.get_data2print(source_file)
+    data = source.get_labels2print(source_file)
 #   print(data, end='')
     with open(output_file, 'w') as fileobj:
         fileobj.write(data)
+
+if __name__ == "__main__":
+#   print_labels()
+    print_statement_envelopes()
 
 still_to_consider_doing = """
     use docopt to allow versioning AND
@@ -315,8 +387,4 @@ still_to_consider_doing = """
         a. stdout
         b. printer
         c. file (provide file name as argument)
-
-    Modify get_fields and the way it is used so that records that
-    won't fit onto a label are left out (with a warning provided)
-    rather than causing the program to abort.
 """
