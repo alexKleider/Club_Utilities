@@ -1,22 +1,65 @@
 #!/usr/bin/env python3
 
-# File: labels.py
+# File: utils.py
 
 """
-Prints labels getting data from a csv file exported from a spread
-sheet.  
+Provides functionality for maintanance and usage of the
+Bolinas Rod and Boat Club records: 
+Specifically deals with csv files exported from 'excel' or
+brought in from the club's gmail 'contacts' list.
+
+Usage:
+  ./utils.py --help | --version
+  ./utils.py (labels | envelopes) [-p <params>] -i <infile> [-o <outfile>]
+  ./utils.py ck_fields -i <infile> [-o <outfile>]
+  ./utils.py compare <gmail> <members> [-o <outfile>]
+
+Options:
+  -h --help  Print this docstring.
+  --version  Print version.
+  -i <infile>  Specify csv file used as input.
+  -o <outfile>  Specify destination. [default: stdout]
+  -p <params> --parameters=<params>  For lables the default is A5160,
+  for envelopes the default is E0000.
+
+<outfile> specifies the name of a file to which output will be sent.
+There are two special cases:
+    "printer" will send output to the default printer (default.)
+    "stdout" will send output to the STDOUT.
+If neither of the above two are specified, then output will
+go to a file of the name specified.
 """
+
+TEMP_FILE = "2print.temp"
+
 
 import csv
 import codecs
 import sys
+import subprocess
+from docopt import docopt
 
-# First specify where the output is to go:
-output_file = 'output.tmp'
-# May eventually have this specified as a command line argument.
+args = docopt(__doc__, version="1.0.0")
 
-# Specify labels being used.
-# Can set up a class for each brand of labels encountered.
+def output(data, destination=args["-o"]):
+    """
+    Sends data (text) to destination as specified
+    by the -o <outfile> command line parameter (which
+    defaults to stdout.)
+    """
+    if destination == 'stdout':
+        print(data)
+    elif destination == 'printer':
+        with open(TEMP_FILE, "w") as fileobj:
+            fileobj.write(data)
+        subprocess.run(["lpr", TEMP_FILE])
+    else:
+        with open(destination, "w") as fileobj:
+            fileobj.write(data)
+
+# Specify characteristics of medium:
+# e.g. labels, envelopes, ...
+# Can set up a class for each medium.
 # These classes need never be instantiated.
 # They are used only to maintain a set of constants.
 
@@ -111,58 +154,62 @@ class A5160(object):
             print("Label designations are incompatable!")
             sys.exit()
 
+media = dict(
+        e000 = E0000,
+        a5160 = A5160,
+        )
 
 # Specify input file and its data:
-class MbshpLabels(object):
+class Membership(object):
     """
     Create such an object not only for each data base used but also
     for each way the data of that data base is being displayed.
     """
     # define the fields available:
     i_first= 0
-    i_second = 1
-    i_address1 = 2
-    i_City = 3
-    i_State = 4
-    i_Zip = 5
+    i_last = 1
+    i_address = 2
+    i_town = 3
+    i_state = 4
+    i_zip = 5
     i_email = 6
-    i_emailOnly = 7
-    i_Dock = 8
-    i_Mooring = 9
-    i_Kayak = 10
+    i_email_only = 7
+    i_dock = 8
+    i_mooring = 9
+    i_kayak = 10
 
     def __init__(self, params):
         """
         Each instance must know the format
-        of the labels to be used.
+        of the media. i.e. the parameters.
         """
         self.params = params
         self.params.self_check()
 
 
-    def prn_split(self, field, criteria):
+    def prn_split(self, field, params):
         """
         <field> is a string and if its length is within the limit set
-        by criteria.n_chars_per_field, it is returned in a singleton array.
+        by params.n_chars_per_field, it is returned in a singleton array.
         If len(field) is greater than the limit, more than the one string
         is returned, each within that limit.
         Returns None and prints an error message if any word in field is
         longer than the specified limit.
-        Returned strings are always criteria.n_chars_per_field long:
+        Returned strings are always params.n_chars_per_field long:
         left based if the beginning of a field,
         right based if constituting the 'overflow.'
-        'criteria' must have attributes 'left_formatter' and
+        'params' must have attributes 'left_formatter' and
         'right_formatter' as well as 'n_chars_per_field'
         """
-        if len(field) > criteria.n_chars_per_field:
+        if len(field) > params.n_chars_per_field:
     #       print("field is {} chars long".format(len(field)))
             words = field.split()
             for word in words:
-                if len(word) > criteria.n_chars_per_field:
+                if len(word) > params.n_chars_per_field:
                     print("# Unable to process the following field...")
                     print(field)
                     print("...because has word(s) longer than {}."
-                        .format(criteria.n_chars_per_field))
+                        .format(params.n_chars_per_field))
                     return
     #       print("field is split into {}".format(words))
             format_left = True
@@ -170,22 +217,22 @@ class MbshpLabels(object):
             line = []
             for word in words:
                 line.append(word)
-                if len(" ".join(line)) > criteria.n_chars_per_field:
+                if len(" ".join(line)) > params.n_chars_per_field:
                     ok = " ".join(line[:-1])
                     if format_left:
                         ok_lines.append(
-                            criteria.left_formatter.format(ok))
+                            params.left_formatter.format(ok))
                         format_left = False
                     else:
                         ok_lines.append(
-                            criteria.right_formatter.format(ok))
+                            params.right_formatter.format(ok))
                     line = [word, ]
             if line:
                 ok = " ".join(line)
-                ok_lines.append(criteria.right_formatter.format(ok))
+                ok_lines.append(params.right_formatter.format(ok))
             return ok_lines
         else:
-            return [criteria.left_formatter.format(field), ]
+            return [params.left_formatter.format(field), ]
 
     def get_fields(self, csv_record):
         """
@@ -204,12 +251,12 @@ class MbshpLabels(object):
         lines = []
         # Specify the three fields we want for the label:
         lines.append("{} {}".format(
-            csv_record[self.i_first], csv_record[self.i_second]))
-        lines.append("{}".format(csv_record[self.i_address1]))
+            csv_record[self.i_first], csv_record[self.i_last]))
+        lines.append("{}".format(csv_record[self.i_address]))
         lines.append("{} {} {}" .format(
-            csv_record[self.i_City],
-            csv_record[self.i_State],
-            csv_record[self.i_Zip]))
+            csv_record[self.i_town],
+            csv_record[self.i_state],
+            csv_record[self.i_zip]))
         for line in lines:  # Deal with long lines:
             new_lines =  self.prn_split(line, self.params)
             if new_lines:
@@ -242,11 +289,9 @@ class MbshpLabels(object):
     def print_custom_envelopes(self, source_file):
         """
         Gets names and addresses from <source_file>
-        and prints custom envelopes.
+        and "prints" custom envelopes. Wether it goes to printer,
+        stdout, or a file is determined by args["<outfile>"].
         """
-
-        import subprocess
-
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
@@ -261,10 +306,7 @@ class MbshpLabels(object):
             fields = [""] * self.params.top_margin + fields
 #           print("fields AFTER format: {}".format(fields))
             for_printer = "\n".join(fields)
-            temp_file = "temp_envelope_address.txt"
-            with open(temp_file, "w") as fileobj:
-                fileobj.write(for_printer)
-            subprocess.run(["lpr", temp_file])
+            output(for_printer)
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
@@ -273,7 +315,6 @@ class MbshpLabels(object):
     def get_labels2print(self, source_file):
         """
         Returns a text file ready to be sent to a printer.
-        See comments about plans to change this behavior.
         """
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
@@ -359,25 +400,44 @@ class MbshpLabels(object):
         return "\f".join(pages) 
 
 def print_statement_envelopes():
-    source = MbshpLabels(E0000)
-#   source_file = './Jan18TotalLIST.csv'
-#   source_file = 'test_mbrs.csv'
-    source_file = 'test_mbrs.csv'
-    data = source.print_custom_envelopes(source_file)
-#   print(data, end='')
+    if args["--parameters"]:
+        medium = media[args["--parameters"]]
+    else:
+        medium = E0000
+    source = Membership(medium)
+    source_file = args["-i"]
+    source.print_custom_envelopes(source_file)
 
-def print_labels():
-    source = MbshpLabels(A5160)
-#   source_file = './Jan18TotalLIST.csv'
-    source_file = '../Lists/membership.csv'
-    data = source.get_labels2print(source_file)
-#   print(data, end='')
-    with open(output_file, 'w') as fileobj:
-        fileobj.write(data)
+def get_labels():
+    if args["--parameters"]:
+        medium = media[args["--parameters"]]
+    else:
+        medium = A5160
+    source = Membership(medium)
+    source_file = args["-i"]
+    return source.get_labels2print(source_file)
 
-if __name__ == "__main__":
-#   print_labels()
-    print_statement_envelopes()
+def ck_fields(source_file):
+    """
+    Checks validity of each record in the csv <source_file>
+    """
+    print("Checking Fields")
+    record_reader = csv.reader(
+        codecs.open(source_file, 'rU', 'utf-8'),
+        dialect='excel')
+    bad = []
+    while True:
+        try:
+            next_record = next(record_reader)
+        except StopIteration:
+            break
+        l = len(next_record)
+        if l == 11:
+            print("OK ", end='')
+        else:
+            bad.append(next_record)
+    for record in bad:
+        print("{}, {}".format(record[1], record[0]))
 
 still_to_consider_doing = """
     use docopt to allow versioning AND
@@ -388,3 +448,24 @@ still_to_consider_doing = """
         b. printer
         c. file (provide file name as argument)
 """
+
+if __name__ == "__main__":
+#   print(args)
+    if args["ck_fields"]:
+        ck_fields(args["-i"])
+    elif args["compare"]:
+        print("{} {}".format(args['<gmail>'], args['<members>']))
+    elif args["labels"]:
+        print("Printing labels from '{}' to '{}'"
+            .format(args['-i'], args['-o']))
+        output(get_labels())
+    elif args["envelopes"]:
+        # destination is specified within Membership 
+        # method print_custom_envelopes() which is called 
+        # by print_statement_envelopes()
+        print("""Printing envelopes...
+    addresses sourced from '{}'
+    with output sent to '{}'"""
+            .format(args['-i'], args['-o']))
+        print_statement_envelopes()
+
