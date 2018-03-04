@@ -12,6 +12,7 @@ Usage:
   ./utils.py --help | --version
   ./utils.py (labels | envelopes) [-p <params>] -i <infile> [-o <outfile>]
   ./utils.py ck_fields -i <infile> [-o <outfile>]
+  ./utils.py extra_charges [ -m -d -k ] -i <infile>  [-o <outfile>]
   ./utils.py compare <gmail> <members> [-o <outfile>]
 
 Options:
@@ -21,6 +22,9 @@ Options:
   -o <outfile>  Specify destination. [default: stdout]
   -p <params> --parameters=<params>  For lables the default is A5160,
   for envelopes the default is E0000.
+  -m --mooring  List members who have moorings (include the fee.)
+  -d --dock  List members with dock privileges (include the fee.)
+  -k --kayak  List members who store a kayac (include the fee.)
 
 <outfile> specifies the name of a file to which output will be sent.
 There are two special cases:
@@ -28,6 +32,10 @@ There are two special cases:
     "stdout" will send output to the STDOUT.
 If neither of the above two are specified, then output will
 go to a file of the name specified.
+
+the "extra_charges" command provides lists of members with special
+charges. The default is to list all unless one or more of the
+categories (--mooring, --dock, --kayak) are specified.
 """
 
 TEMP_FILE = "2print.temp"
@@ -63,11 +71,19 @@ def output(data, destination=args["-o"]):
 # These classes need never be instantiated.
 # They are used only to maintain a set of constants.
 
+# Template Classes:
 # Classes that define parameters pertaining to that onto
 # which data is to be printed (i.e. label page, envelope...)
 # are named beginning with a letter (A - Avery, E - Envelope, ...)
 # followed by a 4 digit number: A5160, E0000, ... .
 # Clients typically refer to these as <params>.
+# Provided is a Dummy class for use when templates are not required.
+
+class Dummy(object):
+    formatter = ""
+    @classmethod
+    def self_check(cls):  # No need for the sanity check in this case
+        pass
 
 class E0000(object):
     """
@@ -164,6 +180,9 @@ class Membership(object):
     """
     Create such an object not only for each data base used but also
     for each way the data of that data base is being displayed.
+    Functionality that depends on formatting (i.e. one of the
+    preceding classes) is provided as methods of this class.
+    Other functionalities are provided as independent functions.
     """
     # define the fields available:
     i_first= 0
@@ -174,8 +193,8 @@ class Membership(object):
     i_zip = 5
     i_email = 6
     i_email_only = 7
-    i_dock = 8
-    i_mooring = 9
+    i_mooring = 8
+    i_dock = 9
     i_kayak = 10
 
     def __init__(self, params):
@@ -311,6 +330,50 @@ class Membership(object):
 #           _ = input("Enter to continue.")
 
 
+    def get_extra_charges(self, source_file):
+        """
+        Returns a listing of members who have extra charges
+        (for mooring, dock usage, and/or kayak storage.)
+        """
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+
+        ret = []
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            try:
+                extras = [0 if not i else int(i) for i in next_record[8:]]
+            except ValueError:
+                line = "HEADERS: " + ",".join([
+                    next_record[self.i_last],
+                    next_record[self.i_first],
+                    next_record[self.i_email],
+                    next_record[self.i_mooring],
+                    next_record[self.i_dock],
+                    next_record[self.i_kayak],
+                    ])
+                ret.append(line)
+                continue
+            fees = sum(extras)
+            if fees:  # a keeper
+                line = ",".join([
+                    next_record[self.i_last],
+                    next_record[self.i_first],
+                    next_record[self.i_email],
+                    next_record[self.i_mooring],
+                    next_record[self.i_dock],
+                    next_record[self.i_kayak],
+                    ])
+                ret.append(line)
+                #
+            else:
+                pass  # no action necessary
+        return "\n".join(ret)
+
 
     def get_labels2print(self, source_file):
         """
@@ -439,26 +502,33 @@ def ck_fields(source_file):
     for record in bad:
         print("{}, {}".format(record[1], record[0]))
 
+def get_extra_charges():
+    source = Membership(Dummy)
+    source_file = args["-i"]
+    return source.get_extra_charges(source_file)
+
 still_to_consider_doing = """
-    use docopt to allow versioning AND
-    to use command line arguments to specify
-    1. input file (provide file name as argument)
-    2. out put => 
-        a. stdout
-        b. printer
-        c. file (provide file name as argument)
 """
 
 if __name__ == "__main__":
 #   print(args)
+
     if args["ck_fields"]:
         ck_fields(args["-i"])
+
+    elif args["extra_charges"]:
+        print("Selecting members with extra charges:")
+        print("...being sent to {}.".format(args['-o']))
+        output(get_extra_charges())
+
     elif args["compare"]:
         print("{} {}".format(args['<gmail>'], args['<members>']))
+
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
             .format(args['-i'], args['-o']))
         output(get_labels())
+
     elif args["envelopes"]:
         # destination is specified within Membership 
         # method print_custom_envelopes() which is called 
