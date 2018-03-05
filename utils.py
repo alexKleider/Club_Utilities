@@ -3,39 +3,41 @@
 # File: utils.py
 
 """
-Provides functionality for maintanance and usage of the
-Bolinas Rod and Boat Club records: 
-Specifically deals with csv files exported from 'excel' or
-brought in from the club's gmail 'contacts' list.
+-
+"utils.py" is a utility providing functionality for maintanance
+and usage of the Bolinas Rod and Boat Club records. 
 
 Usage:
   ./utils.py --help | --version
   ./utils.py (labels | envelopes) [-p <params>] -i <infile> [-o <outfile>]
   ./utils.py ck_fields -i <infile> [-o <outfile>]
+  ./utils.py compare_gmail <gmail_contacts> -i <infile> [-o <outfile>]
   ./utils.py extra_charges [ -m -d -k ] -i <infile>  [-o <outfile>]
-  ./utils.py compare <gmail> <members> [-o <outfile>]
 
 Options:
   -h --help  Print this docstring.
   --version  Print version.
-  -i <infile>  Specify csv file used as input.
-  -o <outfile>  Specify destination. [default: stdout]
-  -p <params> --parameters=<params>  For lables the default is A5160,
-  for envelopes the default is E0000.
+  -i <infile>  Specify csv file used as input. (Expected to be a
+                membership list of a specific format.)
+  -o <outfile>  Specify destination. Choices are stdout, printer, or
+                the name of a file. [default: stdout]
+  -p <params> --parameters=<params>  If not specified, the default is
+                               A5160 for labels & E000 for envelopes.
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
 
-<outfile> specifies the name of a file to which output will be sent.
-There are two special cases:
-    "printer" will send output to the default printer (default.)
-    "stdout" will send output to the STDOUT.
-If neither of the above two are specified, then output will
-go to a file of the name specified.
-
-the "extra_charges" command provides lists of members with special
-charges. The default is to list all unless one or more of the
-categories (--mooring, --dock, --kayak) are specified.
+Commands:
+    labels: prints labels.
+    envelopes: prints envelopes.
+    ch_fields: checks for correct number of fields in each record.
+    compare_gmail: checks the gmail contacts for incompatabilities
+        with the membership list.
+    extra_charges: provides lists of members with special charges.
+        When none of the optional flags are provide, output is a
+        single list of members with the extra charge(s) for each.
+        If optional flags are provided, output is a separate list for
+        each option specified.
 """
 
 TEMP_FILE = "2print.temp"
@@ -329,6 +331,12 @@ class Membership(object):
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
+    def compare_w_google(self, source_file, google_file):
+        """
+        Checks for incompatibilities between the two files.
+        """
+        pass
+
 
     def get_extra_charges(self, source_file):
         """
@@ -542,8 +550,16 @@ def get_extra_charges():
     source_file = args["-i"]
     return source.get_extra_charges(source_file)
 
-still_to_consider_doing = """
-"""
+def compare():
+    """
+    Reports inconsistencies between the clubs membership list
+    and the google csv file (exported gmail contacts.)
+    """
+    source = Membership(Dummy)
+    source_file = args["-i"]
+    google_file = args['<gmail_contacts>']
+    return source.compare_w_google(source_file, google_file)
+
 
 if __name__ == "__main__":
     print(args)
@@ -556,8 +572,9 @@ if __name__ == "__main__":
         print("...being sent to {}.".format(args['-o']))
         output(get_extra_charges())
 
-    elif args["compare"]:
-        print("{} {}".format(args['<gmail>'], args['<members>']))
+    elif args["compare_gmail"]:
+        print("Check the google list against the membership list.")
+        compare()
 
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
