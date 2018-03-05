@@ -24,7 +24,7 @@ Options:
   for envelopes the default is E0000.
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
-  -k --kayak  List members who store a kayac (include the fee.)
+  -k --kayak  List members who store a kayak (include the fee.)
 
 <outfile> specifies the name of a file to which output will be sent.
 There are two special cases:
@@ -335,11 +335,22 @@ class Membership(object):
         Returns a listing of members who have extra charges
         (for mooring, dock usage, and/or kayak storage.)
         """
+        def line2append(record, cost):
+            return "{} {}:  {}".format(
+                record[self.i_first],
+                record[self.i_last],
+                cost,
+                )
+
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
 
         ret = []
+        all_categories = ["Members with extra charges:",]
+        mooring = ["Members paying for a mooring:",]
+        dock = ["Members paying for dock privileges:",]
+        kayak = ["Members paying for kayak storage:",]
         while True:
             try:
                 next_record = next(record_reader)
@@ -356,7 +367,7 @@ class Membership(object):
                     next_record[self.i_dock],
                     next_record[self.i_kayak],
                     ])
-                ret.append(line)
+                all_categories.append(line)
                 continue
             fees = sum(extras)
             if fees:  # a keeper
@@ -368,11 +379,32 @@ class Membership(object):
                     next_record[self.i_dock],
                     next_record[self.i_kayak],
                     ])
-                ret.append(line)
-                #
+                all_categories.append(line)
+                if extras[0]:
+                    mooring.append(line2append(next_record,
+                        extras[0]))
+                if extras[1]:
+                    dock.append(line2append(next_record,
+                        extras[1]))
+                if extras[2]:
+                    kayak.append(line2append(next_record,
+                        extras[2]))
             else:
                 pass  # no action necessary
-        return "\n".join(ret)
+        if args['--mooring']:
+            ret.append(
+                "\n".join(mooring))
+        if args['--dock']:
+            ret.append(
+                "\n".join(dock))
+        if args['--kayak']:
+            ret.append(
+                "\n".join(kayak))
+        if not (args["--mooring"]
+            or args["--dock"]
+            or args["--kayak"]):
+            return "\n".join(all_categories) 
+        return "\n\n".join(ret)
 
 
     def get_labels2print(self, source_file):
@@ -503,6 +535,9 @@ def ck_fields(source_file):
         print("{}, {}".format(record[1], record[0]))
 
 def get_extra_charges():
+    """
+    Returns a csv report of members with extra charges.
+    """
     source = Membership(Dummy)
     source_file = args["-i"]
     return source.get_extra_charges(source_file)
@@ -511,7 +546,7 @@ still_to_consider_doing = """
 """
 
 if __name__ == "__main__":
-#   print(args)
+    print(args)
 
     if args["ck_fields"]:
         ck_fields(args["-i"])
