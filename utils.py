@@ -11,7 +11,7 @@ Usage:
   ./utils.py --help | --version
   ./utils.py (labels | envelopes) [-p <params>] -i <infile> [-o <outfile>]
   ./utils.py ck_fields -i <infile> [-o <outfile>]
-  ./utils.py compare_gmail <gmail_contacts> -i <infile> [-o <outfile>]
+  ./utils.py compare_gmail [-s <sep>] <gmail_contacts> -i <infile> [-o <outfile>]
   ./utils.py extra_charges [ -m -d -k ] -i <infile>  [-o <outfile>]
 
 Options:
@@ -26,6 +26,8 @@ Options:
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
+  -s <sep> --separator=<sep>  Can choose either a form feed (ff)
+                       or a double line feed(dlf.) [default: dlf]
 
 Commands:
     labels: prints labels.
@@ -50,6 +52,11 @@ import subprocess
 from docopt import docopt
 
 args = docopt(__doc__, version="1.0.0")
+
+if args["--separator"] == "ff":
+    SEPARATOR = '\f'
+else:
+    SEPARATOR = '\n\n'
 
 def output(data, destination=args["-o"]):
     """
@@ -176,6 +183,66 @@ media = dict(
         e000 = E0000,
         a5160 = A5160,
         )
+
+class Google(object):
+    """
+    Helps deal with an exported gmail contacts csv file.
+    """
+    # Record idices:
+    alternate_indicees = """  ## NOT USED
+    i_first = 0  # First Name
+    i_ middle = 1  # Middle Name
+    i_last = 2  #Last Name
+    # 3 Title, 4 Suffix, 5 Initials, 6 Web Page, 7 Gender, 8 Birthday
+    # 9 Anniversary, 10 Location, 11 Language, 12 Internet Free Busy
+    # 13 Notes
+    i_emali = 14  # E-mail Address
+    # 15 E-mail 2 Address, 16 E-mail 3 Address, 17 Primary Phone
+    # 18 Home Phone, 19 Home Phone 2, 20 Mobile Phone, 21 Pager
+    # 22 Home Fax, 23 Home Address, 23 Home Street, 24 Home Street 2
+    # 25 Home Street 3, 26 Home Address PO Box, 27 Home City
+    # 28 Home State, 29 Home Postal Code, 30 Home Country, 31 Spouse
+    # 32 Children, 33 Manager's Name, 34 Assistant's Name
+    # 35 Referred By, 36 Company Main Phone, 37 Business Phone
+    # 38 Business Phone 2, 39 Business Fax, 40 Assistant's Phone
+    # 41 Company, 42 Job Title, 43 Department, 44 Office Location
+    i_title = 42
+    # 45 Organizational ID Number, 46 Profession, 47 Account
+    # 48 Business Address, 49 Business Street, 50 Business Street 2
+    # 51 Business Street 3, 52 Business Address PO Box
+    # 53 Business City, 54 Business State, 55 Business Postal Code
+    # 56 Business Country, 57 Other Phone, 58 Other Fax
+    # 59 Other Address, 60 Other Street, 61 Other Street 2
+    # 62 Other Street 3, 63 Other Address PO Box, 64 Other City
+    # 65 Other State, 66 Other Postal Code, 67 Other Country
+    # 68 Callback, 69 Car Phone, 70 ISDN, 71 Radio Phone
+    # 72 TTY/TDD Phone, 73 Telex, 74 User 1, 75 User 2, 76 User 3
+    # 77 User 4, 78 Keywords, 79 Mileage, 80 Hobby
+    # 81 Billing Information, 82 Directory Server, 83 Sensitivity
+    # 84 Priority, 85 Private, 86 Categories
+"""
+
+    # Record idices:
+    i_name= 0  # Name
+    i_first= 1 # Given Name
+    i_last= 3  # Family Name
+    #2  i_additional= 2 # Aditional Name,  #4 Yomi Name
+    #5 Given Name Yomi,  #6 Additional Name Yomi
+    #7 Family Name Yomi,  #8 Name Prefix,  #9 Name Suffix,
+    #10 Initials,  #11 Nickname,  #12 Short Name,  #13 Maiden Name,
+    #14 Birthday,  #15 Gender,  #16 Location,  #17 Billing Information
+    #18 Directory Server,  #19 Mileage,  #20 Occupation, #21 Hobby,
+    #22 Sensitivity,  #23 Priority,  #24 Subject,  #25 Notes
+    i_groups= 26  # Group Membership
+    #27 E-mail 1 - Type
+    i_email= 28  # E-mail 1 - Value
+    #29 E-mail 2 - Type,  #30 E-mail 2 - Value,  #31 Phone 1 - Type
+    #32 Phone 1 - Value,  #33 Organization 1 - Type
+    #34 Organization 1 - Name,  #35 Organization 1 - Yomi Name
+    #36 Organization 1 - Title,  #37 Organization 1 - Department
+    #38 Organization 1 - Symbol,  #39 Organization 1 - Location
+    i_job=40 #Organization 1 - Job Description
+
 
 # Specify input file and its data:
 class Membership(object):
@@ -335,8 +402,72 @@ class Membership(object):
         """
         Checks for incompatibilities between the two files.
         """
-        pass
+        ret = []
+        bad_matches = ["Common emails but names don't match:"]
+        no_emails = ["Members without emails:", ]
+        emails_not_found = [
+            "Member emails not found in google contacts:", ]
+        # Set up a dict keyed by emails found in the google file.
+        g_dict = dict()
+        with open(google_file, 'r', encoding='utf-16') as file_obj:
+            for line in file_obj:
+                line = line.strip()
+#               _ = input(line)
+                g_rec = line.split(',')
+                key = g_rec[Google.i_email]
+                value = (
+                    g_rec[Google.i_first],
+                    g_rec[Google.i_last],
+                    g_rec[Google.i_groups],
+                    )
+                g_dict[key] = value
+#               _ = input("Key: '{}, Value: '{}".
+#                   format(key, value))
+        # We now have a dict keyed by email address with values 
+        # which can be indexed as follows:
+        # [0] => first name
+        # [1] => last name
+        # [2] => colon separated list of gorups
 
+#       _ = input(g_dict)
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            email = next_record[self.i_email]
+            if email:
+                try:
+                    g_info = g_dict[email]
+                except KeyError:
+                    emails_not_found.append(
+                        "{} {} {}"
+                        .format(next_record[self.i_first],
+                            next_record[self.i_last],
+                            email))
+                    continue
+                info = (next_record[self.i_first], next_record[self.i_last])
+                if info != g_info[:2]:
+                    bad_matches.append("{} {} {}".format(
+                        info, next_record[self.i_email], g_info))
+            else:
+                no_emails.append("{} {}".format(
+                    next_record[self.i_first],
+                    next_record[self.i_last]))
+        for report, report_name in (
+                (bad_matches, "Bad Matches"),
+                (no_emails, "No Emails"),
+                (emails_not_found, "Email not found in Contacts")):
+            if len(report) > 1:
+                formatted_report = "\n".join(report)
+                ret.append(formatted_report)
+            else:
+                ret.append("No entries for '{}'".format(report_name))
+        return SEPARATOR.join(ret)
 
     def get_extra_charges(self, source_file):
         """
@@ -366,6 +497,7 @@ class Membership(object):
                 break
             try:
                 extras = [0 if not i else int(i) for i in next_record[8:]]
+                print(extras)
             except ValueError:
                 line = "HEADERS: " + ",".join([
                     next_record[self.i_last],
@@ -574,7 +706,7 @@ if __name__ == "__main__":
 
     elif args["compare_gmail"]:
         print("Check the google list against the membership list.")
-        compare()
+        output(compare())
 
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
