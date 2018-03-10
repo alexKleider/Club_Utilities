@@ -13,6 +13,7 @@ Usage:
   ./utils.py ck_fields -i <infile> [-o <outfile>]
   ./utils.py compare_gmail [-s <sep>] <gmail_contacts> -i <infile> [-o <outfile>]
   ./utils.py extra_charges [ -m -d -k ] -i <infile>  [-o <outfile>]
+  ./utils.py usps -i <infile> [-o <outfile>]
 
 Options:
   -h --help  Print this docstring.
@@ -40,6 +41,8 @@ Commands:
         single list of members with the extra charge(s) for each.
         If optional flags are provided, output is a separate list for
         each option specified.
+    usps: provides a csv file of members (with their postal addresses)
+        who receive minutes by post (rather than email.)
 """
 
 TEMP_FILE = "2print.temp"
@@ -692,6 +695,35 @@ def compare():
     google_file = args['<gmail_contacts>']
     return source.compare_w_google(source_file, google_file)
 
+def usps():
+    """
+    Provides a csv file consisting of the following fields:
+        first,last,address,town,state,zip
+    including only members who get their copy of meeting minutes
+    by US Postal Service. (Members who are NOT in the 'email only'
+    category.)
+    """
+    record_reader = csv.reader(
+        codecs.open(args["-i"], 'rU', 'utf-8'),
+        dialect='excel')
+    ret = []
+    while True:
+        try:
+            next_record = next(record_reader)
+        except StopIteration:
+            break
+        email_only = next_record[Membership.i_email_only]
+        if not email_only:
+            entry = (
+                next_record[Membership.i_first],
+                next_record[Membership.i_last],
+                next_record[Membership.i_address],
+                next_record[Membership.i_town],
+                next_record[Membership.i_state],
+                next_record[Membership.i_zip],
+                )
+            ret.append(",".join(entry))
+    return "\n".join(ret)
 
 if __name__ == "__main__":
     print(args)
@@ -723,3 +755,8 @@ if __name__ == "__main__":
             .format(args['-i'], args['-o']))
         print_statement_envelopes()
 
+    elif args["usps"]:
+        print("""Preparing a csv file listing
+    (first,last,address,town,state,zip)
+for members who receive meeting minutes by mail.""")
+        output(usps())
