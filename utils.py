@@ -3,17 +3,28 @@
 # File: utils.py
 
 """
--
 "utils.py" is a utility providing functionality for maintanance
 and usage of the Bolinas Rod and Boat Club records. 
 
+Special Note Regarding Emails:
+    Generation and sending of emails are done separately through
+the use of an intermediary JSON file.  This is done purposely to
+encourage proof reading of the emails using the display_json
+command before emails are actually sent using the send_emails
+command.
+
 Usage:
+  ./utils.py
   ./utils.py --help | --version
-  ./utils.py (labels | envelopes) [-p <params>] -i <infile> [-o <outfile>]
-  ./utils.py ck_fields -i <infile> [-o <outfile>]
-  ./utils.py compare_gmail [-s <sep>] <gmail_contacts> -i <infile> [-o <outfile>]
-  ./utils.py extra_charges [ -m -d -k ] -i <infile>  [-o <outfile>]
+  ./utils.py (labels | envelopes) -i <infile> [-p <params> -o <outfile> -x <file>]
+  ./utils.py ck_fields -i <infile> [-o <outfile> -x <file>]
+  ./utils.py compare_gmail <gmail_contacts> -i <infile> [-s <sep> -j <json> -o <outfile>]
+  ./utils.py extra_charges -i <infile> [ -m -d -k  -s <sep> -o <outfile>]
   ./utils.py usps -i <infile> [-o <outfile>]
+  ./utils.py email2json data_file -i <infile> [-e <log>]
+  ./utils.py email_billing2json -i <infile> -o <json_file>
+  ./utils.py send_emails [<content>] -i <json_file>
+  ./utils.py display_json -i <json_file> [-o <txt_file>]
 
 Options:
   -h --help  Print this docstring.
@@ -22,20 +33,28 @@ Options:
                 membership list of a specific format.)
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
-  -p <params> --parameters=<params>  If not specified, the default is
+  -j <json>  Specify an output file in jason if -o is otherwise used.
+  -x <log>  Specify an second output file. Useful for logging.
+  -p <params>  If not specified, the default is
                                A5160 for labels & E000 for envelopes.
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
-  -s <sep> --separator=<sep>  Can choose either a form feed (ff)
-                       or a double line feed(dlf.) [default: dlf]
+  -s <sep> --separator=<sep>  Some of the commands have output in
+        more than one section. These sections can be separated from 
+        one another by either a form feed (ff) (useful if planning to
+        send output to a printer) or a double line feed (dlf.)
+        [default: dlf]
 
 Commands:
-    labels: prints labels.
-    envelopes: prints envelopes.
-    ch_fields: checks for correct number of fields in each record.
+    When run without a command, nothing is done.
+    labels: print labels.
+    envelopes: print envelopes.
+    ck_fields: check for correct number of fields in each record.
     compare_gmail: checks the gmail contacts for incompatabilities
-        with the membership list.
+        with the membership list. Be sure to do a fresh export of the
+        contacts list.  If the -e option is specified, it names the
+        file to which to send emails (in JSON format) to be sent.
     extra_charges: provides lists of members with special charges.
         When none of the optional flags are provide, output is a
         single list of members with the extra charge(s) for each.
@@ -43,6 +62,23 @@ Commands:
         each option specified.
     usps: provides a csv file of members (with their postal addresses)
         who receive minutes by post (rather than email.)
+    email_billings2json: prepares billing statements (as a JSON
+        string) keyed by email address.  
+    send_emails: sends emails to members as described in the "-i" JSON
+        file.  If <content> is NOT provided, the JSON file is expected
+        to consist of an iterable of iterables: the first item of each
+        second level iterable consists of one or more recipient(s) and
+        and the second item is the email message to be sent to the
+        recipients.  If <content> is provided, the content of the so
+        specified file will form the body of the email and the JSON
+        file must again be an iterable of iterables but in this case
+        the lower level iterable is simply a list of recipients (email
+        addresses) to which the content is to be send.
+        Note: the content of each email regardless of how it is
+        provided, must be in proper format with "From:", "To:" &
+        "Subject:" lines (no leading spaces!) followed by the text of
+        the email. The "From:" line should read as follows:
+        "From: rodandboatclub@gmail.com"
 """
 
 TEMP_FILE = "2print.temp"
@@ -51,6 +87,7 @@ TEMP_FILE = "2print.temp"
 import csv
 import codecs
 import sys
+import json
 import subprocess
 from docopt import docopt
 
@@ -60,6 +97,8 @@ if args["--separator"] == "ff":
     SEPARATOR = '\f'
 else:
     SEPARATOR = '\n\n'
+
+SMTP_SERVER = "smtp.gmail.com"
 
 def output(data, destination=args["-o"]):
     """
@@ -265,9 +304,31 @@ class Membership(object):
     i_zip = 5
     i_email = 6
     i_email_only = 7
-    i_mooring = 8
-    i_dock = 9
-    i_kayak = 10
+    i_dues = 8
+    i_mooring = 9
+    i_dock = 10
+    i_kayak = 11
+
+    n_fields_per_record = 12
+
+    membership_dues = 100
+
+    billing_letter_format = """Dear {} {},
+
+    This year the club is attempting to save by sending dues
+notices electronically to all for whom we have an email address
+on file. Please pop a check into the mail addressed to the club
+at:
+    Bolinas Rod and Boat Club
+    Post Office Box 248
+    Bolinas, CA 94924
+
+Your yearly membership fee for the up coming July 1st to June 30th
+membership year is $100.
+{}
+Thanks in advance,
+Membership
+"""
 
     def __init__(self, params):
         """
@@ -276,6 +337,28 @@ class Membership(object):
         """
         self.params = params
         self.params.self_check()
+
+    def ck_fields(self, source_file):
+        """
+        Checks validity of each record in the csv <source_file>
+        So far we only check for self.n_fields_per_record.
+        """
+        print("Checking Fields")
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+        bad = []
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            l = len(next_record)
+            if l == self.n_fields_per_record:
+                print("OK ", end='')
+            else:
+                bad.append("{}, {}".format(record[1], record[0]))
+        return "\n".join(bad)
 
 
     def prn_split(self, field, params):
@@ -405,34 +488,56 @@ class Membership(object):
         """
         Checks for incompatibilities between the two files.
         """
+        # Determine if we'll be sending emails:
+        json_file = args["-j"]
+        # Set up collectors:
+        # ..temporary collectors:
+        g_dict_e = dict()  # keyed by emails, names as values
+        g_dict_n = dict()  # keyed by names, email as values
+        missing_from_google = dict()  # keyed by first/last name tuple
+        names_and_emails = []
+        # Reported:
+        emails_not_found_in_g = []
+        emails_not_found_in_g_header = (
+            "Emails in member list but not in google contacts:")
+        bad_matches = []
+        bad_matches_header = "Common email but names don't match:"
+        no_emails = []
+        no_emails_header = "Members without an email address:"
+        differing_emails = []
+        differing_emails_header = (
+            "Differing emails: g-contacts & memlist:")
+        # the final output
         ret = []
-        bad_matches = ["Common emails but names don't match:"]
-        no_emails = ["Members without emails:", ]
-        emails_not_found = [
-            "Member emails not found in google contacts:", ]
-        # Set up a dict keyed by emails found in the google file.
-        g_dict = dict()
+
+        # Traverse google.csv => g_dict_e and g_dict_n
         with open(google_file, 'r', encoding='utf-16') as file_obj:
             for line in file_obj:
                 line = line.strip()
 #               _ = input(line)
                 g_rec = line.split(',')
+                
                 key = g_rec[Google.i_email]
                 value = (
                     g_rec[Google.i_first],
                     g_rec[Google.i_last],
                     g_rec[Google.i_groups],
                     )
-                g_dict[key] = value
-#               _ = input("Key: '{}, Value: '{}".
+                g_dict_e[key] = value
+                
+                key = (g_rec[Google.i_first], g_rec[Google.i_last],)
+                value = g_rec[Google.i_email]
+                g_dict_n[key] = value
+#               _ = input("Key: '{}', Value: '{}'".
 #                   format(key, value))
-        # We now have a dict keyed by email address with values 
-        # which can be indexed as follows:
+        # We now have two dicts: g_dict_e & g_dict_n
+        # One keyed by email: values can be indexed as follows:
         # [0] => first name
         # [1] => last name
-        # [2] => colon separated list of gorups
+        # [2] => colon separated list of groups
+        # The other keyed by name tuple: value is email
 
-#       _ = input(g_dict)
+        # Next we iterate through the member list...
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
@@ -444,29 +549,102 @@ class Membership(object):
                 break
             email = next_record[self.i_email]
             if email:
-                try:
-                    g_info = g_dict[email]
-                except KeyError:
-                    emails_not_found.append(
+                # append to names_and_emails as a tuple:
+                names_and_emails.append((
+                    (next_record[self.i_first],
+                    next_record[self.i_last]),
+                    email))
+                try: # find out if google knows this email:
+                    g_info = g_dict_e[email]
+                except KeyError:  # if not:
+                    # Add to missing_from_google dict...
+                    missing_from_google[
+                        (next_record[self.i_first],
+                        next_record[self.i_last])
+                        ] = email
+                    # and Append to emails_not_found_in_g...
+                    emails_not_found_in_g.append(
                         "{} {} {}"
                         .format(next_record[self.i_first],
                             next_record[self.i_last],
                             email))
                     continue
-                info = (next_record[self.i_first], next_record[self.i_last])
-                if info != g_info[:2]:
+                # Google knows this email...
+                info = (next_record[self.i_first],
+                    next_record[self.i_last])
+                if info != g_info[:2]:  # but names don't match so
+                    # append to bad_matches..
                     bad_matches.append("{} {} {}".format(
-                        info, next_record[self.i_email], g_info))
-            else:
+                        info, next_record[self.i_email], g_info[:2]))
+            else:  # memlist has no email for this member so..
+                # append to no_emails:
                 no_emails.append("{} {}".format(
                     next_record[self.i_first],
                     next_record[self.i_last]))
-        for report, report_name in (
-                (bad_matches, "Bad Matches"),
-                (no_emails, "No Emails"),
-                (emails_not_found, "Email not found in Contacts")):
-            if len(report) > 1:
-                formatted_report = "\n".join(report)
+        # Finished first traversal of memlist
+
+        # Tabulate the no_emails list to make it more presentable:
+        tabulated = []
+        table_format_string = "{:<23}{:<23}{:<23}"
+        if no_emails:
+            while len(no_emails) % 3:
+                no_emails.append("")
+            for i in range(0, len(no_emails), 3):
+                tabulated.append(table_format_string.format(
+                    no_emails[i],
+                    no_emails[i + 1],
+                    no_emails[i + 2]))
+            no_emails = tabulated
+        
+        # Set up collector in case -j <json_file> is set.
+        email_template = """From: rodandboatclub@gmail.com
+To: {}
+Subject: Which email is best?
+
+Club records have two differing emails for you:
+    "{}" and
+    "{}" .
+Please reply telling us which is the one you want the club to use."""
+        emails2send = []
+
+        # Look for possibly differing emails...
+        for name, email in names_and_emails:
+            try:
+                g_email = g_dict_n[name]
+            except KeyError:
+                continue
+            if g_email != email:
+                differing_emails.append("{:<9} {:<14} {:<27} {}"
+                    .format(
+                        name[0],
+                        name[1],
+                        g_email,
+                        email))
+                if json_file:  # append email to send
+                    recipients = "{}, {}".format(g_email, email)
+                    content = email_template.format(
+                    recipients,
+                    g_email,
+                    email)
+                    emails2send.append((recipients, content))
+
+        if json_file:
+            with open(args["-j"], 'w') as f_obj:
+                json.dump(emails2send, f_obj)
+
+        reports_w_names = (
+            (bad_matches, "Common emails but names don't match:"),
+            (no_emails, no_emails_header),
+            (emails_not_found_in_g,
+                "Member emails not found in google contacts:"),
+            (differing_emails,
+                "Differing emails: Google vs Club"),
+            )
+            
+        for report, report_name in reports_w_names:
+            if len(report):
+                report_w_header = [report_name] + report
+                formatted_report = "\n".join(report_w_header)
                 ret.append(formatted_report)
             else:
                 ret.append("No entries for '{}'".format(report_name))
@@ -499,7 +677,8 @@ class Membership(object):
             except StopIteration:
                 break
             try:
-                extras = [0 if not i else int(i) for i in next_record[8:]]
+                extras = [0 if not i else int(i) for i in
+                    next_record[self.i_mooring:]]
                 print(extras)
             except ValueError:
                 line = "HEADERS: " + ",".join([
@@ -547,7 +726,7 @@ class Membership(object):
             or args["--dock"]
             or args["--kayak"]):
             return "\n".join(all_categories) 
-        return "\n\n".join(ret)
+        return SEPARATOR.join(ret)
 
 
     def get_labels2print(self, source_file):
@@ -637,7 +816,107 @@ class Membership(object):
         print("{} pages ready to print".format(len(pages)))
         return "\f".join(pages) 
 
-def print_statement_envelopes():
+    def get_non_email_only(self, source_file):
+        """
+        Selects members who get their copy of meeting minutes
+        by US Postal Service. (Members who are NOT in the 'email
+        only' category.) Data is presented in csv format consisting
+        of the following fields:
+            first,last,address,town,state,zip
+        """
+        record_reader = csv.reader(
+            codecs.open(args["-i"], 'rU', 'utf-8'),
+            dialect='excel')
+        ret = []
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            email_only = next_record[Membership.i_email_only]
+            if not email_only:
+                entry = (
+                    next_record[Membership.i_first],
+                    next_record[Membership.i_last],
+                    next_record[Membership.i_address],
+                    next_record[Membership.i_town],
+                    next_record[Membership.i_state],
+                    next_record[Membership.i_zip],
+                    )
+                ret.append(",".join(entry))
+        return "\n".join(ret)
+
+    def annual_usps_billing2csv(self, source_file):
+        """
+        Returns (in csv format) billing statement for those
+        members without email addresses.
+        """
+        pass
+
+    def annual_email_billing2json(self, source_file):
+        """
+        Returns a JSON string representing a dictionary-
+        keyed by email addresses,
+        each value is the billing statement to go to that address.
+        """
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+        ret = {}
+        errors = []
+        while True:
+            additional = ['',]
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            email = next_record[self.i_email]
+            if email:
+                try:
+                    extras = [0 if not i else int(i) for i in
+                        next_record[self.i_mooring:]]
+                except ValueError:
+                    line = "HEADERS: " + ",".join([
+                        next_record[self.i_last],
+                        next_record[self.i_first],
+                        next_record[self.i_email],
+                        next_record[self.i_mooring],
+                        next_record[self.i_dock],
+                        next_record[self.i_kayak],
+                        ])
+                    errors.append(line)
+                    continue
+                last = next_record[self.i_last]
+                first = next_record[self.i_first]
+                fees = sum(extras)
+                if fees:
+                    additional.append(
+                        "In addition you are being charged for:")
+                    if extras[0]:
+                        additional.append(
+                            "\tString & Mooring:    ${}"
+                                .format(extras[0]))
+                    if extras[1]:
+                        additional.append(
+                            "\tDock Use:            ${}"
+                                .format(extras[1]))
+                    if extras[2]:
+                        additional.append(
+                            "\tKayak/Canoe Storage: ${}"
+                                .format(extras[2]))
+                    additional.append(
+                        "\nTotal due: ${}"
+                            .format(fees + self.membership_dues))
+                    additional.append("\n")
+                ret[email] = self.billing_letter_format.format(
+                    first, last, '\n'.join(additional))
+        if errors:
+            print("Records that weren't processed:")
+            for error in errors:
+                print(error)
+        return json.dumps(ret)
+
+def envelopes_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
     else:
@@ -646,7 +925,7 @@ def print_statement_envelopes():
     source_file = args["-i"]
     source.print_custom_envelopes(source_file)
 
-def get_labels():
+def labels_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
     else:
@@ -655,29 +934,12 @@ def get_labels():
     source_file = args["-i"]
     return source.get_labels2print(source_file)
 
-def ck_fields(source_file):
-    """
-    Checks validity of each record in the csv <source_file>
-    """
-    print("Checking Fields")
-    record_reader = csv.reader(
-        codecs.open(source_file, 'rU', 'utf-8'),
-        dialect='excel')
-    bad = []
-    while True:
-        try:
-            next_record = next(record_reader)
-        except StopIteration:
-            break
-        l = len(next_record)
-        if l == 11:
-            print("OK ", end='')
-        else:
-            bad.append(next_record)
-    for record in bad:
-        print("{}, {}".format(record[1], record[0]))
+def ck_fields_cmd():
+    source = Membership(Dummy)
+    source_file = args["-i"]
+    return source.ck_fields(source_file)
 
-def get_extra_charges():
+def extra_charges_cmd():
     """
     Returns a csv report of members with extra charges.
     """
@@ -685,7 +947,7 @@ def get_extra_charges():
     source_file = args["-i"]
     return source.get_extra_charges(source_file)
 
-def compare():
+def compare_gmail_cmd():
     """
     Reports inconsistencies between the clubs membership list
     and the google csv file (exported gmail contacts.)
@@ -695,55 +957,142 @@ def compare():
     google_file = args['<gmail_contacts>']
     return source.compare_w_google(source_file, google_file)
 
-def usps():
+def usps_cmd():
     """
-    Provides a csv file consisting of the following fields:
+    Provides what the printer needs to send out minutes.
         first,last,address,town,state,zip
-    including only members who get their copy of meeting minutes
-    by US Postal Service. (Members who are NOT in the 'email only'
-    category.)
+    (Members who are NOT in the 'email only' category.)
     """
-    record_reader = csv.reader(
-        codecs.open(args["-i"], 'rU', 'utf-8'),
-        dialect='excel')
-    ret = []
-    while True:
-        try:
-            next_record = next(record_reader)
-        except StopIteration:
-            break
-        email_only = next_record[Membership.i_email_only]
-        if not email_only:
-            entry = (
-                next_record[Membership.i_first],
-                next_record[Membership.i_last],
-                next_record[Membership.i_address],
-                next_record[Membership.i_town],
-                next_record[Membership.i_state],
-                next_record[Membership.i_zip],
-                )
-            ret.append(",".join(entry))
-    return "\n".join(ret)
+    source = Membership(Dummy)
+    source_file = args["-i"]
+    return source.get_non_mail_only(source_file)
+
+def smtp_file(recipient_email_address, message_file):
+    """
+    Send email as defined in <message_file>
+    to the <recipient_email_address> who will 
+    receive this email from the Bolinas Rod and Boat Club.
+    Note: Must first lower br&bc's account security at:
+    https://myaccount.google.com/lesssecureapps
+    """
+    cmd_args = ("msmtp", "-a", "gmail", recipient_email_address)
+    with open(message_file, 'r') as message:
+        subprocess.run(cmd_args, stdin=message)
+
+def smtp_text(recipient_email_address, message):
+    """
+    Send email as defined in <message_file>
+    to the <recipient_email_address> who will 
+    receive this email from the Bolinas Rod and Boat Club.
+    Note: Must first lower br&bc's account security at:
+    https://myaccount.google.com/lesssecureapps
+    """
+    cmd_args = ("msmtp", "-a", "gmail", recipient_email_address)
+    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
+        input=message, encoding='utf-8')
+    if p.returncode:
+        print("Error: {} ({})".format(
+            p.stdout, recipient_email_address))
+
+def email_billing2json_cmd(infile, json_file):
+    source = Membership(Dummy)
+    source_file = args["-i"]
+    with open(json_file, 'w') as f_obj:
+        f_obj.write(
+            source.annual_email_billing2json(source_file))
+
+def display_emails_cmd(json_file, output_file=None):
+    output = []
+    with open(json_file, 'r') as f_obj:
+        emails = json.load(f_obj)
+        for email in emails:
+            output.append(">>: " + email[0])
+            output.append(email[1])
+            output.append("\n")
+    out_put = "\n".join(output)
+    if output_file:
+        with open(output_file, 'w') as f_obj:
+            f_obj.write(out_put)
+    else:
+        print(out_put)
+
+
+def smtp_send(recipients, message):
+    """
+    Send email, as defined in <message>,
+    to the <recipients> who will receive this email
+    from the Bolinas Rod and Boat Club.
+    <recipients> must be an iterable of one or more email addresses.
+    Note: Must first lower br&bc's account security at:
+    https://myaccount.google.com/lesssecureapps
+    Also Note: <message> must be in proper format with
+    "From:", "To:" & "Subject:" lines (no leading spaces!) followed
+    by the text of the email. The "From:" line should read as follows:
+    "From: rodandboatclub@gmail.com"
+    """
+    cmd_args = ["msmtp", "-a", "gmail"]
+    for recipient in recipients:
+        cmd_args.append(recipient)
+    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
+        input=message, encoding='utf-8')
+    if p.returncode:
+        print("Error: {} ({})".format(
+            p.stdout, recipient))
+
+def send_emails_cmd():
+    """
+    If command line args supply a <content> parameter it is assumed
+    to be the name of a file which will serve as the content of the
+    email(s) to be sent. In this case, the json_file ("-i") parameter
+    specifies a file that when dumped, results in an iterable of
+    iterables; the lower level iterable will consist of one or more
+    strings- each representing a recipient email address.
+    If <content> is not specified, then the json_file is expected
+    to dump into an array of tuples, each consisting of an iterable
+    containing recipients as the first item and the email content
+    as the second item.
+    Note: Regardless of how content is provided, it must be in proper
+    format with "From:", "To:" & "Subject:" lines (no leading
+    spaces!) followed by the text of the email. The "From:" line
+    should read as follows:
+    "From: rodandboatclub@gmail.com"
+    """
+    content = args["<content>"]
+    j_file = args["-i"]
+    message = None
+    if content:
+        with open(content, 'r') as f_obj:
+            message = f_obj.read()
+    with open(j_file, 'r') as f_obj:
+        data = json.load(f_obj)
+    for datum in data:
+        if message:
+            content = message
+            recipients = datum
+        else:
+            recipients = datum[0]
+            content = datum[1]
+
 
 if __name__ == "__main__":
     print(args)
 
     if args["ck_fields"]:
-        ck_fields(args["-i"])
+        ck_fields_cmd(args["-i"])
 
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
         print("...being sent to {}.".format(args['-o']))
-        output(get_extra_charges())
+        output(extra_charges_cmd())
 
     elif args["compare_gmail"]:
         print("Check the google list against the membership list.")
-        output(compare())
+        output(compare_gmail_cmd())
 
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
             .format(args['-i'], args['-o']))
-        output(get_labels())
+        output(labels_cmd())
 
     elif args["envelopes"]:
         # destination is specified within Membership 
@@ -753,10 +1102,28 @@ if __name__ == "__main__":
     addresses sourced from '{}'
     with output sent to '{}'"""
             .format(args['-i'], args['-o']))
-        print_statement_envelopes()
+        envelopes_cmd()
 
     elif args["usps"]:
         print("""Preparing a csv file listing
     (first,last,address,town,state,zip)
 for members who receive meeting minutes by mail.""")
-        output(usps())
+        output(usps_cmd())
+
+    elif args["email_billing2json"]:
+        print("Sending JSON data to {}."
+            .format(args['-o']))
+        email_billing2json_cmd(args['-i'], args['-o'])
+
+    elif args["send_emails"]:
+        print("Sending emails...")
+        send_emails_cmd()
+        print("Done sending emails.")
+
+    elif args['display_json']:
+        if args['-o']:
+            display_emails_cmd(args['-i'], args['-o'])
+        else:
+            display_emails_cmd(args['-i'])
+
+

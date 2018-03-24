@@ -1,1 +1,1 @@
-first,second,address1,City,State,Zip,email,emailOnly,Dock,Mooring,Kayak
+first,last,address,town,state,zip,email,email_only,mooring,dock,kayak
