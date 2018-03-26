@@ -1,17 +1,11 @@
-This repository provides ./label.py
+This repository was begun to provide ./label.py
 
 It grew out of my frustration over not being able to print labels from
-a spredsheet (in my capacity of Membership Secretary for a local club.
+a spredsheet (in my capacity of Membership Secretary for a local
+club.)
 
-Simply export your spreadsheet into a csv text file
-and use it as input for ./label.py
-
-Currently input (and output) files are hard coded so you'll have to
-change the code to suit you particular data base but that shouldn't be
-very difficult.  
-
-The blank label page specifications are defined in one class.
-Another class specifies which data base and the specifics of which
-fields are used.
+It has since grown into a bigger project that provides many things all
+under the umbrella of ./utils.py: try...
+  ./utils.py -h
 
 Comments, suggestions, criticisms ==> alexKleider@gmail.com

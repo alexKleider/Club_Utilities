@@ -1,1 +1,1 @@
-first,last,address,town,state,zip,email,email_only,mooring,dock,kayak
+first,last,address,town,state,zip,email,email_only,dues,mooring,dock,kayak

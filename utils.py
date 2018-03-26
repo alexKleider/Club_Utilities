@@ -11,7 +11,11 @@ Special Note Regarding Emails:
 the use of an intermediary JSON file.  This is done purposely to
 encourage proof reading of the emails using the display_json
 command before emails are actually sent using the send_emails
-command.
+command. Here is the suggested sequence:
+    ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
+    ./utils.py display -i json2send -0 json2check
+    vim json2check
+    ./utils.py send_emails -i json2send
 
 Usage:
   ./utils.py
@@ -53,8 +57,11 @@ Commands:
     ck_fields: check for correct number of fields in each record.
     compare_gmail: checks the gmail contacts for incompatabilities
         with the membership list. Be sure to do a fresh export of the
-        contacts list.  If the -e option is specified, it names the
-        file to which to send emails (in JSON format) to be sent.
+        contacts list.  If the -j option is specified, it names the
+        file to which to send emails (in JSON format) to members with
+        differing emails in the google contacts and the membership
+        list. These can then be proof read before sending them using
+        the 'send_emails' command.
     extra_charges: provides lists of members with special charges.
         When none of the optional flags are provide, output is a
         single list of members with the extra charge(s) for each.
@@ -67,18 +74,18 @@ Commands:
     send_emails: sends emails to members as described in the "-i" JSON
         file.  If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
-        second level iterable consists of one or more recipient(s) and
-        and the second item is the email message to be sent to the
-        recipients.  If <content> is provided, the content of the so
-        specified file will form the body of the email and the JSON
-        file must again be an iterable of iterables but in this case
-        the lower level iterable is simply a list of recipients (email
-        addresses) to which the content is to be send.
-        Note: the content of each email regardless of how it is
-        provided, must be in proper format with "From:", "To:" &
-        "Subject:" lines (no leading spaces!) followed by the text of
-        the email. The "From:" line should read as follows:
-        "From: rodandboatclub@gmail.com"
+        second level iterable consists of an iterable of one or more
+        recipient(s) and and the second item is the email message to
+        be sent to the recipients.  If <content> is provided, the
+        content of the so specified file will form the body of the
+        email and the JSON file must again be an iterable of iterables
+        but in this case the lower level iterable is simply an
+        iterable of recipients (email addresses) to which the content
+        is to be send.  Note: the content of each email regardless of
+        how it is provided, must be in proper format with "From:",
+        "To:" & "Subject:" lines (no leading spaces!) followed by a
+        blank line and then the body of the email. The "From:" line
+        should read as follows: "From: rodandboatclub@gmail.com"
 """
 
 TEMP_FILE = "2print.temp"
@@ -490,12 +497,25 @@ Membership
         """
         # Determine if we'll be sending emails:
         json_file = args["-j"]
+        # In case we are: here's the template:
+        email_template = """From: rodandboatclub@gmail.com
+To: {}
+Subject: Which email is best?
+
+Dear {},
+Club records have two differing emails for you:
+    "{}" and
+    "{}" .
+Please reply telling us which is the one you want the club to use.
+Thanks in advance,
+Membership"""
+
         # Set up collectors:
         # ..temporary collectors:
         g_dict_e = dict()  # keyed by emails, names as values
         g_dict_n = dict()  # keyed by names, email as values
         missing_from_google = dict()  # keyed by first/last name tuple
-        names_and_emails = []
+        names_and_emails = []  # collected from master memlist
         # Reported:
         emails_not_found_in_g = []
         emails_not_found_in_g_header = (
@@ -512,7 +532,7 @@ Membership
 
         # Traverse google.csv => g_dict_e and g_dict_n
         with open(google_file, 'r', encoding='utf-16') as file_obj:
-            for line in file_obj:
+            for line in file_obj:  # ?chanage to using csv module?
                 line = line.strip()
 #               _ = input(line)
                 g_rec = line.split(',')
@@ -521,7 +541,7 @@ Membership
                 value = (
                     g_rec[Google.i_first],
                     g_rec[Google.i_last],
-                    g_rec[Google.i_groups],
+                    g_rec[Google.i_groups],  # ?for future use?
                     )
                 g_dict_e[key] = value
                 
@@ -541,12 +561,12 @@ Membership
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
-
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
+        for next_record in record_reader:
+#       while True:
+#           try:
+#               next_record = next(record_reader)
+#           except StopIteration:
+#               break
             email = next_record[self.i_email]
             if email:
                 # append to names_and_emails as a tuple:
@@ -581,7 +601,7 @@ Membership
                 no_emails.append("{} {}".format(
                     next_record[self.i_first],
                     next_record[self.i_last]))
-        # Finished first traversal of memlist
+        # Finished traversal of memlist
 
         # Tabulate the no_emails list to make it more presentable:
         tabulated = []
@@ -597,14 +617,6 @@ Membership
             no_emails = tabulated
         
         # Set up collector in case -j <json_file> is set.
-        email_template = """From: rodandboatclub@gmail.com
-To: {}
-Subject: Which email is best?
-
-Club records have two differing emails for you:
-    "{}" and
-    "{}" .
-Please reply telling us which is the one you want the club to use."""
         emails2send = []
 
         # Look for possibly differing emails...
@@ -621,11 +633,12 @@ Please reply telling us which is the one you want the club to use."""
                         g_email,
                         email))
                 if json_file:  # append email to send
-                    recipients = "{}, {}".format(g_email, email)
+                    recipients = (g_email, email)
                     content = email_template.format(
-                    recipients,
-                    g_email,
-                    email)
+                        ', '.join(recipients),
+                        " ".join(name),
+                        g_email,
+                        email)
                     emails2send.append((recipients, content))
 
         if json_file:
@@ -952,10 +965,14 @@ def compare_gmail_cmd():
     Reports inconsistencies between the clubs membership list
     and the google csv file (exported gmail contacts.)
     """
-    source = Membership(Dummy)
-    source_file = args["-i"]
-    google_file = args['<gmail_contacts>']
-    return source.compare_w_google(source_file, google_file)
+    confirmation = input("Have you updated your google.csv export? ")
+    if confirmation and confirmation[0] in "yY":
+        source = Membership(Dummy)
+        source_file = args["-i"]
+        google_file = args['<gmail_contacts>']
+        return source.compare_w_google(source_file, google_file)
+    else:
+        print("Best do a Google Contacts export.")
 
 def usps_cmd():
     """
@@ -1002,19 +1019,15 @@ def email_billing2json_cmd(infile, json_file):
             source.annual_email_billing2json(source_file))
 
 def display_emails_cmd(json_file, output_file=None):
-    output = []
+    ret = []
     with open(json_file, 'r') as f_obj:
         emails = json.load(f_obj)
         for email in emails:
-            output.append(">>: " + email[0])
-            output.append(email[1])
-            output.append("\n")
-    out_put = "\n".join(output)
-    if output_file:
-        with open(output_file, 'w') as f_obj:
-            f_obj.write(out_put)
-    else:
-        print(out_put)
+            ret.append("Recipients: {}".format(', '.join(email[0])))
+            ret.append(email[1])
+            ret.append("\n")
+    out_put = "\n".join(ret)
+    output(out_put)
 
 
 def smtp_send(recipients, message):
@@ -1027,8 +1040,8 @@ def smtp_send(recipients, message):
     https://myaccount.google.com/lesssecureapps
     Also Note: <message> must be in proper format with
     "From:", "To:" & "Subject:" lines (no leading spaces!) followed
-    by the text of the email. The "From:" line should read as follows:
-    "From: rodandboatclub@gmail.com"
+    by a blank line and then the text of the email. The "From:" line
+    should read as follows: "From: rodandboatclub@gmail.com"
     """
     cmd_args = ["msmtp", "-a", "gmail"]
     for recipient in recipients:
@@ -1067,15 +1080,16 @@ def send_emails_cmd():
         data = json.load(f_obj)
     for datum in data:
         if message:
-            content = message
             recipients = datum
+            content = message
         else:
             recipients = datum[0]
             content = datum[1]
+        smtp_send(recipients, content)
 
 
 if __name__ == "__main__":
-    print(args)
+#   print(args)
 
     if args["ck_fields"]:
         ck_fields_cmd(args["-i"])
