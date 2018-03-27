@@ -1,3 +1,7 @@
 # File: .gitignore
 __pycache__
+emails2check
+emails2send
+g_comp*
+
 

@@ -237,44 +237,12 @@ class Google(object):
     """
     Helps deal with an exported gmail contacts csv file.
     """
-    # Record idices:
-    alternate_indicees = """  ## NOT USED
-    i_first = 0  # First Name
-    i_ middle = 1  # Middle Name
-    i_last = 2  #Last Name
-    # 3 Title, 4 Suffix, 5 Initials, 6 Web Page, 7 Gender, 8 Birthday
-    # 9 Anniversary, 10 Location, 11 Language, 12 Internet Free Busy
-    # 13 Notes
-    i_emali = 14  # E-mail Address
-    # 15 E-mail 2 Address, 16 E-mail 3 Address, 17 Primary Phone
-    # 18 Home Phone, 19 Home Phone 2, 20 Mobile Phone, 21 Pager
-    # 22 Home Fax, 23 Home Address, 23 Home Street, 24 Home Street 2
-    # 25 Home Street 3, 26 Home Address PO Box, 27 Home City
-    # 28 Home State, 29 Home Postal Code, 30 Home Country, 31 Spouse
-    # 32 Children, 33 Manager's Name, 34 Assistant's Name
-    # 35 Referred By, 36 Company Main Phone, 37 Business Phone
-    # 38 Business Phone 2, 39 Business Fax, 40 Assistant's Phone
-    # 41 Company, 42 Job Title, 43 Department, 44 Office Location
-    i_title = 42
-    # 45 Organizational ID Number, 46 Profession, 47 Account
-    # 48 Business Address, 49 Business Street, 50 Business Street 2
-    # 51 Business Street 3, 52 Business Address PO Box
-    # 53 Business City, 54 Business State, 55 Business Postal Code
-    # 56 Business Country, 57 Other Phone, 58 Other Fax
-    # 59 Other Address, 60 Other Street, 61 Other Street 2
-    # 62 Other Street 3, 63 Other Address PO Box, 64 Other City
-    # 65 Other State, 66 Other Postal Code, 67 Other Country
-    # 68 Callback, 69 Car Phone, 70 ISDN, 71 Radio Phone
-    # 72 TTY/TDD Phone, 73 Telex, 74 User 1, 75 User 2, 76 User 3
-    # 77 User 4, 78 Keywords, 79 Mileage, 80 Hobby
-    # 81 Billing Information, 82 Directory Server, 83 Sensitivity
-    # 84 Priority, 85 Private, 86 Categories
-"""
 
     # Record idices:
-    i_name= 0  # Name
-    i_first= 1 # Given Name
-    i_last= 3  # Family Name
+    i_name = 0  # Name
+    i_first = 1 # Given Name
+    i_middle = 2 # Middle Name
+    i_last = 3  # Family Name
     #2  i_additional= 2 # Aditional Name,  #4 Yomi Name
     #5 Given Name Yomi,  #6 Additional Name Yomi
     #7 Family Name Yomi,  #8 Name Prefix,  #9 Name Suffix,
@@ -282,15 +250,15 @@ class Google(object):
     #14 Birthday,  #15 Gender,  #16 Location,  #17 Billing Information
     #18 Directory Server,  #19 Mileage,  #20 Occupation, #21 Hobby,
     #22 Sensitivity,  #23 Priority,  #24 Subject,  #25 Notes
-    i_groups= 26  # Group Membership
+    i_groups = 26  # Group Membership
     #27 E-mail 1 - Type
-    i_email= 28  # E-mail 1 - Value
+    i_email = 28  # E-mail 1 - Value
     #29 E-mail 2 - Type,  #30 E-mail 2 - Value,  #31 Phone 1 - Type
     #32 Phone 1 - Value,  #33 Organization 1 - Type
     #34 Organization 1 - Name,  #35 Organization 1 - Yomi Name
     #36 Organization 1 - Title,  #37 Organization 1 - Department
     #38 Organization 1 - Symbol,  #39 Organization 1 - Location
-    i_job=40 #Organization 1 - Job Description
+    i_job = 40 #Organization 1 - Job Description
 
 
 # Specify input file and its data:
@@ -303,7 +271,7 @@ class Membership(object):
     Other functionalities are provided as independent functions.
     """
     # define the fields available:
-    i_first= 0
+    i_first = 0
     i_last = 1
     i_address = 2
     i_town = 3
@@ -536,16 +504,19 @@ Membership"""
                 line = line.strip()
 #               _ = input(line)
                 g_rec = line.split(',')
-                
+                first_name = " ".join((
+                    g_rec[Google.i_first],
+                    g_rec[Google.i_middle],
+                    )).strip()
                 key = g_rec[Google.i_email]
                 value = (
-                    g_rec[Google.i_first],
+                    first_name,
                     g_rec[Google.i_last],
                     g_rec[Google.i_groups],  # ?for future use?
                     )
                 g_dict_e[key] = value
                 
-                key = (g_rec[Google.i_first], g_rec[Google.i_last],)
+                key = (first_name, g_rec[Google.i_last],)
                 value = g_rec[Google.i_email]
                 g_dict_n[key] = value
 #               _ = input("Key: '{}', Value: '{}'".
@@ -626,12 +597,13 @@ Membership"""
             except KeyError:
                 continue
             if g_email != email:
-                differing_emails.append("{:<9} {:<14} {:<27} {}"
-                    .format(
-                        name[0],
-                        name[1],
-                        g_email,
-                        email))
+                differing_emails.append(
+                    "{:<9} {:<14} {:<27} {}"
+                        .format(
+                            name[0],
+                            name[1],
+                            "'{}'".format(g_email),
+                            "'{}'".format(email)))
                 if json_file:  # append email to send
                     recipients = (g_email, email)
                     content = email_template.format(
@@ -965,14 +937,17 @@ def compare_gmail_cmd():
     Reports inconsistencies between the clubs membership list
     and the google csv file (exported gmail contacts.)
     """
-    confirmation = input("Have you updated your google.csv export? ")
-    if confirmation and confirmation[0] in "yY":
+
+    verification = "Is your google contacts cvs file up to date? "
+    if verification and input(verification).lower()[0] == 'y':
         source = Membership(Dummy)
         source_file = args["-i"]
         google_file = args['<gmail_contacts>']
         return source.compare_w_google(source_file, google_file)
     else:
-        print("Best do a Google Contacts export.")
+        print(
+            "Best do a Google Contacts export and then begin again.")
+        sys.exit()
 
 def usps_cmd():
     """
@@ -1140,4 +1115,8 @@ for members who receive meeting minutes by mail.""")
         else:
             display_emails_cmd(args['-i'])
 
+    else:
+        print("You've failed to select a command.")
+        print("Try ./utils.py ? # brief!  or")
+        print("    ./utils.py -h # for more detail")
 
