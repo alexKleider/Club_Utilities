@@ -801,7 +801,7 @@ Membership"""
         print("{} pages ready to print".format(len(pages)))
         return "\f".join(pages) 
 
-    def get_non_email_only(self, source_file):
+    def get_USPS_only(self, source_file):
         """
         Selects members who get their copy of meeting minutes
         by US Postal Service. (Members who are NOT in the 'email
@@ -951,13 +951,13 @@ def compare_gmail_cmd():
 
 def usps_cmd():
     """
-    Provides what the printer needs to send out minutes.
+    Generates a cvs file used by Peter to send out minutes.
         first,last,address,town,state,zip
     (Members who are NOT in the 'email only' category.)
     """
     source = Membership(Dummy)
     source_file = args["-i"]
-    return source.get_non_mail_only(source_file)
+    return source.get_USPS_only(source_file)
 
 def smtp_file(recipient_email_address, message_file):
     """
