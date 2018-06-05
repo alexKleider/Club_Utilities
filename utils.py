@@ -27,6 +27,7 @@ Usage:
   ./utils.py usps -i <infile> [-o <outfile>]
   ./utils.py email_billings2json -i <infile> -o <json_file>
   ./utils.py usps_billings2print -i <infile> -b <billings_directory>
+  ./utils.py annual_billings -i <infile> -o <json_file> -b <billings_directory>
   ./utils.py send_emails [<content>] -i <json_file>
   ./utils.py display_json -i <json_file> [-o <txt_file>]
 
@@ -79,8 +80,11 @@ Commands:
         statemen for each member who does not have an email address
         on record. If a directory of the specified name already
         exists, it will be over written!
-    send_emails: sends emails to members as described in the "-i" JSON
-        file.  If <content> is NOT provided, the JSON file is expected
+    annual_billings: Combines the above two into one command- reads
+        the master membership data base (-i <infile>) to create
+        emails (into the -o <json_file>) and letters (into the -b
+        <billings_dirctory>.)
+    send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
         recipient(s) and and the second item is the email message to
@@ -287,22 +291,23 @@ class Membership(object):
     # define the fields available:
     i_first = 0
     i_last = 1
-    i_address = 2
-    i_town = 3
-    i_state = 4
-    i_zip = 5
-    i_email = 6
-    i_email_only = 7
-    i_dues = 8
-    i_mooring = 9
-    i_dock = 10
-    i_kayak = 11
+    i_phone = 2
+    i_address = 3
+    i_town = 4
+    i_state = 5
+    i_zip = 6
+    i_email = 7
+    i_email_only = 8
+    i_dues = 9
+    i_mooring = 10
+    i_dock = 11
+    i_kayak = 12
 
-    n_fields_per_record = 12
+    n_fields_per_record = 13
 
-    membership_dues = 100
-
-    email_billing_letter_format = """
+    email_billing_letter_format = """From: rodandboatclub@gmail.com
+To: {}
+Subject: Annual Dues and Request for demographics
 
 Dear {} {},
 
@@ -319,15 +324,17 @@ Your yearly membership fee for the up coming July 1st to June 30th
 membership year is $100.
 {}
 
-We would also like to verify each member's demographics and add
-a preferred phone number to our data base.  Once this is done, we
-can begin a long overdue update of the membership list that appears
-on the Club's web site.
+We would also like to verify each member's demographics and (if you
+are willing) add a preferred phone number to our data base. Many
+members use the membership list on our web page to find contact
+information for other members.  Once this is done, we can begin an
+update of the membership list that appears on the Club's web site.
 
-Is the folowing your correct (and preferred) address?
+Is the following your correct (and preferred) address?
 {}, {}, {} {}
 
-Please include a preferred phone number along with your payment of dues.
+Please include a preferred phone number (if you'd like other members
+to have access to it) along with your payment of dues.
 
 Thanks in advance,
 Alex Kleider, Membership Chair
@@ -339,45 +346,54 @@ not paid by the end of September.  Do it now before you forget!
 
     usps_billing_letter_format = """
 
-Bolinas Rod and Boat Club
-PO Box 248
-Bolinas, CA 94924
+        Bolinas Rod and Boat Club
+        PO Box 248
+        Bolinas, CA 94924
 
 
-{} {}
+
+
+        {} {}
+        {}
+        {}, {} {}
+
+
+
+        Dear {} {},
+
+            This year the club is attempting to save by sending dues
+        notices electronically but unfortunately we do not have your
+        email address on file. If you have an email account, please
+        let us know so we can add it to the Club data base. Jot it
+        down on a piece of paper and send it to us along with your
+        membership fee to the Club PO Box given above.
+
+            Your yearly membership fee for the up coming July 1st to
+        June 30th membership year is $100.
 {}
-{}, {} {}
+
+            We would also like to verify each member's demographics
+        and (if you are willing) add a preferred phone number to our
+        data base. Many members use the membership list on our web
+        page to find contact information for other members.  Once
+        this is done, we can begin an update of the membership list
+        that appears on the Club's web site.
+
+            Is what appears at the top of this letter your correct
+        (and preferred) address?
+
+            Please include a preferred phone number (if you'd like
+        other members to have access to it) along with your payment
+        of dues.
 
 
-Dear {} {},
+        Thanks in advance,
 
-    This year the club is attempting to save by sending dues
-notices electronically but unfortunately we do not have your
-email address on file. If you have an email account, please
-let us know so we can add it to the Club data base. Jot it
-down on a piece of paper and send it to us along with your
-membership fee to the Club PO Box given above.
+        Alex Kleider, Membership Chair
 
-Your yearly membership fee for the up coming July 1st to June 30th
-membership year is $100.
-{}
-
-We would also like to verify each member's demographics and add
-a preferred phone number to our data base.  Once this is done, we
-can begin a long overdue update of the membership list that appears
-on the Club's web site.
-
-Is what appears at the top of this letter your correct (and preferred)
-address?
-
-Please include a preferred phone number along with your payment of dues.
-
-Thanks in advance,
-Alex Kleider, Membership Chair
-
-PS According to Club rules, if not paid by August 1st, the
-membership fee goes up to $125. Membership lapses if fees are
-not paid by the end of September.  Do it now before you forget!
+        PS According to Club rules, if not paid by August 1st, the
+        membership fee goes up to $125. Membership lapses if fees are
+        not paid by the end of September.  Do it now before you forget!
 """
 
     def __init__(self, params):
@@ -906,6 +922,133 @@ Membership"""
                     )
                 ret.append(",".join(entry))
         return "\n".join(ret)
+    
+    def annual_billings(self, source_file,
+                        json_file, billing_directory):
+        """
+        Prepares annual billing statements.
+        [ i] emails for those with an email address: >> json_file,
+        [ii] letters for those without: >> the billing_directory
+        where each letter is in its own file named according to the
+        member's last_first name.
+        If json_file &/or billing_directory already exist(s),
+        confirmation to over write is sought and program aborted if
+        not obtained.
+        The json_file conforms to the format described in the "If
+        <content> is not specified" section of the send_emails_cmd
+        function's docstring.
+        """
+        if os.path.exists(new_directory):
+            print("The directory '{}' already exists.")
+            response = input("... is it OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                shutil.rmtree(new_directory)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+        os.mkdir(new_directory)
+        if os.path.exists(json_file):
+            print("The file '{}' already exists.")
+            response = input("... is it OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                os.remove(json_file)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+        os.mkdir(new_directory)
+
+        json_ret = []
+        errors = []
+
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            if not next_record:
+                continue
+            additional = ['',]
+            last = next_record[self.i_last]
+            first = next_record[self.i_first]
+            address = next_record[self.i_address]
+            town = next_record[self.i_town]
+            state = next_record[self.i_state]
+            postal_code = next_record[self.i_zip]
+            email = next_record[self.i_email]
+            dues = next_record[self.i_dues]
+            if dues:
+                dues = int(dues)
+            else:
+                dues = 0
+            try:
+                extras = [0 if not i else int(i) for i in
+                    next_record[self.i_mooring:self.i_kayak+1]]
+            except ValueError:
+                line = "HEADERS: " + ",".join([
+                    next_record[self.i_last],
+                    next_record[self.i_first],
+                    next_record[self.i_email],
+                    next_record[self.i_mooring],
+                    next_record[self.i_dock],
+                    next_record[self.i_kayak],
+                    ])
+                errors.append(line)
+                continue
+            fees = sum(extras)
+            if not (fees or dues):
+                continue
+            if fees:
+                additional.append(
+                    "\tIn addition you are being charged for:")
+                if extras[0]:
+                    additional.append(
+                        "\t\tString & Mooring:    ${}"
+                            .format(extras[0]))
+                if extras[1]:
+                    additional.append(
+                        "\t\tDock Use:            ${}"
+                            .format(extras[1]))
+                if extras[2]:
+                    additional.append(
+                        "\t\tKayak/Canoe Storage: ${}"
+                            .format(extras[2]))
+                additional.append(
+                    "\n\tTotal due: ${}"
+                        .format(fees + dues))
+                additional.append("\n")
+            if email:  # put into json_file
+                json_ret.append([[email], 
+                    self.email_billing_letter_format.format(
+                        email,
+                        first, last,
+                        '\n'.join(additional),
+                        address, town, state, postal_code,
+                        )])
+            else:  # send letter to directory
+                path2write = os.path.join(
+                    new_directory, "_".join((last, first)))
+                with open(path2write, "w") as file_object:
+                    file_object.write(
+                        self.usps_billing_letter_format.format(
+                            first, last,
+                            address,
+                            town, state, postal_code,
+                            first, last,
+                            '\n'.join(additional),
+                            )
+                        )
+        with open(json_file, 'w') as file_obj:
+            file_obj.write(json.dumps(json_ret))
+        if errors:
+            print("Records that weren't processed:")
+            for error in errors:
+                print(error)
+
 
     def annual_email_billings2json(self, source_file):
         """
@@ -916,7 +1059,7 @@ Membership"""
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
-        ret = {}
+        ret = []
         errors = []
         while True:
             additional = ['',]
@@ -924,11 +1067,13 @@ Membership"""
                 next_record = next(record_reader)
             except StopIteration:
                 break
+            if not next_record:
+                continue
             email = next_record[self.i_email]
             if email:
                 try:
                     extras = [0 if not i else int(i) for i in
-                        next_record[self.i_mooring:]]
+                        next_record[self.i_mooring:self.i_kayak+1]]
                 except ValueError:
                     line = "HEADERS: " + ",".join([
                         next_record[self.i_last],
@@ -946,7 +1091,14 @@ Membership"""
                 town = next_record[self.i_town]
                 state = next_record[self.i_state]
                 postal_code = next_record[self.i_zip]
+                dues = next_record[self.i_dues]
+                if dues:
+                    dues = int(dues)
+                else:
+                    dues = 0
                 fees = sum(extras)
+                if not (fees or dues):
+                    continue
                 if fees:
                     additional.append(
                         "In addition you are being charged for:")
@@ -964,13 +1116,15 @@ Membership"""
                                 .format(extras[2]))
                     additional.append(
                         "\nTotal due: ${}"
-                            .format(fees + self.membership_dues))
+                            .format(fees + dues))
                     additional.append("\n")
-                ret[email] = self.email_billing_letter_format.format(
-                    first, last,
-                    '\n'.join(additional),
-                    address, town, state, postal_code,
-                    )
+                ret.append([[email], 
+                    self.email_billing_letter_format.format(
+                        email,
+                        first, last,
+                        '\n'.join(additional),
+                        address, town, state, postal_code,
+                        )])
         if errors:
             print("Records that weren't processed:")
             for error in errors:
@@ -1025,6 +1179,13 @@ Membership"""
                 town = next_record[self.i_town]
                 state = next_record[self.i_state]
                 postal_code = next_record[self.i_zip]
+                dues = next_record[self.i_dues]
+                if dues:
+                    dues = int(dues)
+                else:
+                    dues = 0
+                if not (fees or dues):
+                    continue
                 fees = sum(extras)
                 if fees:
                     additional.append(
@@ -1043,7 +1204,7 @@ Membership"""
                                 .format(extras[2]))
                     additional.append(
                         "\nTotal due: ${}"
-                            .format(fees + self.membership_dues))
+                            .format(fees + dues))
                     additional.append("\n")
                 # now send the letter to the directory:
                 path2write = os.path.join(
@@ -1163,14 +1324,18 @@ def usps_billings2print_cmd(infile, output_dir):
     source_file = args["-i"]
     source.annual_usps_billing2dir(source_file, output_dir)
 
+def annual_billings_cmd(infile, json_file, billings_directory)
+    source = Membership(Dummy)
+    source.annual_billings(infile, json_file, billings_directory)
+
 def display_emails_cmd(json_file, output_file=None):
     ret = []
     with open(json_file, 'r') as f_obj:
         emails = json.load(f_obj)
+        print("Type 'emails' is '{}'.".format(type(emails)))
     for recipients in emails:
         ret.append(recipients)
-        textualized_content = emails[recipients].split("\n")
-        for line in textualized_content:
+        for line in emails[recipients]:
             ret.append(line)
     out_put = "\n".join(ret)
     output(out_put)
@@ -1282,6 +1447,13 @@ for members who receive meeting minutes by mail.""")
         print("members without an email address on record.")
         usps_billings2print_cmd(args['-i'], args['-b'])
         print("Done creating statements for printing.")
+
+    elif args["annual_billings"]:
+        print("Preparing annual billing statements: both email and usps.")
+        annual_billings_cmd(args['-i'], args['-o'], args['-b'])
+        print("Done with annual billing statements:")
+        print("Check emails in '{}' and letters in '{}'."
+            .format(json_file, billings_directory))
 
     elif args["send_emails"]:
         print("Sending emails...")
