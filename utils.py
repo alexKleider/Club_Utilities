@@ -30,6 +30,7 @@ Usage:
   ./utils.py annual_billings -i <infile> -o <json_file> -b <billings_directory>
   ./utils.py send_emails [<content>] -i <json_file>
   ./utils.py display_json -i <json_file> [-o <txt_file>]
+  ./utils.py print_letters -b <billings_directory>
 
 Options:
   -h --help  Print this docstring.
@@ -1398,6 +1399,11 @@ def send_emails_cmd():
             content = datum[1]
         smtp_send(recipients, content)
 
+def print_letters(target_dir):
+    for letter_name in os.listdir(target_dir):
+        path_name = os.path.join(target_dir, letter_name)
+        completed = subprocess.run(["lpr", path_name])
+
 
 if __name__ == "__main__":
 #   print(args)
@@ -1459,6 +1465,11 @@ for members who receive meeting minutes by mail.""")
         print("Sending emails...")
         send_emails_cmd()
         print("Done sending emails.")
+
+    elif args["print_letters"]:
+        print("Printing letters ...")
+        print_letters(args["-b"])
+        print("Done printing letters.")
 
     elif args['display_json']:
         if args['-o']:
