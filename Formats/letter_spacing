@@ -1,0 +1,10 @@
+
+Assume '1' based numbering:
+
+            Rows      Columns
+Sender in   5..8      6..29
+Recipient   14..18    6..34
+
+Fold along bottom of row 22
+(along the top of the "Dear ..." line.)
+

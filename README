@@ -6,6 +6,28 @@ club.)
 
 It has since grown into a bigger project that provides many things all
 under the umbrella of ./utils.py: try...
-  ./utils.py -h
+  ./utils.py -h  # very verbose,
+or simply
+  ./utils.py ?  # more succinct.
+
+It now provides a lot of functionality related to membership secretary
+duties (Bolinas Rod & Boat Club) and is based on memlist.csv, the
+club's 'master membership list' and to a lesser extent on the
+'google.csv' file importable from the clubs gmail account.
 
 Comments, suggestions, criticisms ==> alexKleider@gmail.com
+
+
+Other notes (largely to myself:)
+
+For letters to 'fit' the windowed envelopes:
+The sender's address, recipient's address and the "Dear" line
+should begin on lines 3, 12 and 19 respectively.
+Lines should be indented 8 spaces.
+
+Code is backed up on github.com
+Backup for club data is generously provided by the secretary:
+    memlist.csv
+    checks_received
+
+

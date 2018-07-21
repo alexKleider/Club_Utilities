@@ -21,13 +21,15 @@ Usage:
   ./utils.py
   ./utils.py --help | --version
   ./utils.py ck_fields -i <infile> [-o <outfile> -x <file>]
+  ./utils.py show -i <infile> [-o <outfile> ]
   ./utils.py extra_charges -i <infile> [ -m -d -k  -s <sep> -o <outfile>]
   ./utils.py compare_gmail <gmail_contacts> -i <infile> [-s <sep> -j <json> -o <outfile>]
   ./utils.py (labels | envelopes) -i <infile> [-p <params> -o <outfile> -x <file>]
   ./utils.py usps -i <infile> [-o <outfile>]
   ./utils.py email_billings2json -i <infile> -o <json_file>
   ./utils.py usps_billings2print -i <infile> -b <billings_directory>
-  ./utils.py annual_billings -i <infile> -o <json_file> -b <billings_directory>
+  ./utils.py billing -i <infile>  -j <json_file> -b <billings_directory> [-a arrears_file]
+  ./utils.py still_owing -i <infile> -o <outfile>
   ./utils.py send_emails [<content>] -i <json_file>
   ./utils.py display_json -i <json_file> [-o <txt_file>]
   ./utils.py print_letters -b <billings_directory>
@@ -35,6 +37,8 @@ Usage:
 Options:
   -h --help  Print this docstring.
   --version  Print version.
+  -a <arrears_file>  Specify a text file into which will be placed
+                        a list of members still in arrears.
   -i <infile>  Specify csv file used as input. (Expected to be a
                 membership list of a specific format.)
   -o <outfile>  Specify destination. Choices are stdout, printer, or
@@ -57,6 +61,8 @@ Options:
 
 Commands:
     When run without a command, nothing is done.
+    show: returns (to <-o outfile> or to stdout if not specified)
+        the membership demographics for display on the web site.
     labels: print labels.
     envelopes: print envelopes.
     ck_fields: check for correct number of fields in each record.
@@ -81,10 +87,13 @@ Commands:
         statemen for each member who does not have an email address
         on record. If a directory of the specified name already
         exists, it will be over written!
-    annual_billings: Combines the above two into one command- reads
+    billing: Combines the above two into one command- reads
         the master membership data base (-i <infile>) to create
         emails (into the -o <json_file>) and letters (into the -b
-        <billings_dirctory>.)
+        <billings_dirctory>.) This command depends on the presence
+        of the Formats.content (Formats.content.py file) module which
+        can be "edited to suit the season."
+    still_owing: Reports on members with payments still due.
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -104,7 +113,9 @@ Commands:
 """
 
 TEMP_FILE = "2print.temp"
-
+POSTAL_INDENT = 8
+INDENTATION = " " * POSTAL_INDENT
+print("INDENTATION = '{}'".format(INDENTATION))
 
 import os
 import shutil
@@ -289,113 +300,6 @@ class Membership(object):
     preceding classes) is provided as methods of this class.
     Other functionalities are provided as independent functions.
     """
-    # define the fields available:
-    i_first = 0
-    i_last = 1
-    i_phone = 2
-    i_address = 3
-    i_town = 4
-    i_state = 5
-    i_zip = 6
-    i_email = 7
-    i_email_only = 8
-    i_dues = 9
-    i_mooring = 10
-    i_dock = 11
-    i_kayak = 12
-
-    n_fields_per_record = 13
-
-    email_billing_letter_format = """From: rodandboatclub@gmail.com
-To: {}
-Subject: Annual Dues and Request for demographics
-
-Dear {} {},
-
-This year the club is attempting to save by sending dues
-notices electronically to all for whom we have an email
-address on file. Please pop a check into an envelope and
-send it on to the club at:
-
-    Bolinas Rod and Boat Club
-    PO Box 248
-    Bolinas, CA 94924
-
-Your yearly membership fee for the up coming July 1st to June 30th
-membership year is $100.
-{}
-
-We would also like to verify each member's demographics and (if you
-are willing) add a preferred phone number to our data base. Many
-members use the membership list on our web page to find contact
-information for other members.  Once this is done, we can begin an
-update of the membership list that appears on the Club's web site.
-
-Is the following your correct (and preferred) address?
-{}, {}, {} {}
-
-Please include a preferred phone number (if you'd like other members
-to have access to it) along with your payment of dues.
-
-Thanks in advance,
-Alex Kleider, Membership Chair
-
-PS According to Club rules, if not paid by August 1st, the
-membership fee goes up to $125. Membership lapses if fees are
-not paid by the end of September.  Do it now before you forget!
-"""
-
-    usps_billing_letter_format = """
-
-        Bolinas Rod and Boat Club
-        PO Box 248
-        Bolinas, CA 94924
-
-
-
-
-        {} {}
-        {}
-        {}, {} {}
-
-
-
-        Dear {} {},
-
-            This year the club is attempting to save by sending dues
-        notices electronically but unfortunately we do not have your
-        email address on file. If you have an email account, please
-        let us know so we can add it to the Club data base. Jot it
-        down on a piece of paper and send it to us along with your
-        membership fee to the Club PO Box given above.
-
-            Your yearly membership fee for the up coming July 1st to
-        June 30th membership year is $100.
-{}
-
-            We would also like to verify each member's demographics
-        and (if you are willing) add a preferred phone number to our
-        data base. Many members use the membership list on our web
-        page to find contact information for other members.  Once
-        this is done, we can begin an update of the membership list
-        that appears on the Club's web site.
-
-            Is what appears at the top of this letter your correct
-        (and preferred) address?
-
-            Please include a preferred phone number (if you'd like
-        other members to have access to it) along with your payment
-        of dues.
-
-
-        Thanks in advance,
-
-        Alex Kleider, Membership Chair
-
-        PS According to Club rules, if not paid by August 1st, the
-        membership fee goes up to $125. Membership lapses if fees are
-        not paid by the end of September.  Do it now before you forget!
-"""
 
     def __init__(self, params):
         """
@@ -404,6 +308,41 @@ not paid by the end of September.  Do it now before you forget!
         """
         self.params = params
         self.params.self_check()
+
+    # define the fields available and define a method to set up a
+    # dict for each instance:
+    i_first = 0
+    i_last = 1
+    i_phone = 2
+    i_address = 3
+    i_town = 4
+    i_state = 5
+    i_zip_code = 6
+    i_email = 7
+    i_email_only = 8
+    i_dues = 9
+    i_mooring = 10
+    i_dock = 11
+    i_kayak = 12
+
+    n_fields_per_record = 13
+    
+    def make_dict(self, record):
+        return dict(
+            first = record[self.i_first],
+            last = record[self.i_last],
+            phone = record[self.i_phone],
+            address = record[self.i_address],
+            town = record[self.i_town],
+            state = record[self.i_state],
+            zip_code = record[self.i_zip_code],
+            email = record[self.i_email],
+            email_only = record[self.i_email_only],
+            dues = record[self.i_dues],
+            mooring = record[self.i_mooring],
+            dock = record[self.i_dock],
+            kayak = record[self.i_kayak],
+            )
 
     def ck_fields(self, source_file):
         """
@@ -414,19 +353,62 @@ not paid by the end of September.  Do it now before you forget!
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
-        bad = []
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
-            l = len(next_record)
+        bad = [ ]
+        n_ok_records = 0
+        for record in record_reader:
+            if not record:  # allow for empty lines
+                continue
+            temp_dict = self.make_dict(record)
+            l = len(record)
             if l == self.n_fields_per_record:
-                print("OK ", end='')
+#               print("OK ", end='')
+                n_ok_records += 1
             else:
+                print("Bad ", end='')
                 bad.append("{}, {}".format(record[1], record[0]))
-        return "\n".join(bad)
+        print("\nDone checking '{}'.".format(source_file))
+        print("Found {} records that pass the test."
+            .format(n_ok_records))
+        print("If there's a header line, that would be {} records."
+            .format(n_ok_records - 1))
+        if bad:
+            print("Records (if any) that appear to be malformed:\n"
+                + "\n".join(bad))
+        else:
+            print("No bad records detected.")
 
+    def show(self, source_file):
+        """
+        Returns a string consisting of a list of members with their
+        contact information, suitable for display on the web site.
+        """
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+        res = [ ]
+        for record in record_reader:
+            if not record:  # allow for empty lines
+                continue
+            last = record[self.i_last]
+            first = record[self.i_first]
+            phone = record[self.i_phone]
+            address = record[self.i_address]
+            town = record[self.i_town]
+            state = record[self.i_state]
+            postal_code = record[self.i_zip_code]
+            email = record[self.i_email]
+            res.append("{} {}  {}  {}, {}, {} {} {}"
+                .format(
+                    first,
+                    last,
+                    phone,
+                    address,
+                    town,
+                    state,
+                    postal_code,
+                    email,
+                    ))
+        return '\n'.join(res)
 
     def prn_split(self, field, params):
         """
@@ -497,7 +479,7 @@ not paid by the end of September.  Do it now before you forget!
         lines.append("{} {} {}" .format(
             csv_record[self.i_town],
             csv_record[self.i_state],
-            csv_record[self.i_zip]))
+            csv_record[self.i_zip_code]))
         for line in lines:  # Deal with long lines:
             new_lines =  self.prn_split(line, self.params)
             if new_lines:
@@ -628,10 +610,16 @@ Membership"""
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
+        record_number = 0
         for next_record in record_reader:
+            record_number += 1
             if next_record[self.i_first] == "first":
                 continue
-            email = next_record[self.i_email]
+            try:
+                email = next_record[self.i_email]
+            except IndexError:
+                print("Line #{} is faulty"
+                    .format(record_number))
             if email:
                 # append to names_and_emails as a tuple:
                 names_and_emails.append((
@@ -900,7 +888,7 @@ Membership"""
         by US Postal Service. (Members who are NOT in the 'email
         only' category.) Data is presented in csv format consisting
         of the following fields:
-            first,last,address,town,state,zip
+            first,last,address,town,state,zip_code
         """
         record_reader = csv.reader(
             codecs.open(args["-i"], 'rU', 'utf-8'),
@@ -911,6 +899,9 @@ Membership"""
                 next_record = next(record_reader)
             except StopIteration:
                 break
+            print("Processing '{} {}'."
+                .format(next_record[Membership.i_first],
+                    next_record[Membership.i_last]))
             email_only = next_record[Membership.i_email_only]
             if not email_only:
                 entry = (
@@ -919,13 +910,13 @@ Membership"""
                     next_record[Membership.i_address],
                     next_record[Membership.i_town],
                     next_record[Membership.i_state],
-                    next_record[Membership.i_zip],
+                    next_record[Membership.i_zip_code],
                     )
                 ret.append(",".join(entry))
         return "\n".join(ret)
     
-    def annual_billings(self, source_file,
-                        json_file, billing_directory):
+    def billing(self, content, source_file,
+                    json_file, billing_directory):
         """
         Prepares annual billing statements.
         [ i] emails for those with an email address: >> json_file,
@@ -937,114 +928,130 @@ Membership"""
         not obtained.
         The json_file conforms to the format described in the "If
         <content> is not specified" section of the send_emails_cmd
-        function's docstring.
+        method's docstring.
+        This method depends on the presense of <content>, a mapping
+        that can be derived from a module set up for this purpose.
+        i.e. "Formats.content.py": from Formats.content import content
+        This mapping must provide the following keys: "subject",
+        "email_header", "postal_header" and "body", all of which have
+        place holders for formatting.
         """
-        if os.path.exists(new_directory):
-            print("The directory '{}' already exists.")
-            response = input("... is it OK to overwrite it? ")
+
+        def indent(text, indentation=INDENTATION):
+            """
+            Helper function providing indentation for postal content.
+            """
+            split_text = text.split("\n")
+            indented = [indentation + line for line in split_text]
+            return "\n".join(indented)
+
+        # Set up the Billings directory for postal letters.
+        if os.path.exists(billing_directory):
+            print("The directory '{}' already exists."
+                .format(billing_directory))
+            response = input("... OK to overwrite it? ")
             if response and response[0] in "Yy":
-                shutil.rmtree(new_directory)
+                shutil.rmtree(billing_directory)
             else:
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(new_directory)
+        os.mkdir(billing_directory)
+
+        # Check the name of the json output file where emails
+        # are to be stored:
         if os.path.exists(json_file):
-            print("The file '{}' already exists.")
-            response = input("... is it OK to overwrite it? ")
+            print("The file '{}' already exists.".format(json_file))
+            response = input("... OK to overwrite it? ")
             if response and response[0] in "Yy":
                 os.remove(json_file)
             else:
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(new_directory)
 
+        # Set up arrays for collection of the emails and errors.
         json_ret = []
         errors = []
+        arrears = []
 
+        # Provide indented versions for postal letters:
+        postal_body = indent(content["body"])
+        content["postal_header"] = indent(content["postal_header"])
+
+        # Read input and process each member one at a time setting
+        # up a dict to populate the format strings in 'content':
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
-            if not next_record:
+        for next_record in record_reader:
+#           next_record = next_record.strip()
+            if (not next_record or  # Tollerate a blank line.
+                    next_record[0] == "first"):  # Header line.
                 continue
             additional = ['',]
+            m = {  # Member data used to populate format strings.
+                'subject': content['subject'],
+                'last': next_record[self.i_last],
+                'first': next_record[self.i_first],
+                'address': next_record[self.i_address],
+                'town': next_record[self.i_town],
+                'state': next_record[self.i_state],
+                'postal_code': next_record[self.i_zip_code],
+                'email': next_record[self.i_email],
+                'fees': "",
+                }
             last = next_record[self.i_last]
             first = next_record[self.i_first]
             address = next_record[self.i_address]
             town = next_record[self.i_town]
             state = next_record[self.i_state]
-            postal_code = next_record[self.i_zip]
+            postal_code = next_record[self.i_zip_code]
             email = next_record[self.i_email]
-            dues = next_record[self.i_dues]
-            if dues:
-                dues = int(dues)
+            fees = {}
+            fees["Club dues"] = next_record[self.i_dues]
+            fees["Mooring"] = next_record[self.i_mooring]
+            fees["Dock usage"] = next_record[self.i_dock]
+            fees["Kayak storage"] = next_record[self.i_kayak]
+            extras = []
+            total_due = 0
+            for item in ["Club dues", "Mooring",
+                            "Dock usage", "Kayak storage"]:
+                if fees[item]:
+                    fee = int(fees[item])
+                else:
+                    fee = 0
+                if fee:
+                    total_due += fee
+                    extras.append(
+                        "{:<13}: ${}".format(item, fee))
+            if extras:
+                outstanding = ", ".join(extras)
+                extras = "\n".join(extras)
+                extras = "\n" + extras
+                name = first + ' ' + last
+                arrears.append("{:<25} {}".format(
+                    name, outstanding))
             else:
-                dues = 0
-            try:
-                extras = [0 if not i else int(i) for i in
-                    next_record[self.i_mooring:self.i_kayak+1]]
-            except ValueError:
-                line = "HEADERS: " + ",".join([
-                    next_record[self.i_last],
-                    next_record[self.i_first],
-                    next_record[self.i_email],
-                    next_record[self.i_mooring],
-                    next_record[self.i_dock],
-                    next_record[self.i_kayak],
-                    ])
-                errors.append(line)
-                continue
-            fees = sum(extras)
-            if not (fees or dues):
-                continue
-            if fees:
-                additional.append(
-                    "\tIn addition you are being charged for:")
-                if extras[0]:
-                    additional.append(
-                        "\t\tString & Mooring:    ${}"
-                            .format(extras[0]))
-                if extras[1]:
-                    additional.append(
-                        "\t\tDock Use:            ${}"
-                            .format(extras[1]))
-                if extras[2]:
-                    additional.append(
-                        "\t\tKayak/Canoe Storage: ${}"
-                            .format(extras[2]))
-                additional.append(
-                    "\n\tTotal due: ${}"
-                        .format(fees + dues))
-                additional.append("\n")
-            if email:  # put into json_file
-                json_ret.append([[email], 
-                    self.email_billing_letter_format.format(
-                        email,
-                        first, last,
-                        '\n'.join(additional),
-                        address, town, state, postal_code,
-                        )])
-            else:  # send letter to directory
+                extras = "\nYou're all paid up!"
+            if email:  # create email and add to json
+                entry = (content["email_header"] .format(**m)
+                    + content["body"].format(extras))
+                json_ret.append([[email], entry])
+            else:  # create letter and add to directory
+                extras = indent(extras)
+                entry = indent(
+                    content["postal_header"].format(**m)
+                    + postal_body.format(extras))
                 path2write = os.path.join(
-                    new_directory, "_".join((last, first)))
+                    billing_directory, "_".join((last, first)))
                 with open(path2write, "w") as file_object:
-                    file_object.write(
-                        self.usps_billing_letter_format.format(
-                            first, last,
-                            address,
-                            town, state, postal_code,
-                            first, last,
-                            '\n'.join(additional),
-                            )
-                        )
+                    file_object.write(entry)
         with open(json_file, 'w') as file_obj:
             file_obj.write(json.dumps(json_ret))
+        if arrears and args["-a"]:
+            with open(args["-a"], 'w') as file_obj:
+                file_obj.write('\n'.join(arrears))
         if errors:
             print("Records that weren't processed:")
             for error in errors:
@@ -1091,7 +1098,7 @@ Membership"""
                 address = next_record[self.i_address]
                 town = next_record[self.i_town]
                 state = next_record[self.i_state]
-                postal_code = next_record[self.i_zip]
+                postal_code = next_record[self.i_zip_code]
                 dues = next_record[self.i_dues]
                 if dues:
                     dues = int(dues)
@@ -1132,14 +1139,15 @@ Membership"""
                 print(error)
         return json.dumps(ret)
 
-    def annual_usps_billing2dir(self, source_file, new_directory):
+    def annual_usps_billing2dir(self, source_file, New_directory):
         """
         Creates (or replaces) <new_directory> and populates it with
         annual billing statements, one for each member without an
         email addresses on record.
         """
         if os.path.exists(new_directory):
-            print("The directory '{}' already exists.")
+            print("The directory '{}' already exists.".
+                format(new_directory))
             response = input("... is it OK to overwrite it? ")
             if response and response[0] in "Yy":
                 shutil.rmtree(new_directory)
@@ -1179,7 +1187,7 @@ Membership"""
                 address = next_record[self.i_address]
                 town = next_record[self.i_town]
                 state = next_record[self.i_state]
-                postal_code = next_record[self.i_zip]
+                postal_code = next_record[self.i_zip_code]
                 dues = next_record[self.i_dues]
                 if dues:
                     dues = int(dues)
@@ -1225,6 +1233,39 @@ Membership"""
             for error in errors:
                 print(error)
 
+    def still_owing(self, source_file):
+        ret = ["Members with dues &/or fees still outstanding:"]
+        errors = []
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+        for next_record in record_reader:
+            if not next_record:
+                continue
+            last = next_record[self.i_last]
+            first = next_record[self.i_first]
+            dues = next_record[self.i_dues]
+            mooring = next_record[self.i_mooring]
+            dock = next_record[self.i_dock]
+            kayak = next_record[self.i_kayak]
+            if dues == 'dues':  # To bypass header line.
+                continue
+            outstanding = 0
+            for item in (dues, mooring, dock, kayak):
+                if item:
+                    item = int(item)
+                    outstanding += item
+            if outstanding:
+                ret.append("{}, {}, {}".format(
+                    last, first, outstanding))
+        n_delinquent = len(ret) - 1
+        if n_delinquent:
+            ret.append("Number of delinquent members: {}"
+                .format(n_delinquent))
+            return "\n".join(ret)
+        else:
+            return "No delinquent members"
+
 def envelopes_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
@@ -1243,10 +1284,17 @@ def labels_cmd():
     source_file = args["-i"]
     return source.get_labels2print(source_file)
 
+def show_cmd():
+    source = Membership(Dummy)
+    res = source.show(args["-i"])
+    output(res)
+
+
 def ck_fields_cmd():
     source = Membership(Dummy)
-    source_file = args["-i"]
-    return source.ck_fields(source_file)
+    res = source.ck_fields(args["-i"])
+    if res:
+        output(res)
 
 def extra_charges_cmd():
     """
@@ -1276,7 +1324,7 @@ def compare_gmail_cmd():
 def usps_cmd():
     """
     Generates a cvs file used by Peter to send out minutes.
-        first,last,address,town,state,zip
+        first,last,address,town,state,zip_code
     (Members who are NOT in the 'email only' category.)
     """
     source = Membership(Dummy)
@@ -1325,9 +1373,18 @@ def usps_billings2print_cmd(infile, output_dir):
     source_file = args["-i"]
     source.annual_usps_billing2dir(source_file, output_dir)
 
-def annual_billings_cmd(infile, json_file, billings_directory)
+def billing_cmd():
     source = Membership(Dummy)
-    source.annual_billings(infile, json_file, billings_directory)
+    from Formats.content import content
+    # Alternatively, may first run Formats/content.py to create
+    # a json file which can then be "load"ed using the json module.
+    source.billing(content, args["-i"], args["-j"], args["-b"])
+
+def still_owing_cmd():
+    source = Membership(Dummy)
+    res = source.still_owing(args["-i"])
+    output(res)
+    
 
 def display_emails_cmd(json_file, output_file=None):
     ret = []
@@ -1409,7 +1466,10 @@ if __name__ == "__main__":
 #   print(args)
 
     if args["ck_fields"]:
-        ck_fields_cmd(args["-i"])
+        ck_fields_cmd()
+
+    elif args["show"]:
+        show_cmd()
 
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
@@ -1437,7 +1497,7 @@ if __name__ == "__main__":
 
     elif args["usps"]:
         print("""Preparing a csv file listing
-    (first,last,address,town,state,zip)
+    (first,last,address,town,state,zip_code)
 for members who receive meeting minutes by mail.""")
         output(usps_cmd())
 
@@ -1454,12 +1514,16 @@ for members who receive meeting minutes by mail.""")
         usps_billings2print_cmd(args['-i'], args['-b'])
         print("Done creating statements for printing.")
 
-    elif args["annual_billings"]:
+    elif args["billing"]:
         print("Preparing annual billing statements: both email and usps.")
-        annual_billings_cmd(args['-i'], args['-o'], args['-b'])
+        billing_cmd()
         print("Done with annual billing statements:")
         print("Check emails in '{}' and letters in '{}'."
-            .format(json_file, billings_directory))
+            .format(args["-j"], args["-b"]))
+    elif args["still_owing"]:
+        print(
+            "Preparing listing of those with dues/fees outstanding.")
+        still_owing_cmd()
 
     elif args["send_emails"]:
         print("Sending emails...")
