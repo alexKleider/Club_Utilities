@@ -115,14 +115,13 @@ Commands:
 TEMP_FILE = "2print.temp"
 POSTAL_INDENT = 8
 INDENTATION = " " * POSTAL_INDENT
-print("INDENTATION = '{}'".format(INDENTATION))
 
 import os
 import shutil
 import csv
 import codecs
 import sys
-import pprint
+import time
 import json
 import subprocess
 from docopt import docopt
@@ -1040,7 +1039,7 @@ Membership"""
                 json_ret.append([[email], entry])
             else:  # create letter and add to directory
                 extras = indent(extras)
-                entry = indent(
+                entry = (
                     content["postal_header"].format(**m)
                     + postal_body.format(extras))
                 path2write = os.path.join(
@@ -1386,10 +1385,11 @@ def still_owing_cmd():
     output(res)
     
 
-def display_emails_cmd(json_file, output_file=None):
+def display_emails_cmd1(json_file, output_file=None):
     ret = []
     with open(json_file, 'r') as f_obj:
-        emails = json.load(f_obj)
+        data = f_obj.read()
+        emails = json.loads(data)
         print("Type 'emails' is '{}'.".format(type(emails)))
     for recipients in emails:
         ret.append(recipients)
@@ -1398,6 +1398,14 @@ def display_emails_cmd(json_file, output_file=None):
     out_put = "\n".join(ret)
     output(out_put)
 
+def display_emails_cmd(json_file, output_file=None):
+    with open(json_file, 'r') as f_obj:
+        emails = json.load(f_obj)
+        for email in emails:
+            recipients = ', '.join(email[0])
+            print(">>: " + recipients)
+            print(email[1])
+            print()
 
 def smtp_send(recipients, message):
     """
@@ -1447,6 +1455,7 @@ def send_emails_cmd():
             message = f_obj.read()
     with open(j_file, 'r') as f_obj:
         data = json.load(f_obj)
+    counter = 0
     for datum in data:
         if message:
             recipients = datum
@@ -1454,7 +1463,11 @@ def send_emails_cmd():
         else:
             recipients = datum[0]
             content = datum[1]
+        counter += 1
+        print("Sending email #{} to {}."
+            .format(counter, ", ".join(recipients)))
         smtp_send(recipients, content)
+        time.sleep(30)
 
 def print_letters(target_dir):
     for letter_name in os.listdir(target_dir):
