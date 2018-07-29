@@ -21,13 +21,19 @@ Comments, suggestions, criticisms ==> alexKleider@gmail.com
 Other notes (largely to myself:)
 
 For letters to 'fit' the windowed envelopes:
-The sender's address, recipient's address and the "Dear" line
-should begin on lines 3, 12 and 19 respectively.
+The sender's address and recipient's address and the "Dear" line
+should begin on lines 6, 15 and 23 respectively.
 Lines should be indented 8 spaces.
+A date can be on line 11.
+A "Re: {subject}" line is best on line 21.
+If one places "Dear {recipient}" on line 23 then making
+the first fold through it will make the appropriate
+text line up nicely inside the envelope windows.
 
 Code is backed up on github.com
 Backup for club data is generously provided by the secretary:
     memlist.csv
-    checks_received
+    checks_received.txt
+    extra_fees.json
 
 

@@ -11,15 +11,17 @@ subtotal = 0
 with open(input_file, "r") as file_obj:
     for line in file_obj:
         line= line.rstrip()
-        if "LAST" in line:
+        if line[24:27] == "---":
+            print("SubTotal                --- ${}"
+                .format(subtotal))
             subtotal = 0
         try:
             amount = int(line[24:27])
         except (ValueError, IndexError):
-            print("Invalid: '{}'".format(line))
+#           print("Invalid: '{}'".format(line))
             continue
+#       print("Adding ${}.".format(amount))
         total += amount
         subtotal += amount
-print("LAST amount collected:  ${}".format(subtotal))
-print("Total amount collected: ${}".format(total))
-
+print("Grand Total to Date:    --- ---- ${}"
+    .format(total))

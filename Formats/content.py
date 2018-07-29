@@ -88,7 +88,61 @@ Alex Kleider (Membership)"""
 
 }
 
-content = content_july2018
+content_aug2018 = {
+"subject":"August mailing",
+
+"email_header":"""From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header":"""
+
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+Aug 23, 2018
+
+
+
+{first} {last}
+{address}
+{town}, {state} {postal_code}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body":"""
+
+.......
+
+A statement of your current standing will appear bellow;
+If there are any dues or fees outstanding, please pop your
+check into an envelope asap payable and send to the...
+        Bolinas Rod and Boat Club
+        PO Box 0248
+        Bolinas, CA 94924
+{}
+
+Sincerely,
+Alex Kleider (Membership)"""
+
+}
+
+content = content_aug2018
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

@@ -3,8 +3,9 @@
 # File: utils.py
 
 """
-"utils.py" is a utility providing functionality for maintanance
-and usage of the Bolinas Rod and Boat Club records. 
+"utils.py" is a utility providing functionality for usage and
+maintanance of the Bolinas Rod and Boat Club records. It serves
+as an aid to the membership chair.
 
 Special Note Regarding Emails:
     Generation and sending of emails are done separately through
@@ -12,6 +13,7 @@ the use of an intermediary JSON file.  This is done purposely to
 encourage proof reading of the emails using the display_json
 command before emails are actually sent using the send_emails
 command. Here is the suggested sequence:
+    # Export all contacts from gmail account => google.csv
     ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
     ./utils.py display -i json2send -0 json2check
     vim json2check
@@ -20,18 +22,19 @@ command. Here is the suggested sequence:
 Usage:
   ./utils.py
   ./utils.py --help | --version
-  ./utils.py ck_fields -i <infile> [-o <outfile> -x <file>]
-  ./utils.py show -i <infile> [-o <outfile> ]
-  ./utils.py extra_charges -i <infile> [ -m -d -k  -s <sep> -o <outfile>]
-  ./utils.py compare_gmail <gmail_contacts> -i <infile> [-s <sep> -j <json> -o <outfile>]
-  ./utils.py (labels | envelopes) -i <infile> [-p <params> -o <outfile> -x <file>]
-  ./utils.py usps -i <infile> [-o <outfile>]
-  ./utils.py email_billings2json -i <infile> -o <json_file>
-  ./utils.py usps_billings2print -i <infile> -b <billings_directory>
-  ./utils.py billing -i <infile>  -j <json_file> -b <billings_directory> [-a arrears_file]
-  ./utils.py still_owing -i <infile> -o <outfile>
-  ./utils.py send_emails [<content>] -i <json_file>
-  ./utils.py display_json -i <json_file> [-o <txt_file>]
+  ./utils.py ck_fields [-r -i <infile> -o <outfile> -x <file>]
+  ./utils.py show [-r -i <infile> -o <outfile> ]
+  ./utils.py extra_charges [--raw -i <infile> -m -d -k  -s <sep> -o <outfile>]
+  ./utils.py compare_gmail <gmail_contacts> [--raw -i <infile> -s <sep> -j <json> -o <outfile>]
+  ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
+  ./utils.py usps [-i <infile> -o <outfile>]
+  ./utils.py email_billings2json [-i <infile>] -j <json_file>
+  ./utils.py usps_billings2print [-i <infile>] -b <billings_directory>
+  ./utils.py billing [-i <infile>]  -j <json_file> -b <billings_directory> [-a arrears_file]
+  ./utils.py still_owing [--raw -i <infile>] -o <outfile>
+  ./utils.py send_emails [<content>] -j <json_file>
+  ./utils.py restore_fees [-i <infile>] -j <json_fees_file>
+  ./utils.py display_json -j <json_file> [-o <txt_file>]
   ./utils.py print_letters -b <billings_directory>
 
 Options:
@@ -39,25 +42,29 @@ Options:
   --version  Print version.
   -a <arrears_file>  Specify a text file into which will be placed
                         a list of members still in arrears.
-  -i <infile>  Specify csv file used as input. (Expected to be a
-                membership list of a specific format.)
-  -o <outfile>  Specify destination. Choices are stdout, printer, or
-                the name of a file. [default: stdout]
   -b <billings_directory>  The directory to be created and into which
                            will be placed billing statements for
                            members without an email address on record.
+  -i <infile>  Specify csv file used as input. (Expected to be a
+                membership list of a specific format.)
+                [default: memlist.csv]
   -j <json>  Specify an output file in jason if -o is otherwise used.
-  -x <log>  Specify a second output file. Useful for logging.
+  -o <outfile>  Specify destination. Choices are stdout, printer, or
+                the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
-                               A5160 for labels & E000 for envelopes.
-  -m --mooring  List members who have moorings (include the fee.)
-  -d --dock  List members with dock privileges (include the fee.)
-  -k --kayak  List members who store a kayak (include the fee.)
+               A5160 for labels & E000 for envelopes.
+  -r --raw  When used with -o <outfile> headers are NOT printed (to
+              make the output suitable as input for 'tabulate.py'.
   -s <sep> --separator=<sep>  Some of the commands have output in
         more than one section. These sections can be separated from 
         one another by either a form feed (ff) (useful if planning to
         send output to a printer) or a double line feed (dlf.)
         [default: dlf]
+  -x <log>  Specify a second output file. Useful for logging. Not
+          (?yet?) implemented.
+  -m --mooring  List members who have moorings (include the fee.)
+  -d --dock  List members with dock privileges (include the fee.)
+  -k --kayak  List members who store a kayak (include the fee.)
 
 Commands:
     When run without a command, nothing is done.
@@ -115,6 +122,7 @@ Commands:
 TEMP_FILE = "2print.temp"
 POSTAL_INDENT = 8
 INDENTATION = " " * POSTAL_INDENT
+SECRETARY = ("Peter", "Pyle")
 
 import os
 import shutil
@@ -127,6 +135,7 @@ import subprocess
 from docopt import docopt
 
 args = docopt(__doc__, version="1.0.0")
+# print(args)
 
 if args["--separator"] == "ff":
     SEPARATOR = '\f'
@@ -343,10 +352,11 @@ class Membership(object):
             kayak = record[self.i_kayak],
             )
 
-    def ck_fields(self, source_file):
+    def ck_fields(self, source_file, logging):
         """
         Checks validity of each record in the csv <source_file>
         So far we only check for self.n_fields_per_record.
+        Note: <logging> not ?yet? implemented.
         """
         print("Checking Fields")
         record_reader = csv.reader(
@@ -357,7 +367,12 @@ class Membership(object):
         for record in record_reader:
             if not record:  # allow for empty lines
                 continue
-            temp_dict = self.make_dict(record)
+            try:
+                temp_dict = self.make_dict(record)
+            except IndexError:
+                print("Bad ", end='')
+                bad.append("{}, {}".format(record[1], record[0]))
+                continue
             l = len(record)
             if l == self.n_fields_per_record:
 #               print("OK ", end='')
@@ -375,11 +390,20 @@ class Membership(object):
                 + "\n".join(bad))
         else:
             print("No bad records detected.")
+        if args["-o"]:
+            if bad:
+                if not args["--raw"]:
+                    bad = ["Malformed records:"] + bad
+            else:
+                bad = ["No malformed records detected."]
+            with open(args["-o"], 'w') as f_obj:
+                f_obj.write("\n".join(bad))
 
     def show(self, source_file):
         """
-        Returns a string consisting of a list of members with their
-        contact information, suitable for display on the web site.
+        Returns a list of strings: contact info for each member
+        (for display on the web site.) The show_cmd() function
+        handles the list.
         """
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
@@ -888,6 +912,8 @@ Membership"""
         only' category.) Data is presented in csv format consisting
         of the following fields:
             first,last,address,town,state,zip_code
+        Note: The secretary gets included so he/she will receive
+        printed minutes for proof reading.
         """
         record_reader = csv.reader(
             codecs.open(args["-i"], 'rU', 'utf-8'),
@@ -898,11 +924,13 @@ Membership"""
                 next_record = next(record_reader)
             except StopIteration:
                 break
-            print("Processing '{} {}'."
-                .format(next_record[Membership.i_first],
-                    next_record[Membership.i_last]))
+#           print("Processing '{} {}'."
+#               .format(next_record[Membership.i_first],
+#                   next_record[Membership.i_last]))
             email_only = next_record[Membership.i_email_only]
-            if not email_only:
+            if (SECRETARY == (next_record[Membership.i_first],
+                            next_record[Membership.i_last])
+            or not email_only):
                 entry = (
                     next_record[Membership.i_first],
                     next_record[Membership.i_last],
@@ -1233,8 +1261,11 @@ Membership"""
                 print(error)
 
     def still_owing(self, source_file):
-        ret = ["Members with dues &/or fees still outstanding:"]
-        errors = []
+        """
+        Returns a (possibly empty) list of strings, each consisting
+        of a member's name along with dues &/or fees still unpaid.
+        """
+        ret = []
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
@@ -1257,13 +1288,7 @@ Membership"""
             if outstanding:
                 ret.append("{}, {}, {}".format(
                     last, first, outstanding))
-        n_delinquent = len(ret) - 1
-        if n_delinquent:
-            ret.append("Number of delinquent members: {}"
-                .format(n_delinquent))
-            return "\n".join(ret)
-        else:
-            return "No delinquent members"
+        return ret
 
 def envelopes_cmd():
     if args["--parameters"]:
@@ -1286,12 +1311,14 @@ def labels_cmd():
 def show_cmd():
     source = Membership(Dummy)
     res = source.show(args["-i"])
-    output(res)
+    if args['--raw']:
+        res = res[1:]
+    output('\n'.join(res))
 
 
 def ck_fields_cmd():
     source = Membership(Dummy)
-    res = source.ck_fields(args["-i"])
+    res = source.ck_fields(args["-i"], args["-x"])
     if res:
         output(res)
 
@@ -1325,6 +1352,8 @@ def usps_cmd():
     Generates a cvs file used by Peter to send out minutes.
         first,last,address,town,state,zip_code
     (Members who are NOT in the 'email only' category.)
+    Note: Peter (secretary) is purposely NOT 'email_only' so that he
+    can get a copy of the printed minutes for inspection.
     """
     source = Membership(Dummy)
     source_file = args["-i"]
@@ -1381,8 +1410,18 @@ def billing_cmd():
 
 def still_owing_cmd():
     source = Membership(Dummy)
-    res = source.still_owing(args["-i"])
-    output(res)
+    delinquents = source.still_owing(args["-i"])
+    if args["--raw"]:
+        output("\n".join(delinquents))
+        return
+    header = ["Members with dues &/or fees still outstanding:"]
+    n_delinquents = len(delinquents)
+    if n_delinquents:
+        footer = ["Number of delinquent members: {}"
+                .format(n_delinquents)]
+    else:
+        footer = ["No delinquent members."]
+    output("\n".join(header + delinquents + footer))
     
 
 def display_emails_cmd1(json_file, output_file=None):
@@ -1448,7 +1487,7 @@ def send_emails_cmd():
     "From: rodandboatclub@gmail.com"
     """
     content = args["<content>"]
-    j_file = args["-i"]
+    j_file = args["-j"]
     message = None
     if content:
         with open(content, 'r') as f_obj:
@@ -1470,10 +1509,30 @@ def send_emails_cmd():
         time.sleep(30)
 
 def print_letters(target_dir):
+    successes = []
+    failures = []
     for letter_name in os.listdir(target_dir):
         path_name = os.path.join(target_dir, letter_name)
         completed = subprocess.run(["lpr", path_name])
-
+        if completed.returncode:
+            failures.append("Problem ({}) printing '{}'."
+                .format(completed.returncode, path_name))
+        else:
+            successes.append("{}".format(path_name))
+    if successes:
+        successes = ("Following letters printed successfully:\n"
+            + successes)
+    else:
+        successes = ["No file was printed successfully."]
+    if failures:
+        failures = ("Following letters failed to print:\n"
+            + failures)
+    else:
+        failures = ["All files printed successfully."]
+    successes = '\n'.join(successes)
+    failures = '\n'.join(failures)
+    report = successes + SEPARATOR + failures
+    output(report)
 
 if __name__ == "__main__":
 #   print(args)
@@ -1516,8 +1575,8 @@ for members who receive meeting minutes by mail.""")
 
     elif args["email_billings2json"]:
         print("Sending JSON data to {}."
-            .format(args['-o']))
-        email_billings2json_cmd(args['-i'], args['-o'])
+            .format(args['-j']))
+        email_billings2json_cmd(args['-i'], args['-j'])
 
     elif args["usps_billings2print"]:
         print("Creating (or replacing) directory '{}'"
@@ -1550,9 +1609,9 @@ for members who receive meeting minutes by mail.""")
 
     elif args['display_json']:
         if args['-o']:
-            display_emails_cmd(args['-i'], args['-o'])
+            display_emails_cmd(args['-j'], args['-o'])
         else:
-            display_emails_cmd(args['-i'])
+            display_emails_cmd(args['-j'])
 
     else:
         print("You've failed to select a command.")
