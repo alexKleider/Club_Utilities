@@ -103,13 +103,12 @@ Dear {first} {last},
 
 
 
-
 Bolinas Rod and Boat Club
 PO Box 248
 Bolinas, CA 94924
 
 
-Aug 23, 2018
+{date}
 
 
 
@@ -126,23 +125,85 @@ Dear {first} {last},
 """,
 
 "body":"""
+August is upon us and that is when the Club imposes a penalty
+for late payment of dues.
 
-.......
+Records indicate that you are in arrears.  If you feel this
+is incorrect, please speak up[1]- we are only human!
+Otherwise, don't delay sending in your check.  The end of
+September is when anyone who hasn't payed ceases to be a member.
 
-A statement of your current standing will appear bellow;
-If there are any dues or fees outstanding, please pop your
-check into an envelope asap payable and send to the...
+Because this is the first year we've been sending notices by email,
+Club leadership has determined that before late fees are imposed, at
+least one posted notice should be sent out[2] so for this year only,
+late fees will not be imposed until after the fishing derby coming
+up later this month.
+
+Please pop your check into an envelope asap payable and addressed
+to the...
         Bolinas Rod and Boat Club
         PO Box 0248
         Bolinas, CA 94924
+
+Details are as follows:
 {}
 
 Sincerely,
-Alex Kleider (Membership)"""
+Alex Kleider (Membership)
+
+[1] rodandboatclub@gmail.com or a letter to the PO Box
+
+[2] If the club has an email address on file for you, you'll be
+receiving this by email as well as 'snail mail.'
+"""
 
 }
 
 content = content_aug2018
+
+
+def custom_aug2018(record, log = None):
+    """
+    Returns a (possibly empty) list of strings.
+    Determines what to place in the customizable spot of a letter.
+    A specialized version of this function will have to be written
+    for each letter and passed to the <billing> method.
+    <record> should be a dict created by the <make_dict> method of
+    the <Membership> class.
+    <log>, if provided, is assumed to be a mutable iterable.
+    """
+    ret = []
+
+    fees = {}
+    fees["Club dues"] = record["dues"]
+    fees["Mooring"] = record["mooring"]
+    fees["Dock usage"] = record["dock"]
+    fees["Kayak storage"] = record["kayak"]
+    total_due = 0
+    for item in ["Club dues", "Mooring",
+                    "Dock usage", "Kayak storage"]:
+        if fees[item]:
+            fee = int(fees[item])
+        else:
+            fee = 0
+        if fee:
+            total_due += fee
+            ret.append(
+                "{:<13}: ${}".format(item, fee))
+    if ret:
+        if log:
+            log.append("{:<25} {}".format(
+                record["first"] + ' ' + record["last"],
+                ", ".join(ret)))
+        ret.append("Total:           ${}".format(total_due))
+        pass
+
+    else:
+#       ret = ["\nYou're all paid up!"]
+        pass
+    return ret
+
+custom_func = custom_aug2018
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

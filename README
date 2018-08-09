@@ -1,7 +1,7 @@
 This repository was begun to provide ./label.py
 
 It grew out of my frustration over not being able to print labels from
-a spredsheet (in my capacity of Membership Secretary for a local
+a spredsheet (in my capacity as Membership Secretary for a local
 club.)
 
 It has since grown into a bigger project that provides many things all
@@ -20,7 +20,9 @@ Comments, suggestions, criticisms ==> alexKleider@gmail.com
 
 Other notes (largely to myself:)
 
-For letters to 'fit' the windowed envelopes:
+How to make letters 'fit' the windowed envelopes seems to be printer
+dependent!  Hence we should probably set up a 'PrinterSpecs' class;
+For now, note that for the printer in the Bolinas data closet:
 The sender's address and recipient's address and the "Dear" line
 should begin on lines 6, 15 and 23 respectively.
 Lines should be indented 8 spaces.

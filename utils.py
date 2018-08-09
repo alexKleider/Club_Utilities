@@ -115,6 +115,9 @@ Commands:
         "To:" & "Subject:" lines (no leading spaces!) followed by a
         blank line and then the body of the email. The "From:" line
         should read as follows: "From: rodandboatclub@gmail.com"
+        Note: Must first lower br&bc's account security at:
+        https://myaccount.google.com/lesssecureapps
+                 
     display_json:  Provides an opportunity to proof read the emails.
 
 """
@@ -133,6 +136,7 @@ import time
 import json
 import subprocess
 from docopt import docopt
+import Formats
 
 args = docopt(__doc__, version="1.0.0")
 # print(args)
@@ -157,6 +161,7 @@ def output(data, destination=args["-o"]):
             fileobj.write(data)
         subprocess.run(["lpr", TEMP_FILE])
     else:
+        print("Writing to the output file...")
         with open(destination, "w") as fileobj:
             fileobj.write(data)
 
@@ -943,7 +948,8 @@ Membership"""
         return "\n".join(ret)
     
     def billing(self, content, source_file,
-                    json_file, billing_directory):
+                    json_file, billing_directory,
+                    custom_func):
         """
         Prepares annual billing statements.
         [ i] emails for those with an email address: >> json_file,
@@ -1002,9 +1008,14 @@ Membership"""
         errors = []
         arrears = []
 
-        # Provide indented versions for postal letters:
-        postal_body = indent(content["body"])
-        content["postal_header"] = indent(content["postal_header"])
+        # Establish the date (for postal letters.)
+        import datetime
+        format = "%b %d, %Y"
+        today = datetime.datetime.today()
+        s = today.strftime(format)
+        d = datetime.datetime.strptime(s, format)
+        date = d.strftime(format)
+        print("Setting the date to '{}'.".format(date))
 
         # Read input and process each member one at a time setting
         # up a dict to populate the format strings in 'content':
@@ -1013,8 +1024,8 @@ Membership"""
             dialect='excel')
         for next_record in record_reader:
 #           next_record = next_record.strip()
-            if (not next_record or  # Tollerate a blank line.
-                    next_record[0] == "first"):  # Header line.
+            if (not next_record  # Tollerate a blank line.
+                    or next_record[0] == "first"):  # Header line.
                 continue
             additional = ['',]
             m = {  # Member data used to populate format strings.
@@ -1026,54 +1037,54 @@ Membership"""
                 'state': next_record[self.i_state],
                 'postal_code': next_record[self.i_zip_code],
                 'email': next_record[self.i_email],
-                'fees': "",
+                'extras': custom_func(self.make_dict(next_record)),
+                'date': date,
                 }
-            last = next_record[self.i_last]
-            first = next_record[self.i_first]
-            address = next_record[self.i_address]
-            town = next_record[self.i_town]
-            state = next_record[self.i_state]
-            postal_code = next_record[self.i_zip_code]
-            email = next_record[self.i_email]
-            fees = {}
-            fees["Club dues"] = next_record[self.i_dues]
-            fees["Mooring"] = next_record[self.i_mooring]
-            fees["Dock usage"] = next_record[self.i_dock]
-            fees["Kayak storage"] = next_record[self.i_kayak]
-            extras = []
-            total_due = 0
-            for item in ["Club dues", "Mooring",
-                            "Dock usage", "Kayak storage"]:
-                if fees[item]:
-                    fee = int(fees[item])
-                else:
-                    fee = 0
-                if fee:
-                    total_due += fee
-                    extras.append(
-                        "{:<13}: ${}".format(item, fee))
-            if extras:
-                outstanding = ", ".join(extras)
-                extras = "\n".join(extras)
-                extras = "\n" + extras
-                name = first + ' ' + last
+#           print(m['extras'])
+#           s = input("yY to continue.. ")
+#           if not s or not s[0] in "yY":
+#               sys.exit()
+#           last = next_record[self.i_last]
+#           first = next_record[self.i_first]
+#           address = next_record[self.i_address]
+#           town = next_record[self.i_town]
+#           state = next_record[self.i_state]
+#           postal_code = next_record[self.i_zip_code]
+#           email = next_record[self.i_email]
+            if m["extras"]:
+                outstanding = ", ".join(m["extras"])
+                m["extras"] = '\n'.join(m["extras"])
+                name = m['first'] + ' ' + m['last']
                 arrears.append("{:<25} {}".format(
                     name, outstanding))
-            else:
-                extras = "\nYou're all paid up!"
-            if email:  # create email and add to json
+#           else:
+#               m["extras"] = "\nYou're all paid up!"
+
+            # Letter is now set up-
+            # We need to create email &/or letter...
+            if (True
+                and m["extras"]
+                ):
+#           if m["email"]:  # create email and add to json
                 entry = (content["email_header"] .format(**m)
-                    + content["body"].format(extras))
-                json_ret.append([[email], entry])
-            else:  # create letter and add to directory
-                extras = indent(extras)
+                    + content["body"].format(m["extras"]))
+                json_ret.append([[m["email"]], entry])
+#               print("Appended to json_ret")
+            if (True
+                and m["extras"]
+                ):
+#           else:  # create letter and add to directory
+                m["extras"] = indent(m["extras"])
+                m["extras"] = indent(m["extras"])
                 entry = (
                     content["postal_header"].format(**m)
-                    + postal_body.format(extras))
-                path2write = os.path.join(
-                    billing_directory, "_".join((last, first)))
+                    + content["body"].format(m["extras"]))
+                entry = indent(entry)
+                path2write = os.path.join(billing_directory,
+                    "_".join((m['last'], m['first'])))
                 with open(path2write, "w") as file_object:
                     file_object.write(entry)
+        # Comment out next two lines if don't want json (emails.)
         with open(json_file, 'w') as file_obj:
             file_obj.write(json.dumps(json_ret))
         if arrears and args["-a"]:
@@ -1286,7 +1297,11 @@ Membership"""
                     item = int(item)
                     outstanding += item
             if outstanding:
-                ret.append("{}, {}, {}".format(
+                if next_record[self.i_email]:
+                    ret.append("{}, {}, {} (email)".format(
+                    last, first, outstanding))
+                else:
+                    ret.append("{}, {}, {} (USPS)".format(
                     last, first, outstanding))
         return ret
 
@@ -1404,9 +1419,12 @@ def usps_billings2print_cmd(infile, output_dir):
 def billing_cmd():
     source = Membership(Dummy)
     from Formats.content import content
+    from Formats.content import custom_func
     # Alternatively, may first run Formats/content.py to create
     # a json file which can then be "load"ed using the json module.
-    source.billing(content, args["-i"], args["-j"], args["-b"])
+    source.billing(content,
+        args["-i"], args["-j"], args["-b"],
+        custom_func)
 
 def still_owing_cmd():
     source = Membership(Dummy)
@@ -1437,14 +1455,19 @@ def display_emails_cmd1(json_file, output_file=None):
     out_put = "\n".join(ret)
     output(out_put)
 
-def display_emails_cmd(json_file, output_file=None):
+def display_emails_cmd(json_file):
     with open(json_file, 'r') as f_obj:
-        emails = json.load(f_obj)
-        for email in emails:
-            recipients = ', '.join(email[0])
-            print(">>: " + recipients)
-            print(email[1])
-            print()
+        records = json.load(f_obj)
+    all_emails = []
+    for record in records:
+        email = []
+        recipients = ', '.join(record[0])
+        email.append(">>: " + recipients)
+        email.append(record[1])
+        email.append('\n')
+        all_emails.append("\n".join(email))
+    return "\n".join(all_emails)
+
 
 def smtp_send(recipients, message):
     """
@@ -1608,10 +1631,7 @@ for members who receive meeting minutes by mail.""")
         print("Done printing letters.")
 
     elif args['display_json']:
-        if args['-o']:
-            display_emails_cmd(args['-j'], args['-o'])
-        else:
-            display_emails_cmd(args['-j'])
+        output(display_emails_cmd(args['-j']))
 
     else:
         print("You've failed to select a command.")

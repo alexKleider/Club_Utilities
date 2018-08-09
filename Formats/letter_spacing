@@ -1,3 +1,4 @@
+See also the README file.
 
 Assume '1' based numbering:
 
@@ -7,4 +8,19 @@ Recipient   14..18    6..34
 
 Fold along bottom of row 22
 (through the "Dear <recipeint>" line.)
+
+
+
+How to make letters 'fit' the windowed envelopes seems to be printer
+dependent!  Hence we should probably set up a 'PrinterSpecs' class;
+For now, note that for the printer in the Bolinas data closet:
+The sender's address and recipient's address and the "Dear" line
+should begin on lines 6, 15 and 23 respectively.
+Lines should be indented 8 spaces.
+A date can be on line 11.
+A "Re: {subject}" line is best on line 21.
+If one places "Dear {recipient}" on line 23 then making
+the first fold through it will make the appropriate
+text line up nicely inside the envelope windows.
+
 
