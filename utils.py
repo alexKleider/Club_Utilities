@@ -18,6 +18,8 @@ command. Here is the suggested sequence:
     ./utils.py display -i json2send -0 json2check
     vim json2check
     ./utils.py send_emails -i json2send
+The send_emails functionality depends on a ~/.msmtprc (configuration) file.
+# https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
 
 Usage:
   ./utils.py
@@ -33,7 +35,7 @@ Usage:
   ./utils.py billing [-i <infile>]  -j <json_file> -b <billings_directory> [-a arrears_file]
   ./utils.py still_owing [--raw -i <infile>] -o <outfile>
   ./utils.py send_emails [<content>] -j <json_file>
-  ./utils.py restore_fees [-i <infile>] -j <json_fees_file>
+  ./utils.py restore_fees <membership_file> -j <json_fees_file> [-n <new_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
   ./utils.py print_letters -b <billings_directory>
 
@@ -45,10 +47,15 @@ Options:
   -b <billings_directory>  The directory to be created and into which
                            will be placed billing statements for
                            members without an email address on record.
+  -e <error_file>  Specify name of a file to which an error report can
+                  be written.  If not specified, errors are generally
+                  reported to stdout.
   -i <infile>  Specify csv file used as input. (Expected to be a
                 membership list of a specific format.)
                 [default: memlist.csv]
   -j <json>  Specify an output file in jason if -o is otherwise used.
+  -n <new_membership_file>  Specify name of a newly modified
+                              membership csv file.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
@@ -61,7 +68,8 @@ Options:
         send output to a printer) or a double line feed (dlf.)
         [default: dlf]
   -x <log>  Specify a second output file. Useful for logging. Not
-          (?yet?) implemented.
+          (?yet?) implemented.  (To some extent conflicts with the -e
+          <error_file> optioin.)
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
@@ -101,6 +109,12 @@ Commands:
         of the Formats.content (Formats.content.py file) module which
         can be "edited to suit the season."
     still_owing: Reports on members with payments still due.
+    restore_fees: Use this command after all dues and fees have been
+        paid- will abort if any are outstanding. Will modify the
+        membership csv file unless final parameter is specified in
+        which case the output can be checked and then the file renamed
+        if all is in order (or the command rerun without the final
+        parameter.)
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -126,6 +140,7 @@ TEMP_FILE = "2print.temp"
 POSTAL_INDENT = 8
 INDENTATION = " " * POSTAL_INDENT
 SECRETARY = ("Peter", "Pyle")
+DUES = 100
 
 import os
 import shutil
@@ -136,6 +151,7 @@ import time
 import json
 import subprocess
 from docopt import docopt
+from typing import List
 import Formats
 
 args = docopt(__doc__, version="1.0.0")
@@ -436,7 +452,7 @@ class Membership(object):
                     postal_code,
                     email,
                     ))
-        return '\n'.join(res)
+        return res
 
     def prn_split(self, field, params):
         """
@@ -822,6 +838,194 @@ Membership"""
             return "\n".join(all_categories) 
         return SEPARATOR.join(ret)
 
+    @staticmethod
+    def parse_extra_fees(extras_json_file):
+        """
+        Assumes <extras_json_file> consists of a dict with three keys
+        and the value of each is a list consiting of a list of
+        <first_name>, <last_name>, <integer_amount>.
+        Here's the format:
+        { "Mooring": [[<firstname>, <lastname>, <integer_amount>], ...  ],
+        "Dock usage": [[<firstname>, <lastname>, <integer_amount>], ... ],
+        "Kayak storage": [[<firstname>, <lastname>, <integer_amount>], ...]
+        }
+        Returns a dict of the form:
+        {(<last_name>, <first_name>):  # key
+            # value is a tuple with one or more of the following:
+            [('dock', <int_value>),
+             ('kayak', <int_value>),
+             ('mooring', <int_value>)],
+        ...
+        }
+        """
+        def translate(category):
+            """
+            Used to convert the more human readable form into the terse
+            form used as a header/key in the membership data base.
+            """
+            if category == "Mooring":
+                return 'mooring'
+            if category == "Kayak storage":
+                return "kayak"
+            if category == "Dock usage":
+                return "dock"
+
+        with open(extras_json_file, 'r') as file_obj:
+            extra_fees = json.load(file_obj)
+        extras = {}
+        for category in extra_fees.keys():
+            for value in extra_fees[category]:
+                to_add = (translate(category), value[2])
+                name_tuple = (value[1], value[0])
+                _ = extras.setdefault(name_tuple, [])
+                extras[name_tuple].append(to_add)
+        return extras
+
+    def restore_fees(self, membership_csv_file,
+                        fees_json_file,
+                        new_file = None):
+        self.errors = []
+        print(
+            "Preparing to restore dues and fees to the data base...")
+        print(
+            "  1st check that all have been zeroed out...")
+        # ..and at the same time set up a set of name_tuples:
+        still_owing = []
+        mem_name_tuples = set()  # We do this to be able to check that
+        # each member in the extra_fees data base is in fact a member.
+        mem_name_t_list = []
+
+
+        print("openning {}".format(membership_csv_file))
+        with open(membership_csv_file, 'r') as mem_file:
+            file_content = mem_file.read()
+            file_content = file_content.split("\n")
+            print("file contains {} records"
+                .format(len(file_content)))
+            if file_content:
+                headers = file_content[0].split(',')
+                file_content = file_content[1:]
+            for record in file_content:
+                if record:
+                    record = record.split(",")
+                else:
+                    continue
+#               print("after splitting record it becomes...")
+#               print(record)
+                mem_dict = self.make_dict(record)
+#               print("mem_dict is ...")
+#               print(mem_dict)
+                mem_name_tuple = (mem_dict["last"],
+                    mem_dict["first"])
+                mem_name_t_list.append(mem_name_tuple)
+                mem_name_tuples.add(mem_name_tuple)
+                member = ("{}, {}: {{}}"
+                    .format(*mem_name_tuple))
+                fees_outstanding = []
+#               print("Headers are ...")
+#               print(headers)
+                for item in headers[self.i_dues:self.i_kayak + 1]:
+#                   print("item is {}".format(item))
+#                   print("mem_dict[item] is {}"
+#                       .format(mem_dict[item]))
+                    if mem_dict[item] and int(mem_dict[item])>0:
+                        fees_outstanding.append(
+                            "{} {}"
+                            .format(
+                            item,
+                            mem_dict[item]
+                            ))
+                if fees_outstanding:
+                    still_owing.append(
+                        member.format(', '.join(fees_outstanding)))
+
+        with open("names_only.txt", 'w') as names_only_file:
+            for name in mem_name_t_list:
+                names_only_file.write("{}, {}\n".format(*name))
+
+        if still_owing:
+            self.errors = [
+                "The following members have not been zeroed out:"]
+            self.errors = "\n".join(self.errors + still_owing)
+            print("The following have not been zeroed out:")
+            print(self.errors)
+            # self.errors can be sent to an error file by caller.
+            print(
+                "Can't continue until all members are 'zeroed out'.")
+            return 1
+        else:
+            print("All members are zeroed out- OK to continue...")
+            assert not self.errors
+
+        if new_file:
+            print("...planning to create a new file: '{}'."
+                .format(new_file))
+        else:
+            print("...modifying the original file...")
+            response = input(
+                "... the old version will be lost! Continue? (y/n) ")
+            if not response or not response[:1] in 'yY':
+                print("Terminating.")
+                return 1
+            else:
+                new_file = membership_csv_file
+
+        # Preliminaries are done- time to do the work...
+        fees_by_name = self.parse_extra_fees(fees_json_file)
+        fee_name_tuples = set(fees_by_name.keys())
+        fee_name_t_list = list(fee_name_tuples)
+        fee_name_t_list.sort()
+        with open("mem_name_tuples.txt", 'w') as file_obj:
+            for tup in mem_name_t_list:
+                file_obj.write("{}, {}\n".format(*tup))
+        with open("fee_name_tuples.txt", 'w') as file_obj:
+            for tup in fee_name_t_list:
+                file_obj.write("{}, {}\n".format(*tup))
+        if not fee_name_tuples.issubset(mem_name_tuples):
+            print("There's a discrepency- one or more fee paying")
+            print("members are not in the membership data base.")
+            bad_set = fee_name_tuples - mem_name_tuples
+            self.errors.append("Fee payers not in member database:")
+            for last, first in bad_set:
+                error = "{}, {}".format(last, first)
+                print(error)
+                self.errors.append(error)
+            self.errors = '\n'.join(self.errors)
+            return 1
+
+        # Now we are ready to change the
+        # data base (i.e. add dues & fees)
+        new_records = []
+        with open(membership_csv_file, 'r') as file_obj:
+            reader = csv.DictReader(file_obj)
+            key_list = reader.fieldnames  # Save this for later.
+            for record in reader:
+                name_tuple = (record["last"], record["first"])
+                dues = record['dues']
+                if not dues:
+                    dues = 0
+                else:
+                    dues = int(dues)  # To allow for members who pay
+                record['dues'] = dues + DUES  # in advance.
+                if name_tuple in fee_name_tuples:
+                    # We've got fees to enter as well as dues.
+                    print("found '{}' to be charged extra"
+                        .format(', '.join(name_tuple)))
+                    for category, amount in fees_by_name[name_tuple]:
+                        assert isinstance(amount, int)
+                        existing_amount = record[category]
+                        if existing_amount:
+                            existing_amount = int(existing_amount)
+                        else:
+                            existing_amount = 0
+                        record[category] = existing_amount + amount
+                new_records.append(record)
+
+        with open(new_file, 'w') as file_obj:
+            writer = csv.DictWriter(file_obj, fieldnames= key_list)
+            writer.writeheader()
+            for record in new_records:
+                writer.writerow(record)
 
     def get_labels2print(self, source_file):
         """
@@ -1362,6 +1566,30 @@ def compare_gmail_cmd():
             "Best do a Google Contacts export and then begin again.")
         sys.exit()
 
+def restore_fees_cmd():
+    """
+    Assumes the dues paying season is over and all dues and fees
+    fields have been zeroed out (either because members have paid or
+    been dropped from the club roster.)
+    Repopulates the club's master list with the ANNUAL_DUES constant
+    and information from args['<extra_fees.json>'].
+    If '-n <new_membership_file>' is specified, the original
+    membership file is not modified and output is to the new file,
+    else the original file is changed.
+    """
+    source = Membership(Dummy)
+    print(args['-j'])
+    ret = source.restore_fees(
+        args['<membership_file>'],
+        args['-j'],
+        args['-n']
+        )
+    if source.errors and args["-e"]:
+        with open(args["-e"], 'w') as file_obj:
+            file_obj.write(source.errors)
+    if ret:
+        sys.exit(ret)
+
 def usps_cmd():
     """
     Generates a cvs file used by Peter to send out minutes.
@@ -1505,9 +1733,14 @@ def send_emails_cmd():
     as the second item.
     Note: Regardless of how content is provided, it must be in proper
     format with "From:", "To:" & "Subject:" lines (no leading
-    spaces!) followed by the text of the email. The "From:" line
-    should read as follows:
+    spaces!), and then a blank line followed by the text of the email.
+    The "From:" line should read as follows:
     "From: rodandboatclub@gmail.com"
+
+    Note: The send_emails functionality depends on the
+    presence of a ~/.msmtprc configuration file
+    and lowering the gmail account security setting:
+    https://myaccount.google.com/lesssecureapps
     """
     content = args["<content>"]
     j_file = args["-j"]
@@ -1632,6 +1865,9 @@ for members who receive meeting minutes by mail.""")
 
     elif args['display_json']:
         output(display_emails_cmd(args['-j']))
+    
+    elif args['restore_fees']:
+        restore_fees_cmd()
 
     else:
         print("You've failed to select a command.")
