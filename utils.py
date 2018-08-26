@@ -6,6 +6,9 @@
 "utils.py" is a utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club records. It serves
 as an aid to the membership chair.
+Most commands deal with the main club data base which is a csv file
+named "memlist.csv".  Hence it is the default (<-i>) input file
+(using the 'docopt' mechanism for setting defaults.)
 
 Special Note Regarding Emails:
     Generation and sending of emails are done separately through
@@ -15,14 +18,14 @@ command before emails are actually sent using the send_emails
 command. Here is the suggested sequence:
     # Export all contacts from gmail account => google.csv
     ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
-    ./utils.py display -i json2send -0 json2check
+    ./utils.py display -i json2send -o json2check
     vim json2check
     ./utils.py send_emails -i json2send
 The send_emails functionality depends on a ~/.msmtprc (configuration) file.
 # https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
 
 Usage:
-  ./utils.py
+  ./utils.py ?
   ./utils.py --help | --version
   ./utils.py ck_fields [-r -i <infile> -o <outfile> -x <file>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
@@ -38,6 +41,7 @@ Usage:
   ./utils.py restore_fees <membership_file> -j <json_fees_file> [-n <new_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
   ./utils.py print_letters -b <billings_directory>
+  ./utils.py fees_intake [-i <infile> -o <outfile> -e <errorfile>]
 
 Options:
   -h --help  Print this docstring.
@@ -54,8 +58,11 @@ Options:
                 membership list of a specific format.)
                 [default: memlist.csv]
   -j <json>  Specify an output file in jason if -o is otherwise used.
-  -n <new_membership_file>  Specify name of a newly modified
-                              membership csv file.
+  -n <new_file>  An option provided for when one does not want to risk
+                  corruption of an important input file which is to be
+                  modified, thus providing an opportunity for proof
+                  reading the 'modified' file before renaming it to
+                  the original. (Typically named '2proof_read.txt'.)
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
@@ -67,9 +74,6 @@ Options:
         one another by either a form feed (ff) (useful if planning to
         send output to a printer) or a double line feed (dlf.)
         [default: dlf]
-  -x <log>  Specify a second output file. Useful for logging. Not
-          (?yet?) implemented.  (To some extent conflicts with the -e
-          <error_file> optioin.)
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
@@ -78,9 +82,12 @@ Commands:
     When run without a command, nothing is done.
     show: returns (to <-o outfile> or to stdout if not specified)
         the membership demographics for display on the web site.
-    labels: print labels.
-    envelopes: print envelopes.
+        Use of the -r option supresses output of a header line.
+    labels: print labels.       | default: -p A5160  | Both
+    envelopes: print envelopes. | default: -p E000   | redacted.
     ck_fields: check for correct number of fields in each record.
+        Sends results to -o <outfile> only if there are bad records.
+        Use of -r --raw option supresses the header line.
     compare_gmail: checks the gmail contacts for incompatabilities
         with the membership list. Be sure to do a fresh export of the
         contacts list.  If the -j option is specified, it names the
@@ -108,6 +115,9 @@ Commands:
         <billings_dirctory>.) This command depends on the presence
         of the Formats.content (Formats.content.py file) module which
         can be "edited to suit the season."
+        This method pretty much elliminates the need for the the
+        previous 5 commands: labels, envelopes, usps,
+        email_billings2json and usps_billings2print.
     still_owing: Reports on members with payments still due.
     restore_fees: Use this command after all dues and fees have been
         paid- will abort if any are outstanding. Will modify the
@@ -338,6 +348,13 @@ class Membership(object):
         self.params = params
         self.params.self_check()
 
+    # Data bases used:
+    MEMBER_DB = 'memlist.csv'               #|  
+    EXTRA_FEES = 'extra-fees.lst'           #|  To be used
+    CHECKS_RECEIVED = 'checks_received.txt' #|  as defaults.
+    DEFAULT_OUTPUT_FILE = '2read.txt'       #|
+        # the last generally goes to stdout.
+
     # define the fields available and define a method to set up a
     # dict for each instance:
     i_first = 0
@@ -373,11 +390,13 @@ class Membership(object):
             kayak = record[self.i_kayak],
             )
 
-    def ck_fields(self, source_file, logging):
+    def ck_fields(self, source_file):
         """
         Checks validity of each record in the csv <source_file>
         So far we only check for self.n_fields_per_record.
-        Note: <logging> not ?yet? implemented.
+        Prints progress to screen.
+        Sends results to -o <outfile> only if there are bad records.
+        Use of -r --raw option supresses the header line.
         """
         print("Checking Fields")
         record_reader = csv.reader(
@@ -430,6 +449,7 @@ class Membership(object):
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
         res = [ ]
+        first_letter = 'f'
         for record in record_reader:
             if not record:  # allow for empty lines
                 continue
@@ -441,6 +461,9 @@ class Membership(object):
             state = record[self.i_state]
             postal_code = record[self.i_zip_code]
             email = record[self.i_email]
+            if first_letter != last[0]:
+                res.append("")
+                first_letter = last[0]
             res.append("{} {}  {}  {}, {}, {} {} {}"
                 .format(
                     first,
@@ -762,8 +785,9 @@ Membership"""
 
     def get_extra_charges(self, source_file):
         """
-        Returns a listing of members who have extra charges
-        (for mooring, dock usage, and/or kayak storage.)
+        Returns a listing of members who have extra charges listed
+        in the mooring, dock usage, and/or kayak storage fields, along
+        with what is owed for each and the total.
         """
         def line2append(record, cost):
             return "{} {}:  {}".format(
@@ -884,65 +908,34 @@ Membership"""
     def restore_fees(self, membership_csv_file,
                         fees_json_file,
                         new_file = None):
+        """
+        Uses the DUES constant (which perhaps should be made a class
+        attribute but isn't yet) and the contents of the file
+        specified by the <fees_json_file> to determine dues and
+        relevant fees which are then applied to each member's record
+        in the data base (<membership_csv_file>.) In order to protect
+        from the possibility of a bug resulting in corruption of
+        the data base, there is the option of specifying a <new_file>
+        which could then be checked before copying it to the
+        <membership_csv_file>.
+        <self.errors> is an instance attribute that can then be used
+        by a client procedure to check for what ever might be there.
+        Several conditions prevent the method from completing (i.e.
+        actually restoring fees.) In each instance, the specifics are
+        reported inside the <self.errors> attribute.  This happens if
+        any member still has dues or fees owing or if a person appears
+        in the <fees_json_file> but is not a member (i.e. in the
+        <membership_csv_file>.)
+        """
         self.errors = []
         print(
             "Preparing to restore dues and fees to the data base...")
         print(
             "  1st check that all have been zeroed out...")
-        # ..and at the same time set up a set of name_tuples:
-        still_owing = []
-        mem_name_tuples = set()  # We do this to be able to check that
-        # each member in the extra_fees data base is in fact a member.
-        mem_name_t_list = []
-
-
-        print("openning {}".format(membership_csv_file))
-        with open(membership_csv_file, 'r') as mem_file:
-            file_content = mem_file.read()
-            file_content = file_content.split("\n")
-            print("file contains {} records"
-                .format(len(file_content)))
-            if file_content:
-                headers = file_content[0].split(',')
-                file_content = file_content[1:]
-            for record in file_content:
-                if record:
-                    record = record.split(",")
-                else:
-                    continue
-#               print("after splitting record it becomes...")
-#               print(record)
-                mem_dict = self.make_dict(record)
-#               print("mem_dict is ...")
-#               print(mem_dict)
-                mem_name_tuple = (mem_dict["last"],
-                    mem_dict["first"])
-                mem_name_t_list.append(mem_name_tuple)
-                mem_name_tuples.add(mem_name_tuple)
-                member = ("{}, {}: {{}}"
-                    .format(*mem_name_tuple))
-                fees_outstanding = []
-#               print("Headers are ...")
-#               print(headers)
-                for item in headers[self.i_dues:self.i_kayak + 1]:
-#                   print("item is {}".format(item))
-#                   print("mem_dict[item] is {}"
-#                       .format(mem_dict[item]))
-                    if mem_dict[item] and int(mem_dict[item])>0:
-                        fees_outstanding.append(
-                            "{} {}"
-                            .format(
-                            item,
-                            mem_dict[item]
-                            ))
-                if fees_outstanding:
-                    still_owing.append(
-                        member.format(', '.join(fees_outstanding)))
-
-        with open("names_only.txt", 'w') as names_only_file:
-            for name in mem_name_t_list:
-                names_only_file.write("{}, {}\n".format(*name))
-
+        still_owing = self.still_owing(membership_csv_file)
+        mem_name_tuples = self.name_tuples
+        # We do this to be able to check that each member in the
+        # extra_fees data base is in fact a member.
         if still_owing:
             self.errors = [
                 "The following members have not been zeroed out:"]
@@ -975,12 +968,13 @@ Membership"""
         fee_name_tuples = set(fees_by_name.keys())
         fee_name_t_list = list(fee_name_tuples)
         fee_name_t_list.sort()
-        with open("mem_name_tuples.txt", 'w') as file_obj:
-            for tup in mem_name_t_list:
-                file_obj.write("{}, {}\n".format(*tup))
-        with open("fee_name_tuples.txt", 'w') as file_obj:
-            for tup in fee_name_t_list:
-                file_obj.write("{}, {}\n".format(*tup))
+#       The following two files were used for debugging only:
+#       with open("mem_name_tuples.txt", 'w') as file_obj:
+#           for tup in mem_name_t_list:
+#               file_obj.write("{}, {}\n".format(*tup))
+#       with open("fee_name_tuples.txt", 'w') as file_obj:
+#           for tup in fee_name_t_list:
+#               file_obj.write("{}, {}\n".format(*tup))
         if not fee_name_tuples.issubset(mem_name_tuples):
             print("There's a discrepency- one or more fee paying")
             print("members are not in the membership data base.")
@@ -990,6 +984,7 @@ Membership"""
                 error = "{}, {}".format(last, first)
                 print(error)
                 self.errors.append(error)
+            self.errors.sort()
             self.errors = '\n'.join(self.errors)
             return 1
 
@@ -1026,6 +1021,9 @@ Membership"""
             writer.writeheader()
             for record in new_records:
                 writer.writerow(record)
+        print("Done with application of dues and fees...")
+        print("...updated membership file is '{}'."
+            .format(new_file))
 
     def get_labels2print(self, source_file):
         """
@@ -1172,6 +1170,9 @@ Membership"""
         This mapping must provide the following keys: "subject",
         "email_header", "postal_header" and "body", all of which have
         place holders for formatting.
+        This method pretty much elliminates the need for the following
+        five commands: labels, envelopes, usps, email_billings2json
+        and usps_billings2print.
         """
 
         def indent(text, indentation=INDENTATION):
@@ -1479,8 +1480,66 @@ Membership"""
         """
         Returns a (possibly empty) list of strings, each consisting
         of a member's name along with dues &/or fees still unpaid.
+        Sets the instance attribute (self.added_info) to provide
+        access to list of members with a positive balance.
+        Also sets the instance attribute (self.name_tuples) used
+        by the restore_fees method.
+        """
+        still_owing = []
+        self.added_info = []
+        self.name_tuples = set()  # The restore_fees method needs this
+        # info (to check that each member in the extra_fees data base
+        # is in fact a member.)
+        print("Openning {}".format(source_file))
+        with open(source_file, 'r') as mem_file:
+            file_content = mem_file.read()
+            file_content = file_content.split("\n")
+            print("file contains {} records"
+                .format(len(file_content)))
+            if file_content:
+                headers = file_content[0].split(',')
+                file_content = file_content[1:]
+            for record in file_content:
+                if record:
+                    record = record.split(",")
+                else:
+                    continue
+#               print("after splitting record it becomes...")
+#               print(record)
+                mem_dict = self.make_dict(record)
+#               print("mem_dict is ...")
+#               print(mem_dict)
+                mem_name_tuple = (mem_dict["last"],
+                    mem_dict["first"])
+                self.name_tuples.add(mem_name_tuple)
+                member = ("{}, {}: {{}}"
+                    .format(*mem_name_tuple))
+                fees_outstanding = []
+#               print("Headers are ...")
+#               print(headers)
+                for item in headers[self.i_dues:self.i_kayak + 1]:
+#                   print("item is {}".format(item))
+#                   print("mem_dict[item] is {}"
+#                       .format(mem_dict[item]))
+                    if mem_dict[item] and int(mem_dict[item])>0:
+                        fees_outstanding.append(
+                            "{} {}"
+                            .format(
+                            item,
+                            mem_dict[item]
+                            ))
+                if fees_outstanding:
+                    still_owing.append(
+                        member.format(', '.join(fees_outstanding)))
+        return still_owing
+
+    def still_owing_old(self, source_file):
+        """
+        Returns a (possibly empty) list of strings, each consisting
+        of a member's name along with dues &/or fees still unpaid.
         """
         ret = []
+        pos_balance = []
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
@@ -1500,14 +1559,64 @@ Membership"""
                 if item:
                     item = int(item)
                     outstanding += item
-            if outstanding:
+            if outstanding > 0:
                 if next_record[self.i_email]:
                     ret.append("{}, {}, {} (email)".format(
                     last, first, outstanding))
                 else:
                     ret.append("{}, {}, {} (USPS)".format(
                     last, first, outstanding))
+            if outstanding < 0:
+                if next_record[self.i_email]:
+                    pos_balance.append("{}, {}, {} (email)".format(
+                    last, first, outstanding))
+                else:
+                    pos_balance.append("{}, {}, {} (USPS)".format(
+                    last, first, outstanding))
+        if pos_balance:
+            self.added_info = [
+                "\nThe following have paid in advance:"]
+            self.added_info.extend(pos_balance)
         return ret
+
+    def fees_intake(self, infile=CHECKS_RECEIVED):
+        """
+        Returns a list of strings.
+        Replaces the received_totals.py script.
+        Leaves self.invalid_lines if client wishes to know....
+        (only reason it's a class method rather than a function.)
+        """
+        res = ["Fees taken in to date:"]
+        self.invalid_lines = []
+
+        total = 0
+        subtotal = 0
+        date = ''
+
+        with open(infile, "r") as file_obj:
+            for line in file_obj:
+                line= line.rstrip()
+                if line[:5] == "Date:":
+                    date = line
+                if (line[24:27] == "---") and subtotal:
+                    res.append("    SubTotal        --- ${}"
+                        .format(subtotal))
+        #           res.append("{}\n    SubTotal        --- ${}"
+        #               .format(date, subtotal))
+                    subtotal = 0
+                try:
+                    amount = int(line[24:27])
+                except (ValueError, IndexError):
+                    self.invalid_lines.append(line)
+                    continue
+        #       res.append("Adding ${}.".format(amount))
+                total += amount
+                subtotal += amount
+        res.append("Grand Total to Date:    --- ---- ${}"
+            .format(total))
+#       print("returning {}".format(res))
+        return res
+
 
 def envelopes_cmd():
     if args["--parameters"]:
@@ -1667,7 +1776,30 @@ def still_owing_cmd():
                 .format(n_delinquents)]
     else:
         footer = ["No delinquent members."]
-    output("\n".join(header + delinquents + footer))
+    if source.added_info:
+        output("\n".join(header + delinquents + footer
+            + source.added_info))
+    else:
+        output("\n".join(header + delinquents + footer))
+
+def fees_intake_cmd():
+    infile = args['-i']
+    outfile = args['-o']
+    errorfile = args['-e']
+    source = Membership(Dummy)
+    if infile:
+        fees_taken_in = source.fees_intake(infile)
+    else:
+        fees_taken_in = source.fees_intake()
+    res = '\n'.join(fees_taken_in)
+    if not outfile or outfile == 'stdout':
+        print(res)
+    else:
+        with open(outfile, 'w') as file_obj:
+            file_obj.write(res)
+    if source.invalid_lines and errorfile:
+        with open(errorfile, 'w') as file_obj:
+            file_obj.write('\n'.join(source.invalid_lines))
     
 
 def display_emails_cmd1(json_file, output_file=None):
@@ -1790,10 +1922,15 @@ def print_letters(target_dir):
     report = successes + SEPARATOR + failures
     output(report)
 
+
 if __name__ == "__main__":
 #   print(args)
 
-    if args["ck_fields"]:
+    if args["?"]:
+        doc_lines = __doc__.split('\n') 
+        print('\n'.join(doc_lines[22:40]))
+
+    elif args["ck_fields"]:
         ck_fields_cmd()
 
     elif args["show"]:
@@ -1868,6 +2005,9 @@ for members who receive meeting minutes by mail.""")
     
     elif args['restore_fees']:
         restore_fees_cmd()
+
+    elif args['fees_intake']:
+        fees_intake_cmd()
 
     else:
         print("You've failed to select a command.")

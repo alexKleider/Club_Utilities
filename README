@@ -36,6 +36,17 @@ Code is backed up on github.com
 Backup for club data is generously provided by the secretary:
     memlist.csv
     checks_received.txt
-    extra_fees.json
+    extra_fees.lst
+
+Work flow:
+As memtioned above, the club data is kept in
+    memlist.csv,
+    extra_fees.lst and
+    checks_received.txt
+These files are copied to ../Backup/ from time to time to protect
+against accidental corruption.
+They each of a specific format.
+
+
 
 
