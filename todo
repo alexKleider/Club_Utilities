@@ -1,0 +1,5 @@
+Change the 'billing' command to 'mailing' since it can be used for
+general mailings, not just for billing. DONE (prepare_mailing)
+
+
+

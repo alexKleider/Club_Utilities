@@ -17,10 +17,19 @@ which if not provided defaults to "Formats/content.json".
 
 Don't forget to edit to suit- especially don't forget to modify
 the date in "postal_header".
+
+Responsibilities of a
+    <cus_func>(record, content, j_record, letters_dir):
+Based on the <record> param (which might be modified)
+decides what if anything to add to the <j_record> parameter
+and to the <letters_dir> (the name of a directory.)
+<content> is a dict providing content as needed.
 """
 
+import os
 import sys
 import json
+from helpers import indent
 
 content_july2018 = {
 "subject":"July mailing",
@@ -49,7 +58,7 @@ July 23, 2018
 
 {first} {last}
 {address}
-{town}, {state} {postal_code}
+{town}, {state} {zip}
 
 
 
@@ -88,7 +97,129 @@ Alex Kleider (Membership)"""
 
 }
 
-content_aug2018 = {
+content_aug31_2018 = {
+"subject":"Final notice re BR&BC dues",
+
+"email_header":"""From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header":"""
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body":"""
+August is almost over.  Records indicate that you are in arrears
+with regard to payment of Club dues and a late fee of $25 is now
+applied in addition to the regular dues payment of $100.  If you
+feel this is incorrect, please speak up[1]- we are only human!
+Otherwise, don't delay sending in your check.  The end of September
+is when anyone who hasn't payed ceases to be a member.
+
+Please pop your check (for $125) into an envelope asap payable and
+addressed to the...
+        Bolinas Rod and Boat Club
+        PO Box 0248
+        Bolinas, CA 94924
+
+Sincerely,
+Alex Kleider (Membership)
+
+[1] rodandboatclub@gmail.com or a letter to the PO Box
+
+[2] If the club has an email address on file for you, you'll be
+receiving this by email as well as 'snail mail.'
+"""
+
+}
+
+content_late_aug2018 = {
+"subject":"Final notice re BR&BC dues",
+
+"email_header":"""From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header":"""
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body":"""
+Sadly the Club has yet to receive payment of dues for the year
+which began in July and now a late fee of $25 also applies.
+If you feel this is incorrect, please speak up[1]!
+Otherwise, don't delay sending in your check.  The end of
+September is when anyone who hasn't payed ceases to be a member.
+
+Please pop your check (for $125) into an envelope asap payable and
+addressed to the...
+        Bolinas Rod and Boat Club
+        PO Box 0248
+        Bolinas, CA 94924
+
+Sincerely,
+Alex Kleider (Membership)
+
+[1] rodandboatclub@gmail.com or a letter to the PO Box
+
+[2] If the club has an email address on file for you, you'll be
+receiving this by email as well as 'snail mail.'
+"""
+
+}
+
+
+content_early_aug2018 = {
 "subject":"August mailing",
 
 "email_header":"""From: rodandboatclub@gmail.com
@@ -114,7 +245,7 @@ Bolinas, CA 94924
 
 {first} {last}
 {address}
-{town}, {state} {postal_code}
+{town}, {state} {zip}
 
 
 
@@ -159,10 +290,12 @@ receiving this by email as well as 'snail mail.'
 
 }
 
-content = content_aug2018
+
+def custom_late_aug2018(record, log = None):
+    return []
 
 
-def custom_aug2018(record, log = None):
+def custom_early_aug2018(record, log = None):
     """
     Returns a (possibly empty) list of strings.
     Determines what to place in the customizable spot of a letter.
@@ -203,7 +336,51 @@ def custom_aug2018(record, log = None):
         pass
     return ret
 
-custom_func = custom_aug2018
+
+def cust_aug31_2018(record, field_names, content,
+                    j_record, letters_dir):
+    """
+    Responsibilities of a
+        <cus_func>(record, content, j_record, letters_dir):
+    Based on the <record> param (which might be modified)
+    decides what if anything to add to the <j_record> parameter
+    and to the <letters_dir> (the name of a directory.)
+    <content> is a dict providing content as needed.
+    <field_names> provides access to any needed keys in <record>.
+    """
+    fees_outstanding = []
+    for key in field_names[-4:]:
+        print("key/value are: '{}'/ '{}'"
+            .format(key, record[key]))
+        if record[key] and int(record[key])>0:
+            fees_outstanding.append(
+                "{} {}"
+                .format(
+                key,
+                record[key]
+                ))
+    if fees_outstanding:
+#       extras = ''
+        if record["email"]:  # create email and add to json
+            entry = (content["email_header"] .format(**record)
+                + content["body"]  # .format(record["extras"])
+                )
+            j_record.append([[record["email"]], entry])
+            print("Appended to json_ret")
+#       record["extras"] = indent(record["extras"])
+        entry = (
+            content["postal_header"].format(**record)
+            + content["body"]   # .format(record["extras"])
+            )
+        entry = indent(entry)
+        path2write = os.path.join(letters_dir,
+            "_".join((record['last'], record['first'])))
+        with open(path2write, "w") as file_object:
+            file_object.write(entry)
+
+
+content = content_late_aug2018
+cust_func = cust_aug31_2018
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

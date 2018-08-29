@@ -10,19 +10,8 @@ Most commands deal with the main club data base which is a csv file
 named "memlist.csv".  Hence it is the default (<-i>) input file
 (using the 'docopt' mechanism for setting defaults.)
 
-Special Note Regarding Emails:
-    Generation and sending of emails are done separately through
-the use of an intermediary JSON file.  This is done purposely to
-encourage proof reading of the emails using the display_json
-command before emails are actually sent using the send_emails
-command. Here is the suggested sequence:
-    # Export all contacts from gmail account => google.csv
-    ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
-    ./utils.py display -i json2send -o json2check
-    vim json2check
-    ./utils.py send_emails -i json2send
-The send_emails functionality depends on a ~/.msmtprc (configuration) file.
-# https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
+See further notes regarding usage and work flow at end of this
+docstring.
 
 Usage:
   ./utils.py ?
@@ -34,13 +23,14 @@ Usage:
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py email_billings2json [-i <infile>] -j <json_file>
-  ./utils.py usps_billings2print [-i <infile>] -b <billings_directory>
-  ./utils.py billing [-i <infile>]  -j <json_file> -b <billings_directory> [-a arrears_file]
+  ./utils.py usps_billings2print [-i <infile>] --dir <billings_directory>
+  ./utils.py billing [-i <infile>]  -j <json_file> --dir <billings_directory> [-a arrears_file]
+  ./utils.py prepare_mailing [-i <infile>] -j <json_file> --dir <directory4letters>
   ./utils.py still_owing [--raw -i <infile>] -o <outfile>
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py restore_fees <membership_file> -j <json_fees_file> [-n <new_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
-  ./utils.py print_letters -b <billings_directory>
+  ./utils.py print_letters --dir <billings_directory>
   ./utils.py fees_intake [-i <infile> -o <outfile> -e <errorfile>]
 
 Options:
@@ -48,12 +38,11 @@ Options:
   --version  Print version.
   -a <arrears_file>  Specify a text file into which will be placed
                         a list of members still in arrears.
-  -b <billings_directory>  The directory to be created and into which
-                           will be placed billing statements for
-                           members without an email address on record.
-  -e <error_file>  Specify name of a file to which an error report can
-                  be written.  If not specified, errors are generally
-                  reported to stdout.
+  --dir <directory4letters>  The directory to be created and into
+                   which letters can be placed for batch printing.
+  -e <error_file>  Specify name of a file to which an error report
+                    can be written.  If not specified, errors are
+                    generally reported to stdout.
   -i <infile>  Specify csv file used as input. (Expected to be a
                 membership list of a specific format.)
                 [default: memlist.csv]
@@ -74,6 +63,9 @@ Options:
         one another by either a form feed (ff) (useful if planning to
         send output to a printer) or a double line feed (dlf.)
         [default: dlf]
+  -t <type> --type=<type>  Some commands need to know if input/output
+        is from/to a specific type of file: .json or .lst.  Allowed
+        choices are 'json' or 'lst'.  [default:lst]
   -m --mooring  List members who have moorings (include the fee.)
   -d --dock  List members with dock privileges (include the fee.)
   -k --kayak  List members who store a kayak (include the fee.)
@@ -96,22 +88,23 @@ Commands:
         list. These can then be proof read before sending them using
         the 'send_emails' command.
     extra_charges: provides lists of members with special charges.
-        When none of the optional flags are provide, output is a
+        When none of the optional flags are provided, output is a
         single list of members with the extra charge(s) for each.
         If optional flags are provided, output is a separate list for
         each option specified.
     usps: provides a csv file of members (with their postal addresses)
         who receive minutes by post (rather than email.)
+        Used to provide the secretary a csv file when requested.
     email_billings2json: prepares billing statements (as a JSON
         string) keyed by email address.  
     usps_billings2print: Creates a directory specified by the argument
-        to the -b option and into this directory places a billing
+        to the -d option and into this directory places a billing
         statemen for each member who does not have an email address
         on record. If a directory of the specified name already
         exists, it will be over written!
     billing: Combines the above two into one command- reads
         the master membership data base (-i <infile>) to create
-        emails (into the -o <json_file>) and letters (into the -b
+        emails (into the -o <json_file>) and letters (into the -d
         <billings_dirctory>.) This command depends on the presence
         of the Formats.content (Formats.content.py file) module which
         can be "edited to suit the season."
@@ -141,14 +134,17 @@ Commands:
         should read as follows: "From: rodandboatclub@gmail.com"
         Note: Must first lower br&bc's account security at:
         https://myaccount.google.com/lesssecureapps
-                 
     display_json:  Provides an opportunity to proof read the emails.
 
+Consult the README file for further info.
 """
+TOP_QUOTE_LINE_NUMBER = 5
+BLANK_LINE_ABOVE_USAGE = 15
+BLANK_LINE_BELOW_USAGE = 34
+
+
 
 TEMP_FILE = "2print.temp"
-POSTAL_INDENT = 8
-INDENTATION = " " * POSTAL_INDENT
 SECRETARY = ("Peter", "Pyle")
 DUES = 100
 
@@ -162,10 +158,11 @@ import json
 import subprocess
 from docopt import docopt
 from typing import List
+from helpers import get_datestamp, indent
 import Formats
 
 args = docopt(__doc__, version="1.0.0")
-# print(args)
+print(args)
 
 if args["--separator"] == "ff":
     SEPARATOR = '\f'
@@ -905,6 +902,10 @@ Membership"""
                 extras[name_tuple].append(to_add)
         return extras
 
+    def create_extra_fees_json(self, extra_fees_list):
+        pass
+
+
     def restore_fees(self, membership_csv_file,
                         fees_json_file,
                         new_file = None):
@@ -926,6 +927,8 @@ Membership"""
         any member still has dues or fees owing or if a person appears
         in the <fees_json_file> but is not a member (i.e. in the
         <membership_csv_file>.)
+        The <fees_json_file> is NOT the SPoL, it is generated by the
+        create_extra_fees_json method from the "extra_fees.lst" file.
         """
         self.errors = []
         print(
@@ -1148,6 +1151,64 @@ Membership"""
                     )
                 ret.append(",".join(entry))
         return "\n".join(ret)
+
+    def check_letter_dir(self, directory4letters):
+        """
+        Set up the directory for postal letters.
+        """
+        if os.path.exists(directory4letters):
+            print("The directory '{}' already exists."
+                .format(directory4letters))
+            response = input("... OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                shutil.rmtree(directory4letters)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+        os.mkdir(directory4letters)
+        pass
+
+    def check_json_file(self, json_email_file):
+        """
+        Checks the name of the json output file where
+        emails are to be stored.
+        """
+        if os.path.exists(json_email_file):
+            print("The file '{}' already exists."
+                .format(json_email_file))
+            response = input("... OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                os.remove(json_email_file)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+
+    def prepare_mailing(self, mem_csv_file, content,
+                    json_data, directory4letters,
+                    custom_func):
+        """
+        Iterates through all members in the mem_csv_file applying
+        <custom_func> to each.  <custom_func> appends emails to 
+        <json_data> and creates entries in the <directory4letters>.
+        <content> provides boiler plate info. See Formats/content.py
+        module for further info.
+        Calling function should set up the directory4letters ahead of
+        time and deal with json_data afterwards.
+        Should be able to replace all the various billing routines as
+        well as provide a general mechanism of sending out notices.
+        <custom_func> could also assign instance variables if required
+        by calling routine. (i.e. self.errors)
+        """
+        with open(mem_csv_file,'r') as infile:
+            dr = csv.DictReader(infile)
+            headers = dr.fieldnames
+            for record in dr:
+                record['date'] = content["date"]
+                record['subject'] = content["subject"]
+                custom_func(record, headers, content,
+                        json_data, directory4letters)
     
     def billing(self, content, source_file,
                     json_file, billing_directory,
@@ -1174,15 +1235,6 @@ Membership"""
         five commands: labels, envelopes, usps, email_billings2json
         and usps_billings2print.
         """
-
-        def indent(text, indentation=INDENTATION):
-            """
-            Helper function providing indentation for postal content.
-            """
-            split_text = text.split("\n")
-            indented = [indentation + line for line in split_text]
-            return "\n".join(indented)
-
         # Set up the Billings directory for postal letters.
         if os.path.exists(billing_directory):
             print("The directory '{}' already exists."
@@ -1760,8 +1812,29 @@ def billing_cmd():
     # Alternatively, may first run Formats/content.py to create
     # a json file which can then be "load"ed using the json module.
     source.billing(content,
-        args["-i"], args["-j"], args["-b"],
+        args["-i"], args["-j"], args["--dir"],
         custom_func)
+
+def prepare_mailing_cmd():
+    """
+    Should be able to replace all the various billing routines as well
+    as provide a general mechanism of sending out notices.
+    """
+    from Formats.content import content
+    from Formats.content import cust_func
+    content['date'] = get_datestamp()
+    source = Membership(Dummy)
+    json_file_name = args["-j"]
+    directory4letters = args["--dir"]
+    source.check_json_file(json_file_name)
+    source.check_letter_dir(directory4letters)
+    json_data = []
+    source.prepare_mailing(args["-i"], content,
+                    json_data, directory4letters,
+                    cust_func)
+    # send json_data to file
+    with open(json_file_name, 'w') as file_obj:
+        file_obj.write(json.dumps(json_data))
 
 def still_owing_cmd():
     source = Membership(Dummy)
@@ -1928,7 +2001,11 @@ if __name__ == "__main__":
 
     if args["?"]:
         doc_lines = __doc__.split('\n') 
-        print('\n'.join(doc_lines[22:40]))
+        print('\n'.join(doc_lines[
+            (BLANK_LINE_ABOVE_USAGE - TOP_QUOTE_LINE_NUMBER)
+            :
+            (BLANK_LINE_BELOW_USAGE - TOP_QUOTE_LINE_NUMBER + 1)
+            ]))
 
     elif args["ck_fields"]:
         ck_fields_cmd()
@@ -1973,10 +2050,10 @@ for members who receive meeting minutes by mail.""")
 
     elif args["usps_billings2print"]:
         print("Creating (or replacing) directory '{}'"
-            .format(args['-b']))
+            .format(args['--dir']))
         print("and populating it with dues statements for")
         print("members without an email address on record.")
-        usps_billings2print_cmd(args['-i'], args['-b'])
+        usps_billings2print_cmd(args['-i'], args['--dir'])
         print("Done creating statements for printing.")
 
     elif args["billing"]:
@@ -1984,7 +2061,13 @@ for members who receive meeting minutes by mail.""")
         billing_cmd()
         print("Done with annual billing statements:")
         print("Check emails in '{}' and letters in '{}'."
-            .format(args["-j"], args["-b"]))
+            .format(args["-j"], args["--dir"]))
+
+    elif args["prepare_mailing"]:
+        print("Preparing emails and letters...")
+        prepare_mailing_cmd()
+        print("...finished preparing emails and letters.")
+
     elif args["still_owing"]:
         print(
             "Preparing listing of those with dues/fees outstanding.")
@@ -1997,7 +2080,7 @@ for members who receive meeting minutes by mail.""")
 
     elif args["print_letters"]:
         print("Printing letters ...")
-        print_letters(args["-b"])
+        print_letters(args["--dir"])
         print("Done printing letters.")
 
     elif args['display_json']:

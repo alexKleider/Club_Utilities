@@ -35,17 +35,72 @@ text line up nicely inside the envelope windows.
 Code is backed up on github.com
 Backup for club data is generously provided by the secretary:
     memlist.csv
-    checks_received.txt
     extra_fees.lst
+    checks_received.txt
 
-Work flow:
-As memtioned above, the club data is kept in
+WORK FLOW
+
+Club data is kept in
     memlist.csv,
     extra_fees.lst and
     checks_received.txt
-These files are copied to ../Backup/ from time to time to protect
-against accidental corruption.
-They each of a specific format.
+There is also ../Lists/newmembers in which I keep track of
+new members and my reports to leadership and members.
+All four are edited using vim (or any editor of your choosing) and
+are copied (backup.sh) to ../Backup/ from time to time (to protect
+against accidental corruption.)
+
+My goal is to put all functionality into ./utils.py, each specified
+by its own command and command line parameters as needed.
+See its __doc__string for details.
+
+
+Club data is kept out of version control (for privacy reasons). It
+consists of the following files:
+    memlist.csv,
+    extra_fees.lst and
+    checks_received.txt
+There is also ../Lists/newmembers in which I keep track of
+new members and my reports to leadership and members.
+All four are edited using vim (or any editor of your choosing) and
+are copied (backup.sh) to ../Backup/ from time to time (to protect
+against accidental corruption.)
+
+The 'labels', 'envelopes', 'usps', 'email_billings2json', and
+'usps_billings2print' commands have been pretty much deprecated.
+Billing is now done using the 'billing' command. It depends on other
+infrastructure found in the ./Formats/content.py file which needs to
+be edited to suit current need. Specifically the two variables
+'content' and 'custom_func' need to be defined and assigned.
+It's on my todo list to change 'billing' to 'mailing' since it can be
+used mailings other than just billing (depending on how 'content' and
+'custom_func' are set up.)
+
+
+
+Special Note Regarding Emails:
+    Sending of emails is done separately through the use of an
+intermediary JSON file.  This is done purposely to encourage proof
+reading of the emails using the display_json command before emails
+are actually sent using the send_emails command. It's always a good
+idea to be sure that our gmail account is compatible with the
+membership data base so first run the compare_gmail command:
+Here is the suggested sequence:
+    # Export all contacts from gmail account => google.csv
+    ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
+    # Edit data as appropriate.
+    # Run a command that sends the emails to a file named json2send,
+    # typically:
+    ./utils.py billing -i memlist.csv  -j json2send -b Billings
+    ./utils.py display -i json2send -o json2check
+    vim json2check
+    ./utils.py send_emails -i json2send
+The send_emails functionality depends on a ~/.msmtprc (configuration) file.
+# https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
+
+After mass mailings I've been backing up the content to
+../Archives/Billing/<YYYY-MM-DD>/.... (for the letters)
+../Archives/Billing/<YYYY-MM-DD>.json (the emails.)
 
 
 
