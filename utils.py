@@ -16,9 +16,10 @@ docstring.
 Usage:
   ./utils.py ?
   ./utils.py --help | --version
-  ./utils.py ck_fields [-r -i <infile> -o <outfile> -x <file>]
+  ./utils.py ck_fields [-r -i <infile> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py extra_charges [--raw -i <infile> -m -d -k  -s <sep> -o <outfile>]
+  ./utils.py new_extra_charges [--raw -i <infile> -m -d -k  -s <sep> -o <outfile>]
   ./utils.py compare_gmail <gmail_contacts> [--raw -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
   ./utils.py usps [-i <infile> -o <outfile>]
@@ -43,9 +44,8 @@ Options:
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
                     generally reported to stdout.
-  -i <infile>  Specify csv file used as input. (Expected to be a
-                membership list of a specific format.)
-                [default: memlist.csv]
+  -i <infile>  Specify file used as input. Usually defaults to
+                memlist.csv (the membership csv file.)
   -j <json>  Specify an output file in jason if -o is otherwise used.
   -n <new_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
@@ -88,6 +88,10 @@ Commands:
         list. These can then be proof read before sending them using
         the 'send_emails' command.
     extra_charges: provides lists of members with special charges.
+        If the <infile> name ends in '.csv' then output will be
+        charges outstanding (i.e. owed but still not payed;) if it
+        ends in '.json' then output will include all who are paying
+        for one or more of the Club's three special privileges.
         When none of the optional flags are provided, output is a
         single list of members with the extra charge(s) for each.
         If optional flags are provided, output is a separate list for
@@ -142,7 +146,8 @@ TOP_QUOTE_LINE_NUMBER = 5
 BLANK_LINE_ABOVE_USAGE = 15
 BLANK_LINE_BELOW_USAGE = 34
 
-
+TEXT = ".txt"  #| Used by <new_extra_charges_cmd>
+CSV = ".csv"   #| command.
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
@@ -161,8 +166,8 @@ from typing import List
 from helpers import get_datestamp, indent
 import Formats
 
-args = docopt(__doc__, version="1.0.0")
-print(args)
+args = docopt(__doc__, version="1.0.1a")
+# print(args)
 
 if args["--separator"] == "ff":
     SEPARATOR = '\f'
@@ -342,8 +347,14 @@ class Membership(object):
         Each instance must know the format
         of the media. i.e. the parameters.
         """
+        self.infile = 'memlist.csv'
         self.params = params
         self.params.self_check()
+        self.malformed = []
+        self.still_owing = []
+        self.advance_payments = []
+        self.invalid_lines = []
+        self.n_members = 0
 
     # Data bases used:
     MEMBER_DB = 'memlist.csv'               #|  
@@ -368,73 +379,76 @@ class Membership(object):
     i_dock = 11
     i_kayak = 12
 
+    keys_tuple = ("first", "last", "phone", "address",
+        "town", "state", "zip", "email", "email_only",
+        "dues", "mooring", "dock", "kayak"
+        )
+    money_keys = keys_tuple[9:]
+
     n_fields_per_record = 13
+
+    # Planning to create 'get' methods that will expect to be given a
+    # single record as parameter and will collect data into an
+    # attribute named accordingly. The calling routine can then read
+    # the attribute.
     
     def make_dict(self, record):
-        return dict(
-            first = record[self.i_first],
-            last = record[self.i_last],
-            phone = record[self.i_phone],
-            address = record[self.i_address],
-            town = record[self.i_town],
-            state = record[self.i_state],
-            zip_code = record[self.i_zip_code],
-            email = record[self.i_email],
-            email_only = record[self.i_email_only],
-            dues = record[self.i_dues],
-            mooring = record[self.i_mooring],
-            dock = record[self.i_dock],
-            kayak = record[self.i_kayak],
-            )
+        """
+        Expect that using csf.DictReader will make this method
+        redundant.
+        """
+        return {
+            "first": record[self.i_first],
+            "last": record[self.i_last],
+            "phone": record[self.i_phone],
+            "address": record[self.i_address],
+            "town": record[self.i_town],
+            "state": record[self.i_state],
+            "zip": record[self.i_zip_code],
+            "email": record[self.i_email],
+            "email_only": record[self.i_email_only],
+            "dues": record[self.i_dues],
+            "mooring": record[self.i_mooring],
+            "dock": record[self.i_dock],
+            "kayak": record[self.i_kayak],
+            }
 
-    def ck_fields(self, source_file):
+    def traverse_records(self, infile, custom_func):
         """
-        Checks validity of each record in the csv <source_file>
-        So far we only check for self.n_fields_per_record.
-        Prints progress to screen.
-        Sends results to -o <outfile> only if there are bad records.
-        Use of -r --raw option supresses the header line.
+        Traverses <infile> and applies <custom_func> to each record.
+        Generally <custom_func> will leave its results in one of the
+        attributes (similarly named.)
+        # Could wrap this up in a try clause and report an error
+        # number to prevent errors from aborting the program.
         """
-        print("Checking Fields")
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
-        bad = [ ]
-        n_ok_records = 0
-        for record in record_reader:
-            if not record:  # allow for empty lines
-                continue
-            try:
-                temp_dict = self.make_dict(record)
-            except IndexError:
-                print("Bad ", end='')
-                bad.append("{}, {}".format(record[1], record[0]))
-                continue
-            l = len(record)
-            if l == self.n_fields_per_record:
-#               print("OK ", end='')
-                n_ok_records += 1
-            else:
-                print("Bad ", end='')
-                bad.append("{}, {}".format(record[1], record[0]))
-        print("\nDone checking '{}'.".format(source_file))
-        print("Found {} records that pass the test."
-            .format(n_ok_records))
-        print("If there's a header line, that would be {} records."
-            .format(n_ok_records - 1))
-        if bad:
-            print("Records (if any) that appear to be malformed:\n"
-                + "\n".join(bad))
-        else:
-            print("No bad records detected.")
-        if args["-o"]:
-            if bad:
-                if not args["--raw"]:
-                    bad = ["Malformed records:"] + bad
-            else:
-                bad = ["No malformed records detected."]
-            with open(args["-o"], 'w') as f_obj:
-                f_obj.write("\n".join(bad))
+        with open(infile, 'r') as file_object:
+            dict_reader = csv.DictReader(file_object)
+            for record in dict_reader:
+                custom_func(record)
+
+    def get_malformed(self, record):
+        """
+        Checks that each record has self.n_fields_per_record
+        and that the money fields are blank or evaluate to
+        an integer.
+        """
+        if len(record) != self.n_fields_per_record:
+            self.malformed.append("{}, {}"
+                .format(record['last'], record['first']))
+            for key in self.money_keys:
+                value = record[key]
+                if not value:
+                    res = 0
+                else:
+                    try:
+                        res = int(value)
+                    except ValueError:
+                        self.malformed.append("{}, {}, {}:{}"
+                            .format(record['last'], record['first'],
+                            key, value))
+
+    def get_text4web(self, record):
+        pass
 
     def show(self, source_file):
         """
@@ -779,6 +793,123 @@ Membership"""
             else:
                 ret.append("No entries for '{}'".format(report_name))
         return SEPARATOR.join(ret)
+
+    def cust_fees_json(self, record, context = None):
+        """
+        """
+        pass
+
+    def cust_fees_csv(self, record, context = None):
+        """
+        """
+        pass
+
+    def csv_file_obj_filter(self, source_file_obj,
+                            cust_func, info=None):
+        """
+        Traverses <source_file_obj> (which is assumed to be a csv
+        file conforming to what the <Membership> class expects; i.e.
+        what's in 'memlist.csv') applying <cust_func> (which may or
+        may not need <info>) to each record.
+        Results are made available to the calling routine as
+        attributes of <self>.
+        """
+        pass
+
+    def get_extra_charges_from_csv(self, record):
+        pass
+
+    def new_get_extra_charges(self, infile, outfile=None):
+        """
+        Depending on <infile> suffix: 'txt' or 'csv', will set
+        attributes showing all members with extra privileges and cost
+        there of or showing only those with fees outstanding.
+        Sets attributes <self.header> and <self.fees_list>.
+        If <outfile> is set to a string, a json version of the output
+        is sent to that file.
+        """
+        if infile[:-4] == TEXT:
+            json_dict = {}
+            dock_usage = []
+            mooring = []
+            kayak_storage = []
+            uninterpretable = []
+            n_longest = 0
+
+            with open(infile, "r") as f_obj:
+                for line in f_obj:
+                    if 'mooring' in line:
+                        current = mooring
+                        key = "Mooring"
+                    elif 'dock' in line:
+                        current = dock_usage
+                        key = "Dock usage"
+                    elif 'kayak' in line:
+                        current = kayak_storage
+                        key = "Kayak storage"
+                    else:
+                        split_line = line.split()
+                        if len(split_line) == 3:
+                            first = split_line[0]
+                            last = split_line[1][:-1] #delete colon
+                            amt = int(split_line[2])
+                            new_line = "{}, {}: ${}".format(first, last, amt)
+                            new_val = (first, last, amt)
+                            json_dict.setdefault(key, [])
+                            json_dict[key].append(new_val)
+                            current.append(new_line)
+                        else:
+                            uninterpretable.append(line)
+
+            if len(dock_usage) > n_longest:
+                n_longest = len(dock_usage)
+            if len(mooring) > n_longest:
+                n_longest = len(mooring)
+            if len(kayak_storage) > n_longest:
+                n_longest = len(kayak_storage)
+            final = (
+                    ["Dock Usage", "----------"] + [""] * n_longest,
+                    ["Mooring", "-------"] + [""] * n_longest,
+                    ["Kayak Storage", "-------------"] + [""] * n_longest
+                    )
+            for i in range(n_longest):
+                try:
+                    final[0][i+2] = dock_usage[i]
+                    final[1][i+2] = mooring[i]
+                    final[2][i+2] = kayak_storage[i]
+                except IndexError:
+                    pass
+
+            self.header = ("\n" +
+                "Members Paying Fees For Extra Privileges" +
+                "========================================")
+            self.fees_list = []
+            for i in range(n_longest + 1):
+                self.fees_list.append("{:<25} {:<25} {:<25}"
+                    .format(final[0][i], final[1][i], final[2][i]))
+
+            if json_file:
+                lines = ["{"]
+                keys = [key for key in json_dict.keys()]
+                keys.sort()
+                for key in keys:
+                    lines.append('"{}": ['.format(key))
+                    for item in json_dict[key]:
+                        lines.append('    ["{}", "{}", {}],'
+                            .format(*item))
+                    lines[-1] = lines[-1][:-1]
+                    lines.append('    ],')
+                lines[-1] = lines[-1][:-1]
+                lines.append('}')
+                with open(json_file, 'w') as jfile:
+                    jfile.write('\n'.join(lines))
+        elif  infile[-4:] == CSV:
+            cust_func = cust_fees_csv
+            with open(infile, 'r') as file_obj:
+                self.csv_file_obj_filter(file_obj, cust_func)
+        else:
+            print("infile[-4:] is '{}'".format(infile[-4:]))
+            assert False
 
     def get_extra_charges(self, source_file):
         """
@@ -1528,6 +1659,15 @@ Membership"""
             for error in errors:
                 print(error)
 
+    def get_still_owing(self, record):
+        """
+        Checks record for dues &/or fees. If found:
+        If positive, adds item to the self.still_owing list.
+        If negative, adds item to self.advance_payments list.
+        Each 'item' is a string.
+        """
+        pass
+
     def still_owing(self, source_file):
         """
         Returns a (possibly empty) list of strings, each consisting
@@ -1633,10 +1773,11 @@ Membership"""
 
     def fees_intake(self, infile=CHECKS_RECEIVED):
         """
-        Returns a list of strings.
+        Returns a list of strings: subtotals and grand total.
         Replaces the received_totals.py script.
-        Leaves self.invalid_lines if client wishes to know....
-        (only reason it's a class method rather than a function.)
+        Populates self.invalid_lines ....
+        (... the only reason it's a class method
+        rather than a function or a static method.)
         """
         res = ["Fees taken in to date:"]
         self.invalid_lines = []
@@ -1698,17 +1839,42 @@ def show_cmd():
 
 def ck_fields_cmd():
     source = Membership(Dummy)
-    res = source.ck_fields(args["-i"], args["-x"])
+    infile = args["-i"]
+    if not infile:
+        infile = source.infile
+    print("Checking fields...")
+    res = source.traverse_records(infile, source.get_malformed)
     if res:
-        output(res)
+        print("Error condition! #{}".format(res))
+    if not source.malformed:
+        output("No malformed records found.")
+    else:
+        if not args['-r']:
+            source.malformed = [
+                'Malformed Records',
+                '================='] + source.malformed
+        output("\n".join(source.malformed))
+    print("...done checking fields.")
+
+def new_extra_charges_cmd():
+    """
+    Returns a report of members with extra charges.
+    """
+    source = Membership(Dummy)
+    infile = args["-i"]
+    outfile = args['-o']
+    source.new_get_extra_charges(infile, outfile)
+    print(source.header)
+    print(source.fees_list)
+    # present results
 
 def extra_charges_cmd():
     """
     Returns a csv report of members with extra charges.
     """
     source = Membership(Dummy)
-    source_file = args["-i"]
-    return source.get_extra_charges(source_file)
+    infile = args["-i"]
+    return source.get_extra_charges(infile)
 
 def compare_gmail_cmd():
     """
@@ -1760,7 +1926,10 @@ def usps_cmd():
     can get a copy of the printed minutes for inspection.
     """
     source = Membership(Dummy)
-    source_file = args["-i"]
+    if args["-i"]:
+        source_file = args["-i"]
+    else:
+        source_file = source.infile
     return source.get_USPS_only(source_file)
 
 def smtp_file(recipient_email_address, message_file):
@@ -2017,6 +2186,11 @@ if __name__ == "__main__":
         print("Selecting members with extra charges:")
         print("...being sent to {}.".format(args['-o']))
         output(extra_charges_cmd())
+
+    elif args["new_extra_charges"]:
+        print("Selecting members with extra charges:")
+        print("...being sent to {}.".format(args['-o']))
+        output(new_extra_charges_cmd())
 
     elif args["compare_gmail"]:
         print("Check the google list against the membership list.")

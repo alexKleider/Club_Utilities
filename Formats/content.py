@@ -19,11 +19,12 @@ Don't forget to edit to suit- especially don't forget to modify
 the date in "postal_header".
 
 Responsibilities of a
-    <cus_func>(record, content, j_record, letters_dir):
+<cust_func>(record, field_names, content, j_record, letters_dir):
 Based on the <record> param (which might be modified)
 decides what if anything to add to the <j_record> parameter
 and to the <letters_dir> (the name of a directory.)
 <content> is a dict providing content as needed.
+<field_names> is needed in some instances (to deal with fees.)
 """
 
 import os
@@ -155,69 +156,7 @@ Alex Kleider (Membership)
 [2] If the club has an email address on file for you, you'll be
 receiving this by email as well as 'snail mail.'
 """
-
 }
-
-content_late_aug2018 = {
-"subject":"Final notice re BR&BC dues",
-
-"email_header":"""From: rodandboatclub@gmail.com
-To: {email}
-Subject: {subject}
-
-Dear {first} {last},
-
-""",
-
-"postal_header":"""
-
-
-
-Bolinas Rod and Boat Club
-PO Box 248
-Bolinas, CA 94924
-
-
-{date}
-
-
-
-{first} {last}
-{address}
-{town}, {state} {zip}
-
-
-
-Re: {subject}
-
-Dear {first} {last},
-
-""",
-
-"body":"""
-Sadly the Club has yet to receive payment of dues for the year
-which began in July and now a late fee of $25 also applies.
-If you feel this is incorrect, please speak up[1]!
-Otherwise, don't delay sending in your check.  The end of
-September is when anyone who hasn't payed ceases to be a member.
-
-Please pop your check (for $125) into an envelope asap payable and
-addressed to the...
-        Bolinas Rod and Boat Club
-        PO Box 0248
-        Bolinas, CA 94924
-
-Sincerely,
-Alex Kleider (Membership)
-
-[1] rodandboatclub@gmail.com or a letter to the PO Box
-
-[2] If the club has an email address on file for you, you'll be
-receiving this by email as well as 'snail mail.'
-"""
-
-}
-
 
 content_early_aug2018 = {
 "subject":"August mailing",
@@ -290,11 +229,6 @@ receiving this by email as well as 'snail mail.'
 
 }
 
-
-def custom_late_aug2018(record, log = None):
-    return []
-
-
 def custom_early_aug2018(record, log = None):
     """
     Returns a (possibly empty) list of strings.
@@ -350,8 +284,8 @@ def cust_aug31_2018(record, field_names, content,
     """
     fees_outstanding = []
     for key in field_names[-4:]:
-        print("key/value are: '{}'/ '{}'"
-            .format(key, record[key]))
+#       print("key/value are: '{}'/ '{}'"
+#           .format(key, record[key]))
         if record[key] and int(record[key])>0:
             fees_outstanding.append(
                 "{} {}"

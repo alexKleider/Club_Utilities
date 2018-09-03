@@ -35,14 +35,14 @@ text line up nicely inside the envelope windows.
 Code is backed up on github.com
 Backup for club data is generously provided by the secretary:
     memlist.csv
-    extra_fees.lst
+    extra_fees.txt
     checks_received.txt
 
 WORK FLOW
 
 Club data is kept in
     memlist.csv,
-    extra_fees.lst and
+    extra_fees.txt and
     checks_received.txt
 There is also ../Lists/newmembers in which I keep track of
 new members and my reports to leadership and members.
@@ -58,7 +58,7 @@ See its __doc__string for details.
 Club data is kept out of version control (for privacy reasons). It
 consists of the following files:
     memlist.csv,
-    extra_fees.lst and
+    extra_fees.txt and
     checks_received.txt
 There is also ../Lists/newmembers in which I keep track of
 new members and my reports to leadership and members.
@@ -76,6 +76,11 @@ It's on my todo list to change 'billing' to 'mailing' since it can be
 used mailings other than just billing (depending on how 'content' and
 'custom_func' are set up.)
 
+Currently (late Aug/early Sept 2018) working on having a single
+traversing command which takes a custom function as it's parameter and
+this function deals with each record traversed adding data as needed
+to a corresponding attribute of the Membership instance.  So far have
+competed this only for ck_fields.  (version 1.0.1a)
 
 
 Special Note Regarding Emails:
