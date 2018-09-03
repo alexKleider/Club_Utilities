@@ -351,6 +351,10 @@ class Membership(object):
         self.params = params
         self.params.self_check()
         self.malformed = []
+        self.first_letter = '_'
+        self.name_tuple = ('','')
+        self.list4web = []
+
         self.still_owing = []
         self.advance_payments = []
         self.invalid_lines = []
@@ -428,10 +432,13 @@ class Membership(object):
 
     def get_malformed(self, record):
         """
+        Populate self.malformed.
         Checks that each record has self.n_fields_per_record
         and that the money fields are blank or evaluate to
         an integer.
         """
+        name_tuple = ("{}".format(record['last']),
+                    "{}".format(record['first']))
         if len(record) != self.n_fields_per_record:
             self.malformed.append("{}, {}"
                 .format(record['last'], record['first']))
@@ -446,47 +453,25 @@ class Membership(object):
                         self.malformed.append("{}, {}, {}:{}"
                             .format(record['last'], record['first'],
                             key, value))
+        if name_tuple < self.name_tuple:
+            self.malformed.append("Record out of order: {0}, {1}"
+                .format(*name_tuple))
+        self.name_tuple = name_tuple
 
-    def get_text4web(self, record):
-        pass
-
-    def show(self, source_file):
+    def get_memlist4web(self, record):
         """
-        Returns a list of strings: contact info for each member
-        (for display on the web site.) The show_cmd() function
-        handles the list.
+        Populate self.list4web.
         """
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
-        res = [ ]
-        first_letter = 'f'
-        for record in record_reader:
-            if not record:  # allow for empty lines
-                continue
-            last = record[self.i_last]
-            first = record[self.i_first]
-            phone = record[self.i_phone]
-            address = record[self.i_address]
-            town = record[self.i_town]
-            state = record[self.i_state]
-            postal_code = record[self.i_zip_code]
-            email = record[self.i_email]
-            if first_letter != last[0]:
-                res.append("")
-                first_letter = last[0]
-            res.append("{} {}  {}  {}, {}, {} {} {}"
-                .format(
-                    first,
-                    last,
-                    phone,
-                    address,
-                    town,
-                    state,
-                    postal_code,
-                    email,
-                    ))
-        return res
+        line = (
+    "{first} {last} {phone} {address}, {town}, {state} {zip} {email}"
+                .format(**record))
+        first_letter = record['last'][:1]
+        if first_letter != self.first_letter:
+#           print("changing first letter from {} to {}"
+#               .format(self.first_letter, first_letter))
+            self.first_letter = first_letter
+            self.list4web.append("")
+        self.list4web.append(line)
 
     def prn_split(self, field, params):
         """
@@ -1810,6 +1795,41 @@ Membership"""
 #       print("returning {}".format(res))
         return res
 
+####  End of Membership class declaration.
+
+
+def ck_fields_cmd():
+    source = Membership(Dummy)
+    infile = args["-i"]
+    if not infile:
+        infile = source.infile
+    print("Checking fields...")
+    res = source.traverse_records(infile, source.get_malformed)
+    if res:
+        print("Error condition! #{}".format(res))
+    if not source.malformed:
+        output("No malformed records found.")
+        print("No malformed records found.")
+    else:
+        if not args['--raw']:
+            source.malformed = [
+                'Malformed Records',
+                '================='] + source.malformed
+        output("\n".join(source.malformed))
+    print("...done checking fields.")
+
+def show_cmd():
+    source = Membership(Dummy)
+    infile = args["-i"]
+    if not infile:
+        infile = source.infile
+    print("Preparing membership listing...")
+    res = source.traverse_records(infile, source.get_memlist4web)
+    if res:
+        print("Error condition! #{}".format(res))
+    print("...done preparing membership listing...")
+    output("\n".join(source.list4web))
+    print("...results sent to {}.".format(args['-o']))
 
 def envelopes_cmd():
     if args["--parameters"]:
@@ -1828,33 +1848,6 @@ def labels_cmd():
     source = Membership(medium)
     source_file = args["-i"]
     return source.get_labels2print(source_file)
-
-def show_cmd():
-    source = Membership(Dummy)
-    res = source.show(args["-i"])
-    if args['--raw']:
-        res = res[1:]
-    output('\n'.join(res))
-
-
-def ck_fields_cmd():
-    source = Membership(Dummy)
-    infile = args["-i"]
-    if not infile:
-        infile = source.infile
-    print("Checking fields...")
-    res = source.traverse_records(infile, source.get_malformed)
-    if res:
-        print("Error condition! #{}".format(res))
-    if not source.malformed:
-        output("No malformed records found.")
-    else:
-        if not args['-r']:
-            source.malformed = [
-                'Malformed Records',
-                '================='] + source.malformed
-        output("\n".join(source.malformed))
-    print("...done checking fields.")
 
 def new_extra_charges_cmd():
     """
