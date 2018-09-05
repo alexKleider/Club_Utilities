@@ -18,8 +18,7 @@ Usage:
   ./utils.py --help | --version
   ./utils.py ck_fields [-r -i <infile> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py extra_charges [--raw -i <infile> -m -d -k  -s <sep> -o <outfile>]
-  ./utils.py new_extra_charges [--raw -i <infile> -m -d -k  -s <sep> -o <outfile>]
+  ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
   ./utils.py compare_gmail <gmail_contacts> [--raw -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
   ./utils.py usps [-i <infile> -o <outfile>]
@@ -29,7 +28,7 @@ Usage:
   ./utils.py prepare_mailing [-i <infile>] -j <json_file> --dir <directory4letters>
   ./utils.py still_owing [--raw -i <infile>] -o <outfile>
   ./utils.py send_emails [<content>] -j <json_file>
-  ./utils.py restore_fees <membership_file> -j <json_fees_file> [-n <new_membership_file> -e <error_file>]
+  ./utils.py restore_fees <membership_file> -j <json_fees_file> [-t <new_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
   ./utils.py print_letters --dir <billings_directory>
   ./utils.py fees_intake [-i <infile> -o <outfile> -e <errorfile>]
@@ -47,7 +46,7 @@ Options:
   -i <infile>  Specify file used as input. Usually defaults to
                 memlist.csv (the membership csv file.)
   -j <json>  Specify an output file in jason if -o is otherwise used.
-  -n <new_file>  An option provided for when one does not want to risk
+  -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
                   modified, thus providing an opportunity for proof
                   reading the 'modified' file before renaming it to
@@ -58,17 +57,6 @@ Options:
                A5160 for labels & E000 for envelopes.
   -r --raw  When used with -o <outfile> headers are NOT printed (to
               make the output suitable as input for 'tabulate.py'.
-  -s <sep> --separator=<sep>  Some of the commands have output in
-        more than one section. These sections can be separated from 
-        one another by either a form feed (ff) (useful if planning to
-        send output to a printer) or a double line feed (dlf.)
-        [default: dlf]
-  -t <type> --type=<type>  Some commands need to know if input/output
-        is from/to a specific type of file: .json or .lst.  Allowed
-        choices are 'json' or 'lst'.  [default:lst]
-  -m --mooring  List members who have moorings (include the fee.)
-  -d --dock  List members with dock privileges (include the fee.)
-  -k --kayak  List members who store a kayak (include the fee.)
 
 Commands:
     When run without a command, nothing is done.
@@ -88,14 +76,12 @@ Commands:
         list. These can then be proof read before sending them using
         the 'send_emails' command.
     extra_charges: provides lists of members with special charges.
+        Both a list of members each with the charge(s) they pay and
+        separate lists for each category of charge.
         If the <infile> name ends in '.csv' then output will be
         charges outstanding (i.e. owed but still not payed;) if it
-        ends in '.json' then output will include all who are paying
+        ends in '.txt' then output will include all who are paying
         for one or more of the Club's three special privileges.
-        When none of the optional flags are provided, output is a
-        single list of members with the extra charge(s) for each.
-        If optional flags are provided, output is a separate list for
-        each option specified.
     usps: provides a csv file of members (with their postal addresses)
         who receive minutes by post (rather than email.)
         Used to provide the secretary a csv file when requested.
@@ -146,7 +132,7 @@ TOP_QUOTE_LINE_NUMBER = 5
 BLANK_LINE_ABOVE_USAGE = 15
 BLANK_LINE_BELOW_USAGE = 34
 
-TEXT = ".txt"  #| Used by <new_extra_charges_cmd>
+TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
 
 TEMP_FILE = "2print.temp"
@@ -169,11 +155,6 @@ import Formats
 args = docopt(__doc__, version="1.0.1a")
 # print(args)
 
-if args["--separator"] == "ff":
-    SEPARATOR = '\f'
-else:
-    SEPARATOR = '\n\n'
-
 SMTP_SERVER = "smtp.gmail.com"
 
 def output(data, destination=args["-o"]):
@@ -189,7 +170,7 @@ def output(data, destination=args["-o"]):
             fileobj.write(data)
         subprocess.run(["lpr", TEMP_FILE])
     else:
-        print("Writing to the output file...")
+        print("Writing to {}...".format(destination))
         with open(destination, "w") as fileobj:
             fileobj.write(data)
 
@@ -342,24 +323,6 @@ class Membership(object):
     Other functionalities are provided as independent functions.
     """
 
-    def __init__(self, params):
-        """
-        Each instance must know the format
-        of the media. i.e. the parameters.
-        """
-        self.infile = 'memlist.csv'
-        self.params = params
-        self.params.self_check()
-        self.malformed = []
-        self.first_letter = '_'
-        self.name_tuple = ('','')
-        self.list4web = []
-
-        self.still_owing = []
-        self.advance_payments = []
-        self.invalid_lines = []
-        self.n_members = 0
-
     # Data bases used:
     MEMBER_DB = 'memlist.csv'               #|  
     EXTRA_FEES = 'extra-fees.lst'           #|  To be used
@@ -387,9 +350,37 @@ class Membership(object):
         "town", "state", "zip", "email", "email_only",
         "dues", "mooring", "dock", "kayak"
         )
+    headers = {
+        "dues": "Dues",
+        "mooring": "Mooring",
+        "dock": "Dock Usage",
+        "kayak": "Kayak Storage",
+        }
+    fees_keys = keys_tuple[10:]
     money_keys = keys_tuple[9:]
 
     n_fields_per_record = 13
+
+    def __init__(self, params):
+        """
+        Each instance must know the format
+        of the media. i.e. the parameters.
+        """
+        self.infile = Membership.MEMBER_DB
+        self.params = params
+        self.params.self_check()
+        self.malformed = []
+        self.first_letter = '_'
+        self.name_tuple = ('','')
+        self.list4web = []
+        self.extras_by_member = []
+        self.extras_by_category = {}
+        for key in self.fees_keys:
+            self.extras_by_category[key] = []
+        self.still_owing = []
+        self.advance_payments = []
+        self.invalid_lines = []
+        self.n_members = 0
 
     # Planning to create 'get' methods that will expect to be given a
     # single record as parameter and will collect data into an
@@ -801,179 +792,24 @@ Membership"""
         """
         pass
 
-    def get_extra_charges_from_csv(self, record):
-        pass
 
-    def new_get_extra_charges(self, infile, outfile=None):
+    def get_extra_charges(self, record):
         """
-        Depending on <infile> suffix: 'txt' or 'csv', will set
-        attributes showing all members with extra privileges and cost
-        there of or showing only those with fees outstanding.
-        Sets attributes <self.header> and <self.fees_list>.
-        If <outfile> is set to a string, a json version of the output
-        is sent to that file.
+        Populates the self.extras_by_member list attribute
+        and the self.extras_by_category dict attribute.
         """
-        if infile[:-4] == TEXT:
-            json_dict = {}
-            dock_usage = []
-            mooring = []
-            kayak_storage = []
-            uninterpretable = []
-            n_longest = 0
-
-            with open(infile, "r") as f_obj:
-                for line in f_obj:
-                    if 'mooring' in line:
-                        current = mooring
-                        key = "Mooring"
-                    elif 'dock' in line:
-                        current = dock_usage
-                        key = "Dock usage"
-                    elif 'kayak' in line:
-                        current = kayak_storage
-                        key = "Kayak storage"
-                    else:
-                        split_line = line.split()
-                        if len(split_line) == 3:
-                            first = split_line[0]
-                            last = split_line[1][:-1] #delete colon
-                            amt = int(split_line[2])
-                            new_line = "{}, {}: ${}".format(first, last, amt)
-                            new_val = (first, last, amt)
-                            json_dict.setdefault(key, [])
-                            json_dict[key].append(new_val)
-                            current.append(new_line)
-                        else:
-                            uninterpretable.append(line)
-
-            if len(dock_usage) > n_longest:
-                n_longest = len(dock_usage)
-            if len(mooring) > n_longest:
-                n_longest = len(mooring)
-            if len(kayak_storage) > n_longest:
-                n_longest = len(kayak_storage)
-            final = (
-                    ["Dock Usage", "----------"] + [""] * n_longest,
-                    ["Mooring", "-------"] + [""] * n_longest,
-                    ["Kayak Storage", "-------------"] + [""] * n_longest
-                    )
-            for i in range(n_longest):
-                try:
-                    final[0][i+2] = dock_usage[i]
-                    final[1][i+2] = mooring[i]
-                    final[2][i+2] = kayak_storage[i]
-                except IndexError:
-                    pass
-
-            self.header = ("\n" +
-                "Members Paying Fees For Extra Privileges" +
-                "========================================")
-            self.fees_list = []
-            for i in range(n_longest + 1):
-                self.fees_list.append("{:<25} {:<25} {:<25}"
-                    .format(final[0][i], final[1][i], final[2][i]))
-
-            if json_file:
-                lines = ["{"]
-                keys = [key for key in json_dict.keys()]
-                keys.sort()
-                for key in keys:
-                    lines.append('"{}": ['.format(key))
-                    for item in json_dict[key]:
-                        lines.append('    ["{}", "{}", {}],'
-                            .format(*item))
-                    lines[-1] = lines[-1][:-1]
-                    lines.append('    ],')
-                lines[-1] = lines[-1][:-1]
-                lines.append('}')
-                with open(json_file, 'w') as jfile:
-                    jfile.write('\n'.join(lines))
-        elif  infile[-4:] == CSV:
-            cust_func = cust_fees_csv
-            with open(infile, 'r') as file_obj:
-                self.csv_file_obj_filter(file_obj, cust_func)
-        else:
-            print("infile[-4:] is '{}'".format(infile[-4:]))
-            assert False
-
-    def get_extra_charges(self, source_file):
-        """
-        Returns a listing of members who have extra charges listed
-        in the mooring, dock usage, and/or kayak storage fields, along
-        with what is owed for each and the total.
-        """
-        def line2append(record, cost):
-            return "{} {}:  {}".format(
-                record[self.i_first],
-                record[self.i_last],
-                cost,
-                )
-
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
-
-        ret = []
-        all_categories = ["Members with extra charges:",]
-        mooring = ["Members paying for a mooring:",]
-        dock = ["Members paying for dock privileges:",]
-        kayak = ["Members paying for kayak storage:",]
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
-            try:
-                extras = [0 if not i else int(i) for i in
-                    next_record[self.i_mooring:]]
-                print(extras)
-            except ValueError:
-                line = "HEADERS: " + ",".join([
-                    next_record[self.i_last],
-                    next_record[self.i_first],
-                    next_record[self.i_email],
-                    next_record[self.i_mooring],
-                    next_record[self.i_dock],
-                    next_record[self.i_kayak],
-                    ])
-                all_categories.append(line)
-                continue
-            fees = sum(extras)
-            if fees:  # a keeper
-                line = ",".join([
-                    next_record[self.i_last],
-                    next_record[self.i_first],
-                    next_record[self.i_email],
-                    next_record[self.i_mooring],
-                    next_record[self.i_dock],
-                    next_record[self.i_kayak],
-                    ])
-                all_categories.append(line)
-                if extras[0]:
-                    mooring.append(line2append(next_record,
-                        extras[0]))
-                if extras[1]:
-                    dock.append(line2append(next_record,
-                        extras[1]))
-                if extras[2]:
-                    kayak.append(line2append(next_record,
-                        extras[2]))
-            else:
-                pass  # no action necessary
-        if args['--mooring']:
-            ret.append(
-                "\n".join(mooring))
-        if args['--dock']:
-            ret.append(
-                "\n".join(dock))
-        if args['--kayak']:
-            ret.append(
-                "\n".join(kayak))
-        if not (args["--mooring"]
-            or args["--dock"]
-            or args["--kayak"]):
-            return "\n".join(all_categories) 
-        return SEPARATOR.join(ret)
+        name = "{}, {}".format(record['last'], record['first'])
+        _list = []
+        for key in ("mooring", "dock", "kayak"):
+            value = record[key]
+            if value:
+                value = int(value)
+                _list.append("{}- {}".format(key, int(record[key])))
+                self.extras_by_category[key].append("{}: {}- {}"
+                    .format(name, key, value))
+        if _list:
+            self.extras_by_member.append("{}: {}"
+                .format(name, ", ".join(_list)))
 
     @staticmethod
     def parse_extra_fees(extras_json_file):
@@ -1804,7 +1640,8 @@ def ck_fields_cmd():
     if not infile:
         infile = source.infile
     print("Checking fields...")
-    res = source.traverse_records(infile, source.get_malformed)
+    err_code = source.traverse_records(infile,
+                                    source.get_malformed)
     if res:
         print("Error condition! #{}".format(res))
     if not source.malformed:
@@ -1824,12 +1661,63 @@ def show_cmd():
     if not infile:
         infile = source.infile
     print("Preparing membership listing...")
-    res = source.traverse_records(infile, source.get_memlist4web)
+    err_code = source.traverse_records(infile,
+                                source.get_memlist4web)
     if res:
         print("Error condition! #{}".format(res))
     print("...done preparing membership listing...")
     output("\n".join(source.list4web))
     print("...results sent to {}.".format(args['-o']))
+
+def extra_charges_cmd():
+    """
+    Returns a report of members with extra charges.
+    Examines the infile and if it's a csv file, the membership file is
+    assumed and report will be from there.
+    If infile is a txt file: membership data is not consulted;
+    instead we assume file is in format of extra_fees.txt.
+    """
+    infile = args["-i"]
+    if not infile:
+        infile = Membership.MEMBER_DB
+    suffix = infile[-4:]
+    if suffix == ".txt":
+        # use function vs method
+        print("Not implemented- use extra_fees.py script instead.")
+        sys.exit()
+    elif  suffix == ".csv":
+        # use methods: traversal with get_extra_fees
+        print("Traversing {} to select mempbers owing extra_fees..."
+            .format(infile))
+        source = Membership(Dummy)
+        err_code = source.traverse_records(infile,
+                source.get_extra_charges)
+    else:
+        assert False
+    res_by_category = []
+    if source.extras_by_category:
+        res_by_category.extend(["Extra Fees Charged by the Club",
+                                "------------------------------"])
+        for key in source.extras_by_category:
+            if source.extras_by_category[key]:
+                res_by_category.append("")
+                res_by_category.append("Members paying for {}:"
+                    .format(source.headers[key]))
+                for val in source.extras_by_category[key]:
+                    res_by_category.append(val)
+        res_by_category = '\n'.join(res_by_category)
+    else:
+        res_by_category = ''
+    res_by_member = []
+    if source.extras_by_member:
+        res_by_member.extend(["Members Paying Extra Fees",
+                              "-------------------------"])
+        for line in source.extras_by_member:
+            res_by_member.append(line)
+        res_by_member = '\n'.join(res_by_member)
+    else:
+        res_by_member = ''
+    return "\n\n".join((res_by_category, res_by_member))
 
 def envelopes_cmd():
     if args["--parameters"]:
@@ -1848,26 +1736,6 @@ def labels_cmd():
     source = Membership(medium)
     source_file = args["-i"]
     return source.get_labels2print(source_file)
-
-def new_extra_charges_cmd():
-    """
-    Returns a report of members with extra charges.
-    """
-    source = Membership(Dummy)
-    infile = args["-i"]
-    outfile = args['-o']
-    source.new_get_extra_charges(infile, outfile)
-    print(source.header)
-    print(source.fees_list)
-    # present results
-
-def extra_charges_cmd():
-    """
-    Returns a csv report of members with extra charges.
-    """
-    source = Membership(Dummy)
-    infile = args["-i"]
-    return source.get_extra_charges(infile)
 
 def compare_gmail_cmd():
     """
@@ -1893,7 +1761,7 @@ def restore_fees_cmd():
     been dropped from the club roster.)
     Repopulates the club's master list with the ANNUAL_DUES constant
     and information from args['<extra_fees.json>'].
-    If '-n <new_membership_file>' is specified, the original
+    If '-t <new_membership_file>' is specified, the original
     membership file is not modified and output is to the new file,
     else the original file is changed.
     """
