@@ -26,7 +26,7 @@ Usage:
   ./utils.py usps_billings2print [-i <infile>] --dir <billings_directory>
   ./utils.py billing [-i <infile>]  -j <json_file> --dir <billings_directory> [-a arrears_file]
   ./utils.py prepare_mailing [-i <infile>] -j <json_file> --dir <directory4letters>
-  ./utils.py still_owing [--raw -i <infile>] -o <outfile>
+  ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py restore_fees <membership_file> -j <json_fees_file> [-t <new_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
@@ -379,6 +379,7 @@ class Membership(object):
             self.extras_by_category[key] = []
         self.still_owing = []
         self.advance_payments = []
+
         self.invalid_lines = []
         self.n_members = 0
 
@@ -1480,117 +1481,37 @@ Membership"""
             for error in errors:
                 print(error)
 
-    def get_still_owing(self, record):
+    def get_payables(self, record):
         """
-        Checks record for dues &/or fees. If found:
-        If positive, adds item to the self.still_owing list.
-        If negative, adds item to self.advance_payments list.
-        Each 'item' is a string.
-        """
-        pass
+        Populates self.still_owing and self.advance_payments.
 
-    def still_owing(self, source_file):
+        Checks record for dues &/or fees. If found,
+        positives are added to self.still_owing,
+        negatives to self.advance_payments.
         """
-        Returns a (possibly empty) list of strings, each consisting
-        of a member's name along with dues &/or fees still unpaid.
-        Sets the instance attribute (self.added_info) to provide
-        access to list of members with a positive balance.
-        Also sets the instance attribute (self.name_tuples) used
-        by the restore_fees method.
-        """
-        still_owing = []
-        self.added_info = []
-        self.name_tuples = set()  # The restore_fees method needs this
-        # info (to check that each member in the extra_fees data base
-        # is in fact a member.)
-        print("Openning {}".format(source_file))
-        with open(source_file, 'r') as mem_file:
-            file_content = mem_file.read()
-            file_content = file_content.split("\n")
-            print("file contains {} records"
-                .format(len(file_content)))
-            if file_content:
-                headers = file_content[0].split(',')
-                file_content = file_content[1:]
-            for record in file_content:
-                if record:
-                    record = record.split(",")
-                else:
-                    continue
-#               print("after splitting record it becomes...")
-#               print(record)
-                mem_dict = self.make_dict(record)
-#               print("mem_dict is ...")
-#               print(mem_dict)
-                mem_name_tuple = (mem_dict["last"],
-                    mem_dict["first"])
-                self.name_tuples.add(mem_name_tuple)
-                member = ("{}, {}: {{}}"
-                    .format(*mem_name_tuple))
-                fees_outstanding = []
-#               print("Headers are ...")
-#               print(headers)
-                for item in headers[self.i_dues:self.i_kayak + 1]:
-#                   print("item is {}".format(item))
-#                   print("mem_dict[item] is {}"
-#                       .format(mem_dict[item]))
-                    if mem_dict[item] and int(mem_dict[item])>0:
-                        fees_outstanding.append(
-                            "{} {}"
-                            .format(
-                            item,
-                            mem_dict[item]
-                            ))
-                if fees_outstanding:
-                    still_owing.append(
-                        member.format(', '.join(fees_outstanding)))
-        return still_owing
-
-    def still_owing_old(self, source_file):
-        """
-        Returns a (possibly empty) list of strings, each consisting
-        of a member's name along with dues &/or fees still unpaid.
-        """
-        ret = []
-        pos_balance = []
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
-        for next_record in record_reader:
-            if not next_record:
-                continue
-            last = next_record[self.i_last]
-            first = next_record[self.i_first]
-            dues = next_record[self.i_dues]
-            mooring = next_record[self.i_mooring]
-            dock = next_record[self.i_dock]
-            kayak = next_record[self.i_kayak]
-            if dues == 'dues':  # To bypass header line.
-                continue
-            outstanding = 0
-            for item in (dues, mooring, dock, kayak):
-                if item:
-                    item = int(item)
-                    outstanding += item
-            if outstanding > 0:
-                if next_record[self.i_email]:
-                    ret.append("{}, {}, {} (email)".format(
-                    last, first, outstanding))
-                else:
-                    ret.append("{}, {}, {} (USPS)".format(
-                    last, first, outstanding))
-            if outstanding < 0:
-                if next_record[self.i_email]:
-                    pos_balance.append("{}, {}, {} (email)".format(
-                    last, first, outstanding))
-                else:
-                    pos_balance.append("{}, {}, {} (USPS)".format(
-                    last, first, outstanding))
-        if pos_balance:
-            self.added_info = [
-                "\nThe following have paid in advance:"]
-            self.added_info.extend(pos_balance)
-        return ret
+        name = "{last}, {first}: ".format(**record)
+        line_positive = []
+        line_negative = []
+        for key in self.money_keys:
+            if record[key]:
+                amount = int(record[key])
+                if amount != 0:
+                    if amount > 0:
+                        assert amount > 0
+                        line_positive.append("{} {}".format(
+                            self.headers[key], amount))
+                    elif amount < 0:
+                        assert amount < 0
+                        line_negative.append("{} {}".format(
+                            self.headers[key], amount))
+                    else:
+                        assert False
+        if line_positive:
+            line = (name + ', '.join(line_positive))
+            self.still_owing.append(line)
+        if line_negative:
+            line = (name + ', '.join(line_negative))
+            self.advance_payments.append(line)
 
     def fees_intake(self, infile=CHECKS_RECEIVED):
         """
@@ -1718,6 +1639,28 @@ def extra_charges_cmd():
     else:
         res_by_member = ''
     return "\n\n".join((res_by_category, res_by_member))
+
+def payables_cmd():
+    """
+    Traverses the db populating 
+    """
+    infile = args['-i']
+    if not infile:
+        infile = Membership.MEMBER_DB
+    source = Membership(Dummy)
+    err_code = source.traverse_records(infile, source.get_payables)
+    output = []
+    if source.still_owing:
+        output.extend(["Members owing",
+                       "-------------"])
+        output.extend(source.still_owing)
+    if source.advance_payments:
+        if source.still_owing:
+            output.append("\n")
+        output.extend(["Members Payed in Advance",
+                       "------------------------"])
+        output.extend(source.advance_payments)
+    return '\n'.join(output)
 
 def envelopes_cmd():
     if args["--parameters"]:
@@ -1865,25 +1808,6 @@ def prepare_mailing_cmd():
     # send json_data to file
     with open(json_file_name, 'w') as file_obj:
         file_obj.write(json.dumps(json_data))
-
-def still_owing_cmd():
-    source = Membership(Dummy)
-    delinquents = source.still_owing(args["-i"])
-    if args["--raw"]:
-        output("\n".join(delinquents))
-        return
-    header = ["Members with dues &/or fees still outstanding:"]
-    n_delinquents = len(delinquents)
-    if n_delinquents:
-        footer = ["Number of delinquent members: {}"
-                .format(n_delinquents)]
-    else:
-        footer = ["No delinquent members."]
-    if source.added_info:
-        output("\n".join(header + delinquents + footer
-            + source.added_info))
-    else:
-        output("\n".join(header + delinquents + footer))
 
 def fees_intake_cmd():
     infile = args['-i']
@@ -2048,11 +1972,6 @@ if __name__ == "__main__":
         print("...being sent to {}.".format(args['-o']))
         output(extra_charges_cmd())
 
-    elif args["new_extra_charges"]:
-        print("Selecting members with extra charges:")
-        print("...being sent to {}.".format(args['-o']))
-        output(new_extra_charges_cmd())
-
     elif args["compare_gmail"]:
         print("Check the google list against the membership list.")
         output(compare_gmail_cmd())
@@ -2103,10 +2022,9 @@ for members who receive meeting minutes by mail.""")
         prepare_mailing_cmd()
         print("...finished preparing emails and letters.")
 
-    elif args["still_owing"]:
-        print(
-            "Preparing listing of those with dues/fees outstanding.")
-        still_owing_cmd()
+    elif args["payables"]:
+        print("Preparing listing of payables...")
+        output(payables_cmd())
 
     elif args["send_emails"]:
         print("Sending emails...")
