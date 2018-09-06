@@ -59,10 +59,9 @@ Options:
               make the output suitable as input for 'tabulate.py'.
 
 Commands:
-    When run without a command, nothing is done.
-    show: returns (to <-o outfile> or to stdout if not specified)
+    When run without a command, prints a usage statement.
+    show: returns (to outfile or to stdout if not specified)
         the membership demographics for display on the web site.
-        Use of the -r option supresses output of a header line.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
     ck_fields: check for correct number of fields in each record.
@@ -379,6 +378,7 @@ class Membership(object):
             self.extras_by_category[key] = []
         self.still_owing = []
         self.advance_payments = []
+        self.usps_only = []
 
         self.invalid_lines = []
         self.n_members = 0
@@ -418,6 +418,7 @@ class Membership(object):
         # number to prevent errors from aborting the program.
         """
         with open(infile, 'r') as file_object:
+            print("Opening {}".format(infile))
             dict_reader = csv.DictReader(file_object)
             for record in dict_reader:
                 custom_func(record)
@@ -1068,42 +1069,17 @@ Membership"""
         print("{} pages ready to print".format(len(pages)))
         return "\f".join(pages) 
 
-    def get_USPS_only(self, source_file):
+    def get_usps(self, record):
         """
-        Selects members who get their copy of meeting minutes
-        by US Postal Service. (Members who are NOT in the 'email
-        only' category.) Data is presented in csv format consisting
-        of the following fields:
-            first,last,address,town,state,zip_code
-        Note: The secretary gets included so he/she will receive
-        printed minutes for proof reading.
+        Populates self.usps_only with the following comma separated
+        values: first, last, address, town, state, and zip, for each
+        member who gets her/his copy of meeting minutes by US Postal
+        Service.
         """
-        record_reader = csv.reader(
-            codecs.open(args["-i"], 'rU', 'utf-8'),
-            dialect='excel')
-        ret = []
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
-#           print("Processing '{} {}'."
-#               .format(next_record[Membership.i_first],
-#                   next_record[Membership.i_last]))
-            email_only = next_record[Membership.i_email_only]
-            if (SECRETARY == (next_record[Membership.i_first],
-                            next_record[Membership.i_last])
-            or not email_only):
-                entry = (
-                    next_record[Membership.i_first],
-                    next_record[Membership.i_last],
-                    next_record[Membership.i_address],
-                    next_record[Membership.i_town],
-                    next_record[Membership.i_state],
-                    next_record[Membership.i_zip_code],
-                    )
-                ret.append(",".join(entry))
-        return "\n".join(ret)
+        if not record['email_only']:
+            self.usps_only.append(
+                "{first},{last},{address},{town},{state},{zip}"
+                .format(**record))
 
     def check_letter_dir(self, directory4letters):
         """
@@ -1662,6 +1638,24 @@ def payables_cmd():
         output.extend(source.advance_payments)
     return '\n'.join(output)
 
+def usps_cmd():
+    """
+    Generates a cvs file used by Peter to send out minutes.
+        first,last,address,town,state,zip_code
+    (Members who are NOT in the 'email only' category.)
+    Note: Peter (secretary) is purposely NOT 'email_only' so that he
+    can get a copy of the printed minutes for inspection.
+    """
+    infile = args['-i']
+    if not infile:
+        infile = Membership.MEMBER_DB
+    source = Membership(Dummy)
+    err_code = source.traverse_records(infile, source.get_usps)
+    header = [key for key in source.keys_tuple[:source.i_email]]
+    res = [",".join(header)]
+    res.extend(source.usps_only)
+    return '\n'.join(res)
+
 def envelopes_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
@@ -1720,21 +1714,6 @@ def restore_fees_cmd():
             file_obj.write(source.errors)
     if ret:
         sys.exit(ret)
-
-def usps_cmd():
-    """
-    Generates a cvs file used by Peter to send out minutes.
-        first,last,address,town,state,zip_code
-    (Members who are NOT in the 'email only' category.)
-    Note: Peter (secretary) is purposely NOT 'email_only' so that he
-    can get a copy of the printed minutes for inspection.
-    """
-    source = Membership(Dummy)
-    if args["-i"]:
-        source_file = args["-i"]
-    else:
-        source_file = source.infile
-    return source.get_USPS_only(source_file)
 
 def smtp_file(recipient_email_address, message_file):
     """
