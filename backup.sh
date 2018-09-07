@@ -2,7 +2,9 @@
 
 # File: backup.sh
 
-cp  memlist.csv  ../Backup/
-cp  extra_fees.txt  ../Backup/
-cp  checks_received.txt  ../Backup/
-cp  ../Lists/newmembers  ../Backup/
+STAMP=`date +%y-%m-%d`
+mkdir ../Backup/$STAMP
+cp  memlist.csv  ../Backup/$STAMP/
+cp  extra_fees.txt  ../Backup/$STAMP/
+cp  checks_received.txt  ../Backup/$STAMP/
+cp  ../Lists/newmembers  ../Backup/$STAMP/

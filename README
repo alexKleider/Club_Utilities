@@ -41,12 +41,14 @@ Backup for club data is generously provided by the secretary:
 
 WORK FLOW
 
-Club data is kept in
-    memlist.csv,
-    extra_fees.txt and
-    checks_received.txt
-There is also ../Lists/newmembers in which I keep track of
-new members and my reports to leadership and members.
+Club data (to be kept private) is in:
+    checks_received.txt,
+    extra_fees.txt,
+    memlist.csv and
+    newmembers
+('newmembers' is a link to ../Lists/newmembers in which I keep track
+of new members and my reports to leadership and members.  The latter
+are also archived in ../Archives/
 All four are edited using vim (or any editor of your choosing) and
 are copied (backup.sh) to ../Backup/ from time to time (to protect
 against accidental corruption.)

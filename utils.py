@@ -7,31 +7,30 @@
 maintanance of the Bolinas Rod and Boat Club records. It serves
 as an aid to the membership chair.
 Most commands deal with the main club data base which is a csv file
-named "memlist.csv".  Hence it is the default (<-i>) input file
-(using the 'docopt' mechanism for setting defaults.)
+named "memlist.csv".  Hence it is the default (<-i>) input file.
 
 See further notes regarding usage and work flow at end of this
 docstring.
 
 Usage:
-  ./utils.py ?
-  ./utils.py --help | --version
+  ./utils.py [ ? | --help | --version ]
   ./utils.py ck_fields [-r -i <infile> -o <outfile>]
-  ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
   ./utils.py compare_gmail <gmail_contacts> [--raw -i <infile> -s <sep> -j <json> -o <outfile>]
-  ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
+  ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py usps [-i <infile> -o <outfile>]
-  ./utils.py email_billings2json [-i <infile>] -j <json_file>
-  ./utils.py usps_billings2print [-i <infile>] --dir <billings_directory>
+  ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
+  ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py billing [-i <infile>]  -j <json_file> --dir <billings_directory> [-a arrears_file]
   ./utils.py prepare_mailing [-i <infile>] -j <json_file> --dir <directory4letters>
-  ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py send_emails [<content>] -j <json_file>
-  ./utils.py restore_fees <membership_file> -j <json_fees_file> [-t <new_membership_file> -e <error_file>]
+  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t
+  <temp_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
-  ./utils.py print_letters --dir <billings_directory>
-  ./utils.py fees_intake [-i <infile> -o <outfile> -e <errorfile>]
+  ./utils.py print_letters --dir <billings_directory> [-s <sep -e error_file]
+  ./utils.py fees_intake [-i <infile> -o <outfile> -e <error_file>]
+  ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
+  ./utils.py email_billings2json [-i <infile>] -j <json_file>
+  ./utils.py usps_billings2print [-i <infile>] --dir <billings_directory>
 
 Options:
   -h --help  Print this docstring.
@@ -57,13 +56,10 @@ Options:
                A5160 for labels & E000 for envelopes.
   -r --raw  When used with -o <outfile> headers are NOT printed (to
               make the output suitable as input for 'tabulate.py'.
+  -s <separator>  Can be LF or FF.  [default: FF]
 
 Commands:
     When run without a command, prints a usage statement.
-    show: returns (to outfile or to stdout if not specified)
-        the membership demographics for display on the web site.
-    labels: print labels.       | default: -p A5160  | Both
-    envelopes: print envelopes. | default: -p E000   | redacted.
     ck_fields: check for correct number of fields in each record.
         Sends results to -o <outfile> only if there are bad records.
         Use of -r --raw option supresses the header line.
@@ -74,16 +70,24 @@ Commands:
         differing emails in the google contacts and the membership
         list. These can then be proof read before sending them using
         the 'send_emails' command.
-    extra_charges: provides lists of members with special charges.
-        Both a list of members each with the charge(s) they pay and
-        separate lists for each category of charge.
-        If the <infile> name ends in '.csv' then output will be
-        charges outstanding (i.e. owed but still not payed;) if it
-        ends in '.txt' then output will include all who are paying
-        for one or more of the Club's three special privileges.
+    show: returns (to outfile or to stdout if not specified)
+        the membership demographics for display on the web site.
     usps: provides a csv file of members (with their postal addresses)
         who receive minutes by post (rather than email.)
         Used to provide the secretary a csv file when requested.
+    extra_charges: provides lists of members with special charges.
+        Both a list of members each with the charge(s) they pay and
+        separate lists for each category of charge. (Dues not
+        included.)
+        If the <infile> name ends in '.csv' then output will be
+        charges outstanding (i.e. owed but still not payed;) if it
+        ends in '.txt' then output will include all who are paying
+        for one or more of the Club's three special privileges. There
+        is also the option of creating a json file needed by the
+        restore_fees_cmd.
+    payables: reports on content of the member data money fields
+        providing a listing of those who owe and those who have paid
+        in advance.
     email_billings2json: prepares billing statements (as a JSON
         string) keyed by email address.  
     usps_billings2print: Creates a directory specified by the argument
@@ -102,11 +106,10 @@ Commands:
         email_billings2json and usps_billings2print.
     still_owing: Reports on members with payments still due.
     restore_fees: Use this command after all dues and fees have been
-        paid- will abort if any are outstanding. Will modify the
-        membership csv file unless final parameter is specified in
-        which case the output can be checked and then the file renamed
-        if all is in order (or the command rerun without the final
-        parameter.)
+        paid- will abort if any are outstanding. Will place the
+        results into a file named as a concatination of "new_" and the
+        specified membership csv file. One can then mannually check
+        the new file and move it if all is well.
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -124,6 +127,8 @@ Commands:
         Note: Must first lower br&bc's account security at:
         https://myaccount.google.com/lesssecureapps
     display_json:  Provides an opportunity to proof read the emails.
+    labels: print labels.       | default: -p A5160  | Both
+    envelopes: print envelopes. | default: -p E000   | redacted.
 
 Consult the README file for further info.
 """
@@ -136,7 +141,6 @@ CSV = ".csv"   #| command.
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
-DUES = 100
 
 import os
 import shutil
@@ -153,6 +157,11 @@ import Formats
 
 args = docopt(__doc__, version="1.0.1a")
 # print(args)
+
+if args["-s"] == "LF":
+    args["-s"] = '\n'
+else:
+    args["-s"] = '\n\f'
 
 SMTP_SERVER = "smtp.gmail.com"
 
@@ -321,12 +330,17 @@ class Membership(object):
     preceding classes) is provided as methods of this class.
     Other functionalities are provided as independent functions.
     """
+    YEARLY_DUES = 100
 
     # Data bases used:
     MEMBER_DB = 'memlist.csv'               #|  
-    EXTRA_FEES = 'extra-fees.lst'           #|  To be used
+    EXTRA_FEES = 'extra_fees.txt'           #|  To be used
     CHECKS_RECEIVED = 'checks_received.txt' #|  as defaults.
-    DEFAULT_OUTPUT_FILE = '2read.txt'       #|
+
+    # Intermediate &/or temporary files used:
+    EXTRA_FEES_JSON = 'extra_fees.json'
+    TEMP_MEMBER_DB = 'new_memlist.csv'
+    OUTPUT2READ = '2read.txt'       #|
         # the last generally goes to stdout.
 
     # define the fields available and define a method to set up a
@@ -369,8 +383,10 @@ class Membership(object):
         self.params = params
         self.params.self_check()
         self.malformed = []
+        self.errors = []
         self.first_letter = '_'
-        self.name_tuple = ('','')
+#       self.name_tuple = ('','')
+        self.name_tuples = []
         self.list4web = []
         self.extras_by_member = []
         self.extras_by_category = {}
@@ -409,19 +425,25 @@ class Membership(object):
             "kayak": record[self.i_kayak],
             }
 
-    def traverse_records(self, infile, custom_func):
+    def traverse_records(self, infile, custom_funcs):
         """
-        Traverses <infile> and applies <custom_func> to each record.
-        Generally <custom_func> will leave its results in one of the
-        attributes (similarly named.)
+        Traverses <infile> and applies <custom_funcs> to each
+        record.  <custom_funcs> can be a single function or a
+        list of functions.
+        Generally each <custom_func> will leave its results in
+        one of the attributes (similarly named.)  These custom funcs
+        are generally methods with names beginning in 'get_'.
         # Could wrap this up in a try clause and report an error
         # number to prevent errors from aborting the program.
         """
+        if callable(custom_funcs):
+            custom_funcs = [custom_funcs]
         with open(infile, 'r') as file_object:
             print("Opening {}".format(infile))
             dict_reader = csv.DictReader(file_object)
             for record in dict_reader:
-                custom_func(record)
+                for custom_func in custom_funcs:
+                    custom_func(record)
 
     def get_malformed(self, record):
         """
@@ -465,6 +487,13 @@ class Membership(object):
             self.first_letter = first_letter
             self.list4web.append("")
         self.list4web.append(line)
+
+    def get_name_tuple(self, record):
+        """
+        Populates self.name_tuples list.
+        """
+        self.name_tuples.append(("{}".format(record['last']),
+                                "{}".format(record['first'])))
 
     def prn_split(self, field, params):
         """
@@ -589,7 +618,7 @@ class Membership(object):
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
-    def compare_w_google(self, source_file, google_file):
+    def compare_w_google(self, source_file, google_file, separator):
         """
         Checks for incompatibilities between the two files.
         """
@@ -663,52 +692,45 @@ Membership"""
         # The other keyed by name tuple: value is email
 
         # Next we iterate through the member list...
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
         record_number = 0
-        for next_record in record_reader:
-            record_number += 1
-            if next_record[self.i_first] == "first":
-                continue
-            try:
-                email = next_record[self.i_email]
-            except IndexError:
-                print("Line #{} is faulty"
-                    .format(record_number))
-            if email:
-                # append to names_and_emails as a tuple:
-                names_and_emails.append((
-                    (next_record[self.i_first],
-                    next_record[self.i_last]),
-                    email))
-                try: # find out if google knows this email:
-                    g_info = g_dict_e[email]
-                except KeyError:  # if not:
-                    # Add to missing_from_google dict...
-                    missing_from_google[
-                        (next_record[self.i_first],
-                        next_record[self.i_last])
-                        ] = email
-                    # and Append to emails_not_found_in_g...
-                    emails_not_found_in_g.append(
-                        "{} {} {}"
-                        .format(next_record[self.i_first],
-                            next_record[self.i_last],
-                            email))
-                    continue
-                # Google knows this email...
-                info = (next_record[self.i_first],
-                    next_record[self.i_last])
-                if info != g_info[:2]:  # but names don't match so
-                    # append to bad_matches..
-                    bad_matches.append("{} {} {}".format(
-                        info, next_record[self.i_email], g_info[:2]))
-            else:  # memlist has no email for this member so..
-                # append to no_emails:
-                no_emails.append("{} {}".format(
-                    next_record[self.i_first],
-                    next_record[self.i_last]))
+        with open(source_file, 'r') as file_obj:
+            dict_reader = csv.DictReader(file_obj)
+            for record in dict_reader:
+                record_number += 1
+                email = record["email"]
+                if email:
+                    # append to names_and_emails as a tuple:
+                    names_and_emails.append((
+                        (record["first"],
+                        record["last"]),
+                        email))
+                    try: # find out if google knows this email:
+                        g_info = g_dict_e[email]
+                    except KeyError:  # if not:
+                        # Add to missing_from_google dict...
+                        missing_from_google[
+                            (record["first"],
+                            record["last"])
+                            ] = email
+                        # and Append to emails_not_found_in_g...
+                        emails_not_found_in_g.append(
+                            "{} {} {}"
+                            .format(record["first"],
+                                record["last"],
+                                email))
+                        continue
+                    # Google knows this email...
+                    info = (record["first"],
+                        record["last"])
+                    if info != g_info[:2]:  # but names don't match so
+                        # append to bad_matches..
+                        bad_matches.append("{} {} {}".format(
+                            info, record["email"], g_info[:2]))
+                else:  # memlist has no email for this member so..
+                    # append to no_emails:
+                    no_emails.append("{} {}".format(
+                        record["first"],
+                        record["last"]))
         # Finished traversal of memlist
 
         # Tabulate the no_emails list to make it more presentable:
@@ -770,7 +792,7 @@ Membership"""
                 ret.append(formatted_report)
             else:
                 ret.append("No entries for '{}'".format(report_name))
-        return SEPARATOR.join(ret)
+        return separator.join(ret)
 
     def cust_fees_json(self, record, context = None):
         """
@@ -861,42 +883,38 @@ Membership"""
 
 
     def restore_fees(self, membership_csv_file,
-                        fees_json_file,
-                        new_file = None):
+                        dues, fees_json_file,
+                        new_membership_csv_file):
         """
-        Uses the DUES constant (which perhaps should be made a class
-        attribute but isn't yet) and the contents of the file
-        specified by the <fees_json_file> to determine dues and
-        relevant fees which are then applied to each member's record
-        in the data base (<membership_csv_file>.) In order to protect
-        from the possibility of a bug resulting in corruption of
-        the data base, there is the option of specifying a <new_file>
-        which could then be checked before copying it to the
-        <membership_csv_file>.
-        <self.errors> is an instance attribute that can then be used
-        by a client procedure to check for what ever might be there.
+        Dues and relevant fees are applied to each member's record
+        in a new_membership_csv_file. It can then be checked before
+        renaming.
+        Populates <self.errors>, an instance attribute, that can be
+        checked by a client procedure.
         Several conditions prevent the method from completing (i.e.
         actually restoring fees.) In each instance, the specifics are
         reported inside the <self.errors> attribute.  This happens if
         any member still has dues or fees owing or if a person appears
         in the <fees_json_file> but is not a member (i.e. in the
         <membership_csv_file>.)
-        The <fees_json_file> is NOT the SPoL, it is generated by the
-        create_extra_fees_json method from the "extra_fees.lst" file.
+        The <fees_json_file> is NOT the SPoL! The extra_fees.txt file
+        is the SPoL. The json file can be optionally created by
+        running the extra_charges command
         """
-        self.errors = []
         print(
             "Preparing to restore dues and fees to the data base...")
         print(
             "  1st check that all have been zeroed out...")
-        still_owing = self.still_owing(membership_csv_file)
-        mem_name_tuples = self.name_tuples
-        # We do this to be able to check that each member in the
-        # extra_fees data base is in fact a member.
-        if still_owing:
-            self.errors = [
-                "The following members have not been zeroed out:"]
-            self.errors = "\n".join(self.errors + still_owing)
+        err_code = self.traverse_records(membership_csv_file,
+                    [self.get_name_tuple, self.get_payables])  # vvv
+        # Populates self.name_tuples so we can later check that
+        # everyone in the extra_fees data base is in fact a member
+        # and populates self.still_owing so we can check if OK to
+        # proceed.
+        if self.still_owing:
+            self.errors.append(
+                "The following members have not been zeroed out:")
+            self.errors = "\n".join(self.errors + self.still_owing)
             print("The following have not been zeroed out:")
             print(self.errors)
             # self.errors can be sent to an error file by caller.
@@ -907,18 +925,14 @@ Membership"""
             print("All members are zeroed out- OK to continue...")
             assert not self.errors
 
-        if new_file:
-            print("...planning to create a new file: '{}'."
-                .format(new_file))
-        else:
-            print("...modifying the original file...")
+        new_file = new_membership_csv_file
+        if os.path.exists(new_file):
             response = input(
-                "... the old version will be lost! Continue? (y/n) ")
-            if not response or not response[:1] in 'yY':
+                "...planning to overwrite '{}', OK? (y/n) "
+                .format(new_file))
+            if not response or not response[0] in "Yy":
                 print("Terminating.")
                 return 1
-            else:
-                new_file = membership_csv_file
 
         # Preliminaries are done- time to do the work...
         fees_by_name = self.parse_extra_fees(fees_json_file)
@@ -932,10 +946,11 @@ Membership"""
 #       with open("fee_name_tuples.txt", 'w') as file_obj:
 #           for tup in fee_name_t_list:
 #               file_obj.write("{}, {}\n".format(*tup))
-        if not fee_name_tuples.issubset(mem_name_tuples):
+        if not fee_name_tuples.issubset(self.name_tuples):
             print("There's a discrepency- one or more fee paying")
             print("members are not in the membership data base.")
-            bad_set = fee_name_tuples - mem_name_tuples
+            bad_set = (fee_name_tuples -
+                {tup for tup in self.name_tuples})
             self.errors.append("Fee payers not in member database:")
             for last, first in bad_set:
                 error = "{}, {}".format(last, first)
@@ -958,7 +973,7 @@ Membership"""
                     dues = 0
                 else:
                     dues = int(dues)  # To allow for members who pay
-                record['dues'] = dues + DUES  # in advance.
+                record['dues'] = dues + self.YEARLY_DUES  # in advance.
                 if name_tuple in fee_name_tuples:
                     # We've got fees to enter as well as dues.
                     print("found '{}' to be charged extra"
@@ -1539,8 +1554,8 @@ def ck_fields_cmd():
     print("Checking fields...")
     err_code = source.traverse_records(infile,
                                     source.get_malformed)
-    if res:
-        print("Error condition! #{}".format(res))
+    if err_code:
+        print("Error condition! #{}".format(err_code))
     if not source.malformed:
         output("No malformed records found.")
         print("No malformed records found.")
@@ -1550,6 +1565,8 @@ def ck_fields_cmd():
                 'Malformed Records',
                 '================='] + source.malformed
         output("\n".join(source.malformed))
+        if args['-o']:
+            print("See malformed records in {}.".format(args['-o']))
     print("...done checking fields.")
 
 def show_cmd():
@@ -1683,9 +1700,11 @@ def compare_gmail_cmd():
     verification = "Is your google contacts cvs file up to date? "
     if verification and input(verification).lower()[0] == 'y':
         source = Membership(Dummy)
-        source_file = args["-i"]
+        if not args["-i"]:
+            args["-i"] = source.infile
         google_file = args['<gmail_contacts>']
-        return source.compare_w_google(source_file, google_file)
+        return source.compare_w_google(args['-i'],
+                                google_file, args['-s'])
     else:
         print(
             "Best do a Google Contacts export and then begin again.")
@@ -1703,11 +1722,17 @@ def restore_fees_cmd():
     else the original file is changed.
     """
     source = Membership(Dummy)
-    print(args['-j'])
+    if not args['<membership_file>']:
+        args['<membership_file>'] = source.MEMBER_DB
+    if not args['-j']:
+        args['-j'] = source.EXTRA_FEES_JSON
+    if not args['-t']:
+        args['-t'] = source.TEMP_MEMBER_DB
     ret = source.restore_fees(
         args['<membership_file>'],
+        source.YEARLY_DUES,
         args['-j'],
-        args['-n']
+        args['-t']
         )
     if source.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
@@ -1925,7 +1950,7 @@ def print_letters(target_dir):
         failures = ["All files printed successfully."]
     successes = '\n'.join(successes)
     failures = '\n'.join(failures)
-    report = successes + SEPARATOR + failures
+    report = successes + args['-s'] + failures
     output(report)
 
 
