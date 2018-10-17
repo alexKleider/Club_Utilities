@@ -33,9 +33,9 @@ import json
 from helpers import indent
 
 content_july2018 = {
-"subject":"July mailing",
+"subject": "July mailing",
 
-"email_header":"""From: rodandboatclub@gmail.com
+"email_header": """From: rodandboatclub@gmail.com
 To: {email}
 Subject: {subject}
 
@@ -43,7 +43,7 @@ Dear {first} {last},
 
 """,
 
-"postal_header":"""
+"postal_header": """
 
 
 
@@ -53,7 +53,7 @@ PO Box 248
 Bolinas, CA 94924
 
 
-July 23, 2018
+{date}
 
 
 
@@ -69,7 +69,7 @@ Dear {first} {last},
 
 """,
 
-"body":"""
+"body": """
 
 With July comes the beginning of the new membership year
 and ideally we'd like to have all dues and fees in by now.
@@ -312,9 +312,119 @@ def cust_aug31_2018(record, field_names, content,
         with open(path2write, "w") as file_object:
             file_object.write(entry)
 
+proto_content = {
+"subject": "Proto mailing",
 
-content = content_late_aug2018
+"email_header": """From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header": """
+
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+July 23, 2018
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body": """
+Blah, Blah-
+more Blah blah
+
+etc
+
+First extra content is
+{extra0}
+
+May have as many 'extras' as required as long as each one
+is defined by the custom function
+the content dict.  i.e. {extra1}
+
+Sincerely,
+Alex Kleider (Membership)"""
+
+}
+
+welcome = {
+"subject": "Welcome to the Bolinas Rod & Boat Club",
+
+"email_header": """From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header": """
+
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body": """
+As you may already know, the Club Executive approved your application
+for Club membership at their October 5th meeting.  All that remains
+for your membership to take effect is payment of dues. 
+
+Please send a check for $100 to the Club at
+    PO Box 248
+    Bolinas, CA 94924
+
+Upon receipt of your membership dues, I'll send you more information
+about the Club and your privileges as a member there of.
+
+
+Sincerely,
+Alex Kleider (Membership)"""
+
+}
+
+#content = content_late_aug2018
 cust_func = cust_aug31_2018
+content = welcome
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

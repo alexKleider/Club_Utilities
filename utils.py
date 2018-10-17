@@ -4,47 +4,43 @@
 
 """
 "utils.py" is a utility providing functionality for usage and
-maintanance of the Bolinas Rod and Boat Club records. It serves
-as an aid to the membership chair.
-Most commands deal with the main club data base which is a csv file
-named "memlist.csv".  Hence it is the default (<-i>) input file.
-
-See further notes regarding usage and work flow at end of this
-docstring.
+maintanance of the Bolinas Rod and Boat Club records.
+Most commands deal with a csv file named "memlist.csv" so for
+these it is the default input file.
+Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version ]
   ./utils.py ck_fields [-r -i <infile> -o <outfile>]
-  ./utils.py compare_gmail <gmail_contacts> [--raw -i <infile> -s <sep> -j <json> -o <outfile>]
+  ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
-  ./utils.py billing [-i <infile>]  -j <json_file> --dir <billings_directory> [-a arrears_file]
-  ./utils.py prepare_mailing [-i <infile>] -j <json_file> --dir <directory4letters>
+  ./utils.py billing [-i <infile> -o arrears_file -l]  -j <json_file> --dir <dir4letters>
+  ./utils.py prepare_mailing [-i <infile> -l] -j <json_file> --dir <dir4letters>
   ./utils.py send_emails [<content>] -j <json_file>
-  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t
-  <temp_membership_file> -e <error_file>]
+  ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
+  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py display_json -j <json_file> [-o <txt_file>]
-  ./utils.py print_letters --dir <billings_directory> [-s <sep -e error_file]
   ./utils.py fees_intake [-i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
   ./utils.py email_billings2json [-i <infile>] -j <json_file>
-  ./utils.py usps_billings2print [-i <infile>] --dir <billings_directory>
+  ./utils.py usps_billings2print [-i <infile>] --dir <dir4letters>
 
 Options:
   -h --help  Print this docstring.
   --version  Print version.
-  -a <arrears_file>  Specify a text file into which will be placed
-                        a list of members still in arrears.
-  --dir <directory4letters>  The directory to be created and into
-                   which letters can be placed for batch printing.
+  --dir <dir4letters>  The directory to be created and/or read
+                      containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
                     generally reported to stdout.
   -i <infile>  Specify file used as input. Usually defaults to
                 memlist.csv (the membership csv file.)
   -j <json>  Specify an output file in jason if -o is otherwise used.
+  -l  An option to indicate that all are to get letters, even those
+                  with an email address.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
                   modified, thus providing an opportunity for proof
@@ -54,62 +50,52 @@ Options:
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
                A5160 for labels & E000 for envelopes.
-  -r --raw  When used with -o <outfile> headers are NOT printed (to
-              make the output suitable as input for 'tabulate.py'.
-  -s <separator>  Can be LF or FF.  [default: FF]
+  -r --raw  Supress headers (to make the output suitable as
+            input for 'tabulate.py'.)
+  -s <separator>  Some commands may have more than one component to
+          their output.  Such componentes can be seprated by either
+          a line feed (LF) or a form feed (FF).  [default: FF]
+  <gmail_contacts>  [default: google.csv]
 
 Commands:
     When run without a command, prints a usage statement.
-    ck_fields: check for correct number of fields in each record.
+    ck_fields: Check for correct number of fields in each record.
         Sends results to -o <outfile> only if there are bad records.
         Use of -r --raw option supresses the header line.
-    compare_gmail: checks the gmail contacts for incompatabilities
+    compare_gmail: Checks the gmail contacts for incompatabilities
         with the membership list. Be sure to do a fresh export of the
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
-        differing emails in the google contacts and the membership
-        list. These can then be proof read before sending them using
-        the 'send_emails' command.
-    show: returns (to outfile or to stdout if not specified)
-        the membership demographics for display on the web site.
-    usps: provides a csv file of members (with their postal addresses)
-        who receive minutes by post (rather than email.)
-        Used to provide the secretary a csv file when requested.
-    extra_charges: provides lists of members with special charges.
+        differing emails. (After proof reading, use 'send_emails'.)
+    show: Returns membership demographics for display on the web site.
+    usps: Creates a csv file containing names and addresses of
+        members who receive their Club minutes by post.
+    extra_charges: Provides lists of members with special charges.
         Both a list of members each with the charge(s) they pay and
         separate lists for each category of charge. (Dues not
         included.)
-        If the <infile> name ends in '.csv' then output will be
-        charges outstanding (i.e. owed but still not payed;) if it
-        ends in '.txt' then output will include all who are paying
+        If the <infile> name ends in '.csv' then the/membership main
+        data base file is assumed and output will be charges
+        outstanding (i.e. owed but still not payed;) if it ends in
+        '.txt' then it is assumed to be in the format of the
+        "extras.txt" file and output will include all who are paying
         for one or more of the Club's three special privileges. There
         is also the option of creating a json file needed by the
         restore_fees_cmd.
     payables: reports on content of the member data money fields
         providing a listing of those who owe and those who have paid
         in advance.
-    email_billings2json: prepares billing statements (as a JSON
-        string) keyed by email address.  
-    usps_billings2print: Creates a directory specified by the argument
-        to the -d option and into this directory places a billing
-        statemen for each member who does not have an email address
-        on record. If a directory of the specified name already
-        exists, it will be over written!
-    billing: Combines the above two into one command- reads
-        the master membership data base (-i <infile>) to create
-        emails (into the -o <json_file>) and letters (into the -d
-        <billings_dirctory>.) This command depends on the presence
-        of the Formats.content (Formats.content.py file) module which
-        can be "edited to suit the season."
+    billing: Reads the master membership data base (-i <infile>) to
+        create emails (into the -o <json_file>) and letters (into
+        the -d <dir4letters>.) This command depends on the
+        presence of the Formats.content module (Formats.content.py
+        file) which can be "edited to suit the season."
+        There is the option (-o) of specifying an output file for a
+        listing of members still owing.
         This method pretty much elliminates the need for the the
-        previous 5 commands: labels, envelopes, usps,
-        email_billings2json and usps_billings2print.
-    still_owing: Reports on members with payments still due.
-    restore_fees: Use this command after all dues and fees have been
-        paid- will abort if any are outstanding. Will place the
-        results into a file named as a concatination of "new_" and the
-        specified membership csv file. One can then mannually check
-        the new file and move it if all is well.
+        following 4 commands: labels, envelopes, email_billings2json
+        and usps_billings2print.
+    prepare_mailing: A general form of the billing command (above.)
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -126,18 +112,31 @@ Commands:
         should read as follows: "From: rodandboatclub@gmail.com"
         Note: Must first lower br&bc's account security at:
         https://myaccount.google.com/lesssecureapps
-    display_json:  Provides an opportunity to proof read the emails.
+    print_letters: Sends the files contained in the directory
+        specified by the --dir parameter.
+    restore_fees: Use this command after all dues and fees have been
+        paid- will abort if any are outstanding. Will place the
+        results into a file named as a concatination of "new_" and the
+        specified membership csv file. One can then mannually check
+        the new file and move it if all is well.
+    display_json: Provides an opportunity to proof read the emails.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
-
-Consult the README file for further info.
+    email_billings2json: prepares billing statements (as a JSON
+        string) keyed by email address.  
+    usps_billings2print: Creates a directory specified by the argument
+        to the --dir option and into this directory places a billing
+        statemen for each member who does not have an email address
+        on record. If a directory of the specified name already
+        exists, it will be over written!
 """
 TOP_QUOTE_LINE_NUMBER = 5
-BLANK_LINE_ABOVE_USAGE = 15
-BLANK_LINE_BELOW_USAGE = 34
+BLANK_LINE_ABOVE_USAGE = 11
+BLANK_LINE_BELOW_USAGE = 30
 
 TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
+GMAIL_CONTACTS = 'google.csv'
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
@@ -151,7 +150,6 @@ import time
 import json
 import subprocess
 from docopt import docopt
-from typing import List
 from helpers import get_datestamp, indent
 import Formats
 
@@ -162,6 +160,9 @@ if args["-s"] == "LF":
     args["-s"] = '\n'
 else:
     args["-s"] = '\n\f'
+
+if not args["<gmail_contacts>"]:
+    args["<gmail_contacts>"] = GMAIL_CONTACTS
 
 SMTP_SERVER = "smtp.gmail.com"
 
@@ -385,7 +386,7 @@ class Membership(object):
         self.malformed = []
         self.errors = []
         self.first_letter = '_'
-#       self.name_tuple = ('','')
+        self.name_tuple = ('','')  # Used by get_malformed method.
         self.name_tuples = []
         self.list4web = []
         self.extras_by_member = []
@@ -395,6 +396,8 @@ class Membership(object):
         self.still_owing = []
         self.advance_payments = []
         self.usps_only = []
+        self.json_emails = []
+        self.dir4letters = ''
 
         self.invalid_lines = []
         self.n_members = 0
@@ -425,7 +428,7 @@ class Membership(object):
             "kayak": record[self.i_kayak],
             }
 
-    def traverse_records(self, infile, custom_funcs):
+    def traverse_records(self, infile, custom_funcs, extras = None):
         """
         Traverses <infile> and applies <custom_funcs> to each
         record.  <custom_funcs> can be a single function or a
@@ -443,7 +446,10 @@ class Membership(object):
             dict_reader = csv.DictReader(file_object)
             for record in dict_reader:
                 for custom_func in custom_funcs:
-                    custom_func(record)
+                    if extras:
+                        custom_func(record, **extras)
+                    else:
+                        custom_func(record)
 
     def get_malformed(self, record):
         """
@@ -494,6 +500,11 @@ class Membership(object):
         """
         self.name_tuples.append(("{}".format(record['last']),
                                 "{}".format(record['first'])))
+
+    def get_mailing(self, record):
+        """
+        """
+        pass
 
     def prn_split(self, field, params):
         """
@@ -804,6 +815,30 @@ Membership"""
         """
         pass
 
+    def cust_func_welcome(self, record):
+        """
+        This custom function selects new members as defined by having
+        200 in the "dues" field and sends them a welcome letter with a
+        request for dues.
+        """
+        if record['dues'] == '200':
+            # assign record["extras"] prn (possibly indenting them)
+            record["subject"] = self.content["subject"]
+            record["date"] = self.content["date"]
+            if record['email']:  # create email and add to json:
+                entry = (self.content["email_header"]
+                    + self.content["body"]).format(**record)
+                self.json_data.append([[record['email']],entry])
+            # create letter:
+            # possibly doubly indenting the "extras" if present
+            entry = (self.content["postal_header"]
+                + self.content["body"]).format(**record)
+            path2write = os.path.join(self.dir4letters,
+                "_".join((record["last"], record["first"])))
+            with open(path2write, 'w') as file_obj:
+                file_obj.write(entry)
+
+
     def csv_file_obj_filter(self, source_file_obj,
                             cust_func, info=None):
         """
@@ -842,9 +877,9 @@ Membership"""
         and the value of each is a list consiting of a list of
         <first_name>, <last_name>, <integer_amount>.
         Here's the format:
-        { "Mooring": [[<firstname>, <lastname>, <integer_amount>], ...  ],
-        "Dock usage": [[<firstname>, <lastname>, <integer_amount>], ... ],
-        "Kayak storage": [[<firstname>, <lastname>, <integer_amount>], ...]
+        { "Mooring": [[<lastname>, <firstname>, <integer_amount>], ...  ],
+        "Dock usage": [[<lastname>, <firstname>, <integer_amount>], ... ],
+        "Kayak storage": [[<lastname>, <firstname>, <integer_amount>], ...]
         }
         Returns a dict of the form:
         {(<last_name>, <first_name>):  # key
@@ -873,12 +908,13 @@ Membership"""
         for category in extra_fees.keys():
             for value in extra_fees[category]:
                 to_add = (translate(category), value[2])
-                name_tuple = (value[1], value[0])
+                name_tuple = (value[0], value[1])
                 _ = extras.setdefault(name_tuple, [])
                 extras[name_tuple].append(to_add)
         return extras
 
-    def create_extra_fees_json(self, extra_fees_list):
+    def create_extra_fees_json(self, extra_fees_txt_file):
+        # this functionality is provided by extra_fees.py
         pass
 
 
@@ -1096,21 +1132,21 @@ Membership"""
                 "{first},{last},{address},{town},{state},{zip}"
                 .format(**record))
 
-    def check_letter_dir(self, directory4letters):
+    def check_dir4letters(self, dir4letters):
         """
         Set up the directory for postal letters.
         """
-        if os.path.exists(directory4letters):
+        if os.path.exists(dir4letters):
             print("The directory '{}' already exists."
-                .format(directory4letters))
+                .format(dir4letters))
             response = input("... OK to overwrite it? ")
             if response and response[0] in "Yy":
-                shutil.rmtree(directory4letters)
+                shutil.rmtree(dir4letters)
             else:
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(directory4letters)
+        os.mkdir(dir4letters)
         pass
 
     def check_json_file(self, json_email_file):
@@ -1129,41 +1165,68 @@ Membership"""
             "Without permission, must abort.")
                 sys.exit(1)
 
-    def prepare_mailing(self, mem_csv_file, content,
-                    json_data, directory4letters,
-                    custom_func):
+    def proto_cust_func(self, record, content, destinations):
+        """
+        <record> is expected to come from the memlist.csv file.
+        <content> comes from the Formats.content.py module and
+        must be compatable with the function.
+        <destinations> is a dict defining values for the
+        following keys:
+            "json_data":
+            "dir4letters":
+        """
+        pass
+
+    def cust_func0(self, record, content, destinations):
+        """
+        <record> is expected to come from the memlist.csv file.
+        <content> comes from the Formats.content.py module.
+        <destinations> is a dict defining values for the
+        following keys:
+            "json_data":
+            "dir4letters":
+        """
+        if record["first"][0] == "A":
+            record["extra0"] = "\nYour first name begins with 'A'."
+        if record["second"][1] == "K":
+            record["extra1"] = "\nYour second name begins with 'K'."
+        record["subject"] = content["subject"]
+        pass
+
+    def prepare_mailing(self, mem_csv_file):
         """
         Iterates through all members in the mem_csv_file applying
         <custom_func> to each.  <custom_func> appends emails to 
-        <json_data> and creates entries in the <directory4letters>.
+        <json_data> and creates entries in the <dir4letters>.
         <content> provides boiler plate info. See Formats/content.py
         module for further info.
-        Calling function should set up the directory4letters ahead of
-        time and deal with json_data afterwards.
+        Responsibilities of the caller are as follows:
+            Set the following instance attributes:
+                content (with date added),
+                dir4letters, and set up the directory,
+                json_file_name (and set up the file),
+                json_data (set to []), 
+            Be sure custom_func is also an attribute and set to the
+            appropriate function.
         Should be able to replace all the various billing routines as
         well as provide a general mechanism of sending out notices.
         <custom_func> could also assign instance variables if required
         by calling routine. (i.e. self.errors)
         """
-        with open(mem_csv_file,'r') as infile:
-            dr = csv.DictReader(infile)
-            headers = dr.fieldnames
-            for record in dr:
-                record['date'] = content["date"]
-                record['subject'] = content["subject"]
-                custom_func(record, headers, content,
-                        json_data, directory4letters)
+        self.traverse_records(mem_csv_file, self.cust_func_welcome)
+        with open(self.json_file_name, 'w') as file_obj:
+            file_obj.write(json.dumps(self.json_data))
     
     def billing(self, content, source_file,
-                    json_file, billing_directory,
+                    json_file, dir4letters,
                     custom_func):
         """
         Prepares annual billing statements.
         [ i] emails for those with an email address: >> json_file,
-        [ii] letters for those without: >> the billing_directory
+        [ii] letters for those without: >> the dir4letters
         where each letter is in its own file named according to the
         member's last_first name.
-        If json_file &/or billing_directory already exist(s),
+        If json_file &/or dir4letters already exist(s),
         confirmation to over write is sought and program aborted if
         not obtained.
         The json_file conforms to the format described in the "If
@@ -1180,17 +1243,17 @@ Membership"""
         and usps_billings2print.
         """
         # Set up the Billings directory for postal letters.
-        if os.path.exists(billing_directory):
+        if os.path.exists(dir4letters):
             print("The directory '{}' already exists."
-                .format(billing_directory))
+                .format(dir4letters))
             response = input("... OK to overwrite it? ")
             if response and response[0] in "Yy":
-                shutil.rmtree(billing_directory)
+                shutil.rmtree(dir4letters)
             else:
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(billing_directory)
+        os.mkdir(dir4letters)
 
         # Check the name of the json output file where emails
         # are to be stored:
@@ -1208,15 +1271,6 @@ Membership"""
         json_ret = []
         errors = []
         arrears = []
-
-        # Establish the date (for postal letters.)
-        import datetime
-        format = "%b %d, %Y"
-        today = datetime.datetime.today()
-        s = today.strftime(format)
-        d = datetime.datetime.strptime(s, format)
-        date = d.strftime(format)
-        print("Setting the date to '{}'.".format(date))
 
         # Read input and process each member one at a time setting
         # up a dict to populate the format strings in 'content':
@@ -1281,7 +1335,7 @@ Membership"""
                     content["postal_header"].format(**m)
                     + content["body"].format(m["extras"]))
                 entry = indent(entry)
-                path2write = os.path.join(billing_directory,
+                path2write = os.path.join(dir4letters,
                     "_".join((m['last'], m['first'])))
                 with open(path2write, "w") as file_object:
                     file_object.write(entry)
@@ -1378,23 +1432,23 @@ Membership"""
                 print(error)
         return json.dumps(ret)
 
-    def annual_usps_billing2dir(self, source_file, New_directory):
+    def annual_usps_billing2dir(self, source_file, dir4letters):
         """
-        Creates (or replaces) <new_directory> and populates it with
+        Creates (or replaces) <dir4letters> and populates it with
         annual billing statements, one for each member without an
         email addresses on record.
         """
-        if os.path.exists(new_directory):
+        if os.path.exists(dir4letters):
             print("The directory '{}' already exists.".
-                format(new_directory))
+                format(dir4letters))
             response = input("... is it OK to overwrite it? ")
             if response and response[0] in "Yy":
-                shutil.rmtree(new_directory)
+                shutil.rmtree(dir4letters)
             else:
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(new_directory)
+        os.mkdir(dir4letters)
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
@@ -1456,7 +1510,7 @@ Membership"""
                     additional.append("\n")
                 # now send the letter to the directory:
                 path2write = os.path.join(
-                    new_directory, "_".join((last, first)))
+                    dir4letters, "_".join((last, first)))
                 with open(path2write, "w") as file_object:
                     file_object.write(
                         self.usps_billing_letter_format.format(
@@ -1525,9 +1579,9 @@ Membership"""
                 if line[:5] == "Date:":
                     date = line
                 if (line[24:27] == "---") and subtotal:
-                    res.append("    SubTotal        --- ${}"
+                    res.append("    SubTotal            --- ${}"
                         .format(subtotal))
-        #           res.append("{}\n    SubTotal        --- ${}"
+        #           res.append("{}\n    SubTotal            --- ${}"
         #               .format(date, subtotal))
                     subtotal = 0
                 try:
@@ -1538,10 +1592,16 @@ Membership"""
         #       res.append("Adding ${}.".format(amount))
                 total += amount
                 subtotal += amount
-        res.append("Grand Total to Date:    --- ---- ${}"
+        res.append("\nGrand Total to Date:    --- ---- ${}"
             .format(total))
 #       print("returning {}".format(res))
         return res
+## Custom Functions:
+    def welcome_func(self, member):
+        """
+        Welcomes new members (those with 200 as dues.)
+        """
+        pass
 
 ####  End of Membership class declaration.
 
@@ -1558,7 +1618,7 @@ def ck_fields_cmd():
         print("Error condition! #{}".format(err_code))
     if not source.malformed:
         output("No malformed records found.")
-        print("No malformed records found.")
+#       print("No malformed records found.")
     else:
         if not args['--raw']:
             source.malformed = [
@@ -1577,8 +1637,6 @@ def show_cmd():
     print("Preparing membership listing...")
     err_code = source.traverse_records(infile,
                                 source.get_memlist4web)
-    if res:
-        print("Error condition! #{}".format(res))
     print("...done preparing membership listing...")
     output("\n".join(source.list4web))
     print("...results sent to {}.".format(args['-o']))
@@ -1774,13 +1832,13 @@ def email_billings2json_cmd(infile, json_file):
         f_obj.write(
             source.annual_email_billings2json(source_file))
 
-def usps_billings2print_cmd(infile, output_dir):
+def usps_billings2print_cmd(infile, dir4letters):
     print(
         "using '{}' as input, sending output to the '{}' directory."
-            .format(infile, output_dir))
+            .format(infile, dir4letters))
     source = Membership(Dummy)
     source_file = args["-i"]
-    source.annual_usps_billing2dir(source_file, output_dir)
+    source.annual_usps_billing2dir(source_file, dir4letters)
 
 def billing_cmd():
     source = Membership(Dummy)
@@ -1798,20 +1856,19 @@ def prepare_mailing_cmd():
     as provide a general mechanism of sending out notices.
     """
     from Formats.content import content
-    from Formats.content import cust_func
-    content['date'] = get_datestamp()
+
     source = Membership(Dummy)
-    json_file_name = args["-j"]
-    directory4letters = args["--dir"]
-    source.check_json_file(json_file_name)
-    source.check_letter_dir(directory4letters)
-    json_data = []
-    source.prepare_mailing(args["-i"], content,
-                    json_data, directory4letters,
-                    cust_func)
+    if not args["-i"]:
+        args["-i"] = source.MEMBER_DB
+    source.content = content
+    source.content['date'] = get_datestamp()
+    source.dir4letters = args["--dir"]
+    source.check_dir4letters(source.dir4letters)
+    source.json_file_name = args["-j"]
+    source.check_json_file(source.json_file_name)
+    source.json_data = []
+    source.prepare_mailing(args["-i"])
     # send json_data to file
-    with open(json_file_name, 'w') as file_obj:
-        file_obj.write(json.dumps(json_data))
 
 def fees_intake_cmd():
     infile = args['-i']
@@ -1927,11 +1984,11 @@ def send_emails_cmd():
         smtp_send(recipients, content)
         time.sleep(30)
 
-def print_letters(target_dir):
+def print_letters(dir4letters):
     successes = []
     failures = []
-    for letter_name in os.listdir(target_dir):
-        path_name = os.path.join(target_dir, letter_name)
+    for letter_name in os.listdir(dir4letters):
+        path_name = os.path.join(dir4letters, letter_name)
         completed = subprocess.run(["lpr", path_name])
         if completed.returncode:
             failures.append("Problem ({}) printing '{}'."

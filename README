@@ -1,8 +1,8 @@
 This repository was begun to provide ./label.py
 
-It grew out of my frustration over not being able to print labels from
-a spredsheet (in my capacity as Membership Secretary for a local
-club.)
+It grew out of my frustration over not being able to print labels
+from a spredsheet (in my capacity as newly appointed Membership
+Secretary for a local club.)
 
 It has since grown into a bigger project that provides many things all
 under the umbrella of ./utils.py: try...
@@ -20,6 +20,7 @@ Comments, suggestions, criticisms ==> alexKleider@gmail.com
 
 Other notes (largely to myself:)
 
+FOLDING LETTERS:
 How to make letters 'fit' the windowed envelopes seems to be printer
 dependent!  Hence we should probably set up a 'PrinterSpecs' class;
 For now, note that for the printer in the Bolinas data closet:
@@ -32,83 +33,75 @@ If one places "Dear {recipient}" on line 23 then making
 the first fold through it will make the appropriate
 text line up nicely inside the envelope windows.
 
+BACK UP:
 Code is backed up on github.com
 Backup for club data is generously provided by the secretary:
     memlist.csv
     extra_fees.txt
     checks_received.txt
     newmembers
+The script 'backup.sh' also provides local backup.
 
-WORK FLOW
-
-Club data (to be kept private) is in:
+WORK FLOW and BACKUP:
+Code is backed up here: https://github.com/alexKleider/label
+Club data (to be kept private, back up generously provided by the
+secretary) is in:
     checks_received.txt,
-    extra_fees.txt,
+    extra_fees.txt,  # The SPoL for dock, mooring and kayak storage.
     memlist.csv and
     newmembers
 ('newmembers' is a link to ../Lists/newmembers in which I keep track
-of new members and my reports to leadership and members.  The latter
-are also archived in ../Archives/
+of new members and my reports to leadership and members.)
 All four are edited using vim (or any editor of your choosing) and
 are copied (backup.sh) to ../Backup/ from time to time (to protect
 against accidental corruption.)
+(Use extra_fees.py to create a json file from extra_fees.txt.)
 
 My goal is to put all functionality into ./utils.py, each specified
 by its own command and command line parameters as needed.
 See its __doc__string for details.
 
-
-Club data is kept out of version control (for privacy reasons). It
-consists of the following files:
-    memlist.csv,
-    extra_fees.txt and
-    checks_received.txt
-There is also ../Lists/newmembers in which I keep track of
-new members and my reports to leadership and members.
-All four are edited using vim (or any editor of your choosing) and
-are copied (backup.sh) to ../Backup/ from time to time (to protect
-against accidental corruption.)
-
-The 'labels', 'envelopes', 'usps', 'email_billings2json', and
+The 'labels', 'envelopes', 'email_billings2json', and
 'usps_billings2print' commands have been pretty much deprecated.
 Billing is now done using the 'billing' command. It depends on other
 infrastructure found in the ./Formats/content.py file which needs to
 be edited to suit current need. Specifically the two variables
 'content' and 'custom_func' need to be defined and assigned.
 It's on my todo list to change 'billing' to 'mailing' since it can be
-used mailings other than just billing (depending on how 'content' and
-'custom_func' are set up.)
+used for mailings other than just billing (depending on how 'content'
+and 'custom_func' are set up.)
 
 Currently (late Aug/early Sept 2018) working on having a single
-traversing command which takes a custom function as it's parameter and
+traversing command which takes a custom function as its parameter and
 this function deals with each record traversed adding data as needed
-to a corresponding attribute of the Membership instance.  So far have
-competed this only for ck_fields.  (version 1.0.1a)
+to one or more corresponding attribute(s) of the Membership instance.
+(version 1.0.1a)
 
 
-Special Note Regarding Emails:
-    Sending of emails is done separately through the use of an
-intermediary JSON file.  This is done purposely to encourage proof
-reading of the emails using the display_json command before emails
-are actually sent using the send_emails command. It's always a good
-idea to be sure that our gmail account is compatible with the
-membership data base so first run the compare_gmail command:
+Special Note Regarding Mailings:
+    Sending of emails and letters is done as a two stage process
+in order to allow for proof reading.  Once checked, the send_emails
+and print_letters commands can be used to complete the process.
 Here is the suggested sequence:
     # Export all contacts from gmail account => google.csv
     ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
     # Edit data as appropriate.
     # Run a command that sends the emails to a file named json2send,
     # typically:
-    ./utils.py billing -i memlist.csv  -j json2send -b Billings
+    ./utils.py billing -i memlist.csv  -j json2send --dir Billings
     ./utils.py display -i json2send -o json2check
-    vim json2check
+    # Use vim to check the files in the Billings directory and also
+    # the json2check file.  Then procede with:
     ./utils.py send_emails -i json2send
-The send_emails functionality depends on a ~/.msmtprc (configuration) file.
+    ./utils.py print_letters --dir Billings
+The send_emails functionality depends on the presence of
+a ~/.msmtprc (configuration) file.
 # https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
 
 After mass mailings I've been backing up the content to
 ../Archives/Billing/<YYYY-MM-DD>/.... (for the letters)
 ../Archives/Billing/<YYYY-MM-DD>.json (the emails.)
+(Need a script to automate this.)
 
 
 
