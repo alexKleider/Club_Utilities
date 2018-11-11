@@ -1,19 +1,21 @@
-This repository was begun to provide ./label.py
+Re: utils.py and what goes with it in the club_utils repository.
 
-It grew out of my frustration over not being able to print labels
-from a spredsheet (in my capacity as newly appointed Membership
-Secretary for a local club.)
-
-It has since grown into a bigger project that provides many things all
-under the umbrella of ./utils.py: try...
+This repository was begun to provide './label.py' (which no longer
+exists.) It grew out of my frustration over not being able to print
+labels from a spredsheet (in my capacity as newly appointed Membership
+Secretary for a local club.) It has since grown into a bigger project
+that provides many things all under the umbrella of ./utils.py: try...
   ./utils.py -h  # very verbose,
 or simply
   ./utils.py ?  # more succinct.
 
-It now provides a lot of functionality related to membership secretary
-duties (Bolinas Rod & Boat Club) and is based on memlist.csv, the
-club's 'master membership list' and to a lesser extent on the
-'google.csv' file importable from the clubs gmail account.
+It provides functionality related to my position as membership
+secretary (to the Bolinas Rod & Boat Club.) The Clubs main data base
+is the 'memlist.csv' file, hidden from the git repo for privacy
+reasons.  Other files also in the same category (i.e. private)
+include 'google.csv' (imported from the clubs gmail account,)
+'applicants*', 'extra_fees*', and perhaps a few more. See 'archive.sh'
+and 'backup.sh' for more info.
 
 Comments, suggestions, criticisms ==> alexKleider@gmail.com
 
@@ -33,50 +35,57 @@ If one places "Dear {recipient}" on line 23 then making
 the first fold through it will make the appropriate
 text line up nicely inside the envelope windows.
 
-BACK UP:
-Code is backed up on github.com
-Backup for club data is generously provided by the secretary:
-    memlist.csv
-    extra_fees.txt
-    checks_received.txt
-    newmembers
-The script 'backup.sh' also provides local backup.
+ARCHIVING & BACKUP
+==================
 
-WORK FLOW and BACKUP:
-Code is backed up here: https://github.com/alexKleider/label
-Club data (to be kept private, back up generously provided by the
-secretary) is in:
-    checks_received.txt,
-    extra_fees.txt,  # The SPoL for dock, mooring and kayak storage.
-    memlist.csv and
-    newmembers
+Code is backed up here: https://github.com/alexKleider/Club_Utils
+Data is archived (to preserve an historical record) to the Archive
+sister directory and also backed up to an external hard drive.
+
+WORK FLOW:
+The project can be found under the /home/alex/Notes/Bo/Club/Mshp
+directory. Under it, the Py directory contians utils.py and
+supporting files.  Code is backed up on github; The club data within
+this directory is (for privacy reasons) excluded from github and
+archived in the 'Data' subdirectory of the 'Archive' directory (see
+archive.sh.) It consists of the following:
+    applicants.csv,
+    extra_fees.txt,  # The SPoT for dock, mooring and kayak storage.
+    memlist.csv,
+    receipts*,
+    report*
+These are edited using vim (or any editor of your choosing) and
+are copied (archive.sh) to the Archive directory from time to time
+(to provide an historical record.)
 ('newmembers' is a link to ../Lists/newmembers in which I keep track
 of new members and my reports to leadership and members.)
-All four are edited using vim (or any editor of your choosing) and
-are copied (backup.sh) to ../Backup/ from time to time (to protect
-against accidental corruption.)
-(Use extra_fees.py to create a json file from extra_fees.txt.)
+Data backup is accomplished by backing up the 'Mshp' directory
+excluding its 'Py' subdirectory to an external drive.
+See the archive.sh and backup.sh utilities for details.
+There is also the special case of archiving mailings that have been
+sent out.  This is handled by the archive.sh script. 
 
-My goal is to put all functionality into ./utils.py, each specified
-by its own command and command line parameters as needed.
-See its __doc__string for details.
 
-The 'labels', 'envelopes', 'email_billings2json', and
-'usps_billings2print' commands have been pretty much deprecated.
-Billing is now done using the 'billing' command. It depends on other
-infrastructure found in the ./Formats/content.py file which needs to
-be edited to suit current need. Specifically the two variables
-'content' and 'custom_func' need to be defined and assigned.
-It's on my todo list to change 'billing' to 'mailing' since it can be
-used for mailings other than just billing (depending on how 'content'
-and 'custom_func' are set up.)
+Redacted Parts
+-------------
 
-Currently (late Aug/early Sept 2018) working on having a single
-traversing command which takes a custom function as its parameter and
-this function deals with each record traversed adding data as needed
-to one or more corresponding attribute(s) of the Membership instance.
-(version 1.0.1a)
+Within utils.py, the 'labels', 'envelopes', 'email_billings2json',
+and 'usps_billings2print' commands have been pretty much deprecated.
+Billing is now done using the 'prepare_mailing' command. It depends
+on other infrastructure found in the ./Formats/content.py file which
+needs to be edited to suit current need. Specifically the two
+variables 'content' and 'custom_func' need to be defined and assigned.
 
+As of (late Aug/early Sept 2018) most commands are implemented by
+having a single traversing command which takes a custom function as
+its parameter and this function deals with each record traversed
+adding data as needed to one or more corresponding attribute(s) of
+the Membership instance.  (version 1.0.1a) The command is
+'prepare_mailing'
+
+
+Developments
+------------
 
 Special Note Regarding Mailings:
     Sending of emails and letters is done as a two stage process
@@ -98,11 +107,38 @@ The send_emails functionality depends on the presence of
 a ~/.msmtprc (configuration) file.
 # https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
 
-After mass mailings I've been backing up the content to
-../Archives/Billing/<YYYY-MM-DD>/.... (for the letters)
-../Archives/Billing/<YYYY-MM-DD>.json (the emails.)
+After mass mailings I've been zipping the content to an
+../Archives/Mailling/z<YYYY-MM-DD>.zip file which contains a directory
+containing the letters and an 'emails.json' file (the emails.)
 (Need a script to automate this.)
 
-
-
-
+total 264
+-rwxrwxr-x 1 alex alex   679 Oct 17 18:57 backup.sh
+drwxrwxr-x 2 alex alex  4096 Oct 19 08:50 Exclude
+-rw-rw-r-- 1 alex alex  3247 Oct 16 09:31 extra_fees.py
+-rw-rw-r-- 1 alex alex   896 Aug  2 15:59 extra_fees.txt
+drwxrwxr-x 3 alex alex  4096 Oct 16 20:07 Formats
+drwxrwxr-x 8 alex alex  4096 Oct 19 08:20 .git
+-rw-rw-r-- 1 alex alex    66 Mar 27  2018 .gitignore
+-rw-rw-r-- 1 alex alex 44280 Oct 16 19:32 google.csv
+-rwxrwxr-x 1 alex alex   784 Aug 28 18:01 helpers.py
+-rw-rw-r-- 1 alex alex     0 Jul 21 06:02 __init__.py
+-rw-rw-r-- 1 alex alex 18455 Oct 16 19:07 memlist.csv
+-rw-rw-r-- 1 alex alex   381 Oct 19 08:32 msmtprc
+lrwxrwxrwx 1 alex alex    19 Sep  5 18:29 newmembers -> ../Lists/newmembers
+-rwxrwxr-x 1 alex alex   334 Jul 29 09:36 print_letters.py
+-rw-rw-r-- 1 alex alex   862 Aug  6 09:23 proposal
+drwxrwxr-x 2 alex alex  4096 Aug 30 09:17 __pycache__
+-rw-rw-r-- 1 alex alex  6160 Oct 19 08:24 README
+-rw-r--r-- 1 alex alex 16384 Oct 19 09:06 .README.swp
+-rw-rw-r-- 1 alex alex  9616 Oct 16 10:00 receipts18-18.txt
+-rw-rw-r-- 1 alex alex   203 Oct 19 08:04 receipts.txt
+-rw-rw-r-- 1 alex alex   161 Mar 23  2018 requirements.txt
+lrwxrwxrwx 1 alex alex    35 Jul 27 21:58 tabulate.py -> /home/alex/P36/Tabulate/tabulate.py
+-rwxr-xr-x 1 alex alex  3365 Mar 15  2018 test_columns_rows.py
+-rw-rw-r-- 1 alex alex  1852 Oct 16 20:21 test_emails.json
+drwxrwxr-x 2 alex alex  4096 Oct 16 20:21 TestLetterDir
+-rw-rw-r-- 1 alex alex  1118 Sep  2 18:20 test.py
+-rwxr-xr-x 1 alex alex  1063 Mar 15  2018 test_xlsx
+-rw-rw-r-- 1 alex alex    14 Oct 16 20:07 ToDo
+-rwxrwxr-x 1 alex alex 82011 Oct 19 04:56 utils.py

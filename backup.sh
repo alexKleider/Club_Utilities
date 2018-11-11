@@ -2,10 +2,13 @@
 
 # File: backup.sh
 
+# ToDo: make this idempotent.
+
+BACKUP="/media/alex/_EAGLE/Brbc"
 STAMP=`date +%y-%m-%d`
-mkdir ../Backup/$STAMP
-cp  memlist.csv  ../Backup/$STAMP/
-cp  extra_fees.txt  ../Backup/$STAMP/
-cp  receipts*.txt  ../Backup/$STAMP/
-cp  report*.txt  ../Backup/$STAMP/
-cp  ../Lists/newmembers  ../Backup/$STAMP/
+DEST=${BACKUP}/$STAMP
+mkdir $DEST
+
+
+rsync -av --exclude='Py' ../../Mshp/  $DEST
+

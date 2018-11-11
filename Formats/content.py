@@ -32,8 +32,8 @@ import sys
 import json
 from helpers import indent
 
-content_july2018 = {
-"subject": "July mailing",
+content_1st_request = {
+"subject": "Club fees coming due",
 
 "email_header": """From: rodandboatclub@gmail.com
 To: {email}
@@ -91,15 +91,15 @@ check into an envelope asap payable and sent to the...
         Bolinas Rod and Boat Club
         PO Box 0248
         Bolinas, CA 94924
-{}
+{extra}
 
 Sincerely,
 Alex Kleider (Membership)"""
 
 }
 
-content_aug31_2018 = {
-"subject":"Final notice re BR&BC dues",
+content_penalty_notice = {
+"subject":"BR&BC dues and penalty for late payment",
 
 "email_header":"""From: rodandboatclub@gmail.com
 To: {email}
@@ -135,10 +135,10 @@ Dear {first} {last},
 """,
 
 "body":"""
-August is almost over.  Records indicate that you are in arrears
-with regard to payment of Club dues and a late fee of $25 is now
-applied in addition to the regular dues payment of $100.  If you
-feel this is incorrect, please speak up[1]- we are only human!
+The deadline for Club Dues payment has passed.  Records indicate that
+you are in arrears with regard to payment of Club dues and a late fee
+of $25 is now applied in addition to the regular dues payment of $100.
+If you feel this is incorrect, please speak up[1]- we are only human!
 Otherwise, don't delay sending in your check.  The end of September
 is when anyone who hasn't payed ceases to be a member.
 
@@ -333,7 +333,7 @@ PO Box 248
 Bolinas, CA 94924
 
 
-July 23, 2018
+{date}
 
 
 
@@ -367,7 +367,58 @@ Alex Kleider (Membership)"""
 
 }
 
-welcome = {
+content_new_applicant_welcome = {
+"subject": "Welcome to the Club",
+
+"email_header": """From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header": """
+
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body": """
+As Membership Chair it is my pleasure to welcome you as a new
+applicant for membership in the Bolinas Rod and Boat Club.
+
+Please come and enjoy the meetings (first Fiday of each month.)
+To become eligible for membership (and not waste your application
+fee) you must attend a minimum of three meetings with in the six
+month period beginning the date your application was received. 
+
+Sincerely,
+Alex Kleider (Membership)"""
+
+}
+
+content_request_inductee_payment = {
 "subject": "Welcome to the Bolinas Rod & Boat Club",
 
 "email_header": """From: rodandboatclub@gmail.com
@@ -422,9 +473,77 @@ Alex Kleider (Membership)"""
 
 }
 
+welcome_member = {
+"subject": "Welcome to the Bolinas Rod & Boat Club",
+
+"email_header": """From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header": """
+
+
+
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+
+""",
+
+"body": """
+It is my pleasure to welcome you as a new member to the Bolinas Rod
+and Boat Club!
+
+You will now be receiving meeting minutes (via email) as prepared by
+current Secretary Peter Pyle.
+
+AS you may know, the Club has its own web site: 'rodandboatclub.com'.
+It is password protected; the password is 'fish' (a not very closely
+guarded secret.)  By clicking on the "Membership" heading, you can
+find all your fellow members along with contact information.  If you
+see any inaccuracies there, please let me know so corrections can be
+made.
+
+Members can (upon payment of a $10 deposit) get a key to the Club
+from "keeper of the keys" Ralph Cammicia.  Many take advantage of
+having this access to spend time on the balconey enjoying views of the
+lagoon and Bolinas Ridge.  Please be sure to lock up upon leaving.
+
+The Club is available for members to rent for private functions (if
+certain conditions are met.)  More information can be found on the web
+site: "Rules and Forms" and under that "Club Rentals".
+
+Most important of all, come to meetings and other functions to enjoy
+the comraderie!
+
+
+Sincerely,
+Alex Kleider (Membership)"""
+
+}
+
 #content = content_late_aug2018
 cust_func = cust_aug31_2018
-content = welcome
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

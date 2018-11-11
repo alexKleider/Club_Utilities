@@ -6,7 +6,13 @@
 "utils.py" is a utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club records.
 Most commands deal with a csv file named "memlist.csv" so for
-these it is the default input file.
+these it is the default input file.  This and other defaults are
+specified as attributes of the Membership class.
+Labels and Envelopes (along with the '-p <params>' option) have
+been deprecated but the code left in place incase anyone ever
+wishes to revert to using them.  Current usage replaces them with
+emails and letters (which can be prepared using the 'prepare_mailing'
+command..
 Consult the README file for further info.
 
 Usage:
@@ -14,11 +20,12 @@ Usage:
   ./utils.py ck_fields [-r -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
+  ./utils.py applicants -i <infile> -o <outfile>
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
-  ./utils.py billing [-i <infile> -o arrears_file -l]  -j <json_file> --dir <dir4letters>
-  ./utils.py prepare_mailing [-i <infile> -l] -j <json_file> --dir <dir4letters>
+  ./utils.py billing [-i <infile> -o arrears_file]  -j <json_file> --dir <dir4letters>
+  ./utils.py prepare_mailing [-i <infile> -j <json_file> --dir <dir4letters>]
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
   ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
@@ -37,10 +44,9 @@ Options:
                     can be written.  If not specified, errors are
                     generally reported to stdout.
   -i <infile>  Specify file used as input. Usually defaults to
-                memlist.csv (the membership csv file.)
-  -j <json>  Specify an output file in jason if -o is otherwise used.
-  -l  An option to indicate that all are to get letters, even those
-                  with an email address.
+                the MEMBER_DB attribute of the Membership class.
+  -j <json>  Specify a json formated file (whether for input or output
+              depends on context.)
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
                   modified, thus providing an opportunity for proof
@@ -51,23 +57,25 @@ Options:
   -p <params>  If not specified, the default is
                A5160 for labels & E000 for envelopes.
   -r --raw  Supress headers (to make the output suitable as
-            input for 'tabulate.py'.)
+            input for creating tables.)
   -s <separator>  Some commands may have more than one component to
           their output.  Such componentes can be seprated by either
           a line feed (LF) or a form feed (FF).  [default: FF]
   <gmail_contacts>  [default: google.csv]
 
 Commands:
-    When run without a command, prints a usage statement.
-    ck_fields: Check for correct number of fields in each record.
+    When run without a command, suggests a choice of usage statements.
+    ck_fields: Check for integrety of the data base- not fool proof!
         Sends results to -o <outfile> only if there are bad records.
         Use of -r --raw option supresses the header line.
     compare_gmail: Checks the gmail contacts for incompatabilities
-        with the membership list. Be sure to do a fresh export of the
+        with the membership list. Assumes a fresh export of the
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
         differing emails. (After proof reading, use 'send_emails'.)
     show: Returns membership demographics for display on the web site.
+    applicants: Returns a listing of appliacants and their current
+        statnding. Typically input comes from the applicants.csv file.
     usps: Creates a csv file containing names and addresses of
         members who receive their Club minutes by post.
     extra_charges: Provides lists of members with special charges.
@@ -76,12 +84,12 @@ Commands:
         included.)
         If the <infile> name ends in '.csv' then the/membership main
         data base file is assumed and output will be charges
-        outstanding (i.e. owed but still not payed;) if it ends in
+        outstanding (i.e. owed but still not payed.) If it ends in
         '.txt' then it is assumed to be in the format of the
         "extras.txt" file and output will include all who are paying
         for one or more of the Club's three special privileges. There
         is also the option of creating a json file needed by the
-        restore_fees_cmd.
+        restore_fees_cmd. (See the README file re SPoL.)
     payables: reports on content of the member data money fields
         providing a listing of those who owe and those who have paid
         in advance.
@@ -130,13 +138,16 @@ Commands:
         on record. If a directory of the specified name already
         exists, it will be over written!
 """
-TOP_QUOTE_LINE_NUMBER = 5
-BLANK_LINE_ABOVE_USAGE = 11
-BLANK_LINE_BELOW_USAGE = 30
+
+SMTP_SERVER = "smtp.gmail.com"
+GMAIL_CONTACTS = 'google.csv'
+
+TOP_QUOTE_LINE_NUMBER = 5     #| These facilitate preparing
+BLANK_LINE_ABOVE_USAGE = 17   #| response to the
+BLANK_LINE_BELOW_USAGE = 37   #| 'utils.py ?' command.
 
 TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
-GMAIL_CONTACTS = 'google.csv'
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
@@ -163,8 +174,6 @@ else:
 
 if not args["<gmail_contacts>"]:
     args["<gmail_contacts>"] = GMAIL_CONTACTS
-
-SMTP_SERVER = "smtp.gmail.com"
 
 def output(data, destination=args["-o"]):
     """
@@ -325,25 +334,28 @@ class Google(object):
 # Specify input file and its data:
 class Membership(object):
     """
-    Create such an object not only for each data base used but also
-    for each way the data of that data base is being displayed.
-    Functionality that depends on formatting (i.e. one of the
-    preceding classes) is provided as methods of this class.
-    Other functionalities are provided as independent functions.
+    Create such an object for each data base used.
+    In the current use case this is the only one and
+    it pertains to the 'Bolinas Rod and Boat Club'.
     """
+    ## Constants and Defaults...
     YEARLY_DUES = 100
 
     # Data bases used:
-    MEMBER_DB = 'memlist.csv'               #|  
-    EXTRA_FEES = 'extra_fees.txt'           #|  To be used
-    CHECKS_RECEIVED = 'checks_received.txt' #|  as defaults.
+    MEMBER_DB = 'memlist.csv'          #|  Default
+    EXTRA_FEES = 'extra_fees.txt'      #|  file
+    CHECKS_RECEIVED = 'receipts.txt'   #|  names.
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'extra_fees.json'
     TEMP_MEMBER_DB = 'new_memlist.csv'
-    OUTPUT2READ = '2read.txt'       #|
-        # the last generally goes to stdout.
+    OUTPUT2READ = '2read.txt'       #| generally goes to stdout.
+    MAILING_DIR = 'MailingDir'
+    EMAILS_JSON = 'emails.json'
+    ## ...end of Constants and Defaults.
 
+    ## The following section is probably redundant since now using
+    ## csv.DictRead() rather that csv.read().
     # define the fields available and define a method to set up a
     # dict for each instance:
     i_first = 0
@@ -359,21 +371,34 @@ class Membership(object):
     i_mooring = 10
     i_dock = 11
     i_kayak = 12
+    i_status = 13
 
     keys_tuple = ("first", "last", "phone", "address",
         "town", "state", "zip", "email", "email_only",
-        "dues", "mooring", "dock", "kayak"
+        "dues", "mooring", "dock", "kayak", "status",
         )
+    ## End of part which can probably be deleted.
+
+
     headers = {
         "dues": "Dues",
         "mooring": "Mooring",
         "dock": "Dock Usage",
         "kayak": "Kayak Storage",
         }
-    fees_keys = keys_tuple[10:]
-    money_keys = keys_tuple[9:]
+    money_keys = ("dues", "mooring", "dock", "kayak") 
+    fees_keys = money_keys[1:]
 
-    n_fields_per_record = 13
+    status_key_values = {
+        "m": "Member in good standing.",
+        "a0": "Application received.",
+        "a1": "Attended one meeting.",
+        "a2": "Attended two meetings.",
+        "a3": "Attended three meetings.",
+        "ai": "Inducted, membership fee outstanding.",
+        }
+
+    n_fields_per_record = 14
 
     def __init__(self, params):
         """
@@ -381,18 +406,23 @@ class Membership(object):
         of the media. i.e. the parameters.
         """
         self.infile = Membership.MEMBER_DB
+        self.first_letter = '_'
+        self.name_tuples = []
+        # Many of the following attributes support the get_...
+        # methods; Rather than initializing them here, they are being
+        # initialized by the clients of the respective methods.
         self.params = params
         self.params.self_check()
         self.malformed = []
         self.errors = []
-        self.first_letter = '_'
-        self.name_tuple = ('','')  # Used by get_malformed method.
-        self.name_tuples = []
         self.list4web = []
-        self.extras_by_member = []
-        self.extras_by_category = {}
-        for key in self.fees_keys:
-            self.extras_by_category[key] = []
+        self.content = None
+        
+#       self.extras_by_member = []
+#       self.extras_by_category = {}
+#       for key in self.fees_keys:
+#           self.extras_by_category[key] = []
+
         self.still_owing = []
         self.advance_payments = []
         self.usps_only = []
@@ -443,37 +473,54 @@ class Membership(object):
             custom_funcs = [custom_funcs]
         with open(infile, 'r') as file_object:
             print("Opening {}".format(infile))
-            dict_reader = csv.DictReader(file_object)
+            dict_reader = csv.DictReader(file_object, restkey='status')
             for record in dict_reader:
                 for custom_func in custom_funcs:
-                    if extras:
-                        custom_func(record, **extras)
-                    else:
-                        custom_func(record)
+                    custom_func(record)
+
+    def get_name_tuple(self, record):
+        """
+        Returns a tuple: (<last>, <first>)
+        at the same time appending it to self.name_tuples
+        if such a list attribute exists. (If needed, it is the
+        responsibility of the client to initiate it to an
+        empty list.
+        """
+        tup = (record["last"], record["first"])
+        try:
+            self.name_tuples.append(tup)
+        except AttributeError:
+            pass
+        return tup
+
+    def get_first_last(self, record):
+        return "{first} {last}".format(**record)
+
+    def get_last_first(self, record):
+        return "{last}, {first}".format(**record)
 
     def get_malformed(self, record):
         """
-        Populate self.malformed.
+        Populates self.malformed.
         Checks that each record has self.n_fields_per_record
         and that the money fields are blank or evaluate to
         an integer.
+        Client must set up self.name_tuple to be ("", "").
         """
         name_tuple = ("{}".format(record['last']),
                     "{}".format(record['first']))
         if len(record) != self.n_fields_per_record:
-            self.malformed.append("{}, {}"
+            self.malformed.append("{}, {}: Wrong length."
                 .format(record['last'], record['first']))
-            for key in self.money_keys:
-                value = record[key]
-                if not value:
-                    res = 0
-                else:
-                    try:
-                        res = int(value)
-                    except ValueError:
-                        self.malformed.append("{}, {}, {}:{}"
-                            .format(record['last'], record['first'],
-                            key, value))
+        for key in self.money_keys:
+            value = record[key]
+            if value:
+                try:
+                    res = int(value)
+                except ValueError:
+                    self.malformed.append("{}, {}, {}:{}"
+                        .format(record['last'], record['first'],
+                        key, value))
         if name_tuple < self.name_tuple:
             self.malformed.append("Record out of order: {0}, {1}"
                 .format(*name_tuple))
@@ -494,12 +541,15 @@ class Membership(object):
             self.list4web.append("")
         self.list4web.append(line)
 
-    def get_name_tuple(self, record):
+    def get_applicant_by_status(self, record):
         """
-        Populates self.name_tuples list.
+        Populates self.applicants_dict (which must be set up by
+        client) with lists of member namess (last, first) keyed
+        by status.
         """
-        self.name_tuples.append(("{}".format(record['last']),
-                                "{}".format(record['first'])))
+        status = record["status"]
+        _ = self.applicants_dict.setdefault(status, [])
+        self.applicants_dict[status].append(self.get_last_first(record))
 
     def get_mailing(self, record):
         """
@@ -705,7 +755,7 @@ Membership"""
         # Next we iterate through the member list...
         record_number = 0
         with open(source_file, 'r') as file_obj:
-            dict_reader = csv.DictReader(file_obj)
+            dict_reader = csv.DictReader(file_obj, restkey="status")
             for record in dict_reader:
                 record_number += 1
                 email = record["email"]
@@ -836,7 +886,7 @@ Membership"""
             path2write = os.path.join(self.dir4letters,
                 "_".join((record["last"], record["first"])))
             with open(path2write, 'w') as file_obj:
-                file_obj.write(entry)
+                file_obj.write(indent(entry))
 
 
     def csv_file_obj_filter(self, source_file_obj,
@@ -856,10 +906,11 @@ Membership"""
         """
         Populates the self.extras_by_member list attribute
         and the self.extras_by_category dict attribute.
+        Both these attributes must be initialized by the client.
         """
         name = "{}, {}".format(record['last'], record['first'])
         _list = []
-        for key in ("mooring", "dock", "kayak"):
+        for key in self.fees_keys:
             value = record[key]
             if value:
                 value = int(value)
@@ -925,8 +976,10 @@ Membership"""
         Dues and relevant fees are applied to each member's record
         in a new_membership_csv_file. It can then be checked before
         renaming.
-        Populates <self.errors>, an instance attribute, that can be
-        checked by a client procedure.
+        Sets up and then populates:
+            <self.errors>        }  all are
+            <self.name_tuples>   }  instance list
+            <self.still_owing>   }  attributes
         Several conditions prevent the method from completing (i.e.
         actually restoring fees.) In each instance, the specifics are
         reported inside the <self.errors> attribute.  This happens if
@@ -941,6 +994,9 @@ Membership"""
             "Preparing to restore dues and fees to the data base...")
         print(
             "  1st check that all have been zeroed out...")
+        self.errors = []
+        self.name_tuples = []
+        self.still_owing = []
         err_code = self.traverse_records(membership_csv_file,
                     [self.get_name_tuple, self.get_payables])  # vvv
         # Populates self.name_tuples so we can later check that
@@ -1000,7 +1056,7 @@ Membership"""
         # data base (i.e. add dues & fees)
         new_records = []
         with open(membership_csv_file, 'r') as file_obj:
-            reader = csv.DictReader(file_obj)
+            reader = csv.DictReader(file_obj, restkey='status')
             key_list = reader.fieldnames  # Save this for later.
             for record in reader:
                 name_tuple = (record["last"], record["first"])
@@ -1122,10 +1178,10 @@ Membership"""
 
     def get_usps(self, record):
         """
-        Populates self.usps_only with the following comma separated
-        values: first, last, address, town, state, and zip, for each
-        member who gets her/his copy of meeting minutes by US Postal
-        Service.
+        Selects members who get their copy of meeting minutes by US
+        Postal Service. i.e. Their "email_only" field is blank.
+        Populates self.usps_only with a line for each such member
+        using csv format: first, last, address, town, state, and zip.
         """
         if not record['email_only']:
             self.usps_only.append(
@@ -1165,55 +1221,35 @@ Membership"""
             "Without permission, must abort.")
                 sys.exit(1)
 
-    def proto_cust_func(self, record, content, destinations):
-        """
-        <record> is expected to come from the memlist.csv file.
-        <content> comes from the Formats.content.py module and
-        must be compatable with the function.
-        <destinations> is a dict defining values for the
-        following keys:
-            "json_data":
-            "dir4letters":
-        """
-        pass
-
-    def cust_func0(self, record, content, destinations):
-        """
-        <record> is expected to come from the memlist.csv file.
-        <content> comes from the Formats.content.py module.
-        <destinations> is a dict defining values for the
-        following keys:
-            "json_data":
-            "dir4letters":
-        """
-        if record["first"][0] == "A":
-            record["extra0"] = "\nYour first name begins with 'A'."
-        if record["second"][1] == "K":
-            record["extra1"] = "\nYour second name begins with 'K'."
-        record["subject"] = content["subject"]
-        pass
-
     def prepare_mailing(self, mem_csv_file):
         """
-        Iterates through all members in the mem_csv_file applying
-        <custom_func> to each.  <custom_func> appends emails to 
-        <json_data> and creates entries in the <dir4letters>.
-        <content> provides boiler plate info. See Formats/content.py
-        module for further info.
+        Client must assign the following instance attributes:
+            self.custom_func
+            self.content (with 'date' added)
+            self.json_file_name
+            self.json_data = []
+            self.dir4letters
         Responsibilities of the caller are as follows:
             Set the following instance attributes:
-                content (with date added),
+                content (with date added) (from Formats)
                 dir4letters, and set up the directory,
                 json_file_name (and set up the file),
                 json_data (set to []), 
             Be sure custom_func is also an attribute and set to the
             appropriate function.
+        Iterates through all members in the mem_csv_file applying
+        <custom_func> to each.  <custom_func> appends emails to 
+        <json_data> and creates entries in the <dir4letters>.
+        <content> provides boiler plate info. See Formats/content.py
+        module for further info.
         Should be able to replace all the various billing routines as
         well as provide a general mechanism of sending out notices.
         <custom_func> could also assign instance variables if required
         by calling routine. (i.e. self.errors)
         """
-        self.traverse_records(mem_csv_file, self.cust_func_welcome)
+        print("Begin prepare_mailing method. (traverse_records)")
+        self.traverse_records(mem_csv_file, self.cust_func)
+        print("Still within method: writing to json file...")
         with open(self.json_file_name, 'w') as file_obj:
             file_obj.write(json.dumps(self.json_data))
     
@@ -1221,6 +1257,7 @@ Membership"""
                     json_file, dir4letters,
                     custom_func):
         """
+        REDACTED: replaced by prepare_mailing.
         Prepares annual billing statements.
         [ i] emails for those with an email address: >> json_file,
         [ii] letters for those without: >> the dir4letters
@@ -1597,17 +1634,92 @@ Membership"""
 #       print("returning {}".format(res))
         return res
 ## Custom Functions:
-    def welcome_func(self, member):
+
+    def send_mailing(self, record, content):
         """
-        Welcomes new members (those with 200 as dues.)
+        Sends emails to 'email_only' members and letters to others.
+        """
+        record["subject"] = content["subject"]
+        record["date"] = content["date"]
+        if record['email']:
+            entry = (content["email_header"]
+                    + content["body"]).format(**record)
+            self.json_data.append([[record["email"]],entry])
+        else:
+            entry = (content["postal_header"]
+                    + content["body"]).format(**record)
+            entry = indent(entry)
+            path2write = os.path.join(self.dir4letters,
+                "_".join((record["last"], record["first"],)))
+            with open(path2write, 'w') as file_object:
+                file_object.write(entry)
+
+    def send_usps(self, record, content):
+        """
+        Sends USPS letters to all.
+        """
+        record["subject"] = content["subject"]
+        record["date"] = content["date"]
+        entry = (content["postal_header"]
+                + content["body"]).format(**record)
+        entry = indent(entry)
+        path2write = os.path.join(self.dir4letters,
+            "_".join((record["last"], record["first"],)))
+        with open(path2write, 'w') as file_object:
+            file_object.write(entry)
+
+    def proto_cust_func(self, record, content, destinations):
+        """
+        <record> is expected to come from the memlist.csv file.
+        <content> comes from the Formats.content.py module and
+        must be compatable with the function.
+        <destinations> is a dict defining values for the
+        following keys:
+            "json_data":
+            "dir4letters":
         """
         pass
+
+    def cust_func0(self, record, content, destinations):
+        """
+        <record> is expected to come from the memlist.csv file.
+        <content> comes from the Formats.content.py module.
+        <destinations> is a dict defining values for the
+        following keys:
+            "json_data":
+            "dir4letters":
+        """
+        if record["first"][0] == "A":
+            record["extra0"] = "\nYour first name begins with 'A'."
+        if record["second"][1] == "K":
+            record["extra1"] = "\nYour second name begins with 'K'."
+        record["subject"] = content["subject"]
+        pass
+
+    def cust_new_applicant_welcome(member, content):
+        if member["status"] == "a1":
+            self.send_letter(member, content)
+
+    def welcome_func(self, record, content):
+        """
+        Welcomes new members.
+        Apply to an input consisting only of the members to be
+        welcomed.
+        """
+        print("Processing {first} {last}.".format(**record))
+        self.send_letter(member, content)
 
 ####  End of Membership class declaration.
 
 
 def ck_fields_cmd():
+    """
+    Traverses the input file using
+    Membership.get_malformed()
+    to select malformed records.
+    """
     source = Membership(Dummy)
+    source.name_tuple = ('', '')
     infile = args["-i"]
     if not infile:
         infile = source.infile
@@ -1641,6 +1753,26 @@ def show_cmd():
     output("\n".join(source.list4web))
     print("...results sent to {}.".format(args['-o']))
 
+def applicants_cmd():
+    source = Membership(Dummy)
+    infile = args["-i"]
+    outfile = args["-o"]
+    print("Preparing listing of applicants...")
+    source.applicants_dict = {}
+    err_code = source.traverse_records(infile,
+                                    source.get_applicant_by_status)
+    res = ["No applicants found."]
+    for key in source.applicants_dict.keys():
+        res.append("\n{}".format(source.status_key_values[key]))
+        for value in source.applicants_dict[key]:
+            res.append("\t{}".format(value))
+    if res:
+        res[0] = "Applicants:\n==========="
+    res = "\n".join(res)
+    with open(outfile, 'w') as file_obj:
+        file_obj.write(res)
+    print("... applicant listing sent to {}.".format(outfile))
+
 def extra_charges_cmd():
     """
     Returns a report of members with extra charges.
@@ -1662,6 +1794,10 @@ def extra_charges_cmd():
         print("Traversing {} to select mempbers owing extra_fees..."
             .format(infile))
         source = Membership(Dummy)
+        source.extras_by_member = []
+        source.extras_by_category = {}
+        for key in source.fees_keys:
+            source.extras_by_category[key] = []
         err_code = source.traverse_records(infile,
                 source.get_extra_charges)
     else:
@@ -1855,20 +1991,23 @@ def prepare_mailing_cmd():
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
     """
-    from Formats.content import content
+    from Formats.content import welcome_member as content
 
     source = Membership(Dummy)
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
+    if not args["--dir"]:
+        args["--dir"] = source.MAILING_DIR
+    source.dir4letters = args["--dir"]
+    source.subject = content["subject"]
     source.content = content
     source.content['date'] = get_datestamp()
-    source.dir4letters = args["--dir"]
     source.check_dir4letters(source.dir4letters)
     source.json_file_name = args["-j"]
     source.check_json_file(source.json_file_name)
     source.json_data = []
+    source.cust_func = source.welcome_func
     source.prepare_mailing(args["-i"])
-    # send json_data to file
 
 def fees_intake_cmd():
     infile = args['-i']
@@ -2027,6 +2166,9 @@ if __name__ == "__main__":
 
     elif args["show"]:
         show_cmd()
+
+    elif args["applicants"]:
+        applicants_cmd()
 
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")

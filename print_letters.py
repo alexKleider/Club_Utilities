@@ -2,6 +2,15 @@
 
 # File: print_letters.py
 
+"""
+Prints all the files found in the directory named by the
+first (and only) parameter.
+
+Usage:
+    print_letters.py target_dir
+
+"""
+
 import os
 import sys
 import subprocess
