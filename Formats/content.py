@@ -517,12 +517,12 @@ and Boat Club!
 You will now be receiving meeting minutes (via email) as prepared by
 current Secretary Peter Pyle.
 
-AS you may know, the Club has its own web site: 'rodandboatclub.com'.
+As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
 guarded secret.)  By clicking on the "Membership" heading, you can
 find all your fellow members along with contact information.  If you
-see any inaccuracies there, please let me know so corrections can be
-made.
+see any inaccuracies there, please let me know [1] so corrections can
+be made.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
@@ -538,8 +538,11 @@ the comraderie!
 
 
 Sincerely,
-Alex Kleider (Membership)"""
+Alex Kleider (Membership)
 
+
+[1] email to rodandboatclub@gmail.com or PO Box 428, 94924
+"""
 }
 
 #content = content_late_aug2018

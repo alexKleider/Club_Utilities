@@ -7,8 +7,10 @@
 BACKUP="/media/alex/_EAGLE/Brbc"
 STAMP=`date +%y-%m-%d`
 DEST=${BACKUP}/$STAMP
+LAST=`cat ${BACKUP}/last`
+echo $STAMP > ${BACKUP}/last
+
 mkdir $DEST
-
-
-rsync -av --exclude='Py' ../../Mshp/  $DEST
+cp -al ${BACKUP}/${LAST}/. ${BACKUP}/$DEST
+rsync -av --exclude='Py' --delete ../../Mshp/  $DEST
 

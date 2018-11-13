@@ -351,7 +351,7 @@ class Membership(object):
     TEMP_MEMBER_DB = 'new_memlist.csv'
     OUTPUT2READ = '2read.txt'       #| generally goes to stdout.
     MAILING_DIR = 'MailingDir'
-    EMAILS_JSON = 'emails.json'
+    JSON_FILE_NAME4EMAILS = 'emails.json'
     ## ...end of Constants and Defaults.
 
     ## The following section is probably redundant since now using
@@ -458,7 +458,7 @@ class Membership(object):
             "kayak": record[self.i_kayak],
             }
 
-    def traverse_records(self, infile, custom_funcs, extras = None):
+    def traverse_records(self, infile, custom_funcs):
         """
         Traverses <infile> and applies <custom_funcs> to each
         record.  <custom_funcs> can be a single function or a
@@ -865,14 +865,14 @@ Membership"""
         """
         pass
 
-    def cust_func_welcome(self, record):
+    def cust_func_welcome(self, record, content=None):
         """
         This custom function selects new members as defined by having
         200 in the "dues" field and sends them a welcome letter with a
         request for dues.
         """
         if record['dues'] == '200':
-            # assign record["extras"] prn (possibly indenting them)
+            # assign record["content"] prn (possibly indenting them)
             record["subject"] = self.content["subject"]
             record["date"] = self.content["date"]
             if record['email']:  # create email and add to json:
@@ -880,7 +880,7 @@ Membership"""
                     + self.content["body"]).format(**record)
                 self.json_data.append([[record['email']],entry])
             # create letter:
-            # possibly doubly indenting the "extras" if present
+            # possibly doubly indenting the "content" if present
             entry = (self.content["postal_header"]
                 + self.content["body"]).format(**record)
             path2write = os.path.join(self.dir4letters,
@@ -1210,6 +1210,8 @@ Membership"""
         Checks the name of the json output file where
         emails are to be stored.
         """
+        print("method check_json_file param is: {}"
+            .format(json_email_file))
         if os.path.exists(json_email_file):
             print("The file '{}' already exists."
                 .format(json_email_file))
@@ -1221,7 +1223,7 @@ Membership"""
             "Without permission, must abort.")
                 sys.exit(1)
 
-    def prepare_mailing(self, mem_csv_file):
+    def prepare_mailing(self, mem_csv_file, content=None):
         """
         Client must assign the following instance attributes:
             self.custom_func
@@ -1247,8 +1249,9 @@ Membership"""
         <custom_func> could also assign instance variables if required
         by calling routine. (i.e. self.errors)
         """
+        cust_func = self.welcome_func
         print("Begin prepare_mailing method. (traverse_records)")
-        self.traverse_records(mem_csv_file, self.cust_func)
+        self.traverse_records(mem_csv_file, cust_func)
         print("Still within method: writing to json file...")
         with open(self.json_file_name, 'w') as file_obj:
             file_obj.write(json.dumps(self.json_data))
@@ -1635,17 +1638,11 @@ Membership"""
         return res
 ## Custom Functions:
 
-    def send_mailing(self, record, content):
+    def send_mailing(self, record, content, both=False):
         """
         Sends emails to 'email_only' members and letters to others.
         """
-        record["subject"] = content["subject"]
-        record["date"] = content["date"]
-        if record['email']:
-            entry = (content["email_header"]
-                    + content["body"]).format(**record)
-            self.json_data.append([[record["email"]],entry])
-        else:
+        def send_letter():
             entry = (content["postal_header"]
                     + content["body"]).format(**record)
             entry = indent(entry)
@@ -1653,6 +1650,18 @@ Membership"""
                 "_".join((record["last"], record["first"],)))
             with open(path2write, 'w') as file_object:
                 file_object.write(entry)
+        letter_sent = False
+        record["subject"] = content["subject"]
+        record["date"] = content["date"]
+        if record['email']:
+            entry = (content["email_header"]
+                    + content["body"]).format(**record)
+            self.json_data.append([[record["email"]],entry])
+        else:
+            send_letter()
+            letter_sent = True
+        if both and not letter_sent:
+            send_letter()
 
     def send_usps(self, record, content):
         """
@@ -1698,16 +1707,17 @@ Membership"""
 
     def cust_new_applicant_welcome(member, content):
         if member["status"] == "a1":
-            self.send_letter(member, content)
+            self.send_mailing(member, content)
 
-    def welcome_func(self, record, content):
+    def welcome_func(self, member):
         """
         Welcomes new members.
         Apply to an input consisting only of the members to be
         welcomed.
         """
-        print("Processing {first} {last}.".format(**record))
-        self.send_letter(member, content)
+        if member['status'] == 'm':
+            print("Processing {first} {last}.".format(**member))
+            self.send_mailing(member, self.content)
 
 ####  End of Membership class declaration.
 
@@ -1990,12 +2000,19 @@ def prepare_mailing_cmd():
     """
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
+    Must change code to set content
+    and to assign a specific method to 'cust_func' within the
+    Membership instance created (as <source>.) See lines following the
+    "# *****..." comment lines.
     """
+    # *****...
     from Formats.content import welcome_member as content
 
     source = Membership(Dummy)
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
+    if not args["-j"]:
+        args["-j"] = source.JSON_FILE_NAME4EMAILS
     if not args["--dir"]:
         args["--dir"] = source.MAILING_DIR
     source.dir4letters = args["--dir"]
@@ -2006,6 +2023,7 @@ def prepare_mailing_cmd():
     source.json_file_name = args["-j"]
     source.check_json_file(source.json_file_name)
     source.json_data = []
+    # *****...
     source.cust_func = source.welcome_func
     source.prepare_mailing(args["-i"])
 
@@ -2252,4 +2270,16 @@ for members who receive meeting minutes by mail.""")
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
         print("    ./utils.py -h # for more detail")
-
+_error = """
+Traceback (most recent call last):
+  File "./utils.py", line 2242, in <module>
+    prepare_mailing_cmd()
+  File "./utils.py", line 2027, in prepare_mailing_cmd
+    source.prepare_mailing(args["-i"])
+  File "./utils.py", line 1254, in prepare_mailing
+    self.traverse_records(mem_csv_file, cust_func)
+  File "./utils.py", line 479, in traverse_records
+    custom_func(record, content)
+TypeError: welcome_func() takes 2 positional arguments but 3 were
+given
+"""
