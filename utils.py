@@ -1715,7 +1715,7 @@ Membership"""
         Apply to an input consisting only of the members to be
         welcomed.
         """
-        if member['status'] == 'm':
+        if member['last'] == 'Stone':
             print("Processing {first} {last}.".format(**member))
             self.send_mailing(member, self.content)
 
@@ -2006,6 +2006,7 @@ def prepare_mailing_cmd():
     "# *****..." comment lines.
     """
     # *****...
+    ## First we choose the correct letter:
     from Formats.content import welcome_member as content
 
     source = Membership(Dummy)
@@ -2024,7 +2025,10 @@ def prepare_mailing_cmd():
     source.check_json_file(source.json_file_name)
     source.json_data = []
     # *****...
+    ## Then we chose the correct custom function:
     source.cust_func = source.welcome_func
+    # *****...
+    ## Once set up is complete, the rest is easy:
     source.prepare_mailing(args["-i"])
 
 def fees_intake_cmd():
@@ -2270,16 +2274,4 @@ for members who receive meeting minutes by mail.""")
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
         print("    ./utils.py -h # for more detail")
-_error = """
-Traceback (most recent call last):
-  File "./utils.py", line 2242, in <module>
-    prepare_mailing_cmd()
-  File "./utils.py", line 2027, in prepare_mailing_cmd
-    source.prepare_mailing(args["-i"])
-  File "./utils.py", line 1254, in prepare_mailing
-    self.traverse_records(mem_csv_file, cust_func)
-  File "./utils.py", line 479, in traverse_records
-    custom_func(record, content)
-TypeError: welcome_func() takes 2 positional arguments but 3 were
-given
-"""
+
