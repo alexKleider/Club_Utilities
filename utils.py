@@ -475,6 +475,7 @@ class Membership(object):
             print("Opening {}".format(infile))
             dict_reader = csv.DictReader(file_object, restkey='status')
             for record in dict_reader:
+#               print("'record' is: {}".format(record))
                 for custom_func in custom_funcs:
                     custom_func(record)
 
@@ -888,6 +889,28 @@ Membership"""
             with open(path2write, 'w') as file_obj:
                 file_obj.write(indent(entry))
 
+    def bad_email_func(self, record, content=None):
+        """
+        This custom function is used when a member's email proves to
+        be invalid. Assumes -i infile is a membership csv file with
+        only the members having a problem email address.
+        """
+        # assign record["content"] prn (possibly indenting them)
+        record["subject"] = self.content["subject"]
+        record["date"] = self.content["date"]
+        if record['email']:  # create email and add to json:
+            entry = (self.content["email_header"]
+                + self.content["body"]).format(**record)
+            self.json_data.append([[record['email']],entry])
+        # create letter:
+        # possibly doubly indenting the "content" if present
+        entry = (self.content["postal_header"]
+            + self.content["body"]).format(**record)
+        path2write = os.path.join(self.dir4letters,
+            "_".join((record["last"], record["first"])))
+        with open(path2write, 'w') as file_obj:
+            file_obj.write(indent(entry))
+
 
     def csv_file_obj_filter(self, source_file_obj,
                             cust_func, info=None):
@@ -1249,9 +1272,8 @@ Membership"""
         <custom_func> could also assign instance variables if required
         by calling routine. (i.e. self.errors)
         """
-        cust_func = self.welcome_func
         print("Begin prepare_mailing method. (traverse_records)")
-        self.traverse_records(mem_csv_file, cust_func)
+        self.traverse_records(mem_csv_file, self.cust_func)
         print("Still within method: writing to json file...")
         with open(self.json_file_name, 'w') as file_obj:
             file_obj.write(json.dumps(self.json_data))
@@ -2007,7 +2029,8 @@ def prepare_mailing_cmd():
     """
     # *****...
     ## First we choose the correct letter:
-    from Formats.content import welcome_member as content
+#   from Formats.content import welcome_member as content
+    from Formats.content import bad_email as content
 
     source = Membership(Dummy)
     if not args["-i"]:
@@ -2026,7 +2049,8 @@ def prepare_mailing_cmd():
     source.json_data = []
     # *****...
     ## Then we chose the correct custom function:
-    source.cust_func = source.welcome_func
+#   source.cust_func = source.welcome_func
+    source.cust_func = source.bad_email_func
     # *****...
     ## Once set up is complete, the rest is easy:
     source.prepare_mailing(args["-i"])

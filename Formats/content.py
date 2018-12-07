@@ -32,6 +32,34 @@ import sys
 import json
 from helpers import indent
 
+postal_headers = {
+    "6505": """
+
+Bolinas Rod and Boat Club
+PO Box 248
+Bolinas, CA 94924
+
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+""",
+    "Janice": """
+""",
+    }
+
 content_1st_request = {
 "subject": "Club fees coming due",
 
@@ -382,7 +410,6 @@ Dear {first} {last},
 
 
 
-
 Bolinas Rod and Boat Club
 PO Box 248
 Bolinas, CA 94924
@@ -395,6 +422,7 @@ Bolinas, CA 94924
 {first} {last}
 {address}
 {town}, {state} {zip}
+
 
 
 
@@ -433,7 +461,6 @@ Dear {first} {last},
 
 
 
-
 Bolinas Rod and Boat Club
 PO Box 248
 Bolinas, CA 94924
@@ -446,6 +473,7 @@ Bolinas, CA 94924
 {first} {last}
 {address}
 {town}, {state} {zip}
+
 
 
 
@@ -544,6 +572,33 @@ Alex Kleider (Membership)
 [1] email to rodandboatclub@gmail.com or PO Box 428, 94924
 """
 }
+
+bad_email = {       # bad_email_content
+"subject": "non-working email",
+
+"email_header": """From: rodandboatclub@gmail.com
+To: {email}
+Subject: {subject}
+
+Dear {first} {last},
+
+""",
+
+"postal_header": postal_headers["6505"]
+
+,
+
+"body": """
+An email sent to you at the following email address:
+{email}
+was rejected.  Can you please help us sort this out by
+emailing rodandboatclub@gmail.com?
+
+Thanks,
+
+Alex Kleider (Membership)"""
+
+}  # bad_email; goes with cust_func_bad_email method
 
 #content = content_late_aug2018
 cust_func = cust_aug31_2018
