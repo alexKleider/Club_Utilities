@@ -43,27 +43,34 @@ Data is archived (to preserve an historical record) to the Archive
 sister directory and also backed up to an external hard drive.
 
 WORK FLOW:
-The project can be found under the /home/alex/Notes/Bo/Club/Mshp
-directory. Under it, the Py directory contians utils.py and
-supporting files.  Code is backed up on github; The club data within
-this directory is (for privacy reasons) excluded from github and
-archived in the 'Data' subdirectory of the 'Archive' directory (see
-archive.sh.) It consists of the following:
-    applicants.csv,
+The project can be found under the /home/alex/Club/Mshp
+(formerly /home/alex/Notes/Bo/Club/Mshp) directory.
+Under it, the Py directory is a git repository contianing utils.py
+and supporting files (all backed up on github:
+https://github.com/alexKleider/Club_Utilities.)
+The club data within this directory is (for privacy reasons)
+excluded from github and archived in the 'Data' subdirectory of the
+'Archive' directory (see archive-data.sh.) It consists of the following:
+    applicants.csv,  # The SPoT for applicants demographics
+    applicants.txt,  # The SPoT for applicant status.
     extra_fees.txt,  # The SPoT for dock, mooring and kayak storage.
-    memlist.csv,
-    receipts*,
-    report*
+    memlist.csv,  # The main membership data base.
+    receipts*,  # Money taken in (by membership year.)
+    report*     # One for every month.
 These are edited using vim (or any editor of your choosing) and
 are copied (archive.sh) to the Archive directory from time to time
-(to provide an historical record.)
+(at a minimum after each meeting, to provide an historical record.)
+
 ('newmembers' is a link to ../Lists/newmembers in which I keep track
-of new members and my reports to leadership and members.)
+of new members and my reports to leadership and members. It is likely
+to be soon redacted.)
+
+Also archived are mailings: see archive-mailing.sh.  This should be
+done after each time letters/emails are sent out.
+
 Data backup is accomplished by backing up the 'Mshp' directory
-excluding its 'Py' subdirectory to an external drive.
-See the archive.sh and backup.sh utilities for details.
-There is also the special case of archiving mailings that have been
-sent out.  This is handled by the archive.sh script. 
+excluding its 'Py' subdirectory to an external drive using the
+backup.sh utility.
 
 
 Redacted Parts
@@ -77,9 +84,10 @@ needs to be edited to suit current need. Specifically the two
 variables 'content' and 'custom_func' need to be defined and assigned.
 
 As of (late Aug/early Sept 2018) most commands are implemented by
-having a single traversing command which takes a custom function as
-its parameter and this function deals with each record traversed
-adding data as needed to one or more corresponding attribute(s) of
+having a single traversing command which takes a custom function
+(or list of custom functions) as its parameter and this/these
+function(s) deal(s) with each record traversed adding data as needed
+to one or more corresponding attribute(s) of
 the Membership instance.  (version 1.0.1a) The command is
 'prepare_mailing'
 
@@ -107,38 +115,7 @@ The send_emails functionality depends on the presence of
 a ~/.msmtprc (configuration) file.
 # https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
 
-After mass mailings I've been zipping the content to an
-../Archives/Mailling/z<YYYY-MM-DD>.zip file which contains a directory
-containing the letters and an 'emails.json' file (the emails.)
-(Need a script to automate this.)
+After mass mailings I've been running archive-mailing.sh which zipps the
+content to an ../Archives/Mailling/z<YYYY-MM-DD>.zip file which contains
+a directory containing the letters and an 'emails.json' file (the emails.)
 
-total 264
--rwxrwxr-x 1 alex alex   679 Oct 17 18:57 backup.sh
-drwxrwxr-x 2 alex alex  4096 Oct 19 08:50 Exclude
--rw-rw-r-- 1 alex alex  3247 Oct 16 09:31 extra_fees.py
--rw-rw-r-- 1 alex alex   896 Aug  2 15:59 extra_fees.txt
-drwxrwxr-x 3 alex alex  4096 Oct 16 20:07 Formats
-drwxrwxr-x 8 alex alex  4096 Oct 19 08:20 .git
--rw-rw-r-- 1 alex alex    66 Mar 27  2018 .gitignore
--rw-rw-r-- 1 alex alex 44280 Oct 16 19:32 google.csv
--rwxrwxr-x 1 alex alex   784 Aug 28 18:01 helpers.py
--rw-rw-r-- 1 alex alex     0 Jul 21 06:02 __init__.py
--rw-rw-r-- 1 alex alex 18455 Oct 16 19:07 memlist.csv
--rw-rw-r-- 1 alex alex   381 Oct 19 08:32 msmtprc
-lrwxrwxrwx 1 alex alex    19 Sep  5 18:29 newmembers -> ../Lists/newmembers
--rwxrwxr-x 1 alex alex   334 Jul 29 09:36 print_letters.py
--rw-rw-r-- 1 alex alex   862 Aug  6 09:23 proposal
-drwxrwxr-x 2 alex alex  4096 Aug 30 09:17 __pycache__
--rw-rw-r-- 1 alex alex  6160 Oct 19 08:24 README
--rw-r--r-- 1 alex alex 16384 Oct 19 09:06 .README.swp
--rw-rw-r-- 1 alex alex  9616 Oct 16 10:00 receipts18-18.txt
--rw-rw-r-- 1 alex alex   203 Oct 19 08:04 receipts.txt
--rw-rw-r-- 1 alex alex   161 Mar 23  2018 requirements.txt
-lrwxrwxrwx 1 alex alex    35 Jul 27 21:58 tabulate.py -> /home/alex/P36/Tabulate/tabulate.py
--rwxr-xr-x 1 alex alex  3365 Mar 15  2018 test_columns_rows.py
--rw-rw-r-- 1 alex alex  1852 Oct 16 20:21 test_emails.json
-drwxrwxr-x 2 alex alex  4096 Oct 16 20:21 TestLetterDir
--rw-rw-r-- 1 alex alex  1118 Sep  2 18:20 test.py
--rwxr-xr-x 1 alex alex  1063 Mar 15  2018 test_xlsx
--rw-rw-r-- 1 alex alex    14 Oct 16 20:07 ToDo
--rwxrwxr-x 1 alex alex 82011 Oct 19 04:56 utils.py

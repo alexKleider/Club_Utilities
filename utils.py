@@ -25,7 +25,7 @@ Usage:
   ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py billing [-i <infile> -o arrears_file]  -j <json_file> --dir <dir4letters>
-  ./utils.py prepare_mailing [-i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py prepare_mailing --type <type> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
   ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
@@ -52,10 +52,14 @@ Options:
                   modified, thus providing an opportunity for proof
                   reading the 'modified' file before renaming it to
                   the original. (Typically named '2proof_read.txt'.)
+  --type <type>  Specifies type/subject of mailing. (See 'letters'
+                   dict in Formats/content.py.)
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
-               A5160 for labels & E000 for envelopes.
+              A5160 for labels & E000 for envelopes.
+  --lpr <printer>  Specifies printer to be used. Must be a key of
+              Formats.content.postal_headers dict. [default: 6505]
   -r --raw  Supress headers (to make the output suitable as
             input for creating tables.)
   -s <separator>  Some commands may have more than one component to
@@ -104,6 +108,9 @@ Commands:
         following 4 commands: labels, envelopes, email_billings2json
         and usps_billings2print.
     prepare_mailing: A general form of the billing command (above.)
+        This command demands a TYPE positional argument to specify the
+        mailing: more specifically, it specifies the content and the
+        custom function(s) to be used.  Se the README for details.
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -162,7 +169,7 @@ import json
 import subprocess
 from docopt import docopt
 from helpers import get_datestamp, indent
-import Formats
+#import Formats
 
 args = docopt(__doc__, version="1.0.1a")
 # print(args)
@@ -477,7 +484,7 @@ class Membership(object):
             for record in dict_reader:
 #               print("'record' is: {}".format(record))
                 for custom_func in custom_funcs:
-                    custom_func(record)
+                    custom_func(self, record)
 
     def get_name_tuple(self, record):
         """
@@ -866,8 +873,33 @@ Membership"""
         """
         pass
 
+    def request_inductee_payment(self, record, content=None):
+        """
+        A welcoming message with a request for payment of dues is
+        prepared if the record's status field is 'i' for 'inducted'.
+        """
+        if record['status'] == 'i':
+            # assign record["content"] prn (possibly indenting them)
+            record["subject"] = self.content["subject"]
+            record["date"] = self.content["date"]
+            if record['email']:  # create email and add to json:
+                entry = (self.content["email_header"]
+                    + self.content["body"]).format(**record)
+                self.json_data.append([[record['email']],entry])
+            # create letter:
+            # possibly doubly indenting the "content" if present
+            entry = (self.content["postal_header"]
+                + self.content["body"]).format(**record)
+            path2write = os.path.join(self.dir4letters,
+                "_".join((record["last"], record["first"])))
+            with open(path2write, 'w') as file_obj:
+                file_obj.write(indent(entry))
+
     def cust_func_welcome(self, record, content=None):
         """
+        REDACTED- use request_inductee_payment instead: it requires a
+        csv of only the inductees.
+
         This custom function selects new members as defined by having
         200 in the "dues" field and sends them a welcome letter with a
         request for dues.
@@ -906,6 +938,7 @@ Membership"""
         # possibly doubly indenting the "content" if present
         entry = (self.content["postal_header"]
             + self.content["body"]).format(**record)
+#       print("\n", entry, "\n")
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"])))
         with open(path2write, 'w') as file_obj:
@@ -1627,6 +1660,9 @@ Membership"""
         Populates self.invalid_lines ....
         (... the only reason it's a class method
         rather than a function or a static method.)
+        NOTE: Money taken in (or refunded) must appear
+        within line[23:28]! i.e. maximum 4 digit positive
+        and 3 digit negative numbers.
         """
         res = ["Fees taken in to date:"]
         self.invalid_lines = []
@@ -1647,7 +1683,7 @@ Membership"""
         #               .format(date, subtotal))
                     subtotal = 0
                 try:
-                    amount = int(line[24:27])
+                    amount = int(line[23:28])
                 except (ValueError, IndexError):
                     self.invalid_lines.append(line)
                     continue
@@ -2010,8 +2046,9 @@ def usps_billings2print_cmd(infile, dir4letters):
 
 def billing_cmd():
     source = Membership(Dummy)
-    from Formats.content import content
-    from Formats.content import custom_func
+#   from Formats.content import content
+#   from Formats.content import custom_func
+    content
     # Alternatively, may first run Formats/content.py to create
     # a json file which can then be "load"ed using the json module.
     source.billing(content,
@@ -2022,16 +2059,15 @@ def prepare_mailing_cmd():
     """
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
-    Must change code to set content
-    and to assign a specific method to 'cust_func' within the
-    Membership instance created (as <source>.) See lines following the
-    "# *****..." comment lines.
+    Accompanying module 'content' provides support.
     """
-    # *****...
-    ## First we choose the correct letter:
-#   from Formats.content import welcome_member as content
-    from Formats.content import bad_email as content
-
+#   import Formats.content
+    import content
+#   content = Formats.content.content_types[args["--type"]]
+    substance = content.content_types[args["--type"]]
+#   content["postal_header"] = 
+#       Formats.content.postal_headers[args["--lpr"]]
+    substance["postal_header"] = content.postal_headers[args["--lpr"]]
     source = Membership(Dummy)
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
@@ -2040,8 +2076,9 @@ def prepare_mailing_cmd():
     if not args["--dir"]:
         args["--dir"] = source.MAILING_DIR
     source.dir4letters = args["--dir"]
-    source.subject = content["subject"]
-    source.content = content
+    print("Preparing mailing: '{}'".format(args["--type"]))
+    source.subject = substance["subject"]
+    source.content = substance
     source.content['date'] = get_datestamp()
     source.check_dir4letters(source.dir4letters)
     source.json_file_name = args["-j"]
@@ -2050,7 +2087,8 @@ def prepare_mailing_cmd():
     # *****...
     ## Then we chose the correct custom function:
 #   source.cust_func = source.welcome_func
-    source.cust_func = source.bad_email_func
+    source.cust_func = substance["func"]
+#   source.cust_func = source.request_inductee_payment
     # *****...
     ## Once set up is complete, the rest is easy:
     source.prepare_mailing(args["-i"])

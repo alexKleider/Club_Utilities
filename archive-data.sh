@@ -13,7 +13,14 @@ cp  applica*  ${STAMP}/
 cp  extra_fees.txt  ${STAMP}/
 cp  memlist.csv  ${STAMP}/
 cp  receipts*  ${STAMP}/
+cp  reimbursements*  ${STAMP}/
 cp  report*  ${STAMP}/
+cp  todo  ${STAMP}/
+cp  mynotes  ${STAMP}/
+cp  sensitive  ${STAMP}/
+cp  loose-ends  ${STAMP}/
+cp  attrition  ${STAMP}/
+cp  bad_email.csv  ${STAMP}/
 
 tar -czvf $TARFILE $STAMP
 mv $TARFILE $DATA_ARCHIVES
