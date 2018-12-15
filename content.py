@@ -28,17 +28,6 @@ the content dict.  i.e. {extra1}
 Sincerely,
 Alex Kleider (Membership)
 """,
-    new_applicant_welcome = """
-As Membership Chair it is my pleasure to welcome you as a new
-applicant for membership in the Bolinas Rod and Boat Club.
-
-Please come and enjoy the meetings (first Fiday of each month.)
-To become eligible for membership (and not waste your application
-fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received. 
-
-Sincerely,
-Alex Kleider (Membership)""",
     yearly_fees_1st_request = """
 
 With July comes the beginning of the new membership year
@@ -126,6 +115,17 @@ emailing rodandboatclub@gmail.com?
 Thanks,
 
 Alex Kleider (Membership)""",
+    new_applicant_welcome = """
+As Membership Chair it is my pleasure to welcome you as a new
+applicant for membership in the Bolinas Rod and Boat Club.
+
+Please come and enjoy the meetings (first Fiday of each month.)
+To become eligible for membership (and not waste your application
+fee) you must attend a minimum of three meetings with in the six
+month period beginning the date your application was received. 
+
+Sincerely,
+Alex Kleider (Membership)""",
     request_inductee_payment = """
 As you may already know, the Club Executive approved your
 application for Club membership at their last meeting.
@@ -148,7 +148,7 @@ It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
 You will now be receiving meeting minutes (via email) as prepared by
-current Secretary Peter Pyle.
+our Club Secretary Peter Pyle.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
@@ -216,50 +216,76 @@ Subject: {subject}
 Dear {first} {last},
 
 """
+
+
 content_types = dict(
     yearly_fees_1st_request = {
         "subject": "Bolinas R&B Club fees coming due",
         "email_header": email_header,
         "postal_header": None,
-        "body": letters["yearly_fees_1st_request"]
+        "body": letters["yearly_fees_1st_request"],
+        "func": utils.Membership.std_mailing,
+        "test": lambda record: True,
+        "which": "one_only",
         },
     yearly_fees_2nd_request = {
         "subject":"Second request for BR&BC dues",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["yearly_fees_2nd_request"],
+        "func": utils.Membership.std_mailing,
+        "test": lambda record: True,
+        "which": "both",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["penalty_notice"],
+        "func": utils.Membership.std_mailing,
+        "test": lambda record: True,
+        "which": "both",
         },
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["new_applicant_welcome"],
+        "func": utils.Membership.std_mailing,
+        "test": (
+        lambda record: True if 'a1' in record["status"] else False),
+        "which": "both",
         },
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["request_inductee_payment"],
-        "func": utils.Membership.request_inductee_payment,
+        "func": utils.Membership.std_mailing,
+        "test": (
+        lambda record: True if 'i' in record["status"] else False),
+        "which": "both",
         },
     welcome2full_membership = {
         "subject": "You are a member!",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["welcome2full_membership"],
+        "func": utils.Membership.std_mailing,
+        "test": (
+        lambda record: True if 'm' in record["status"] else False),
+        "which": "both",
         },
     bad_email = {
         "subject": "non-working email",
         "email_header": email_header,
         "postal_header": None,
         "body": letters["bad_email"],
-        },  # goes with bad_email_func method
+        "func": utils.Membership.std_mailing,
+        "test": (
+        lambda record: True if 'be' in record["status"] else False),
+        "which": "usps",
+        }, 
     )
 
 if __name__ == "__main__":
