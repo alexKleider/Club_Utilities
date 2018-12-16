@@ -20,9 +20,10 @@ cp  mynotes  ${STAMP}/
 cp  sensitive  ${STAMP}/
 cp  loose-ends  ${STAMP}/
 cp  attrition  ${STAMP}/
-cp  bad_email.csv  ${STAMP}/
 
 tar -czvf $TARFILE $STAMP
 mv $TARFILE $DATA_ARCHIVES
 rm -r $STAMP
 
+# to extract:
+# tar xvzf file.tar.gz

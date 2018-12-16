@@ -20,9 +20,9 @@ Usage:
   ./utils.py ck_fields [-r -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py applicants -i <infile> -o <outfile>
+  ./utils.py applicants [-i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
-  ./utils.py extra_charges [--raw -i <infile> -o <outfile>]
+  ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py billing [-i <infile> -o arrears_file]  -j <json_file> --dir <dir4letters>
   ./utils.py prepare_mailing --which <type> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
@@ -80,7 +80,7 @@ Commands:
         differing emails. (After proof reading, use 'send_emails'.)
     show: Returns membership demographics for display on the web site.
     applicants: Returns a listing of appliacants and their current
-        statnding. Typically input comes from the applicants.csv file.
+        statnding.  Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
         members who receive their Club minutes by post.
     extra_charges: Provides lists of members with special charges.
@@ -363,6 +363,7 @@ class Membership(object):
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'extra_fees.json'
+    EXTRA_FEES_TBL = 'extra_fees.tbl'  # not used!
     TEMP_MEMBER_DB = 'new_memlist.csv'
     OUTPUT2READ = '2read.txt'       #| generally goes to stdout.
     MAILING_DIR = 'MailingDir'
@@ -404,14 +405,14 @@ class Membership(object):
     money_keys = ("dues", "mooring", "dock", "kayak") 
     fees_keys = money_keys[1:]
 
-    status_key_values = {
-        "m": "Member in good standing.",
-        "a0": "Application received.",
-        "a1": "Attended one meeting.",
-        "a2": "Attended two meetings.",
-        "a3": "Attended three meetings.",
-        "ai": "Inducted, membership fee outstanding.",
-        }
+#   status_key_values = {
+#       "m": "Member in good standing.",
+#       "a0": "Application received.",
+#       "a1": "Attended one meeting.",
+#       "a2": "Attended two meetings.",
+#       "a3": "Attended three meetings.",
+#       "ai": "Inducted, membership fee outstanding.",
+#       }
 
     n_fields_per_record = 14
 
@@ -583,8 +584,10 @@ class Membership(object):
         by status.
         """
         status = record["status"]
-        _ = self.applicants_dict.setdefault(status, [])
-        self.applicants_dict[status].append(self.get_last_first(record))
+        if status:
+            _ = self.applicants_dict.setdefault(status, [])
+            self.applicants_dict[status].append(
+                            self.get_last_first(record))
 
     def get_mailing(self, record):
         """
@@ -1841,6 +1844,7 @@ def ck_fields_cmd():
     source.name_tuple = ('', '')
     infile = args["-i"]
     if not infile:
+        Membership.MEMBER_DB
         infile = source.infile
     print("Checking fields...")
     err_code = source.traverse_records(infile,
@@ -1906,7 +1910,7 @@ def compare_gmail_cmd():
     if verification and input(verification).lower()[0] == 'y':
         source = Membership(Dummy)
         if not args["-i"]:
-            args["-i"] = source.infile
+            args["-i"] = Membership.MEMBER_DB
         google_file = args['<gmail_contacts>']
         return source.compare_w_google(args['-i'],
                                 google_file, args['-s'])
@@ -1918,30 +1922,131 @@ def compare_gmail_cmd():
 def applicants_cmd():
     source = Membership(Dummy)
     infile = args["-i"]
-    outfile = args["-o"]
-    print("Preparing listing of applicants...")
+    if not infile:
+        infile = Membership.MEMBER_DB
+    print("Preparing listing of applicants")
+    print("... (and members with bad emails) ...")
     source.applicants_dict = {}
     err_code = source.traverse_records(infile,
                                     source.get_applicant_by_status)
     res = ["No applicants found."]
     for key in source.applicants_dict.keys():
-        res.append("\n{}".format(source.status_key_values[key]))
-        for value in source.applicants_dict[key]:
-            res.append("\t{}".format(value))
+        if key:
+#           print("key is: {}".format(key))
+#           print("value is: {}".format(source.applicants_dict[key]))
+            res.append("\n{}".format(key))
+            for value in source.applicants_dict[key]:
+                res.append("\t{}".format(value))
     if res:
         res[0] = "Applicants:\n==========="
     res = "\n".join(res)
-    with open(outfile, 'w') as file_obj:
-        file_obj.write(res)
-    print("... applicant listing sent to {}.".format(outfile))
+    output(res)
+#   outfile = args["-o"]
+#   with open(outfile, 'w') as file_obj:
+#       file_obj.write(res)
+    print("\n... applicant listing sent to {}.".format(args["-o"]))
+
+def extra_charges(infile, json_file=None):
+    """
+    Used by extra_charges_cmd when infile is a txt file.
+    Returns a string: a table of charges.
+    Also writes data to a json file if a file name is specified.
+    """
+    json_dict = {}
+    dock_usage = []
+    mooring = []
+    kayak_storage = []
+    uninterpretable = []
+    n_longest = 0
+    res = []
+
+    with open(infile, "r") as f_obj:
+        for line in f_obj:
+            if 'mooring' in line:
+                current = mooring
+                key = "Mooring"
+            elif 'dock' in line:
+                current = dock_usage
+                key = "Dock usage"
+            elif 'kayak' in line:
+                current = kayak_storage
+                key = "Kayak storage"
+            else:
+                split_line = line.split()
+                if len(split_line) == 3:
+                    first = split_line[0]
+                    last = split_line[1][:-1] #delete colon
+                    amt = int(split_line[2])
+                    new_line = "{}, {}: ${}".format(last, first, amt)
+                    new_val = [last, first, amt]
+                    json_dict.setdefault(key, [])
+                    json_dict[key].append(new_val)
+                    current.append(new_line)
+                else:
+                    uninterpretable.append(line)
+
+    if len(dock_usage) > n_longest:
+        n_longest = len(dock_usage)
+    if len(mooring) > n_longest:
+        n_longest = len(mooring)
+    if len(kayak_storage) > n_longest:
+        n_longest = len(kayak_storage)
+    final = (
+            ["Dock Usage", "----------"] + [""] * n_longest,
+            ["Mooring", "-------"] + [""] * n_longest,
+            ["Kayak Storage", "-------------"] + [""] * n_longest
+            )
+    for i in range(n_longest):
+        try:
+            final[0][i+2] = dock_usage[i]
+            final[1][i+2] = mooring[i]
+            final[2][i+2] = kayak_storage[i]
+        except IndexError:
+            pass
+
+    res = ['',
+           "Members Paying Fees For Extra Privileges",
+           "========================================",]
+    for i in range(n_longest + 1):
+        res.append("{:<25} {:<25} {:<25}"
+            .format(final[0][i], final[1][i], final[2][i]))
+    if json_file:
+        lines = ["{"]
+        keys = [key for key in json_dict.keys()]
+        keys.sort()
+        for key in keys:
+            lines.append('"{}": ['.format(key))
+            for item in json_dict[key]:
+                lines.append('    ["{}", "{}", {}],'
+                    .format(*item))
+            lines[-1] = lines[-1][:-1]
+            lines.append('    ],')
+        lines[-1] = lines[-1][:-1]
+        lines.append('}')
+        print("Writing json output to {}.".format(json_file))
+        with open(json_file, 'w') as jfile:
+            jfile.write('\n'.join(lines))
+    return '\n'.join(res)
+
+        
 
 def extra_charges_cmd():
     """
     Returns a report of members with extra charges.
-    Examines the infile and if it's a csv file, the membership file is
-    assumed and report will be from there.
+    Examines the infile and if it's a csv file, the membership file
+    is assumed and report will be from there.
+
     If infile is a txt file: membership data is not consulted;
-    instead we assume file is in format of extra_fees.txt.
+    instead we assume the file is in the format of "extra_fees.txt"
+    which is the SPoT[1] identifying members who pay for extra
+    privileges (mooring, dock usage and kayak storage) along with
+    how much they pay.  Using it as input, this command creates a
+    table showing members who pay for these extra privileges.
+
+    It also can create a json file: specified by the -j option.
+    Such a json file is required by the restore_fees command.
+
+    [1] Single Point of Truth
     """
     infile = args["-i"]
     if not infile:
@@ -1949,7 +2054,9 @@ def extra_charges_cmd():
     suffix = infile[-4:]
     if suffix == ".txt":
         # use function vs method
-        print("Not implemented- use extra_fees.py script instead.")
+        res = extra_charges(infile, args["-j"])
+        print("Sending output to {}.".format(args["-o"]))
+        output(res)
         sys.exit()
     elif  suffix == ".csv":
         # use methods: traversal with get_extra_fees
@@ -1963,6 +2070,7 @@ def extra_charges_cmd():
         err_code = source.traverse_records(infile,
                 source.get_extra_charges)
     else:
+        print("Bad input file!")
         assert False
     res_by_category = []
     if source.extras_by_category:
@@ -1987,7 +2095,7 @@ def extra_charges_cmd():
         res_by_member = '\n'.join(res_by_member)
     else:
         res_by_member = ''
-    return "\n\n".join((res_by_category, res_by_member))
+    output("\n\n".join((res_by_category, res_by_member)))
 
 def payables_cmd():
     """
@@ -2361,7 +2469,7 @@ if __name__ == "__main__":
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
         print("...being sent to {}.".format(args['-o']))
-        output(extra_charges_cmd())
+        extra_charges_cmd()
 
     elif args["compare_gmail"]:
         print("Check the google list against the membership list.")
