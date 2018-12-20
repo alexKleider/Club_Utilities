@@ -25,7 +25,7 @@ Usage:
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py billing [-i <infile> -o arrears_file]  -j <json_file> --dir <dir4letters>
-  ./utils.py prepare_mailing --which <type> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
   ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
@@ -53,8 +53,8 @@ Options:
                   modified, thus providing an opportunity for proof
                   reading the 'modified' file before renaming it to
                   the original. (Typically named '2proof_read.txt'.)
-  --which <type>  Specifies type/subject of mailing. (See 'letters'
-                   dict in Formats/content.py.)
+  --which <letter>  Specifies type/subject of mailing. (See
+                  'content_types' dict in content.py.)
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
@@ -175,7 +175,7 @@ import time
 import json
 import subprocess
 from docopt import docopt
-from helpers import get_datestamp, indent
+from helpers import get_datestamp, indent, month
 import content
 #import Formats
 
@@ -374,36 +374,36 @@ class Membership(object):
     ## csv.DictRead() rather that csv.read().
     # define the fields available and define a method to set up a
     # dict for each instance:
-    i_first = 0
-    i_last = 1
-    i_phone = 2
-    i_address = 3
-    i_town = 4
-    i_state = 5
-    i_zip_code = 6
-    i_email = 7
-    i_email_only = 8
-    i_dues = 9
-    i_mooring = 10
-    i_dock = 11
-    i_kayak = 12
-    i_status = 13
+#   i_first = 0
+#   i_last = 1
+#   i_phone = 2
+#   i_address = 3
+#   i_town = 4
+#   i_state = 5
+#   i_zip_code = 6
+#   i_email = 7
+#   i_email_only = 8
+#   i_dues = 9
+#   i_mooring = 10
+#   i_dock = 11
+#   i_kayak = 12
+#   i_status = 13
 
-    keys_tuple = ("first", "last", "phone", "address",
-        "town", "state", "zip", "email", "email_only",
-        "dues", "mooring", "dock", "kayak", "status",
-        )
+#   keys_tuple = ("first", "last", "phone", "address",
+#       "town", "state", "zip", "email", "email_only",
+#       "dues", "mooring", "dock", "kayak", "status",
+#       )
     ## End of part which can probably be deleted.
 
-
-    headers = {
-        "dues": "Dues",
-        "mooring": "Mooring",
-        "dock": "Dock Usage",
-        "kayak": "Kayak Storage",
-        }
     money_keys = ("dues", "mooring", "dock", "kayak") 
     fees_keys = money_keys[1:]
+    money_headers = {
+        "dues":    "Dues..........",
+        "mooring": "Mooring.......",
+        "dock":    "Dock Usage....",
+        "kayak":   "Kayak Storage.",
+        "total":   "TOTAL.........",
+        }
 
 #   status_key_values = {
 #       "m": "Member in good standing.",
@@ -414,7 +414,7 @@ class Membership(object):
 #       "ai": "Inducted, membership fee outstanding.",
 #       }
 
-    n_fields_per_record = 14
+#   n_fields_per_record = 14
 
     def __init__(self, params):
         """
@@ -427,51 +427,51 @@ class Membership(object):
         # Many of the following attributes support the get_...
         # methods; Rather than initializing them here, they are being
         # initialized by the clients of the respective methods.
-        self.params = params
-        self.params.self_check()
-        self.malformed = []
-        self.errors = []
-        self.content = None
+#       self.params = params
+#       self.params.self_check()
+#       self.malformed = []
+#       self.errors = []
+#       self.content = None
         
 #       self.extras_by_member = []
 #       self.extras_by_category = {}
 #       for key in self.fees_keys:
 #           self.extras_by_category[key] = []
 
-        self.still_owing = []
-        self.advance_payments = []
-        self.usps_only = []
-        self.json_emails = []
-        self.dir4letters = ''
+#       self.still_owing = []
+#       self.advance_payments = []
+#       self.usps_only = []
+        self.json_data = []
+#       self.dir4letters = ''
 
-        self.invalid_lines = []
-        self.n_members = 0
+#       self.invalid_lines = []
+#       self.n_members = 0
 
     # Planning to create 'get' methods that will expect to be given a
     # single record as parameter and will collect data into an
-    # attribute named accordingly. The calling routine can then read
-    # the attribute.
+    # attribute set up by the client and named accordingly.
+    # The calling routine can then read the attribute.
     
-    def make_dict(self, record):
-        """
-        Expect that using csf.DictReader will make this method
-        redundant.
-        """
-        return {
-            "first": record[self.i_first],
-            "last": record[self.i_last],
-            "phone": record[self.i_phone],
-            "address": record[self.i_address],
-            "town": record[self.i_town],
-            "state": record[self.i_state],
-            "zip": record[self.i_zip_code],
-            "email": record[self.i_email],
-            "email_only": record[self.i_email_only],
-            "dues": record[self.i_dues],
-            "mooring": record[self.i_mooring],
-            "dock": record[self.i_dock],
-            "kayak": record[self.i_kayak],
-            }
+#   def make_dict(self, record):
+#       """
+#       Expect that using csf.DictReader will make this method
+#       redundant.
+#       """
+#       return {
+#           "first": record[self.i_first],
+#           "last": record[self.i_last],
+#           "phone": record[self.i_phone],
+#           "address": record[self.i_address],
+#           "town": record[self.i_town],
+#           "state": record[self.i_state],
+#           "zip": record[self.i_zip_code],
+#           "email": record[self.i_email],
+#           "email_only": record[self.i_email_only],
+#           "dues": record[self.i_dues],
+#           "mooring": record[self.i_mooring],
+#           "dock": record[self.i_dock],
+#           "kayak": record[self.i_kayak],
+#           }
 
     def traverse_records(self, infile, custom_funcs):
         """
@@ -483,6 +483,7 @@ class Membership(object):
         are generally methods with names beginning in 'get_'.
         # Could wrap this up in a try clause and report an error
         # number to prevent errors from aborting the program.
+        Also used for mailings.
         """
         if callable(custom_funcs):
             custom_funcs = [custom_funcs]
@@ -492,9 +493,23 @@ class Membership(object):
             for record in dict_reader:
 #               print("'record' is: {}".format(record))
                 for custom_func in custom_funcs:
-                    custom_func(record)
+#                   print("Using 'custom_func': {}"
+#                       .format(custom_func))
+                    custom_func(self, record)
 
-    def get_name_tuple(self, record):
+#   def populate_mailing(self):
+#       if source.which["e_and_or_p"] in ("both", "usps"):
+#           pass
+#           source.check_dir4letters(source.dir4letters)
+#       if source.which in ("both", "email"):
+#           pass
+#           source.json_file_name = args["-j"]
+#           source.check_json_file(source.json_file_name)
+#           source.json_data = []
+#       pass
+
+
+    def ret_name_tuple(self, record, also_append=False):
         """
         Returns a tuple: (<last>, <first>)
         at the same time appending it to self.name_tuples
@@ -503,16 +518,17 @@ class Membership(object):
         empty list.
         """
         tup = (record["last"], record["first"])
-        try:
-            self.name_tuples.append(tup)
-        except AttributeError:
-            pass
+        if also_append:
+            try:
+                self.name_tuples.append(tup)
+            except AttributeError:
+                pass
         return tup
 
-    def get_first_last(self, record):
-        return "{first} {last}".format(**record)
+#   def ret_first_last(self, record):
+#       return "{first} {last}".format(**record)
 
-    def get_last_first(self, record):
+    def ret_last_first(self, record):
         return "{last}, {first}".format(**record)
 
     def get_malformed(self, record):
@@ -523,8 +539,7 @@ class Membership(object):
         an integer.
         Client must set up self.name_tuple to be ("", "").
         """
-        name_tuple = ("{}".format(record['last']),
-                    "{}".format(record['first']))
+        name_tuple = self.ret_name_tuple
         if len(record) != self.n_fields_per_record:
             self.malformed.append("{}, {}: Wrong length."
                 .format(record['last'], record['first']))
@@ -548,13 +563,26 @@ class Membership(object):
         for status in NON_MEMBER_STATI:
             if status in record["status"]:
                 return False
-        if record["last"] == 'Cook':
-            print("Shouldn't be returning True")
-        return True
+        print("Problem in 'is_member' with {}."
+            .format(self.ret_last_first(record)))
+        assert False
+
+    def get_applicants_by_status(self, record):
+        """
+        Populates self.applicants_dict (which must be set up by
+        client) with lists of member namess (last, first) keyed
+        by status.
+        """
+        status = record["status"]
+        if status:
+            _ = self.applicants_dict.setdefault(status, [])
+            self.applicants_dict[status].append(
+                            self.ret_last_first(record))
 
     def get_memlist4web(self, record):
         """
         Populate self.members, self.applicants & self.inductees.
+        All these attributes must be set up by the client.
         """
         line = (
     "{first} {last} {phone} {address}, {town}, {state} {zip} {email}"
@@ -577,30 +605,13 @@ class Membership(object):
         else:
             self.errors.append(line)
 
-    def get_applicant_by_status(self, record):
-        """
-        Populates self.applicants_dict (which must be set up by
-        client) with lists of member namess (last, first) keyed
-        by status.
-        """
-        status = record["status"]
-        if status:
-            _ = self.applicants_dict.setdefault(status, [])
-            self.applicants_dict[status].append(
-                            self.get_last_first(record))
-
-    def get_mailing(self, record):
-        """
-        """
-        pass
-
     def prn_split(self, field, params):
         """
-        <field> is a string and if its length is within the limit set
-        by params.n_chars_per_field, it is returned in a singleton array.
-        If len(field) is greater than the limit, more than the one string
-        is returned, each within that limit.
-        Returns None and prints an error message if any word in field is
+        Helper function used for label printing.
+        Fields which are too long are spread over >1 line.
+        Takes <field> (a string) and returns an array of strings,
+        each not longer than params.n_chars_per_field.
+        Returns None and prints an error message if any word is
         longer than the specified limit.
         Returned strings are always params.n_chars_per_field long:
         left based if the beginning of a field,
@@ -642,7 +653,8 @@ class Membership(object):
             return [params.left_formatter.format(field), ]
 
     def get_fields(self, csv_record):
-        """
+        """Makes text of fields fit labels.
+
         Translates what the data base provides (the
         csv_record) into what we want displayed/printed.
         Takes a record returned by csv.reader.
@@ -717,12 +729,12 @@ class Membership(object):
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
-    def compare_w_google(self, source_file, google_file, separator):
+    def compare_gmail(self, source_file, google_file, separator):
         """
         Checks for incompatibilities between the two files.
         """
         # Determine if we'll be sending emails:
-        json_file = args["-j"]
+        args["-j"] = args["-j"]
         # In case we are: here's the template:
         email_template = """From: rodandboatclub@gmail.com
 To: {}
@@ -862,7 +874,7 @@ Membership"""
                             name[1],
                             "'{}'".format(g_email),
                             "'{}'".format(email)))
-                if json_file:  # append email to send
+                if args["-j"]:  # append email to send
                     recipients = (g_email, email)
                     content = email_template.format(
                         ', '.join(recipients),
@@ -871,7 +883,7 @@ Membership"""
                         email)
                     emails2send.append((recipients, content))
 
-        if json_file:
+        if args["-j"]:
             with open(args["-j"], 'w') as f_obj:
                 json.dump(emails2send, f_obj)
 
@@ -893,123 +905,92 @@ Membership"""
                 ret.append("No entries for '{}'".format(report_name))
         return separator.join(ret)
 
-    def cust_fees_json(self, record, context = None):
-        """
-        """
-        pass
 
-    def cust_fees_csv(self, record, context = None):
-        """
-        """
-        pass
+##### Next group of methods deal with sending out mailings. #######
 
-    def std_mailing(self, record):
-        """
-        Prepares mailing (both USPS & email) to any member for whom
-        the self.selector_lambda boolean_function with the member's
-        record as parameter returns True.
-        """
-        if self.selector_lambda(record):
-            # assign record["content"] prn (possibly indenting them)
-            record["subject"] = self.content["subject"]
-            record["date"] = self.content["date"]
-            if ((self.which == "both" or self.which == "email")
-                    and record['email']):
-                entry = (self.content["email_header"]
-                    + self.content["body"]).format(**record)
-                self.json_data.append([[record['email']],entry])
-            if (self.which == "both" or self.which == 'usps'):
-                entry = (self.content["postal_header"]
-                    + self.content["body"]).format(**record)
-                path2write = os.path.join(self.dir4letters,
-                    "_".join((record["last"], record["first"])))
-                with open(path2write, 'w') as file_obj:
-                    file_obj.write(indent(entry))
+    def set_subject_and_date(self, record):
+        record["subject"] = self.which["subject"]
+        record["date"] = get_datestamp()
+    
+    def append_email(self, record):
+        entry = (self.which["email_header"]
+            + self.which["body"]).format(**record)
+        self.json_data.append([[record['email']],entry])
 
-    def request_inductee_payment(self, record, content=None):
-        """
-        A welcoming message with a request for payment of dues is
-        prepared if the record's status field is 'i' for 'inducted'.
-        """
-        if "i" in record['status']:
-            # assign record["content"] prn (possibly indenting them)
-            record["subject"] = self.content["subject"]
-            record["date"] = self.content["date"]
-            if record['email']:  # create email and add to json:
-                entry = (self.content["email_header"]
-                    + self.content["body"]).format(**record)
-                self.json_data.append([[record['email']],entry])
-            # create letter:
-            # possibly doubly indenting the "content" if present
-            entry = (self.content["postal_header"]
-                + self.content["body"]).format(**record)
-            path2write = os.path.join(self.dir4letters,
-                "_".join((record["last"], record["first"])))
-            with open(path2write, 'w') as file_obj:
-                file_obj.write(indent(entry))
-
-    def cust_func_welcome(self, record, content=None):
-        """
-        REDACTED- use request_inductee_payment instead: it requires a
-        csv of only the inductees.
-
-        This custom function selects new members as defined by having
-        200 in the "dues" field and sends them a welcome letter with a
-        request for dues.
-        """
-        if record['dues'] == '200':
-            # assign record["content"] prn (possibly indenting them)
-            record["subject"] = self.content["subject"]
-            record["date"] = self.content["date"]
-            if record['email']:  # create email and add to json:
-                entry = (self.content["email_header"]
-                    + self.content["body"]).format(**record)
-                self.json_data.append([[record['email']],entry])
-            # create letter:
-            # possibly doubly indenting the "content" if present
-            entry = (self.content["postal_header"]
-                + self.content["body"]).format(**record)
-            path2write = os.path.join(self.dir4letters,
-                "_".join((record["last"], record["first"])))
-            with open(path2write, 'w') as file_obj:
-                file_obj.write(indent(entry))
-
-    def bad_email_func(self, record, content=None):
-        """
-        This custom function is used when a member's email proves to
-        be invalid. Assumes -i infile is a membership csv file with
-        only the members having a problem email address.
-        """
-        # assign record["content"] prn (possibly indenting them)
-        record["subject"] = self.content["subject"]
-        record["date"] = self.content["date"]
-        if record['email']:  # create email and add to json:
-            entry = (self.content["email_header"]
-                + self.content["body"]).format(**record)
-            self.json_data.append([[record['email']],entry])
-        # create letter:
-        # possibly doubly indenting the "content" if present
-        entry = (self.content["postal_header"]
-            + self.content["body"]).format(**record)
-#       print("\n", entry, "\n")
+    def file_letter(self, record):
+        entry = (self.postal_header
+            + self.which["body"]).format(**record)
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"])))
         with open(path2write, 'w') as file_obj:
             file_obj.write(indent(entry))
 
-
-    def csv_file_obj_filter(self, source_file_obj,
-                            cust_func, info=None):
+    def q_mailing(self, record):
         """
-        Traverses <source_file_obj> (which is assumed to be a csv
-        file conforming to what the <Membership> class expects; i.e.
-        what's in 'memlist.csv') applying <cust_func> (which may or
-        may not need <info>) to each record.
-        Results are made available to the calling routine as
-        attributes of <self>.
+        Checks on desired type of mailing and
+        deals with mailing as appropriate.
         """
-        pass
+        if self.which["e_and_or_p"] == "both":
+            self.append_email(record)
+            self.file_letter(record)
+        elif self.which["e_and_or_p"] == 'one_only':
+            if record['email']:
+                self.append_email(record)
+            else:
+                self.file_letter(record)
+        elif self.which["e_and_or_p"] == 'usps':
+                self.file_letter(record)
+        else:
+            assert False
 
+    def std_mailing(self, record):
+        """
+        For mailings which require no special processing.
+        Mailing is sent if the 'test" lambda => True.
+        Otherwise the record is ignored.
+        """
+        if self.which["test"](record):
+            self.set_subject_and_date(record)
+            self.q_mailing(record)
+
+    def request_inductee_payment(self, record):
+        """
+        A welcoming message with a request for payment of dues is
+        prepared if the record's status field is 'i' for 'inducted'.
+        Requires processing regarding what fee to charge.
+        """
+        if self.which["test"](record):
+            if month in (1, 2, 3, 4):
+                record["current_dues"] = 50
+            else:
+                record["current_dues"] = 100
+            self.set_subject_and_date(record)
+            self.q_mailing(record)
+
+    def prepare_mailing(self, mem_csv_file):
+        """
+        Only client of this method is the prepare_mailing_cmd.
+        It assigns a number of instance attributes:
+            self.which: one of the content.content_types which
+                in turn provides values for the following keys:
+                    subject
+                    email_header
+                    body of letter
+                    func to be used on each record
+                    test a boolean lambda- consider record or not
+                    e_and_or_p: both, usps or one_only
+            self.date (passed on to record.date)
+            self.json_file_name
+            self.json_data = []
+            self.dir4letters
+        """
+        print("Begin prepare_mailing method. (traverse_records)")
+        self.traverse_records(mem_csv_file, self.which["func"])
+        print("Still within method: writing to json file...")
+        with open(self.json_file_name, 'w') as file_obj:
+            file_obj.write(json.dumps(self.json_data))
+
+############  End of the mailing section  ###############
 
     def get_extra_charges(self, record):
         """
@@ -1073,10 +1054,9 @@ Membership"""
                 extras[name_tuple].append(to_add)
         return extras
 
-    def create_extra_fees_json(self, extra_fees_txt_file):
-        # this functionality is provided by extra_fees.py
-        pass
-
+#   def create_extra_fees_json(self, extra_fees_txt_file):
+#       # this functionality is provided by extra_fees.py
+#       pass
 
     def restore_fees(self, membership_csv_file,
                         dues, fees_json_file,
@@ -1107,7 +1087,7 @@ Membership"""
         self.name_tuples = []
         self.still_owing = []
         err_code = self.traverse_records(membership_csv_file,
-                    [self.get_name_tuple, self.get_payables])  # vvv
+                    [self.ret_name_tuple, self.get_payables])  # vvv
         # Populates self.name_tuples so we can later check that
         # everyone in the extra_fees data base is in fact a member
         # and populates self.still_owing so we can check if OK to
@@ -1197,6 +1177,47 @@ Membership"""
         print("Done with application of dues and fees...")
         print("...updated membership file is '{}'."
             .format(new_file))
+
+        
+    def get_owing(self, record):
+        """
+        First zeros out and then populates self.extra.
+        Then places into mailing json &/or mailing directory.
+        Client has option of setting record.owing_only => True
+        in which case zero or negative balances are ignored;
+        othewise, these are acknowledged (so every one gets a
+        message.)
+        """
+        total = 0
+        extra = []
+        for key in self.money_keys[:4]:
+            money = None
+            try:
+                money = int(record[key])
+            except IndexError:
+                continue
+            if money:
+                extra.append("{}.: ${}"
+                    .format(money_headers[key], money))
+                total += money
+        try:
+            owing_only = record.owing_only
+        except AttributeError:
+            owing_only = False
+        if total <= 0 and owing_only:
+            return
+        if extra:
+            extra = ["\n"].extend(extra)
+            extra.append("{}.: ${}"
+                .format(self.money_keys[-1], total))
+            if total < 0:
+                extra.extend(
+                ["Thank you for your advance payment.",
+                 "Your balance is a credit so there is nothing due."])
+            elif total == 0:
+                extra.append("You are all paid up! Thank you.")
+            record.extra = '\n'.join(extra)
+        self.q_mailing()
 
     def get_labels2print(self, source_file):
         """
@@ -1331,39 +1352,6 @@ Membership"""
                 print(
             "Without permission, must abort.")
                 sys.exit(1)
-
-    def prepare_mailing(self, mem_csv_file, content=None):
-        """
-        Client must assign the following instance attributes:
-            self.custom_func      }  These both are derived
-            self.selector_lambda  }  from the content module.
-            self.content (with 'date' added)
-            self.json_file_name
-            self.json_data = []
-            self.dir4letters
-        Responsibilities of the caller are as follows:
-            Set the following instance attributes:
-                content (with date added) (from Formats)
-                dir4letters, and set up the directory,
-                json_file_name (and set up the file),
-                json_data (set to []), 
-            Be sure custom_func is also an attribute and set to the
-            appropriate function.
-        Iterates through all members in the mem_csv_file applying
-        <custom_func> to each.  <custom_func> appends emails to 
-        <json_data> and creates entries in the <dir4letters>.
-        <content> provides boiler plate info. See Formats/content.py
-        module for further info.
-        Should be able to replace all the various billing routines as
-        well as provide a general mechanism of sending out notices.
-        <custom_func> could also assign instance variables if required
-        by calling routine. (i.e. self.errors)
-        """
-        print("Begin prepare_mailing method. (traverse_records)")
-        self.traverse_records(mem_csv_file, self.cust_func)
-        print("Still within method: writing to json file...")
-        with open(self.json_file_name, 'w') as file_obj:
-            file_obj.write(json.dumps(self.json_data))
     
     def billing(self, content, source_file,
                     json_file, dir4letters,
@@ -1693,11 +1681,11 @@ Membership"""
                     if amount > 0:
                         assert amount > 0
                         line_positive.append("{} {}".format(
-                            self.headers[key], amount))
+                            self.money_headers[key], amount))
                     elif amount < 0:
                         assert amount < 0
                         line_negative.append("{} {}".format(
-                            self.headers[key], amount))
+                            self.money_headers[key], amount))
                     else:
                         assert False
         if line_positive:
@@ -1764,7 +1752,7 @@ Membership"""
                 file_object.write(entry)
         letter_sent = False
         record["subject"] = content["subject"]
-        record["date"] = content["date"]
+        record["date"] = get_datestamp()
         if record['email']:
             entry = (content["email_header"]
                     + content["body"]).format(**record)
@@ -1780,7 +1768,7 @@ Membership"""
         Sends USPS letters to all.
         """
         record["subject"] = content["subject"]
-        record["date"] = content["date"]
+        record["date"] = get_datestamp()
         entry = (content["postal_header"]
                 + content["body"]).format(**record)
         entry = indent(entry)
@@ -1842,6 +1830,7 @@ def ck_fields_cmd():
     """
     source = Membership(Dummy)
     source.name_tuple = ('', '')
+    source.malformed = []
     infile = args["-i"]
     if not infile:
         Membership.MEMBER_DB
@@ -1912,7 +1901,7 @@ def compare_gmail_cmd():
         if not args["-i"]:
             args["-i"] = Membership.MEMBER_DB
         google_file = args['<gmail_contacts>']
-        return source.compare_w_google(args['-i'],
+        return source.compare_gmail(args['-i'],
                                 google_file, args['-s'])
     else:
         print(
@@ -1928,7 +1917,7 @@ def applicants_cmd():
     print("... (and members with bad emails) ...")
     source.applicants_dict = {}
     err_code = source.traverse_records(infile,
-                                    source.get_applicant_by_status)
+                                    source.get_applicants_by_status)
     res = ["No applicants found."]
     for key in source.applicants_dict.keys():
         if key:
@@ -1948,6 +1937,7 @@ def applicants_cmd():
 
 def extra_charges(infile, json_file=None):
     """
+    A helper function:
     Used by extra_charges_cmd when infile is a txt file.
     Returns a string: a table of charges.
     Also writes data to a json file if a file name is specified.
@@ -2080,7 +2070,7 @@ def extra_charges_cmd():
             if source.extras_by_category[key]:
                 res_by_category.append("")
                 res_by_category.append("Members paying for {}:"
-                    .format(source.headers[key]))
+                    .format(source.money_headers[key]))
                 for val in source.extras_by_category[key]:
                     res_by_category.append(val)
         res_by_category = '\n'.join(res_by_category)
@@ -2150,41 +2140,45 @@ def billing_cmd():
 
 def prepare_mailing_cmd():
     """
+    Usage:
+  ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+
+    "--which <letter>" must be set to one of the keys found in 
+    content.content_types.
+    Depending on the above, this command will also need to assign
+    attributes to the Membership instance to collect "extra_data".
+
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
     Accompanying module 'content' provides support.
     """
-#   import Formats.content
     import content
-#   content = Formats.content.content_types[args["--which"]]
-    substance = content.content_types[args["--which"]]
-#   content["postal_header"] = 
-#       Formats.content.postal_headers[args["--lpr"]]
-    substance["postal_header"] = content.postal_headers[args["--lpr"]]
     source = Membership(Dummy)
+    source.which = content.content_types[args["--which"]]
+    source.postal_header = content.postal_headers[args["--lpr"]]
+    source.date = get_datestamp()
+#   print("Preparing mailing: '{}'".format(source.which))
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
     if not args["-j"]:
         args["-j"] = source.JSON_FILE_NAME4EMAILS
+    source.json_file_name = args["-j"]
     if not args["--dir"]:
         args["--dir"] = source.MAILING_DIR
     source.dir4letters = args["--dir"]
-    print("Preparing mailing: '{}'".format(args["--which"]))
-    source.subject = substance["subject"]
-    source.content = substance
-    source.content['date'] = get_datestamp()
     # *****...
-    source.cust_func = substance["func"]
-    source.selector_lambda = substance["test"]
-    source.which = substance["which"]
-    if source.which in ("both", "usps"):
+    if source.which["e_and_or_p"] in ("both", "usps", "one_only"):
         source.check_dir4letters(source.dir4letters)
-    if source.which in ("both", "email"):
+    if source.which in ("both", "email", "one_only"):
         source.json_file_name = args["-j"]
         source.check_json_file(source.json_file_name)
         source.json_data = []
     # *****...
     source.prepare_mailing(args["-i"])
+    # need to move the json_data to the file
+    if source.json_data:
+        with open(source.json_file_name, 'w') as f_obj:
+            json.dump(source.json_data, f_obj)
 
 def send_emails_cmd():
     """

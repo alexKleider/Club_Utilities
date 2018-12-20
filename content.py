@@ -28,10 +28,41 @@ the content dict.  i.e. {extra1}
 Sincerely,
 Alex Kleider (Membership)
 """,
+    happyNY_and_0th_fees_request = """
+
+A very Happy New Year to all members of the Bolinas Rod & Boat
+Club!
+
+One of our resolutions is to do a better job of maintaining
+the 'Membership' section of the Club web site:
+(rodandboatclub.com, password is 'fish',) click on 'Membership'
+and check that all your data is as you would like it to be.
+If you see anything not to your liking, let us know of any
+changes you'd like to see made.  You can reply either by email
+(if you are receiving this as an email) or by post (94924-0248).
+By the way, if you are getting this by post but have an email
+address, we'd very much like to switch you over to 'email_only'
+status.
+
+At this time you might be doing some financial planning for the
+year; don't forget to include provisions for payment of Club dues
+(and possible fees as well.)  The following is included to help
+you in this regard.  It's always acceptable to pay early and get it
+behind you.{extra}
+
+Sincerely,
+Alex Kleider (Membership)
+
+PS If/when you do pay, please send your remittance to
+    The Bolinas Rod & Boat Club
+    PO Box 248
+    Bolinas, CA 94924
+It's always a good idea to jot down 'club dues' on the check
+in order to prevent any confusion.""",
     yearly_fees_1st_request = """
 
 With July comes the beginning of the new membership year
-and ideally we'd like to have all dues and fees in by now.
+and ideally we'd like to have all dues and fees in by then.
 If you are already paid up, the Club thanks you.
 
 While we've got your attention: please go to the Club web site
@@ -110,7 +141,7 @@ receiving this by email as well as 'snail mail.' """,
 An email sent to you at the following email address:
     "{email}"
 was rejected.  Can you please help us sort this out by
-emailing rodandboatclub@gmail.com?
+contacting us at rodandboatclub@gmail.com?
 
 Thanks,
 
@@ -133,7 +164,7 @@ application for Club membership at their last meeting.
 "Welcome aboard!"
 
 All that remains for your membership to take effect is payment
-of dues.  Please send a check for $100 to the Club at
+of dues.  Please send a check for ${current_dues} to the Club at
     PO Box 248
     Bolinas, CA 94924
 
@@ -152,15 +183,15 @@ our Club Secretary Peter Pyle.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
-guarded secret.)  By clicking on the "Membership" heading, you can
-find all your fellow members along with contact information.  If you
-see any inaccuracies there, please let me know [1] so corrections can
-be made.
+guarded secret.)  By clicking on the "Membership" tab, you can find
+all your fellow members along with contact information.  If you see
+any inaccuracies there, please let me know [1] so corrections can be
+made.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
-having this access to spend time on the balconey enjoying views of the
-lagoon and Bolinas Ridge.  Please be sure to lock up upon leaving.
+having this access to spend time on the balconey enjoying views of
+the lagoon and Bolinas Ridge.  Please be sure to lock up upon leaving.
 
 The Club is available for members to rent for private functions (if
 certain conditions are met.)  More information can be found on the web
@@ -174,8 +205,7 @@ Sincerely,
 Alex Kleider (Membership)
 
 
-[1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924
-""",
+[1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924""",
     )
 
 postal_headers = {    # Printers vary in spacing!
@@ -216,75 +246,99 @@ Subject: {subject}
 Dear {first} {last},
 
 """
-
+# Need to assign one of the following content_types to the 
+# Membership instance attribute 'content_type'.
 
 content_types = dict(
+    # Each item in this dict specifies:
+        # subject: re line in letters, subject line in emails
+        # the email_header: the same for all emails
+        # postal_header: to be assigned depending on which
+        #     printer is to be used.
+        # body: text of the letter which may or may not have
+        #     one or more 'extra' sections.
+        # func: the Membership method used on each record.
+        # test: a lambda function that determines if the record
+        #     is to be considered at all.
+        # e_and_or_p: send 'both' email and usps, 'usps' (mail only)
+        #     or 'one_only' (email if available, othewise usps)
+    # One of the following becomes the 'which' attribute
+    # of a Membership instance.
+    happyNY_and_0th_fees_request = {
+        "subject": "Happy New Year from the Bolinas R&B Club",
+        "email_header": email_header,
+#       "postal_header": None,  # Depends on printer to be used.
+        "body": letters["happyNY_and_0th_fees_request"],
+        "func": utils.Membership.get_owing,
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
     yearly_fees_1st_request = {
         "subject": "Bolinas R&B Club fees coming due",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,  # Depends on printer to be used.
         "body": letters["yearly_fees_1st_request"],
-        "func": utils.Membership.std_mailing,
+        "func": utils.Membership.get_owing,
         "test": lambda record: True,
-        "which": "one_only",
+        "e_and_or_p": "one_only",
         },
     yearly_fees_2nd_request = {
         "subject":"Second request for BR&BC dues",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["yearly_fees_2nd_request"],
-        "func": utils.Membership.std_mailing,
+        "func": utils.Membership.get_owing,
         "test": lambda record: True,
-        "which": "both",
+        "e_and_or_p": "both",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["penalty_notice"],
-        "func": utils.Membership.std_mailing,
+        "func": utils.Membership.get_owing,
         "test": lambda record: True,
-        "which": "both",
+        "e_and_or_p": "both",
         },
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["new_applicant_welcome"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'a1' in record["status"] else False),
-        "which": "both",
+        "e_and_or_p": "both",
         },
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["request_inductee_payment"],
-        "func": utils.Membership.std_mailing,
+        "func": utils.Membership.request_inductee_payment,
         "test": (
         lambda record: True if 'i' in record["status"] else False),
-        "which": "both",
+        "e_and_or_p": "both",
         },
     welcome2full_membership = {
         "subject": "You are a member!",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["welcome2full_membership"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'm' in record["status"] else False),
-        "which": "both",
+        "e_and_or_p": "both",
         },
     bad_email = {
         "subject": "non-working email",
         "email_header": email_header,
-        "postal_header": None,
+#       "postal_header": None,
         "body": letters["bad_email"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'be' in record["status"] else False),
-        "which": "usps",
+        "e_and_or_p": "usps",
         }, 
     )
 
