@@ -11,7 +11,7 @@ utils.Membership class.
 import sys
 import utils
 
-letters = dict(
+letter_bodies = dict(
     proto_content = """
 Blah, Blah-
 more Blah blah
@@ -35,18 +35,18 @@ Club!
 
 One of our resolutions is to do a better job of maintaining
 the 'Membership' section of the Club web site:
-(rodandboatclub.com, password is 'fish',) click on 'Membership'
-and check that all your data is as you would like it to be.
-If you see anything not to your liking, let us know of any
-changes you'd like to see made.  You can reply either by email
-(if you are receiving this as an email) or by post (94924-0248).
+(rodandboatclub.com, password is 'fish'.) 
+Please check it out: click on 'Membership' and see if all
+your data is as you would like it to be. Let us know of any
+changes that should be made.
+
 By the way, if you are getting this by post but have an email
-address, we'd very much like to switch you over to 'email_only'
-status.
+address that you might be willing to share, we'd very much like
+to switch you over to 'email_only' status.
 
 At this time you might be doing some financial planning for the
 year; don't forget to include provisions for payment of Club dues
-(and possible fees as well.)  The following is included to help
+(and possibly fees as well.)  The following is included to help
 you in this regard.  It's always acceptable to pay early and get it
 behind you.{extra}
 
@@ -206,6 +206,35 @@ Alex Kleider (Membership)
 
 
 [1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924""",
+    personal = """
+Enclosed please find the payment.
+
+It was a good dinner and an enjoyable evening.
+
+Sincerely,
+Alex Kleider
+""",
+    )
+
+author = dict(
+    ak = dict(
+        email_signature = "Sincerely,\nAlex Kleider",
+        email = "akleider@sonic.net",
+        mail_signature = "Sincerely,\n\n\nAlex Kleider",
+        address = ("A. Kleider",
+                   "PO Box 277",
+                   "Bolinas, CA 94924",
+                   ),
+        ),
+    club = dict(
+        email_signature = "Sincerely,\nAlex Kleider (Membership)",
+        email = "rodandboatclub@gmail.com",
+        mail_signature = "Sincerely,\n\n\nAlex Kleider (Membership)",
+        address = ("Bolinas Rod and Boat Club",
+                   "PO Box 248",
+                   "Bolinas, CA 94924",
+                   ),
+        ),
     )
 
 postal_headers = {    # Printers vary in spacing!
@@ -237,6 +266,29 @@ Dear {first} {last},
     # "Janice" == Janice's printer.
     "Janice": """
 """,
+    "personal": """
+
+Alex Kleider
+PO Box 277
+Bolinas, CA 94924
+
+
+
+{date}
+
+
+
+{first} {last}
+{address}
+{town}, {state} {zip}
+
+
+
+
+Re: {subject}
+
+Dear {first} {last},
+""",
     }  # ... end of postal_headers
 
 email_header = """From: rodandboatclub@gmail.com
@@ -251,10 +303,11 @@ Dear {first} {last},
 
 content_types = dict(
     # Each item in this dict specifies:
-        # subject: re line in letters, subject line in emails
+        # subject: re line in letter_bodies, subject line in emails
         # the email_header: the same for all emails
         # postal_header: to be assigned depending on which
         #     printer is to be used.
+        #     (Or if sender is not the Club.)
         # body: text of the letter which may or may not have
         #     one or more 'extra' sections.
         # func: the Membership method used on each record.
@@ -267,8 +320,8 @@ content_types = dict(
     happyNY_and_0th_fees_request = {
         "subject": "Happy New Year from the Bolinas R&B Club",
         "email_header": email_header,
-#       "postal_header": None,  # Depends on printer to be used.
-        "body": letters["happyNY_and_0th_fees_request"],
+        "postal_header": None,  # Depends on printer to be used.
+        "body": letter_bodies["happyNY_and_0th_fees_request"],
         "func": utils.Membership.get_owing,
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -276,8 +329,8 @@ content_types = dict(
     yearly_fees_1st_request = {
         "subject": "Bolinas R&B Club fees coming due",
         "email_header": email_header,
-#       "postal_header": None,  # Depends on printer to be used.
-        "body": letters["yearly_fees_1st_request"],
+        "postal_header": None,  # Depends on printer to be used.
+        "body": letter_bodies["yearly_fees_1st_request"],
         "func": utils.Membership.get_owing,
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -285,8 +338,8 @@ content_types = dict(
     yearly_fees_2nd_request = {
         "subject":"Second request for BR&BC dues",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["yearly_fees_2nd_request"],
+        "postal_header": None,
+        "body": letter_bodies["yearly_fees_2nd_request"],
         "func": utils.Membership.get_owing,
         "test": lambda record: True,
         "e_and_or_p": "both",
@@ -294,8 +347,8 @@ content_types = dict(
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["penalty_notice"],
+        "postal_header": None,
+        "body": letter_bodies["penalty_notice"],
         "func": utils.Membership.get_owing,
         "test": lambda record: True,
         "e_and_or_p": "both",
@@ -303,8 +356,8 @@ content_types = dict(
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["new_applicant_welcome"],
+        "postal_header": None,
+        "body": letter_bodies["new_applicant_welcome"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'a1' in record["status"] else False),
@@ -313,8 +366,8 @@ content_types = dict(
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["request_inductee_payment"],
+        "postal_header": None,
+        "body": letter_bodies["request_inductee_payment"],
         "func": utils.Membership.request_inductee_payment,
         "test": (
         lambda record: True if 'i' in record["status"] else False),
@@ -323,8 +376,8 @@ content_types = dict(
     welcome2full_membership = {
         "subject": "You are a member!",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["welcome2full_membership"],
+        "postal_header": None,
+        "body": letter_bodies["welcome2full_membership"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'm' in record["status"] else False),
@@ -333,11 +386,21 @@ content_types = dict(
     bad_email = {
         "subject": "non-working email",
         "email_header": email_header,
-#       "postal_header": None,
-        "body": letters["bad_email"],
+        "postal_header": None,
+        "body": letter_bodies["bad_email"],
         "func": utils.Membership.std_mailing,
         "test": (
         lambda record: True if 'be' in record["status"] else False),
+        "e_and_or_p": "usps",
+        }, 
+    personal = {
+        "subject": "Old Boys Dinner Reimbursement",
+        "email_header": email_header,
+        "postal_header": None,
+        "body": letter_bodies["personal"],
+        "func": utils.Membership.std_mailing,
+        "test": (
+        lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
         }, 
     )

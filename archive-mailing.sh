@@ -6,7 +6,7 @@
 # ... assuming defaults are used:
 
 STAMP=`date +%y-%m-%d`
-MAILING_ARCHIVES='../Achives/Mailings'
+MAILING_ARCHIVES='../Archives/Mailings'
 TARFILE=${STAMP}.tar.gz
 MAILING_DIR='MailingDir'
 EMAILS_JSON='emails.json'

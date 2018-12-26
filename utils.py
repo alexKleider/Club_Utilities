@@ -59,8 +59,10 @@ Options:
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
               A5160 for labels & E000 for envelopes.
-  --lpr <printer>  Specifies printer to be used. Must be a key of
-              Formats.content.postal_headers dict. [default: 6505]
+  --lpr <printer>  The postal_header must be specific to the printer
+            used. This provides a method of specifying which to use
+            if content.which.["postal_header"] isn't already
+            specified.  [default: 6505]
   -r --raw  Supress headers (to make the output suitable as
             input for creating tables.)
   -s <separator>  Some commands may have more than one component to
@@ -910,6 +912,7 @@ Membership"""
 
     def set_subject_and_date(self, record):
         record["subject"] = self.which["subject"]
+#       print("Just set record['subject'].")
         record["date"] = get_datestamp()
     
     def append_email(self, record):
@@ -930,6 +933,7 @@ Membership"""
         Checks on desired type of mailing and
         deals with mailing as appropriate.
         """
+        self.set_subject_and_date(record)
         if self.which["e_and_or_p"] == "both":
             self.append_email(record)
             self.file_letter(record)
@@ -951,6 +955,7 @@ Membership"""
         """
         if self.which["test"](record):
             self.set_subject_and_date(record)
+            print("Just ran set_subject_and_date(record)")
             self.q_mailing(record)
 
     def request_inductee_payment(self, record):
@@ -1181,43 +1186,44 @@ Membership"""
         
     def get_owing(self, record):
         """
-        First zeros out and then populates self.extra.
-        Then places into mailing json &/or mailing directory.
+        Sets up record["extra"] for dues and fees notice,
+        then calls self.q_mailing which dispaches as appropriate.
         Client has option of setting record.owing_only => True
-        in which case zero or negative balances are ignored;
-        othewise, these are acknowledged (so every one gets a
-        message.)
+        in which case those with zero or negative balances do not
+        get a letter or email; othewise, these are acknowledged
+        (so every one gets a message.)
         """
         total = 0
         extra = []
-        for key in self.money_keys[:4]:
-            money = None
+        for key in self.money_keys:
             try:
                 money = int(record[key])
-            except IndexError:
+            except ValueError:
                 continue
             if money:
                 extra.append("{}.: ${}"
-                    .format(money_headers[key], money))
+                    .format(self.money_headers[key], money))
                 total += money
         try:
             owing_only = record.owing_only
         except AttributeError:
             owing_only = False
         if total <= 0 and owing_only:
-            return
-        if extra:
-            extra = ["\n"].extend(extra)
-            extra.append("{}.: ${}"
-                .format(self.money_keys[-1], total))
-            if total < 0:
-                extra.extend(
-                ["Thank you for your advance payment.",
-                 "Your balance is a credit so there is nothing due."])
-            elif total == 0:
-                extra.append("You are all paid up! Thank you.")
-            record.extra = '\n'.join(extra)
-        self.q_mailing()
+            return  # no notice sent
+        if total <= 0:
+            extra.append("total (<=0) is {}"
+                .format(total))
+        extra = ["\n"] + extra
+        extra.append("{}.: ${}"
+            .format(self.money_headers["total"], total))
+        if total < 0:
+            extra.extend(
+            ["Thank you for your advance payment.",
+             "Your balance is a credit so there is nothing due."])
+        if total == 0:
+            extra.append("You are all paid up! Thank you.")
+        record["extra"] = '\n'.join(extra)
+        self.q_mailing(record)
 
     def get_labels2print(self, source_file):
         """
@@ -2168,8 +2174,12 @@ def prepare_mailing_cmd():
     source.dir4letters = args["--dir"]
     # *****...
     if source.which["e_and_or_p"] in ("both", "usps", "one_only"):
+        print("Checking for directory '{}'."
+            .format(args["--dir"]))
         source.check_dir4letters(source.dir4letters)
-    if source.which in ("both", "email", "one_only"):
+    if source.which["e_and_or_p"] in ("both", "email", "one_only"):
+        print("Checking for file '{}'."
+            .format(args["-j"]))
         source.json_file_name = args["-j"]
         source.check_json_file(source.json_file_name)
         source.json_data = []
