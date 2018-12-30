@@ -5,11 +5,38 @@
 """
 A module to support the utils.py prepare_mailing command.
 
-Custom methods are imported as first class objects from the
-utils.Membership class.
+Rather than importing functions, they are refered to by
+name and depend on a dict within the utils.Membership class
+with those names as keys and the methods as values.
+
+A number of 'dict's are being used:
+    letter_bodies
+    authors: ak, club,
+    content_types
+        each provides: {
+            "subject": 
+            "from": authors["club"],
+            "body": letter_bodies["happyNY_and_0th_fees_request"],
+            "post_script": '',
+            "func": "some_func", 
+            "test": lambda record: True,
+            "e_and_or_p": "one_only",
+            },
+    postal_headers - being redacted in favour of:
+    printer_specs: X6505, HL2170, ...
+
+Other items:
+    email_header
+    def prepare_letter(which_letter, printer_spec):
+    def prepare_email(which_letter):
 """
-import sys
-import utils
+
+import helpers
+
+address_format = """{first} {last}
+{address}
+{town}, {state} {postal_code}
+{country}"""
 
 letter_bodies = dict(
     proto_content = """
@@ -19,14 +46,11 @@ more Blah blah
 etc
 
 First extra content is
-{extra0}
+{extra}
 
-May have as many 'extras' as required as long as each one
-is defined by the custom function
-the content dict.  i.e. {extra1}
-
-Sincerely,
-Alex Kleider (Membership)
+May have as many 'extra's as required as long as each one
+has a corresponding entry in the record dict (typically arranged
+by the custom function.
 """,
     happyNY_and_0th_fees_request = """
 
@@ -48,17 +72,7 @@ At this time you might be doing some financial planning for the
 year; don't forget to include provisions for payment of Club dues
 (and possibly fees as well.)  The following is included to help
 you in this regard.  It's always acceptable to pay early and get it
-behind you.{extra}
-
-Sincerely,
-Alex Kleider (Membership)
-
-PS If/when you do pay, please send your remittance to
-    The Bolinas Rod & Boat Club
-    PO Box 248
-    Bolinas, CA 94924
-It's always a good idea to jot down 'club dues' on the check
-in order to prevent any confusion.""",
+behind you.{extra}""",
     yearly_fees_1st_request = """
 
 With July comes the beginning of the new membership year
@@ -81,10 +95,7 @@ check into an envelope asap payable and sent to the...
         Bolinas Rod and Boat Club
         PO Box 0248
         Bolinas, CA 94924
-{extra}
-
-Sincerely,
-Alex Kleider (Membership)""",
+{extra}""",
     yearly_fees_2nd_request = """
 August is upon us and that is when the Club imposes a penalty
 for late payment of dues.
@@ -107,15 +118,7 @@ to the...
         Bolinas, CA 94924
 
 Details are as follows:
-{extra1}
-
-Sincerely,
-Alex Kleider (Membership)
-
-[1] rodandboatclub@gmail.com or a letter to the PO Box
-
-[2] If the club has an email address on file for you, you'll be
-receiving this by email as well as 'snail mail.' """,
+{extra1}""",
     penalty_notice = """
 The deadline for Club Dues payment has passed.  Records indicate that
 you are in arrears with regard to payment of Club dues and a late fee
@@ -128,24 +131,14 @@ Please pop your check (for $125) into an envelope asap payable and
 addressed to the...
         Bolinas Rod and Boat Club
         PO Box 0248
-        Bolinas, CA 94924
-
-Sincerely,
-Alex Kleider (Membership)
-
-[1] rodandboatclub@gmail.com or a letter to the PO Box
-
-[2] If the club has an email address on file for you, you'll be
-receiving this by email as well as 'snail mail.' """, 
+        Bolinas, CA 94924""", 
     bad_email = """
 An email sent to you at the following email address:
     "{email}"
 was rejected.  Can you please help us sort this out by
 contacting us at rodandboatclub@gmail.com?
 
-Thanks,
-
-Alex Kleider (Membership)""",
+Thanks,""",
     new_applicant_welcome = """
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
@@ -153,10 +146,7 @@ applicant for membership in the Bolinas Rod and Boat Club.
 Please come and enjoy the meetings (first Fiday of each month.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received. 
-
-Sincerely,
-Alex Kleider (Membership)""",
+month period beginning the date your application was received.""",
     request_inductee_payment = """
 As you may already know, the Club Executive approved your
 application for Club membership at their last meeting.
@@ -169,11 +159,7 @@ of dues.  Please send a check for ${current_dues} to the Club at
     Bolinas, CA 94924
 
 Upon receipt of your membership dues, I'll send you more information
-about the Club and your privileges as a member there of.
-
-
-Sincerely,
-Alex Kleider (Membership)""",
+about the Club and your privileges as a member there of.""",
     welcome2full_membership = """
 It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
@@ -198,14 +184,7 @@ certain conditions are met.)  More information can be found on the web
 site: "Rules and Forms" and under that "Club Rentals".
 
 Most important of all, come to meetings and other functions to enjoy
-the comraderie!
-
-
-Sincerely,
-Alex Kleider (Membership)
-
-
-[1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924""",
+the comraderie!""",
     personal = """
 Enclosed please find the payment.
 
@@ -216,31 +195,38 @@ Alex Kleider
 """,
     )
 
-author = dict(
+authors = dict(
     ak = dict(
-        email_signature = "Sincerely,\nAlex Kleider",
+        first = "Alex",
+        last = "Kleider",
+        address = "PO Box 277",
+        town = "Bolinas",
+        state = "CA",
+        postal_code = "94924",
+        country = "USA",
+        email_signature = "\nSincerely,\nAlex Kleider",
         email = "akleider@sonic.net",
-        mail_signature = "Sincerely,\n\n\nAlex Kleider",
-        address = ("A. Kleider",
-                   "PO Box 277",
-                   "Bolinas, CA 94924",
-                   ),
+        mail_signature = "\nSincerely,\n\n\nAlex Kleider",
         ),
     club = dict(
-        email_signature = "Sincerely,\nAlex Kleider (Membership)",
+        first = "Bolinas",
+        last = "Rod & Boat Club",
+        address = "PO Box 248",
+        town = "Bolinas",
+        state = "CA",
+        postal_code = "94924",
+        country = "USA",
+        email_signature = "\nSincerely,\nAlex Kleider (Membership)",
         email = "rodandboatclub@gmail.com",
-        mail_signature = "Sincerely,\n\n\nAlex Kleider (Membership)",
-        address = ("Bolinas Rod and Boat Club",
-                   "PO Box 248",
-                   "Bolinas, CA 94924",
-                   ),
+        mail_signature = "\nSincerely,\n\n\nAlex Kleider (Membership)",
         ),
-    )
+    )  # ... end of authors.
 
+# The following is expected soon to be redacted:
 postal_headers = {    # Printers vary in spacing!
     # ... so this dict provides an easy way to set spacing to suit.
-    # "6505" == Xerox WorkForce 6505 in the Bolinas data closet.
-    "6505": """
+    # "X6505" == Xerox WorkForce 6505 in the Bolinas data closet.
+    "X6505": """
 
 Bolinas Rod and Boat Club
 PO Box 248
@@ -291,25 +277,24 @@ Dear {first} {last},
 """,
     }  # ... end of postal_headers
 
-email_header = """From: rodandboatclub@gmail.com
-To: {email}
-Subject: {subject}
+email_header = """From: {}
+To: {{email}}
+Subject: {}
 
-Dear {first} {last},
+Dear {{first}} {{last}},"""
 
-"""
 # Need to assign one of the following content_types to the 
 # Membership instance attribute 'content_type'.
 
-content_types = dict(
-    # Each item in this dict specifies:
+    # Each item in the following dict specifies:
         # subject: re line in letter_bodies, subject line in emails
-        # the email_header: the same for all emails
         # postal_header: to be assigned depending on which
         #     printer is to be used.
         #     (Or if sender is not the Club.)
         # body: text of the letter which may or may not have
         #     one or more 'extra' sections.
+        # signature: a 'yours truely' + name.
+        # post_script:  an optional ps
         # func: the Membership method used on each record.
         # test: a lambda function that determines if the record
         #     is to be considered at all.
@@ -317,94 +302,246 @@ content_types = dict(
         #     or 'one_only' (email if available, othewise usps)
     # One of the following becomes the 'which' attribute
     # of a Membership instance.
+content_types = dict(
+    for_testing = {
+        "subject": "This is a test.",
+        "from": authors["ak"],
+        "body": letter_bodies["proto_content"],
+        "post_script": '',
+        "func": "some_func",
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
     happyNY_and_0th_fees_request = {
         "subject": "Happy New Year from the Bolinas R&B Club",
-        "email_header": email_header,
-        "postal_header": None,  # Depends on printer to be used.
+        "from": authors["club"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
-        "func": utils.Membership.get_owing,
+        "post_script": """
+PS By the way, if/when you do pay, please send your remittance to
+    The Bolinas Rod & Boat Club
+    PO Box 248
+    Bolinas, CA 94924
+It's always a good idea to jot down 'club dues' on the check
+in order to prevent any confusion.""",
+        "func": "get_owing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
     yearly_fees_1st_request = {
         "subject": "Bolinas R&B Club fees coming due",
-        "email_header": email_header,
-        "postal_header": None,  # Depends on printer to be used.
+        "from": authors["club"],
         "body": letter_bodies["yearly_fees_1st_request"],
-        "func": utils.Membership.get_owing,
+        "post_script": '',
+        "func": "get_owing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
     yearly_fees_2nd_request = {
         "subject":"Second request for BR&BC dues",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["yearly_fees_2nd_request"],
-        "func": utils.Membership.get_owing,
+        "signature": '',
+        "post_script": """
+[1] rodandboatclub@gmail.com or a letter to the PO Box\n
+[2] If the club has an email address on file for you, you'll be
+receiving this by email as well as 'snail mail.'""",
+        "func": "get_owing",
         "test": lambda record: True,
         "e_and_or_p": "both",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["penalty_notice"],
-        "func": utils.Membership.get_owing,
+        "post_script": """
+[1] rodandboatclub@gmail.com or a letter to the PO Box\n
+[2] If the club has an email address on file for you, you'll be
+receiving this by email as well as 'snail mail.'""",
+        "func": "get_owing",
         "test": lambda record: True,
         "e_and_or_p": "both",
         },
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["new_applicant_welcome"],
-        "func": utils.Membership.std_mailing,
+        "post_script": '',
+        "func": "std_mailing",
         "test": (
         lambda record: True if 'a1' in record["status"] else False),
         "e_and_or_p": "both",
         },
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
-        "func": utils.Membership.request_inductee_payment,
+        "post_script": '',
+        "func": "request_inductee_payment",
         "test": (
         lambda record: True if 'i' in record["status"] else False),
         "e_and_or_p": "both",
         },
     welcome2full_membership = {
         "subject": "You are a member!",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["welcome2full_membership"],
-        "func": utils.Membership.std_mailing,
+        "post_script": """
+[1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924""",
+        "func": "std_mailing",
         "test": (
         lambda record: True if 'm' in record["status"] else False),
         "e_and_or_p": "both",
         },
     bad_email = {
         "subject": "non-working email",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["club"],
         "body": letter_bodies["bad_email"],
-        "func": utils.Membership.std_mailing,
+        "post_script": '',
+        "func": "std_mailing",
         "test": (
         lambda record: True if 'be' in record["status"] else False),
         "e_and_or_p": "usps",
         }, 
     personal = {
         "subject": "Old Boys Dinner Reimbursement",
-        "email_header": email_header,
-        "postal_header": None,
+        "from": authors["ak"],
         "body": letter_bodies["personal"],
-        "func": utils.Membership.std_mailing,
+        "post_script": '',
+        "func": "std_mailing",
         "test": (
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
         }, 
     )
+    # ... end of content_types.
+
+printer_specs = dict(
+    X6505 = dict(
+        indent = 4,
+        top = (1,),  # blank lines at top
+        frm = (5, 25),  # return window
+        date = (4,),  # between windows
+        to = (7, 29),  # recipient window
+        re = (3,),  # below window
+        ),
+    HL2170 = dict(
+        indent = 3,
+        top = (1,),  # blank lines at top
+        frm = (5, 25),  # return window
+        date = (4,),  # between windows
+        to = (7, 29),  # recipient window
+        re = (3,),  # below windows => fold
+        ),
+    other = dict(
+        indent = 4,
+        top = (1,),  # blank lines at top
+        frm = (5, 25),  # return window
+        date = (4,),  # between windows
+        to = (7, 29),  # recipient window
+        re = (3,),  # below windows => fold
+        ),
+    )
+### ... end of printer_specs.
+
+def expand(content, nlines):
+    """
+    Takes <content> which can be a list of strings/lines
+    or all one string (with line feeds separating lines,)
+    and returns the same type (either string or list) but
+    containing nlines.
+    Fails if <content> has more than nlines.
+    """
+    isstring = False
+    if isinstance(content, str):
+        isstring = True
+        content = content.split("\n")
+    if len(content) > nlines:
+        print("Error: too many lines in <content>!")
+        assert False
+    while nlines > len(content):
+        if nlines - len(content) >= 2:
+            content = [''] + content + ['']
+        else:
+            content.append('')
+    if isstring:
+        return '\n'.join(content)
+    else:
+        return content
+
+def prepare_letter(which_letter, printer_spec):
+    """
+    Prepares the template for a letter.
+    Expect its parameters to be determined by 'globals'-
+    probably set as command line arguments using docopt.
+    <which_letter> is one of the <content_types>.
+    <printer_specs> is one of the <printer_specs>
+    Returns a 'letter' with formatting fields of <record>:
+    typically {first}, {last}, {address}, {town}, {state},
+    {postal_code}, {country}, and possibly (one or more) {extra}(s).
+    """
+    lpr = printer_specs[printer_spec]
+    # top margin:
+    ret = [""] * lpr["top"][0]
+    # return address:
+    ret_addr = address_format.format(**which_letter["from"])
+    ret.append(expand(ret_addr, lpr['frm'][0]))
+    # format string for date:
+    ret.append(expand((helpers.get_datestamp()),lpr['date'][0]))
+    # format string for recipient adress:
+    ret.append(expand(address_format,lpr['to'][0]))
+    # subject/Re: line
+    ret.append(expand("Re: {}".format(which_letter["subject"]),
+        lpr['re'][0]))
+    # format string for salutation:
+    ret.append("Dear {first} {last},\n")
+    # body of letter (with or without {extra}(s))
+    ret.append(which_letter["body"])
+    # signarue:
+    ret.append(which_letter["from"]["mail_signature"])
+    # post script:
+    ps = which_letter["post_script"]
+    if ps:
+        ret.append(ps)
+    return '\n'.join(ret)
+
+def prepare_email(which_letter):
+    """
+    Prepares the template for an email.
+    """
+    ret = [email_header.format(which_letter["from"]["email"],
+                which_letter["subject"]),]
+    ret.append(which_letter["body"])
+    ret.append(which_letter["from"]["email_signature"])
+    ps = which_letter["post_script"]
+    if ps:
+        ret.append(ps)
+    return '\n'.join(ret)
 
 if __name__ == "__main__":
     print("content.py has no syntax errors")
+    which = content_types["for_testing"]
+    lpr = "X6505"
+    letter = prepare_letter(which, lpr)
+    email = prepare_email(which)
+    rec = dict(
+        first = "First",
+        last = "Last",
+        address = "nnn An Ave.",
+        town = "Any Town",
+        postal_code = "CODE",
+        state = "CA",
+        country = "USA",
+        extra = """A lot more junk:
+Certainly nothing very serious!
+Just a lot of junk.""",
+        email = "myemail@provider.com",
+        )
+    print(letter.format(**rec))
+    with open("letter2print", 'w') as fout:
+        fout.write(helpers.indent(letter.format(**rec),
+            ' ' * printer_specs[lpr]['indent']))
+    print(email)
+    with open("email2print", 'w') as fout:
+        fout.write(email.format(**rec))
+
 

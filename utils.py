@@ -62,7 +62,7 @@ Options:
   --lpr <printer>  The postal_header must be specific to the printer
             used. This provides a method of specifying which to use
             if content.which.["postal_header"] isn't already
-            specified.  [default: 6505]
+            specified.  [default: X6505]
   -r --raw  Supress headers (to make the output suitable as
             input for creating tables.)
   -s <separator>  Some commands may have more than one component to
@@ -498,6 +498,7 @@ class Membership(object):
 #                   print("Using 'custom_func': {}"
 #                       .format(custom_func))
                     custom_func(self, record)
+#                   custom_func(record)
 
 #   def populate_mailing(self):
 #       if source.which["e_and_or_p"] in ("both", "usps"):
@@ -560,7 +561,11 @@ class Membership(object):
         self.name_tuple = name_tuple
 
     def is_member(self, record):
-        if not record["status"] or "m" in record["status"]:
+        if (
+            not record["status"] or 
+            "m" in record["status"] or
+            record['status'] == 'be'
+            ):
             return True
         for status in NON_MEMBER_STATI:
             if status in record["status"]:
@@ -913,16 +918,14 @@ Membership"""
     def set_subject_and_date(self, record):
         record["subject"] = self.which["subject"]
 #       print("Just set record['subject'].")
-        record["date"] = get_datestamp()
+#       record["date"] = get_datestamp()
     
     def append_email(self, record):
-        entry = (self.which["email_header"]
-            + self.which["body"]).format(**record)
+        entry = self.email.format(**record)
         self.json_data.append([[record['email']],entry])
 
     def file_letter(self, record):
-        entry = (self.postal_header
-            + self.which["body"]).format(**record)
+        entry = self.letter.format(**record)
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"])))
         with open(path2write, 'w') as file_obj:
@@ -933,8 +936,11 @@ Membership"""
         Checks on desired type of mailing and
         deals with mailing as appropriate.
         """
-        self.set_subject_and_date(record)
-        if self.which["e_and_or_p"] == "both":
+#       self.set_subject_and_date(record)
+        record["subject"] = self.which["subject"]
+        if 'be' in record['status']:
+            self.file_letter(record)
+        elif self.which["e_and_or_p"] == "both":
             self.append_email(record)
             self.file_letter(record)
         elif self.which["e_and_or_p"] == 'one_only':
@@ -945,32 +951,9 @@ Membership"""
         elif self.which["e_and_or_p"] == 'usps':
                 self.file_letter(record)
         else:
+            print("Problem in q_mailing re {}"
+                .format(self.ret_last_first(record)))
             assert False
-
-    def std_mailing(self, record):
-        """
-        For mailings which require no special processing.
-        Mailing is sent if the 'test" lambda => True.
-        Otherwise the record is ignored.
-        """
-        if self.which["test"](record):
-            self.set_subject_and_date(record)
-            print("Just ran set_subject_and_date(record)")
-            self.q_mailing(record)
-
-    def request_inductee_payment(self, record):
-        """
-        A welcoming message with a request for payment of dues is
-        prepared if the record's status field is 'i' for 'inducted'.
-        Requires processing regarding what fee to charge.
-        """
-        if self.which["test"](record):
-            if month in (1, 2, 3, 4):
-                record["current_dues"] = 50
-            else:
-                record["current_dues"] = 100
-            self.set_subject_and_date(record)
-            self.q_mailing(record)
 
     def prepare_mailing(self, mem_csv_file):
         """
@@ -990,10 +973,96 @@ Membership"""
             self.dir4letters
         """
         print("Begin prepare_mailing method. (traverse_records)")
-        self.traverse_records(mem_csv_file, self.which["func"])
+        self.traverse_records(mem_csv_file, 
+            self.func_dict[self.which["func"]])
         print("Still within method: writing to json file...")
         with open(self.json_file_name, 'w') as file_obj:
             file_obj.write(json.dumps(self.json_data))
+
+    ## Following are special functions that need to be in the
+    ## <func_dict> : the functions that add final content to
+    ## each letter (depending on record.)
+
+    def some_func(self, record):
+        """
+        A prototype or can be used as a do nothing method
+        """
+        pass
+
+    def std_mailing(self, record):
+        """
+        For mailings which require no special processing.
+        Mailing is sent if the 'test" lambda => True.
+        Otherwise the record is ignored.
+        """
+        if self.which["test"](record):
+            record["subject"] = self.which["subject"]
+#           self.set_subject_and_date(record)
+#           print("Just ran set_subject_and_date(record)")
+            self.q_mailing(record)
+        
+    def get_owing(self, record):
+        """
+        Sets up record["extra"] for dues and fees notice,
+        then calls self.q_mailing which dispaches as appropriate.
+        Client has option of setting record.owing_only => True
+        in which case those with zero or negative balances do not
+        get a letter or email; othewise, these are acknowledged
+        (so every one gets a message.)
+        """
+        total = 0
+        extra = []
+        for key in self.money_keys:
+            try:
+                money = int(record[key])
+            except ValueError:
+                continue
+            if money:
+                extra.append("{}.: ${}"
+                    .format(self.money_headers[key], money))
+                total += money
+        try:
+            owing_only = record.owing_only
+        except AttributeError:
+            owing_only = False
+        if total <= 0 and owing_only:
+            return  # no notice sent
+        if total <= 0:
+            extra.append("total (<=0) is {}"
+                .format(total))
+        extra = ["\n"] + extra
+        extra.append("{}.: ${}"
+            .format(self.money_headers["total"], total))
+        if total < 0:
+            extra.extend(
+            ["Thank you for your advance payment.",
+             "Your balance is a credit so there is nothing due."])
+        if total == 0:
+            extra.append("You are all paid up! Thank you.")
+        record["extra"] = '\n'.join(extra)
+        self.q_mailing(record)
+
+    def request_inductee_payment(self, record):
+        """
+        A welcoming message with a request for payment of dues is
+        prepared if the record's status field is 'i' for 'inducted'.
+        Requires processing regarding what fee to charge.
+        """
+        if self.which["test"](record):
+            if month in (1, 2, 3, 4):
+                record["current_dues"] = 50
+            else:
+                record["current_dues"] = 100
+#           self.set_subject_and_date(record)
+            record["subject"] = self.which["subject"]
+            self.q_mailing(record)
+
+    func_dict = {
+        "some_func": some_func,
+        "std_mailing": std_mailing,
+        "get_owing": get_owing,
+        "request_inductee_payment": request_inductee_payment,
+        }
 
 ############  End of the mailing section  ###############
 
@@ -1183,47 +1252,6 @@ Membership"""
         print("...updated membership file is '{}'."
             .format(new_file))
 
-        
-    def get_owing(self, record):
-        """
-        Sets up record["extra"] for dues and fees notice,
-        then calls self.q_mailing which dispaches as appropriate.
-        Client has option of setting record.owing_only => True
-        in which case those with zero or negative balances do not
-        get a letter or email; othewise, these are acknowledged
-        (so every one gets a message.)
-        """
-        total = 0
-        extra = []
-        for key in self.money_keys:
-            try:
-                money = int(record[key])
-            except ValueError:
-                continue
-            if money:
-                extra.append("{}.: ${}"
-                    .format(self.money_headers[key], money))
-                total += money
-        try:
-            owing_only = record.owing_only
-        except AttributeError:
-            owing_only = False
-        if total <= 0 and owing_only:
-            return  # no notice sent
-        if total <= 0:
-            extra.append("total (<=0) is {}"
-                .format(total))
-        extra = ["\n"] + extra
-        extra.append("{}.: ${}"
-            .format(self.money_headers["total"], total))
-        if total < 0:
-            extra.extend(
-            ["Thank you for your advance payment.",
-             "Your balance is a credit so there is nothing due."])
-        if total == 0:
-            extra.append("You are all paid up! Thank you.")
-        record["extra"] = '\n'.join(extra)
-        self.q_mailing(record)
 
     def get_labels2print(self, source_file):
         """
@@ -2137,7 +2165,7 @@ def billing_cmd():
     source = Membership(Dummy)
 #   from Formats.content import content
 #   from Formats.content import custom_func
-    content
+    content = None
     # Alternatively, may first run Formats/content.py to create
     # a json file which can then be "load"ed using the json module.
     source.billing(content,
@@ -2161,8 +2189,9 @@ def prepare_mailing_cmd():
     import content
     source = Membership(Dummy)
     source.which = content.content_types[args["--which"]]
-    source.postal_header = content.postal_headers[args["--lpr"]]
-    source.date = get_datestamp()
+    source.lpr = args["--lpr"]
+    source.email = content.prepare_email(source.which)
+    source.letter = content.prepare_letter(source.which, source.lpr)
 #   print("Preparing mailing: '{}'".format(source.which))
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
