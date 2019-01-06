@@ -35,6 +35,7 @@ Usage:
   ./utils.py email_billings2json [-i <infile>] -j <json_file>
   ./utils.py usps_billings2print [-i <infile>] --dir <dir4letters>
   ./utils.py show_mailing_categories [-o <outfile>]
+  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> -a <attachment>
 
 Options:
   -h --help  Print this docstring.
@@ -68,6 +69,11 @@ Options:
   -s <separator>  Some commands may have more than one component to
           their output.  Such componentes can be seprated by either
           a line feed (LF) or a form feed (FF).  [default: FF]
+  --subject <subject>  The subject line of an email.
+  -c <content>  The name of a file containing the body of an email.
+  -a <attachment>  The name of a file to use as an attachment.
+  -F <muttrc>  The name of a muttrc file to be used.
+                        [default: muttrc_rbc]
   <gmail_contacts>  [default: google.csv]
 
 Commands:
@@ -152,12 +158,12 @@ Commands:
         '--which' parameter required by the prepare_mailings command.
 """
 
-SMTP_SERVER = "smtp.gmail.com"
+#SMTP_SERVER = "smtp.gmail.com"
 GMAIL_CONTACTS = 'google.csv'
 
 TOP_QUOTE_LINE_NUMBER = 5     #| These facilitate preparing
 BLANK_LINE_ABOVE_USAGE = 17   #| response to the
-BLANK_LINE_BELOW_USAGE = 37   #| 'utils.py ?' command.
+BLANK_LINE_BELOW_USAGE = 39   #| 'utils.py ?' command.
 
 TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
@@ -492,25 +498,17 @@ class Membership(object):
         with open(infile, 'r') as file_object:
             print("Opening {}".format(infile))
             dict_reader = csv.DictReader(file_object, restkey='status')
+            self.fieldnames = dict_reader.fieldnames
+            self.n_fields = len(self.fieldnames)
             for record in dict_reader:
 #               print("'record' is: {}".format(record))
                 for custom_func in custom_funcs:
 #                   print("Using 'custom_func': {}"
 #                       .format(custom_func))
-                    custom_func(self, record)
-#                   custom_func(record)
-
-#   def populate_mailing(self):
-#       if source.which["e_and_or_p"] in ("both", "usps"):
-#           pass
-#           source.check_dir4letters(source.dir4letters)
-#       if source.which in ("both", "email"):
-#           pass
-#           source.json_file_name = args["-j"]
-#           source.check_json_file(source.json_file_name)
-#           source.json_data = []
-#       pass
-
+                    try:
+                        custom_func(self, record)
+                    except TypeError:
+                        custom_func(record)
 
     def ret_name_tuple(self, record, also_append=False):
         """
@@ -540,10 +538,11 @@ class Membership(object):
         Checks that each record has self.n_fields_per_record
         and that the money fields are blank or evaluate to
         an integer.
-        Client must set up self.name_tuple to be ("", "").
+        Client must set self.previous_name_tuple to ("", "")
+        (... used for comparison re correct ordering.)
         """
-        name_tuple = self.ret_name_tuple
-        if len(record) != self.n_fields_per_record:
+        name_tuple = self.ret_name_tuple(record)
+        if len(record) != self.n_fields:
             self.malformed.append("{}, {}: Wrong length."
                 .format(record['last'], record['first']))
         for key in self.money_keys:
@@ -555,10 +554,10 @@ class Membership(object):
                     self.malformed.append("{}, {}, {}:{}"
                         .format(record['last'], record['first'],
                         key, value))
-        if name_tuple < self.name_tuple:
+        if name_tuple < self.previous_name_tuple:
             self.malformed.append("Record out of order: {0}, {1}"
                 .format(*name_tuple))
-        self.name_tuple = name_tuple
+        self.previous_name_tuple = name_tuple
 
     def is_member(self, record):
         if (
@@ -592,7 +591,7 @@ class Membership(object):
         All these attributes must be set up by the client.
         """
         line = (
-    "{first} {last} {phone} {address}, {town}, {state} {zip} {email}"
+    "{first} {last} {phone} {address}, {town}, {state} {postal_code} {email}"
                 .format(**record))
         if record["status"] and "be" in record["status"]:
             line = line + " (bad email!)"
@@ -607,8 +606,10 @@ class Membership(object):
             self.members.append(line)
         elif 'a' in record["status"]:
             self.applicants.append(line)
+            self.napplicants += 1
         elif 'i' in record["status"]:
             self.inductees.append(line)
+            self.ninductees += 1
         else:
             self.errors.append(line)
 
@@ -1028,7 +1029,7 @@ Membership"""
         if total <= 0 and owing_only:
             return  # no notice sent
         if total <= 0:
-            extra.append("total (<=0) is {}"
+            extra.append("Total is 0 or a credit."
                 .format(total))
         extra = ["\n"] + extra
         extra.append("{}.: ${}"
@@ -1063,6 +1064,23 @@ Membership"""
         "get_owing": get_owing,
         "request_inductee_payment": request_inductee_payment,
         }
+
+    def send_attachment(self, record):
+        """
+        Uses 'mutt' (which in turns uses 'msmtp') to send emails
+        with attachment: relies on <mutt_send> which in turn
+        relies on command line args:
+            "-F": which muttrc (to specify 'From: ')
+            "-a": file name of the attachment
+            "-c": name of file containing content of the email
+            "-s": subject of the email
+        """
+        body = self.content.format(**record)
+        email = record["email"]
+        bad_email = "be" in record["status"]
+        if email and not bad_email:
+            mutt_send(email, body)
+
 
 ############  End of the mailing section  ###############
 
@@ -1345,11 +1363,12 @@ Membership"""
         Selects members who get their copy of meeting minutes by US
         Postal Service. i.e. Their "email_only" field is blank.
         Populates self.usps_only with a line for each such member
-        using csv format: first, last, address, town, state, and zip.
+        using csv format: first, last, address, town, state, and
+        postal_code.
         """
         if not record['email_only']:
             self.usps_only.append(
-                "{first},{last},{address},{town},{state},{zip}"
+                "{first},{last},{address},{town},{state},{postal_code}"
                 .format(**record))
 
     def check_dir4letters(self, dir4letters):
@@ -1859,19 +1878,20 @@ Membership"""
 def ck_fields_cmd():
     """
     Traverses the input file using
-    Membership.get_malformed()
+    Membership method get_malformed
     to select malformed records.
     """
     source = Membership(Dummy)
-    source.name_tuple = ('', '')
+    source.previous_name_tuple = ('', '')  # Used to check ordering.
     source.malformed = []
     infile = args["-i"]
     if not infile:
-        Membership.MEMBER_DB
-        infile = source.infile
+        infile = Membership.MEMBER_DB
     print("Checking fields...")
     err_code = source.traverse_records(infile,
+#                                   get_malformed)
                                     source.get_malformed)
+#                                   Membership.get_malformed)
     if err_code:
         print("Error condition! #{}".format(err_code))
     if not source.malformed:
@@ -1890,6 +1910,8 @@ def ck_fields_cmd():
 def show_cmd():
     source = Membership(Dummy)
     source.nmembers = 0
+    source.napplicants =0
+    source.inductees =0
     source.members = []
     source.applicants = []
     source.inductees = []
@@ -1908,11 +1930,13 @@ def show_cmd():
                             "============"))
         listing4web.extend(source.members)
     if source.applicants:
-        listing4web.extend(("", "Applicants",
+        listing4web.extend(("", "Applicants ({} in number)"
+                .format(source.napplicants),
                                 "=========="))
         listing4web.extend(source.applicants)
     if source.inductees:
-        listing4web.extend(("", "Inductees",
+        listing4web.extend(("", "Inductees ({} in number)"
+                .format(source.ninductees),
                                 "========="))
         listing4web.extend(source.inductees)
     if source.errors:
@@ -2146,7 +2170,7 @@ def payables_cmd():
 def usps_cmd():
     """
     Generates a cvs file used by Peter to send out minutes.
-        first,last,address,town,state,zip_code
+        first,last,address,town,state,postal_code
     (Members who are NOT in the 'email only' category.)
     Note: Peter (secretary) is purposely NOT 'email_only' so that he
     can get a copy of the printed minutes for inspection.
@@ -2155,8 +2179,13 @@ def usps_cmd():
     if not infile:
         infile = Membership.MEMBER_DB
     source = Membership(Dummy)
+    source.usps_only = []
     err_code = source.traverse_records(infile, source.get_usps)
-    header = [key for key in source.keys_tuple[:source.i_email]]
+    header = []
+    for key in source.fieldnames:
+        header.append(key)
+        if key == "postal_code":
+            break
     res = [",".join(header)]
     res.extend(source.usps_only)
     return '\n'.join(res)
@@ -2171,6 +2200,18 @@ def billing_cmd():
     source.billing(content,
         args["-i"], args["-j"], args["--dir"],
         custom_func)
+
+def emailing_cmd():
+    """
+    Sends emails with an attachment.
+    """
+    source = Membership(Dummy)
+    if not args["-i"]:
+        args["-i"] = source.MEMBER_DB
+    with open(args["-c"], "r") as content_file:
+        source.content = content_file.read()
+    err_code = source.traverse_records(args["-i"],
+        source.send_attachment)
 
 def prepare_mailing_cmd():
     """
@@ -2262,7 +2303,7 @@ def send_emails_cmd():
         print("Sending email #{} to {}."
             .format(counter, ", ".join(recipients)))
         smtp_send(recipients, content)
-        time.sleep(30)
+        time.sleep(10)
 
 def print_letters_cmd():
     successes = []
@@ -2399,40 +2440,10 @@ def usps_billings2print_cmd(infile, dir4letters):
     source.annual_usps_billing2dir(source_file, dir4letters)
 
 def show_mailing_categories_cmd():
-    output('\n'.join(content.content_types.keys()))
-
-
-
-
-
-def smtp_file(recipient_email_address, message_file):
-    """
-    Send email as defined in <message_file>
-    to the <recipient_email_address> who will 
-    receive this email from the Bolinas Rod and Boat Club.
-    Note: Must first lower br&bc's account security at:
-    https://myaccount.google.com/lesssecureapps
-    """
-    cmd_args = ("msmtp", "-a", "gmail", recipient_email_address)
-    with open(message_file, 'r') as message:
-        subprocess.run(cmd_args, stdin=message)
-
-def smtp_text(recipient_email_address, message):
-    """
-    Send email as defined in <message_file>
-    to the <recipient_email_address> who will 
-    receive this email from the Bolinas Rod and Boat Club.
-    Note: Must first lower br&bc's account security at:
-    https://myaccount.google.com/lesssecureapps
-    """
-    cmd_args = ("msmtp", "-a", "gmail", recipient_email_address)
-    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
-        input=message, encoding='utf-8')
-    if p.returncode:
-        print("Error: {} ({})".format(
-            p.stdout, recipient_email_address))
-    
-
+    ret = ["Possible choices for --which option of ",
+        "the 'show_mailing_categories' command are:"]
+    ret.extend((("\t" + key) for key in content.content_types.keys()))
+    output('\n'.join(ret))
 
 def smtp_send(recipients, message):
     """
@@ -2447,11 +2458,28 @@ def smtp_send(recipients, message):
     by a blank line and then the text of the email. The "From:" line
     should read as follows: "From: rodandboatclub@gmail.com"
     """
-    cmd_args = ["msmtp", "-a", "gmail"]
+    cmd_args = ["msmtp"]
     for recipient in recipients:
         cmd_args.append(recipient)
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
         input=message, encoding='utf-8')
+    if p.returncode:
+        print("Error: {} ({})".format(
+            p.stdout, recipient))
+
+def mutt_send(recipient, body):
+    """
+    Does the mass e-mailings with attachments.
+    """
+    cmd_args = [
+        "mutt",
+        "-F", args["-F"],
+        "-a", args["-a"],
+        "-s", "{}".format(args["--subject"]),
+        "--", recipient
+        ]
+    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
+        input=body, encoding='utf-8')
     if p.returncode:
         print("Error: {} ({})".format(
             p.stdout, recipient))
@@ -2524,9 +2552,9 @@ if __name__ == "__main__":
         envelopes_cmd()
 
     elif args["usps"]:
-        print("""Preparing a csv file listing
-    (first,last,address,town,state,zip_code)
-for members who receive meeting minutes by mail.""")
+        print("Preparing a csv file listing showing members who")
+        print("receive meeting minutes by mail. i.e. don't have (or")
+        print("haven't provided) an email address (to the Club.)")
         output(usps_cmd())
 
     elif args["email_billings2json"]:
@@ -2580,8 +2608,18 @@ for members who receive meeting minutes by mail.""")
     elif args['show_mailing_categories']:
         show_mailing_categories_cmd()
 
+    elif args['emailing']:
+        emailing_cmd()
     else:
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
         print("    ./utils.py -h # for more detail")
 
+NOTE = """
+emailing_cmd()
+    uses Membership.traverse_records(infile,
+        source.send_attachment(args["-i"]))
+        
+        Membership.send_attachment(record)
+            uses mutt_send(record["email"], body)
+"""

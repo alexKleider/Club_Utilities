@@ -10,7 +10,7 @@ or simply
   ./utils.py ?  # more succinct.
 
 It provides functionality related to my position as membership
-secretary (to the Bolinas Rod & Boat Club.) The Clubs main data base
+secretary (to the Bolinas Rod & Boat Club.) The Club's main data base
 is the 'memlist.csv' file, hidden from the git repo for privacy
 reasons.  Other files also in the same category (i.e. private)
 include 'google.csv' (imported from the clubs gmail account,)
@@ -22,18 +22,12 @@ Comments, suggestions, criticisms ==> alexKleider@gmail.com
 
 Other notes (largely to myself:)
 
-FOLDING LETTERS:
+PRINTING LETTERS:
 How to make letters 'fit' the windowed envelopes seems to be printer
-dependent!  Hence we should probably set up a 'PrinterSpecs' class;
-For now, note that for the printer in the Bolinas data closet:
-The sender's address and recipient's address and the "Dear" line
-should begin on lines 6, 15 and 23 respectively.
-Lines should be indented 8 spaces.
-A date can be on line 11.
-A "Re: {subject}" line is best on line 21.
-If one places "Dear {recipient}" on line 23 then making
-the first fold through it will make the appropriate
-text line up nicely inside the envelope windows.
+dependent!  A <content.printer_specs> dict has been set up to solve
+this problem.
+Making the first fold along the bottom of the "Dear {recipient}" line
+has been working well.
 
 ARCHIVING & BACKUP
 ==================

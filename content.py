@@ -4,6 +4,7 @@
 
 """
 A module to support the utils.py prepare_mailing command.
+(... and also the emailing command.)
 
 Rather than importing functions, they are refered to by
 name and depend on a dict within the utils.Membership class
@@ -53,7 +54,6 @@ has a corresponding entry in the record dict (typically arranged
 by the custom function.
 """,
     happyNY_and_0th_fees_request = """
-
 A very Happy New Year to all members of the Bolinas Rod & Boat
 Club!
 
@@ -74,51 +74,46 @@ year; don't forget to include provisions for payment of Club dues
 you in this regard.  It's always acceptable to pay early and get it
 behind you.{extra}""",
     yearly_fees_1st_request = """
-
-With July comes the beginning of the new membership year
-and ideally we'd like to have all dues and fees in by then.
-If you are already paid up, the Club thanks you.
+The Club membership year ends in June and ideally we'd like to
+have all dues and fees in by then.  If you are already paid up,
+the Club thanks you.
 
 While we've got your attention: please go to the Club web site
 (rodandboatclub.com, password is 'fish',) click on 'Membership'
 and check that all your data is as you would like it to be.
-If you see anything not to your liking, let us know of any
-changes you'd like to see made.  You can reply either by email
-(if you are receiving this as an email) or by post to the
-address provided below.  By the way, if you are getting this
-by post but have an email address, we'd very much like to 
-know about it and switch you over to 'email_only' status.
+If you see anything not to your liking, let us know so corrections
+can be made.
 
-A statement of your current standing will appear bellow;
+By the way, if you are getting this by post but have an email
+address, we'd very much like to know about it and switch you
+over to 'email_only' status.
+
+A statement of your current standing appears bellow;
 If there are any dues or fees outstanding, please pop your
 check into an envelope asap payable and sent to the...
         Bolinas Rod and Boat Club
         PO Box 0248
         Bolinas, CA 94924
+Please write 'membership' on the 'memo' line to help
+avoid confusion.
 {extra}""",
     yearly_fees_2nd_request = """
-August is upon us and that is when the Club imposes a penalty
-for late payment of dues.
-
-Records indicate that you are in arrears.  If you feel this
-is incorrect, please speak up[1]- we are only human!
-Otherwise, don't delay sending in your check.  The end of
-September is when anyone who hasn't payed ceases to be a member.
-
-Because this is the first year we've been sending notices by email,
-Club leadership has determined that before late fees are imposed, at
-least one posted notice should be sent out[2] so for this year only,
-late fees will not be imposed until after the fishing derby coming
-up later this month.
+This is a second request being sent out to Club members whose
+dues (and/or fees where applicable) for the upcoming (begining
+July 1st) Club year have not yet been payed. You should also
+note that this is the last notice you can expect to receive
+before the late penalty (of $25) is imposed.
 
 Please pop your check into an envelope asap payable and addressed
 to the...
         Bolinas Rod and Boat Club
         PO Box 0248
         Bolinas, CA 94924
+It would be helpful if you indicate 'membership' on the check
+to avoid confusion.
 
 Details are as follows:
-{extra1}""",
+{extra}""",
     penalty_notice = """
 The deadline for Club Dues payment has passed.  Records indicate that
 you are in arrears with regard to payment of Club dues and a late fee
@@ -133,10 +128,12 @@ addressed to the...
         PO Box 0248
         Bolinas, CA 94924""", 
     bad_email = """
-An email sent to you at the following email address:
+Emails sent to you at
     "{email}"
-was rejected.  Can you please help us sort this out by
-contacting us at rodandboatclub@gmail.com?
+are being rejected.
+
+Can you please help sort this out by contacting us
+at rodandboatclub@gmail.com?
 
 Thanks,""",
     new_applicant_welcome = """
@@ -193,6 +190,10 @@ It was a good dinner and an enjoyable evening.
 Sincerely,
 Alex Kleider
 """,
+    fromPeter = """
+Enjoy the minutes!
+Peter Pyle, Secretary
+""",
     )
 
 authors = dict(
@@ -221,61 +222,6 @@ authors = dict(
         mail_signature = "\nSincerely,\n\n\nAlex Kleider (Membership)",
         ),
     )  # ... end of authors.
-
-# The following is expected soon to be redacted:
-postal_headers = {    # Printers vary in spacing!
-    # ... so this dict provides an easy way to set spacing to suit.
-    # "X6505" == Xerox WorkForce 6505 in the Bolinas data closet.
-    "X6505": """
-
-Bolinas Rod and Boat Club
-PO Box 248
-Bolinas, CA 94924
-
-
-
-{date}
-
-
-
-{first} {last}
-{address}
-{town}, {state} {zip}
-
-
-
-
-Re: {subject}
-
-Dear {first} {last},
-""",
-    # "Janice" == Janice's printer.
-    "Janice": """
-""",
-    "personal": """
-
-Alex Kleider
-PO Box 277
-Bolinas, CA 94924
-
-
-
-{date}
-
-
-
-{first} {last}
-{address}
-{town}, {state} {zip}
-
-
-
-
-Re: {subject}
-
-Dear {first} {last},
-""",
-    }  # ... end of postal_headers
 
 email_header = """From: {}
 To: {{email}}
@@ -416,6 +362,7 @@ receiving this by email as well as 'snail mail.'""",
     # ... end of content_types.
 
 printer_specs = dict(
+    # Using tuples in case width will ever be needed.
     X6505 = dict(
         indent = 4,
         top = (1,),  # blank lines at top

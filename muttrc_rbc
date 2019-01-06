@@ -1,0 +1,6 @@
+# We need a config file for mutt if we are sending attachments:
+set sendmail="/usr/bin/msmtp"
+set use_from=yes
+set realname="rodandboatclub@gmail.com"
+set from=rodandboatclub@gmail.com
+set envelope_from=yes

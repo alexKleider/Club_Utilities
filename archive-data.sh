@@ -10,16 +10,16 @@ DATA_ARCHIVES='../Archives/Data/'
 TARFILE=${STAMP}.tar.gz
 mkdir $STAMP
 cp  applica*  ${STAMP}/
+cp  attrition  ${STAMP}/
 cp  extra_fees.txt  ${STAMP}/
+cp  loose-ends  ${STAMP}/
 cp  memlist.csv  ${STAMP}/
+cp  mynotes  ${STAMP}/
 cp  receipts*  ${STAMP}/
 cp  reimbursements*  ${STAMP}/
 cp  report*  ${STAMP}/
-cp  todo  ${STAMP}/
-cp  mynotes  ${STAMP}/
 cp  sensitive  ${STAMP}/
-cp  loose-ends  ${STAMP}/
-cp  attrition  ${STAMP}/
+cp  todo  ${STAMP}/
 
 tar -czvf $TARFILE $STAMP
 mv $TARFILE $DATA_ARCHIVES
