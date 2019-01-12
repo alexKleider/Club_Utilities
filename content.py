@@ -18,7 +18,7 @@ A number of 'dict's are being used:
             "subject": 
             "from": authors["club"],
             "body": letter_bodies["happyNY_and_0th_fees_request"],
-            "post_script": '',
+            "post_script": a string,
             "func": "some_func", 
             "test": lambda record: True,
             "e_and_or_p": "one_only",
@@ -73,6 +73,23 @@ year; don't forget to include provisions for payment of Club dues
 (and possibly fees as well.)  The following is included to help
 you in this regard.  It's always acceptable to pay early and get it
 behind you.{extra}""",
+    February_meeting = """
+Things are to be somewhat different for the February meeting
+on Friday, the 1st. 
+The Board will meet at 5:30 and then there will be the general
+meeting at 6:00pm.  This meeting also includes a dinner which is
+to begin circa 6:30.  Those intending to remain for dinner should
+make a reservation- check with Anna Gade (uc_anna@sbcglobal.net.)
+Applicants are invited but we ask members not to bring guests,
+for the simple reason that seating is limited (hence the importance
+of making a reservation.)
+""",
+    thank_you_for_payment = """
+Your advance payment of dues for the 2019-2010 Club year
+has been received.  Thank you.
+
+All the best in the new year!
+""",
     yearly_fees_1st_request = """
 The Club membership year ends in June and ideally we'd like to
 have all dues and fees in by then.  If you are already paid up,
@@ -195,6 +212,23 @@ Enjoy the minutes!
 Peter Pyle, Secretary
 """,
     )
+# ... end of letter_bodies.
+
+post_scripts = dict(
+    gmail_warning = """
+PS If yours is a gmail account you'll get an alarming warning
+that this email may not have come from the Rod and Boat Club.
+It was sent through a different mail server, hence the automatic
+notice from Google.  All is well.
+""",
+    remittance = """
+PS By the way, if/when you do pay, please send your remittance to
+    The Bolinas Rod & Boat Club
+    PO Box 248
+    Bolinas, CA 94924
+It's always a good idea to jot down 'club dues' on the check
+in order to prevent any confusion.""",
+    )
 
 authors = dict(
     ak = dict(
@@ -240,7 +274,7 @@ Dear {{first}} {{last}},"""
         # body: text of the letter which may or may not have
         #     one or more 'extra' sections.
         # signature: a 'yours truely' + name.
-        # post_script:  an optional ps
+        # post_scripts:  a list of optional ps
         # func: the Membership method used on each record.
         # test: a lambda function that determines if the record
         #     is to be considered at all.
@@ -253,7 +287,7 @@ content_types = dict(
         "subject": "This is a test.",
         "from": authors["ak"],
         "body": letter_bodies["proto_content"],
-        "post_script": '',
+        "post_script": post_scripts["gmail_warning"],
         "func": "some_func",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -262,14 +296,17 @@ content_types = dict(
         "subject": "Happy New Year from the Bolinas R&B Club",
         "from": authors["club"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
-        "post_script": """
-PS By the way, if/when you do pay, please send your remittance to
-    The Bolinas Rod & Boat Club
-    PO Box 248
-    Bolinas, CA 94924
-It's always a good idea to jot down 'club dues' on the check
-in order to prevent any confusion.""",
+        "post_script": post_scripts["remittance"],
         "func": "get_owing",
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
+    February_meeting = {
+        "subject": "Change regarding format and time of next meeting",
+        "from": authors["club"],
+        "body": letter_bodies["February_meeting"],
+        "post_script": None,
+        "func": "std_mailing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -277,7 +314,7 @@ in order to prevent any confusion.""",
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["club"],
         "body": letter_bodies["yearly_fees_1st_request"],
-        "post_script": '',
+        "post_script": post_scripts["remittance"],
         "func": "get_owing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -299,7 +336,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject":"BR&BC dues and penalty for late payment",
         "from": authors["club"],
         "body": letter_bodies["penalty_notice"],
-        "post_script": """
+        "post_scripts": """
 [1] rodandboatclub@gmail.com or a letter to the PO Box\n
 [2] If the club has an email address on file for you, you'll be
 receiving this by email as well as 'snail mail.'""",
@@ -311,7 +348,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "Welcome to the Club",
         "from": authors["club"],
         "body": letter_bodies["new_applicant_welcome"],
-        "post_script": '',
+        "post_script": None,
         "func": "std_mailing",
         "test": (
         lambda record: True if 'a1' in record["status"] else False),
@@ -321,7 +358,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
-        "post_script": '',
+        "post_script": None,
         "func": "request_inductee_payment",
         "test": (
         lambda record: True if 'i' in record["status"] else False),
@@ -342,7 +379,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "non-working email",
         "from": authors["club"],
         "body": letter_bodies["bad_email"],
-        "post_script": '',
+        "post_script": None,
         "func": "std_mailing",
         "test": (
         lambda record: True if 'be' in record["status"] else False),
@@ -352,7 +389,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "Old Boys Dinner Reimbursement",
         "from": authors["ak"],
         "body": letter_bodies["personal"],
-        "post_script": '',
+        "post_script": None,
         "func": "std_mailing",
         "test": (
         lambda record: True if 'p' in record["status"] else False),
@@ -446,9 +483,8 @@ def prepare_letter(which_letter, printer_spec):
     # signarue:
     ret.append(which_letter["from"]["mail_signature"])
     # post script:
-    ps = which_letter["post_script"]
-    if ps:
-        ret.append(ps)
+    if which_letter["post_script"]:
+        ret.append(which_letter["post_script"])
     return '\n'.join(ret)
 
 def prepare_email(which_letter):
@@ -459,9 +495,8 @@ def prepare_email(which_letter):
                 which_letter["subject"]),]
     ret.append(which_letter["body"])
     ret.append(which_letter["from"]["email_signature"])
-    ps = which_letter["post_script"]
-    if ps:
-        ret.append(ps)
+    if which_letter["post_script"]:
+        ret.append(which_letter["post_script"])
     return '\n'.join(ret)
 
 if __name__ == "__main__":

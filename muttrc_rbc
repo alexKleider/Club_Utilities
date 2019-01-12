@@ -1,4 +1,6 @@
 # We need a config file for mutt if we are sending attachments:
+# This one is if the 'sender' is to be the Bolinas Rod & Boat Club.
+
 set sendmail="/usr/bin/msmtp"
 set use_from=yes
 set realname="rodandboatclub@gmail.com"

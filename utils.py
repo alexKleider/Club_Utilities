@@ -35,7 +35,7 @@ Usage:
   ./utils.py email_billings2json [-i <infile>] -j <json_file>
   ./utils.py usps_billings2print [-i <infile>] --dir <dir4letters>
   ./utils.py show_mailing_categories [-o <outfile>]
-  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> -a <attachment>
+  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
 
 Options:
   -h --help  Print this docstring.
@@ -156,6 +156,10 @@ Commands:
         exists, it will be over written!
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
+"""
+ToDo = """
+Allow a 'w' to be placed in the 'dues' field to indicate that dues
+have been waived.
 """
 
 #SMTP_SERVER = "smtp.gmail.com"
@@ -551,6 +555,8 @@ class Membership(object):
                 try:
                     res = int(value)
                 except ValueError:
+#                   if value == 'w':
+#                       continue
                     self.malformed.append("{}, {}, {}:{}"
                         .format(record['last'], record['first'],
                         key, value))
@@ -923,6 +929,9 @@ Membership"""
     
     def append_email(self, record):
         entry = self.email.format(**record)
+        if 'gmail' in record['email']:
+            entry = '\n'.join([entry,
+                        content.post_scripts["gmail_warning"]])
         self.json_data.append([[record['email']],entry])
 
     def file_letter(self, record):
@@ -1001,12 +1010,11 @@ Membership"""
 #           self.set_subject_and_date(record)
 #           print("Just ran set_subject_and_date(record)")
             self.q_mailing(record)
-        
-    def get_owing(self, record):
+
+    def set_owing(self, record):
         """
         Sets up record["extra"] for dues and fees notice,
-        then calls self.q_mailing which dispaches as appropriate.
-        Client has option of setting record.owing_only => True
+        Client has option of setting self.owing_only => True
         in which case those with zero or negative balances do not
         get a letter or email; othewise, these are acknowledged
         (so every one gets a message.)
@@ -1017,13 +1025,16 @@ Membership"""
             try:
                 money = int(record[key])
             except ValueError:
+                if record[key] == 'w':
+                    extra.append("{}.: waived."
+                    .format(self.money_headers[key]))
                 continue
             if money:
                 extra.append("{}.: ${}"
                     .format(self.money_headers[key], money))
                 total += money
         try:
-            owing_only = record.owing_only
+            owing_only = self.owing_only
         except AttributeError:
             owing_only = False
         if total <= 0 and owing_only:
@@ -1041,19 +1052,35 @@ Membership"""
         if total == 0:
             extra.append("You are all paid up! Thank you.")
         record["extra"] = '\n'.join(extra)
+        
+    def get_owing(self, record):
+        """
+        Calls set_owing to set up record["extra"],
+        then calls self.q_mailing which dispaches as appropriate.
+        """
+        self.set_owing(record)
         self.q_mailing(record)
+
+    def set_inductee_dues(self, record):
+        """
+        Provides processing regarding what fee to charge
+        and sets record["current_dues"].
+        """
+        if month in (1, 2, 3, 4):
+            record["current_dues"] = 50
+        else:
+            record["current_dues"] = 100
+
 
     def request_inductee_payment(self, record):
         """
-        A welcoming message with a request for payment of dues is
-        prepared if the record's status field is 'i' for 'inducted'.
-        Requires processing regarding what fee to charge.
+        Contingent on the self.which["test"] lambda:
+        (If the record's status field contains 'i' for 'inducted'.)
+        Sets up record["current_dues"] (by calling set_inductee_dues)
+        and record["subject"]  ?? should this be elsewhere??
         """
         if self.which["test"](record):
-            if month in (1, 2, 3, 4):
-                record["current_dues"] = 50
-            else:
-                record["current_dues"] = 100
+            self.set_inductee_dues(record)
 #           self.set_subject_and_date(record)
             record["subject"] = self.which["subject"]
             self.q_mailing(record)
@@ -1095,7 +1122,12 @@ Membership"""
         for key in self.fees_keys:
             value = record[key]
             if value:
-                value = int(value)
+                try:
+                    value = int(value)
+                except ValueError:
+                    record['key'] = key
+                    self.errors.append("{last}, {first}: '{key}'  "
+                        .format(**record))
                 _list.append("{}- {}".format(key, int(record[key])))
                 self.extras_by_category[key].append("{}: {}- {}"
                     .format(name, key, value))
@@ -2113,6 +2145,7 @@ def extra_charges_cmd():
         source = Membership(Dummy)
         source.extras_by_member = []
         source.extras_by_category = {}
+        source.errors = []
         for key in source.fees_keys:
             source.extras_by_category[key] = []
         err_code = source.traverse_records(infile,
@@ -2144,6 +2177,9 @@ def extra_charges_cmd():
     else:
         res_by_member = ''
     output("\n\n".join((res_by_category, res_by_member)))
+    if source.errors:
+        print("Errors:")
+        print("\n".join(source.errors))
 
 def payables_cmd():
     """
@@ -2440,8 +2476,9 @@ def usps_billings2print_cmd(infile, dir4letters):
     source.annual_usps_billing2dir(source_file, dir4letters)
 
 def show_mailing_categories_cmd():
-    ret = ["Possible choices for --which option of ",
-        "the 'show_mailing_categories' command are:"]
+    ret = ["Within the 'show_mailing_categories' command,",
+            "Possible choices for the '--which' option are: ",
+            ]
     ret.extend((("\t" + key) for key in content.content_types.keys()))
     output('\n'.join(ret))
 
@@ -2469,15 +2506,19 @@ def smtp_send(recipients, message):
 
 def mutt_send(recipient, body):
     """
-    Does the mass e-mailings with attachments.
+    Does the mass e-mailings with attachment
+    if one is provided.
     """
     cmd_args = [
         "mutt",
         "-F", args["-F"],
-        "-a", args["-a"],
+        ]
+    if args["-a"]:
+        cmd_args.extend([ "-a", args["-a"]])
+    cmd_args.extend([
         "-s", "{}".format(args["--subject"]),
         "--", recipient
-        ]
+        ])
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
         input=body, encoding='utf-8')
     if p.returncode:
