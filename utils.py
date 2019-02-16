@@ -657,30 +657,28 @@ Membership"""
         ret = []
 
         # Traverse google.csv => g_dict_e and g_dict_n
-        with open(google_file, 'r', encoding='utf-16') as file_obj:
-            for line in file_obj:  # ?chanage to using csv module?
-                line = line.strip()
-#               _ = input(line)
-                g_rec = line.split(',')
+#       with open(google_file, 'r', encoding='utf-16') as file_obj:
+        with open(google_file, 'r', encoding='utf-8') as file_obj:
+            google_reader = csv.DictReader(file_obj, restkey='status')
+            for g_rec in google_reader:
                 first_name = " ".join((
-                    g_rec[Google.i_first],
-                    g_rec[Google.i_middle],
+                    g_rec["Given Name"],
+                    g_rec["Additional Name"],
                     )).strip()
                 last_name = " ".join((
-                    g_rec[Google.i_last],
-                    g_rec[Google.i_name_suffix],
+                    g_rec["Family Name"],
+                    g_rec["Name Suffix"],
                     )).strip()
-                key = g_rec[Google.i_email]
-                value = (
+
+                key = g_rec["E-mail 1 - Value"]
+                g_dict_e[key] = (
                     first_name,
                     last_name,
-                    g_rec[Google.i_groups],  # ?for future use?
+                    g_rec["Group Membership"],  # ?for future use?
                     )
-                g_dict_e[key] = value
                 
                 key = (first_name, last_name,)
-                value = g_rec[Google.i_email]
-                g_dict_n[key] = value
+                g_dict_n[key] = g_rec["E-mail 1 - Value"]
 #               _ = input("Key: '{}', Value: '{}'".
 #                   format(key, value))
         # We now have two dicts: g_dict_e & g_dict_n
@@ -1997,9 +1995,13 @@ def compare_gmail_cmd():
         source = Membership(Dummy)
         if not args["-i"]:
             args["-i"] = Membership.MEMBER_DB
-        google_file = args['<gmail_contacts>']
+        if  not args['<gmail_contacts>']:
+            args['<gmail_contacts>'] = GMAIL_CONTACTS 
+        print("File from google: '{}'"
+            .format(args['<gmail_contacts>']))
         return source.compare_gmail(args['-i'],
-                                google_file, args['-s'])
+                                args['<gmail_contacts>'],
+                                args['-s'])
     else:
         print(
             "Best do a Google Contacts export and then begin again.")
