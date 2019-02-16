@@ -113,3 +113,11 @@ After mass mailings I've been running archive-mailing.sh which zipps the
 content to an ../Archives/Mailling/z<YYYY-MM-DD>.zip file which contains
 a directory containing the letters and an 'emails.json' file (the emails.)
 
+
+Early Payment of Dues/Acknoledgement of payment
+-----------------------------------------------
+When people pay, I've been 'copy/past'ing their line in the
+memlist.csv file into the payed.csv file until enough accumulate to
+make it worth while sending out the thank_you_for_payment letter after
+which I zero out the entries in the latter.
+

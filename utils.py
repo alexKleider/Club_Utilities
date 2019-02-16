@@ -2,6 +2,9 @@
 
 # File: utils.py
 
+# After any changes to the docstring, contstants may need to be
+# changed: 
+
 """
 "utils.py" is a utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club records.
@@ -145,6 +148,8 @@ Commands:
         specified membership csv file. One can then mannually check
         the new file and move it if all is well.
     display_emails: Provides an opportunity to proof read the emails.
+    fees_intake: Input file should be a 'receipts' file (which has a
+        specific format,) output yields subtotals and the grand total.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
     email_billings2json: prepares billing statements (as a JSON
@@ -162,12 +167,15 @@ Allow a 'w' to be placed in the 'dues' field to indicate that dues
 have been waived.
 """
 
-#SMTP_SERVER = "smtp.gmail.com"
-GMAIL_CONTACTS = 'google.csv'
-
+# Constants required for correct rendering of "?" command:
 TOP_QUOTE_LINE_NUMBER = 5     #| These facilitate preparing
 BLANK_LINE_ABOVE_USAGE = 17   #| response to the
 BLANK_LINE_BELOW_USAGE = 39   #| 'utils.py ?' command.
+
+MSMTP_ACCOUNT = "gmail"
+TIME_TO_SLEEP = 10  # seconds between email postings
+
+GMAIL_CONTACTS = 'google.csv'
 
 TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
@@ -435,6 +443,7 @@ class Membership(object):
         """
         self.infile = Membership.MEMBER_DB
         self.first_letter = '_'
+        self.previous_name_tuple = ('', '')  # Used to check ordering.
         self.name_tuples = []
         # Many of the following attributes support the get_...
         # methods; Rather than initializing them here, they are being
@@ -510,42 +519,20 @@ class Membership(object):
 #                   print("Using 'custom_func': {}"
 #                       .format(custom_func))
                     try:
-                        custom_func(self, record)
-                    except TypeError:
                         custom_func(record)
+                    except TypeError:
+                        custom_func(self, record)
 
-    def ret_name_tuple(self, record, also_append=False):
-        """
-        Returns a tuple: (<last>, <first>)
-        at the same time appending it to self.name_tuples
-        if such a list attribute exists. (If needed, it is the
-        responsibility of the client to initiate it to an
-        empty list.
-        """
-        tup = (record["last"], record["first"])
-        if also_append:
-            try:
-                self.name_tuples.append(tup)
-            except AttributeError:
-                pass
-        return tup
-
-#   def ret_first_last(self, record):
-#       return "{first} {last}".format(**record)
-
-    def ret_last_first(self, record):
-        return "{last}, {first}".format(**record)
-
-    def get_malformed(self, record):
+    def add2malformed(self, record):
         """
         Populates self.malformed.
         Checks that each record has self.n_fields_per_record
         and that the money fields are blank or evaluate to
         an integer.
-        Client must set self.previous_name_tuple to ("", "")
+        __init__ sets self.previous_name_tuple to ("", "")
         (... used for comparison re correct ordering.)
         """
-        name_tuple = self.ret_name_tuple(record)
+        name_tuple = (record["last"], record["first"])
         if len(record) != self.n_fields:
             self.malformed.append("{}, {}: Wrong length."
                 .format(record['last'], record['first']))
@@ -566,6 +553,12 @@ class Membership(object):
         self.previous_name_tuple = name_tuple
 
     def is_member(self, record):
+        """
+        Tries to determine if record is that of a member (based on
+        status field.)
+        If there is a problem, will either append notice to
+        self.errors if it exists, or cause program to fail.
+        """
         if (
             not record["status"] or 
             "m" in record["status"] or
@@ -575,29 +568,34 @@ class Membership(object):
         for status in NON_MEMBER_STATI:
             if status in record["status"]:
                 return False
-        print("Problem in 'is_member' with {}."
-            .format(self.ret_last_first(record)))
-        assert False
+        error = ("Problem in 'is_member' with {}."
+            .format("{last}, {first}".format(**record)))
+        print(error)
+        try:
+            self.errors.append(error)
+        except:
+            assert False
 
-    def get_applicants_by_status(self, record):
+    def add2applicants_by_status(self, record):
         """
+        Prerequisite: self.applicants_dict
         Populates self.applicants_dict (which must be set up by
-        client) with lists of member namess (last, first) keyed
+        client) with lists of member names (last, first) keyed
         by status.
         """
         status = record["status"]
         if status:
             _ = self.applicants_dict.setdefault(status, [])
             self.applicants_dict[status].append(
-                            self.ret_last_first(record))
+                        "{last}, {first}".format(**record))
 
-    def get_memlist4web(self, record):
+    def add2memlist4web(self, record):
         """
         Populate self.members, self.applicants & self.inductees.
         All these attributes must be set up by the client.
         """
         line = (
-    "{first} {last} {phone} {address}, {town}, {state} {postal_code} {email}"
+    "{first} {last}  {phone}  {address}, {town}, {state} {postal_code}  {email}"
                 .format(**record))
         if record["status"] and "be" in record["status"]:
             line = line + " (bad email!)"
@@ -618,130 +616,6 @@ class Membership(object):
             self.ninductees += 1
         else:
             self.errors.append(line)
-
-    def prn_split(self, field, params):
-        """
-        Helper function used for label printing.
-        Fields which are too long are spread over >1 line.
-        Takes <field> (a string) and returns an array of strings,
-        each not longer than params.n_chars_per_field.
-        Returns None and prints an error message if any word is
-        longer than the specified limit.
-        Returned strings are always params.n_chars_per_field long:
-        left based if the beginning of a field,
-        right based if constituting the 'overflow.'
-        'params' must have attributes 'left_formatter' and
-        'right_formatter' as well as 'n_chars_per_field'
-        """
-        if len(field) > params.n_chars_per_field:
-    #       print("field is {} chars long".format(len(field)))
-            words = field.split()
-            for word in words:
-                if len(word) > params.n_chars_per_field:
-                    print("# Unable to process the following field...")
-                    print(field)
-                    print("...because has word(s) longer than {}."
-                        .format(params.n_chars_per_field))
-                    return
-    #       print("field is split into {}".format(words))
-            format_left = True
-            ok_lines = []
-            line = []
-            for word in words:
-                line.append(word)
-                if len(" ".join(line)) > params.n_chars_per_field:
-                    ok = " ".join(line[:-1])
-                    if format_left:
-                        ok_lines.append(
-                            params.left_formatter.format(ok))
-                        format_left = False
-                    else:
-                        ok_lines.append(
-                            params.right_formatter.format(ok))
-                    line = [word, ]
-            if line:
-                ok = " ".join(line)
-                ok_lines.append(params.right_formatter.format(ok))
-            return ok_lines
-        else:
-            return [params.left_formatter.format(field), ]
-
-    def get_fields(self, csv_record):
-        """Makes text of fields fit labels.
-
-        Translates what the data base provides (the
-        csv_record) into what we want displayed/printed.
-        Takes a record returned by csv.reader.
-        Returns an array of strings. The length of the array
-        (padded with empty strings as necessary) will match 
-        self.params.n_lines_per_label.
-        Formats the csv fields, splitting fields into more than
-        one line as necessary to remain within constraints.
-        Returns None and prints a warning if unable to remain within
-        constraints.
-        """
-        res = []
-        lines = []
-        # Specify the three fields we want for the label:
-        lines.append("{} {}".format(
-            csv_record[self.i_first], csv_record[self.i_last]))
-        lines.append("{}".format(csv_record[self.i_address]))
-        lines.append("{} {} {}" .format(
-            csv_record[self.i_town],
-            csv_record[self.i_state],
-            csv_record[self.i_zip_code]))
-        for line in lines:  # Deal with long lines:
-            new_lines =  self.prn_split(line, self.params)
-            if new_lines:
-                res.extend(new_lines)
-            else:
-                print(
-                    "## Unable to process line...")
-                print(line)
-                print("... in the following record...")
-                print(csv_record)
-                print("... so it will not be reflected in output!.")
-                return
-        if len(res) > self.params.n_lines_per_label:
-            print("## Following record is too long...")
-            for line in lines:
-                print("\t{}".format(line))
-            return
-        n_fields = len(res)
-        if n_fields <  self.params.n_lines_per_label:
-            n_empty_lines = self.params.n_lines_per_label - n_fields
-            n_bottom_blanks = n_top_blanks = n_empty_lines // 2
-            n_top_blanks += n_empty_lines % 2
-            res = (
-                [self.params.empty_line] * n_top_blanks + 
-                res + 
-                [self.params.empty_line] * n_bottom_blanks
-                )
-        return res
-
-    def print_custom_envelopes(self, source_file):
-        """
-        Gets names and addresses from <source_file>
-        and "prints" custom envelopes. Wether it goes to printer,
-        stdout, or a file is determined by args["<outfile>"].
-        """
-        record_reader = csv.reader(
-            codecs.open(source_file, 'rU', 'utf-8'),
-            dialect='excel')
-
-        while True:
-            try:
-                next_record = next(record_reader)
-            except StopIteration:
-                break
-            fields = self.get_fields(next_record)
-#           print("fields INITIALLY: {}".format(fields))
-            fields = [""] * self.params.top_margin + fields
-#           print("fields AFTER format: {}".format(fields))
-            for_printer = "\n".join(fields)
-            output(for_printer)
-#           print(for_printer)
-#           _ = input("Enter to continue.")
 
     def compare_gmail(self, source_file, google_file, separator):
         """
@@ -918,20 +792,16 @@ Membership"""
             else:
                 ret.append("No entries for '{}'".format(report_name))
         return separator.join(ret)
+    ### End of compare_gmail method.
 
 
 ##### Next group of methods deal with sending out mailings. #######
 
-    def set_subject_and_date(self, record):
-        record["subject"] = self.which["subject"]
-#       print("Just set record['subject'].")
-#       record["date"] = get_datestamp()
-    
     def append_email(self, record):
         entry = self.email.format(**record)
-        if 'gmail' in record['email']:
-            entry = '\n'.join([entry,
-                        content.post_scripts["gmail_warning"]])
+#       if 'gmail' in record['email']:
+#           entry = '\n'.join([entry,
+#                       content.post_scripts["gmail_warning"]])
         self.json_data.append([[record['email']],entry])
 
     def file_letter(self, record):
@@ -946,9 +816,8 @@ Membership"""
         Checks on desired type of mailing and
         deals with mailing as appropriate.
         """
-#       self.set_subject_and_date(record)
         record["subject"] = self.which["subject"]
-        if 'be' in record['status']:
+        if record['status'] and 'be' in record['status']:
             self.file_letter(record)
         elif self.which["e_and_or_p"] == "both":
             self.append_email(record)
@@ -962,7 +831,7 @@ Membership"""
                 self.file_letter(record)
         else:
             print("Problem in q_mailing re {}"
-                .format(self.ret_last_first(record)))
+                .format("{last}, {first}".format(**record)))
             assert False
 
     def prepare_mailing(self, mem_csv_file):
@@ -1007,8 +876,6 @@ Membership"""
         """
         if self.which["test"](record):
             record["subject"] = self.which["subject"]
-#           self.set_subject_and_date(record)
-#           print("Just ran set_subject_and_date(record)")
             self.q_mailing(record)
 
     def set_owing(self, record):
@@ -1019,15 +886,23 @@ Membership"""
         get a letter or email; othewise, these are acknowledged
         (so every one gets a message.)
         """
+        money = 0
         total = 0
         extra = []
         for key in self.money_keys:
+            if record[key] and 'w' in record[key]:
+                extra.append("{}.: waived."
+                .format(self.money_headers[key]))
+                continue
+            if not record[key]:
+                continue
             try:
                 money = int(record[key])
+#           except TypeError:
+#               print("TypeError re '{}'.".format(record[key]))
+#               continue
             except ValueError:
-                if record[key] == 'w':
-                    extra.append("{}.: waived."
-                    .format(self.money_headers[key]))
+                print("ValueError re '{}'.".format(record[key]))
                 continue
             if money:
                 extra.append("{}.: ${}"
@@ -1052,13 +927,6 @@ Membership"""
         if total == 0:
             extra.append("You are all paid up! Thank you.")
         record["extra"] = '\n'.join(extra)
-        
-    def get_owing(self, record):
-        """
-        Calls set_owing to set up record["extra"],
-        then calls self.q_mailing which dispaches as appropriate.
-        """
-        self.set_owing(record)
         self.q_mailing(record)
 
     def set_inductee_dues(self, record):
@@ -1081,14 +949,13 @@ Membership"""
         """
         if self.which["test"](record):
             self.set_inductee_dues(record)
-#           self.set_subject_and_date(record)
             record["subject"] = self.which["subject"]
             self.q_mailing(record)
 
     func_dict = {
         "some_func": some_func,
         "std_mailing": std_mailing,
-        "get_owing": get_owing,
+        "set_owing": set_owing,
         "request_inductee_payment": request_inductee_payment,
         }
 
@@ -1106,7 +973,11 @@ Membership"""
         email = record["email"]
         bad_email = "be" in record["status"]
         if email and not bad_email:
-            mutt_send(email, body)
+            mutt_send(email,
+                args["--subject"],
+                body,
+                args["-a"],
+                )
 
 
 ############  End of the mailing section  ###############
@@ -1211,7 +1082,8 @@ Membership"""
         self.name_tuples = []
         self.still_owing = []
         err_code = self.traverse_records(membership_csv_file,
-                    [self.ret_name_tuple, self.get_payables])  # vvv
+                    [(record["last"], record["first"]),
+                    self.get_payables])  # vvv
         # Populates self.name_tuples so we can later check that
         # everyone in the extra_fees data base is in fact a member
         # and populates self.still_owing so we can check if OK to
@@ -1272,6 +1144,8 @@ Membership"""
             reader = csv.DictReader(file_obj, restkey='status')
             key_list = reader.fieldnames  # Save this for later.
             for record in reader:
+                if 'w' in record["status"]:  # Fees are waved.
+                    continue
                 name_tuple = (record["last"], record["first"])
                 dues = record['dues']
                 if not dues:
@@ -1904,26 +1778,152 @@ Membership"""
             print("Processing {first} {last}.".format(**member))
             self.send_mailing(member, self.content)
 
+    ### Deprecated methods: developed for "old system."
+
+    def prn_split(self, field, params):
+        """
+        Helper function used for label printing.
+        Fields which are too long are spread over >1 line.
+        Takes <field> (a string) and returns an array of strings,
+        each not longer than params.n_chars_per_field.
+        Returns None and prints an error message if any word is
+        longer than the specified limit.
+        Returned strings are always params.n_chars_per_field long:
+        left based if the beginning of a field,
+        right based if constituting the 'overflow.'
+        'params' must have attributes 'left_formatter' and
+        'right_formatter' as well as 'n_chars_per_field'
+        """
+        if len(field) > params.n_chars_per_field:
+    #       print("field is {} chars long".format(len(field)))
+            words = field.split()
+            for word in words:
+                if len(word) > params.n_chars_per_field:
+                    print("# Unable to process the following field...")
+                    print(field)
+                    print("...because has word(s) longer than {}."
+                        .format(params.n_chars_per_field))
+                    return
+    #       print("field is split into {}".format(words))
+            format_left = True
+            ok_lines = []
+            line = []
+            for word in words:
+                line.append(word)
+                if len(" ".join(line)) > params.n_chars_per_field:
+                    ok = " ".join(line[:-1])
+                    if format_left:
+                        ok_lines.append(
+                            params.left_formatter.format(ok))
+                        format_left = False
+                    else:
+                        ok_lines.append(
+                            params.right_formatter.format(ok))
+                    line = [word, ]
+            if line:
+                ok = " ".join(line)
+                ok_lines.append(params.right_formatter.format(ok))
+            return ok_lines
+        else:
+            return [params.left_formatter.format(field), ]
+
+    def get_fields(self, record):
+        """ No prerequisite.
+        Makes text of fields fit labels.
+
+        Translates what the data base provides (the
+        record) into what we want displayed/printed.
+        Takes a record returned by csv.reader.
+        Returns an array of strings. The length of the array
+        (padded with empty strings as necessary) will match 
+        self.params.n_lines_per_label.
+        Formats the csv fields, splitting fields into more than
+        one line as necessary to remain within constraints.
+        Returns None and prints a warning if unable to remain within
+        constraints.
+        """
+        res = []
+        lines = []
+        # Specify the three fields we want for the label:
+        lines.append("{} {}".format(
+            record[self.i_first], record[self.i_last]))
+        lines.append("{}".format(record[self.i_address]))
+        lines.append("{} {} {}" .format(
+            record[self.i_town],
+            record[self.i_state],
+            record[self.i_zip_code]))
+        for line in lines:  # Deal with long lines:
+            new_lines =  self.prn_split(line, self.params)
+            if new_lines:
+                res.extend(new_lines)
+            else:
+                print(
+                    "## Unable to process line...")
+                print(line)
+                print("... in the following record...")
+                print(record)
+                print("... so it will not be reflected in output!.")
+                return
+        if len(res) > self.params.n_lines_per_label:
+            print("## Following record is too long...")
+            for line in lines:
+                print("\t{}".format(line))
+            return
+        n_fields = len(res)
+        if n_fields <  self.params.n_lines_per_label:
+            n_empty_lines = self.params.n_lines_per_label - n_fields
+            n_bottom_blanks = n_top_blanks = n_empty_lines // 2
+            n_top_blanks += n_empty_lines % 2
+            res = (
+                [self.params.empty_line] * n_top_blanks + 
+                res + 
+                [self.params.empty_line] * n_bottom_blanks
+                )
+        return res
+
+    def print_custom_envelopes(self, source_file):
+        """
+        Gets names and addresses from <source_file>
+        and "prints" custom envelopes. Wether it goes to printer,
+        stdout, or a file is determined by args["<outfile>"].
+        """
+        record_reader = csv.reader(
+            codecs.open(source_file, 'rU', 'utf-8'),
+            dialect='excel')
+
+        while True:
+            try:
+                next_record = next(record_reader)
+            except StopIteration:
+                break
+            fields = self.get_fields(next_record)
+#           print("fields INITIALLY: {}".format(fields))
+            fields = [""] * self.params.top_margin + fields
+#           print("fields AFTER format: {}".format(fields))
+            for_printer = "\n".join(fields)
+            output(for_printer)
+#           print(for_printer)
+#           _ = input("Enter to continue.")
+
 ####  End of Membership class declaration.
 
 
 def ck_fields_cmd():
     """
     Traverses the input file using
-    Membership method get_malformed
+    Membership method add2malformed
     to select malformed records.
     """
     source = Membership(Dummy)
-    source.previous_name_tuple = ('', '')  # Used to check ordering.
     source.malformed = []
     infile = args["-i"]
     if not infile:
         infile = Membership.MEMBER_DB
     print("Checking fields...")
     err_code = source.traverse_records(infile,
-#                                   get_malformed)
-                                    source.get_malformed)
-#                                   Membership.get_malformed)
+#                                   add2malformed)
+                                    source.add2malformed)
+#                                   Membership.add2malformed)
     if err_code:
         print("Error condition! #{}".format(err_code))
     if not source.malformed:
@@ -1953,9 +1953,16 @@ def show_cmd():
         infile = source.infile
     print("Preparing membership listings...")
     err_code = source.traverse_records(infile,
-                                source.get_memlist4web)
+                                source.add2memlist4web)
     print("...done preparing membership listing...")
-    listing4web = []
+    listing4web = ["""FOR MEMBER USE ONLY
+
+THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS
+ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN IS NOT TO BE REPRODUCED
+OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
+BOARD OF THE BRBC.
+LOSS OF MEMBERSHIP IS THE PENALTY.
+    """]
     if source.members:
         listing4web.extend(("Club Members ({} in number)"
                 .format(source.nmembers),
@@ -2007,7 +2014,7 @@ def applicants_cmd():
     print("... (and members with bad emails) ...")
     source.applicants_dict = {}
     err_code = source.traverse_records(infile,
-                                    source.get_applicants_by_status)
+                                    source.add2applicants_by_status)
     res = ["No applicants found."]
     for key in source.applicants_dict.keys():
         if key:
@@ -2240,6 +2247,9 @@ def billing_cmd():
 def emailing_cmd():
     """
     Sends emails with an attachment.
+    Sets up an instance of Membership and traverses
+    the input file calling the send_attachment method
+    on each record.
     """
     source = Membership(Dummy)
     if not args["-i"]:
@@ -2339,7 +2349,7 @@ def send_emails_cmd():
         print("Sending email #{} to {}."
             .format(counter, ", ".join(recipients)))
         smtp_send(recipients, content)
-        time.sleep(10)
+        time.sleep(TIME_TO_SLEEP)
 
 def print_letters_cmd():
     successes = []
@@ -2495,7 +2505,7 @@ def smtp_send(recipients, message):
     by a blank line and then the text of the email. The "From:" line
     should read as follows: "From: rodandboatclub@gmail.com"
     """
-    cmd_args = ["msmtp"]
+    cmd_args = ["msmtp", "-a", MSMTP_ACCOUNT, ]
     for recipient in recipients:
         cmd_args.append(recipient)
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
@@ -2504,19 +2514,16 @@ def smtp_send(recipients, message):
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
-def mutt_send(recipient, body):
+def mutt_send(recipient, subject, body, attachment=None):
     """
     Does the mass e-mailings with attachment
     if one is provided.
     """
-    cmd_args = [
-        "mutt",
-        "-F", args["-F"],
-        ]
-    if args["-a"]:
-        cmd_args.extend([ "-a", args["-a"]])
+    cmd_args = [ "mutt", "-F", args["-F"], ]
+    if attachment:
+        cmd_args.extend([ "-a", attachment])
     cmd_args.extend([
-        "-s", "{}".format(args["--subject"]),
+        "-s", "{}".format(subject),
         "--", recipient
         ])
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 

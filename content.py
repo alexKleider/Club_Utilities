@@ -84,15 +84,22 @@ Applicants are invited but we ask members not to bring guests,
 for the simple reason that seating is limited (hence the importance
 of making a reservation.)
 """,
-    thank_you_for_payment = """
-Your advance payment of dues for the 2019-2010 Club year
+    thank_you_for_advanced_payment = """
+Your advance payment of dues for the next ({}) Club year
 has been received.  Thank you.
 
-All the best in the new year!
-""",
+All the best!
+""".format(helpers.next_club_year()),
+    thank_you_for_timely_payment = """
+Your timely payment of dues for the next ({}) Club year
+has been received.  Thank you.
+
+All the best!
+""".format(helpers.next_club_year()),
     yearly_fees_1st_request = """
-The Club membership year ends in June and ideally we'd like to
-have all dues and fees in by then.  If you are already paid up,
+The current Club membership year ends in June and ideally we'd
+like to have all dues and fees for the upcoming ({})
+membership year in by then.  If you are already paid up,
 the Club thanks you.
 
 While we've got your attention: please go to the Club web site
@@ -106,14 +113,8 @@ address, we'd very much like to know about it and switch you
 over to 'email_only' status.
 
 A statement of your current standing appears bellow;
-If there are any dues or fees outstanding, please pop your
-check into an envelope asap payable and sent to the...
-        Bolinas Rod and Boat Club
-        PO Box 0248
-        Bolinas, CA 94924
-Please write 'membership' on the 'memo' line to help
-avoid confusion.
-{extra}""",
+If there are any dues or fees outstanding, please don't delay.
+{{extra}}""".format(helpers.next_club_year()),
     yearly_fees_2nd_request = """
 This is a second request being sent out to Club members whose
 dues (and/or fees where applicable) for the upcoming (begining
@@ -121,29 +122,17 @@ July 1st) Club year have not yet been payed. You should also
 note that this is the last notice you can expect to receive
 before the late penalty (of $25) is imposed.
 
-Please pop your check into an envelope asap payable and addressed
-to the...
-        Bolinas Rod and Boat Club
-        PO Box 0248
-        Bolinas, CA 94924
-It would be helpful if you indicate 'membership' on the check
-to avoid confusion.
-
 Details are as follows:
 {extra}""",
     penalty_notice = """
-The deadline for Club Dues payment has passed.  Records indicate that
-you are in arrears with regard to payment of Club dues and a late fee
-of $25 is now applied in addition to the regular dues payment of $100.
-If you feel this is incorrect, please speak up[1]- we are only human!
-Otherwise, don't delay sending in your check.  The end of September
-is when anyone who hasn't payed ceases to be a member.
+The deadline for Club Dues payment has passed and records indicate
+that you are in arrears so a late fee of $25 has been applied.
+If you feel this is incorrect, please speak up[1]- we are only
+human!  Otherwise, don't delay sending in your check rather than
+risk being removed from the Club's list of members.
 
-Please pop your check (for $125) into an envelope asap payable and
-addressed to the...
-        Bolinas Rod and Boat Club
-        PO Box 0248
-        Bolinas, CA 94924""", 
+Details are as follows:
+{extra}""", 
     bad_email = """
 Emails sent to you at
     "{email}"
@@ -161,9 +150,19 @@ Please come and enjoy the meetings (first Fiday of each month.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
 month period beginning the date your application was received.""",
+    approved_but_waiting_for_vacancy = """
+The Club Executive has approved your application for Club
+membership but unfortunately there is currently no vacancy
+in the Club membership.  In the mean time you are welcome
+to enjoy Club activities and participate as members do.
+
+"Welcome aboard!"
+
+I'll let you know once a vacancy opens up.  """,
     request_inductee_payment = """
-As you may already know, the Club Executive approved your
-application for Club membership at their last meeting.
+The Club Executive has approved your application for Club
+membership and there is currently a vacancy in the Club
+membership.
 
 "Welcome aboard!"
 
@@ -228,6 +227,8 @@ PS By the way, if/when you do pay, please send your remittance to
     Bolinas, CA 94924
 It's always a good idea to jot down 'club dues' on the check
 in order to prevent any confusion.""",
+    ref1 = """
+[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
     )
 
 authors = dict(
@@ -287,7 +288,7 @@ content_types = dict(
         "subject": "This is a test.",
         "from": authors["ak"],
         "body": letter_bodies["proto_content"],
-        "post_script": post_scripts["gmail_warning"],
+        "post_scripts": (post_scripts["gmail_warning"],),
         "func": "some_func",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -296,8 +297,8 @@ content_types = dict(
         "subject": "Happy New Year from the Bolinas R&B Club",
         "from": authors["club"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
-        "post_script": post_scripts["remittance"],
-        "func": "get_owing",
+        "post_scripts": (post_scripts["remittance"],),
+        "func": "set_owing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -305,7 +306,25 @@ content_types = dict(
         "subject": "Change regarding format and time of next meeting",
         "from": authors["club"],
         "body": letter_bodies["February_meeting"],
-        "post_script": None,
+        "post_scripts": (),
+        "func": "std_mailing",
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
+    thank_you_for_advanced_payment = {
+        "subject": "Thanks for your payment",
+        "from": authors["club"],
+        "body": letter_bodies["thank_you_for_advanced_payment"],
+        "post_scripts": (),
+        "func": "std_mailing",
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
+    thank_you_for_timely_payment = {
+        "subject": "Thanks for your payment",
+        "from": authors["club"],
+        "body": letter_bodies["thank_you_for_timely_payment"],
+        "post_scripts": (),
         "func": "std_mailing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -314,8 +333,8 @@ content_types = dict(
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["club"],
         "body": letter_bodies["yearly_fees_1st_request"],
-        "post_script": post_scripts["remittance"],
-        "func": "get_owing",
+        "post_scripts": (post_scripts["remittance"],),
+        "func": "set_owing",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -324,31 +343,37 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["yearly_fees_2nd_request"],
         "signature": '',
-        "post_script": """
-[1] rodandboatclub@gmail.com or a letter to the PO Box\n
-[2] If the club has an email address on file for you, you'll be
-receiving this by email as well as 'snail mail.'""",
-        "func": "get_owing",
+        "post_scripts": (post_scripts["remittance"],
+                    post_scripts["ref1"],),
+        "func": "set_owing",
         "test": lambda record: True,
-        "e_and_or_p": "both",
+        "e_and_or_p": "one",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
         "from": authors["club"],
         "body": letter_bodies["penalty_notice"],
-        "post_scripts": """
-[1] rodandboatclub@gmail.com or a letter to the PO Box\n
-[2] If the club has an email address on file for you, you'll be
-receiving this by email as well as 'snail mail.'""",
-        "func": "get_owing",
+        "post_scripts": (post_scripts["remittance"],
+                    post_scripts["ref1"],),
+        "func": "set_owing",
         "test": lambda record: True,
         "e_and_or_p": "both",
         },
+    bad_email = {
+        "subject": "non-working email",
+        "from": authors["club"],
+        "body": letter_bodies["bad_email"],
+        "post_scripts": (),
+        "func": "std_mailing",
+        "test": (
+        lambda record: True if 'be' in record["status"] else False),
+        "e_and_or_p": "usps",
+        }, 
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
         "from": authors["club"],
         "body": letter_bodies["new_applicant_welcome"],
-        "post_script": None,
+        "post_scripts": (),
         "func": "std_mailing",
         "test": (
         lambda record: True if 'a1' in record["status"] else False),
@@ -358,7 +383,7 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
-        "post_script": None,
+        "post_scripts": (),
         "func": "request_inductee_payment",
         "test": (
         lambda record: True if 'i' in record["status"] else False),
@@ -368,28 +393,17 @@ receiving this by email as well as 'snail mail.'""",
         "subject": "You are a member!",
         "from": authors["club"],
         "body": letter_bodies["welcome2full_membership"],
-        "post_script": """
-[1] (e)mail to rodandboatclub@gmail.com or PO Box 428, 94924""",
+        "post_scripts": (post_scripts["ref1"], ),
         "func": "std_mailing",
         "test": (
         lambda record: True if 'm' in record["status"] else False),
         "e_and_or_p": "both",
         },
-    bad_email = {
-        "subject": "non-working email",
-        "from": authors["club"],
-        "body": letter_bodies["bad_email"],
-        "post_script": None,
-        "func": "std_mailing",
-        "test": (
-        lambda record: True if 'be' in record["status"] else False),
-        "e_and_or_p": "usps",
-        }, 
     personal = {
         "subject": "Old Boys Dinner Reimbursement",
         "from": authors["ak"],
         "body": letter_bodies["personal"],
-        "post_script": None,
+        "post_scripts": (),
         "func": "std_mailing",
         "test": (
         lambda record: True if 'p' in record["status"] else False),
@@ -452,6 +466,12 @@ def expand(content, nlines):
     else:
         return content
 
+def get_postscripts(which_letter):
+    ret = []
+    for post_script in which_letter["post_scripts"]:
+        ret.append(post_script)
+    return ret
+
 def prepare_letter(which_letter, printer_spec):
     """
     Prepares the template for a letter.
@@ -483,8 +503,7 @@ def prepare_letter(which_letter, printer_spec):
     # signarue:
     ret.append(which_letter["from"]["mail_signature"])
     # post script:
-    if which_letter["post_script"]:
-        ret.append(which_letter["post_script"])
+    ret.extend(get_postscripts(which_letter))
     return '\n'.join(ret)
 
 def prepare_email(which_letter):
@@ -495,8 +514,7 @@ def prepare_email(which_letter):
                 which_letter["subject"]),]
     ret.append(which_letter["body"])
     ret.append(which_letter["from"]["email_signature"])
-    if which_letter["post_script"]:
-        ret.append(which_letter["post_script"])
+    ret.extend(get_postscripts(which_letter))
     return '\n'.join(ret)
 
 if __name__ == "__main__":

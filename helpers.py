@@ -14,10 +14,30 @@ INDENTATION = " " * POSTAL_INDENT
 format = "%b %d, %Y"
 today = datetime.datetime.today()
 month = today.month
+this_year = today.year
 s = today.strftime(format)
 d = datetime.datetime.strptime(s, format)
 date = d.strftime(format)
+
 print("Setting the date to '{}'.".format(date))
+
+def this_club_year():
+    if month > 6:
+        return ("{}-{}".format(this_year, this_year + 1))
+    else:
+        return  ("{}-{}".format(this_year - 1, this_year))
+
+def last_club_year():
+    if month > 6:
+        return ("{}-{}".format(this_year -1, this_year))
+    else:
+        return  ("{}-{}".format(this_year - 2, this_year - 1))
+
+def next_club_year():
+    if month > 6:
+        return ("{}-{}".format(this_year + 1, this_year + 2))
+    else:
+        return  ("{}-{}".format(this_year, this_year + 1))
 
 def get_datestamp():
     """
@@ -74,3 +94,5 @@ Bolians, CA 94924"""
         print()
         print(expand(addr, 7))
 
+    print("'this_club_year()' returns '{}'."
+        .format(this_club_year()))
