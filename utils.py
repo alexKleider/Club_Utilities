@@ -197,10 +197,8 @@ import subprocess
 from docopt import docopt
 from helpers import get_datestamp, indent, month
 import content
-#import Formats
 
 args = docopt(__doc__, version="1.0.1a")
-# print(args)
 
 if args["-s"] == "LF":
     args["-s"] = '\n'
@@ -227,21 +225,16 @@ def output(data, destination=args["-o"]):
         with open(destination, "w") as fileobj:
             fileobj.write(data)
 
-# Specify characteristics of medium:
+# Medium specific classes:
 # e.g. labels, envelopes, ...
-# Can set up a class for each medium.
-# These classes need never be instantiated.
-# They are used only to maintain a set of constants.
-
-# Template Classes:
-# Classes that define parameters pertaining to that onto
-# which data is to be printed (i.e. label page, envelope...)
+# These classes, one for each medium, need never be instantiated.
+# They are used only to maintain a set of constants and
 # are named beginning with a letter (A - Avery, E - Envelope, ...)
 # followed by a 4 digit number: A5160, E0000, ... .
 # Clients typically refer to these as <params>.
-# Provided is a Dummy class for use when templates are not required.
 
 class Dummy(object):
+    """a Dummy class for use when templates are not required."""
     formatter = ""
     @classmethod
     def self_check(cls):  # No need for the sanity check in this case
@@ -332,39 +325,10 @@ class A5160(object):
             print("Label designations are incompatable!")
             sys.exit()
 
-media = dict(
-        e000 = E0000,
-        a5160 = A5160,
+media = dict(  # keep the classes in a dict
+        e000= E0000,
+        a5160= A5160,
         )
-
-class Google(object):
-    """
-    Helps deal with an exported gmail contacts csv file.
-    """
-
-    # Record idices:
-    i_name = 0  # Name
-    i_first = 1 # Given Name
-    i_middle = 2 # Middle Name
-    i_last = 3  # Family Name
-    i_name_suffix = 9  # Name Suffix
-    #2  i_additional= 2 # Aditional Name,  #4 Yomi Name
-    #5 Given Name Yomi,  #6 Additional Name Yomi,
-    #7 Family Name Yomi,  #8 Name Prefix,
-    #10 Initials,  #11 Nickname,  #12 Short Name,  #13 Maiden Name,
-    #14 Birthday,  #15 Gender,  #16 Location,  #17 Billing Information
-    #18 Directory Server,  #19 Mileage,  #20 Occupation, #21 Hobby,
-    #22 Sensitivity,  #23 Priority,  #24 Subject,  #25 Notes
-    i_groups = 26  # Group Membership
-    #27 E-mail 1 - Type
-    i_email = 28  # E-mail 1 - Value
-    #29 E-mail 2 - Type,  #30 E-mail 2 - Value,  #31 Phone 1 - Type
-    #32 Phone 1 - Value,  #33 Organization 1 - Type
-    #34 Organization 1 - Name,  #35 Organization 1 - Yomi Name
-    #36 Organization 1 - Title,  #37 Organization 1 - Department
-    #38 Organization 1 - Symbol,  #39 Organization 1 - Location
-    i_job = 40 #Organization 1 - Job Description
-
 
 # Specify input file and its data:
 class Membership(object):
@@ -390,31 +354,6 @@ class Membership(object):
     JSON_FILE_NAME4EMAILS = 'emails.json'
     ## ...end of Constants and Defaults.
 
-    ## The following section is probably redundant since now using
-    ## csv.DictRead() rather that csv.read().
-    # define the fields available and define a method to set up a
-    # dict for each instance:
-#   i_first = 0
-#   i_last = 1
-#   i_phone = 2
-#   i_address = 3
-#   i_town = 4
-#   i_state = 5
-#   i_zip_code = 6
-#   i_email = 7
-#   i_email_only = 8
-#   i_dues = 9
-#   i_mooring = 10
-#   i_dock = 11
-#   i_kayak = 12
-#   i_status = 13
-
-#   keys_tuple = ("first", "last", "phone", "address",
-#       "town", "state", "zip", "email", "email_only",
-#       "dues", "mooring", "dock", "kayak", "status",
-#       )
-    ## End of part which can probably be deleted.
-
     money_keys = ("dues", "mooring", "dock", "kayak") 
     fees_keys = money_keys[1:]
     money_headers = {
@@ -432,9 +371,8 @@ class Membership(object):
 #       "a2": "Attended two meetings.",
 #       "a3": "Attended three meetings.",
 #       "ai": "Inducted, membership fee outstanding.",
+#       "w": "Fees being waived.",
 #       }
-
-#   n_fields_per_record = 14
 
     def __init__(self, params):
         """
@@ -445,54 +383,7 @@ class Membership(object):
         self.first_letter = '_'
         self.previous_name_tuple = ('', '')  # Used to check ordering.
         self.name_tuples = []
-        # Many of the following attributes support the get_...
-        # methods; Rather than initializing them here, they are being
-        # initialized by the clients of the respective methods.
-#       self.params = params
-#       self.params.self_check()
-#       self.malformed = []
-#       self.errors = []
-#       self.content = None
-        
-#       self.extras_by_member = []
-#       self.extras_by_category = {}
-#       for key in self.fees_keys:
-#           self.extras_by_category[key] = []
-
-#       self.still_owing = []
-#       self.advance_payments = []
-#       self.usps_only = []
         self.json_data = []
-#       self.dir4letters = ''
-
-#       self.invalid_lines = []
-#       self.n_members = 0
-
-    # Planning to create 'get' methods that will expect to be given a
-    # single record as parameter and will collect data into an
-    # attribute set up by the client and named accordingly.
-    # The calling routine can then read the attribute.
-    
-#   def make_dict(self, record):
-#       """
-#       Expect that using csf.DictReader will make this method
-#       redundant.
-#       """
-#       return {
-#           "first": record[self.i_first],
-#           "last": record[self.i_last],
-#           "phone": record[self.i_phone],
-#           "address": record[self.i_address],
-#           "town": record[self.i_town],
-#           "state": record[self.i_state],
-#           "zip": record[self.i_zip_code],
-#           "email": record[self.i_email],
-#           "email_only": record[self.i_email_only],
-#           "dues": record[self.i_dues],
-#           "mooring": record[self.i_mooring],
-#           "dock": record[self.i_dock],
-#           "kayak": record[self.i_kayak],
-#           }
 
     def traverse_records(self, infile, custom_funcs):
         """
@@ -560,9 +451,10 @@ class Membership(object):
         self.errors if it exists, or cause program to fail.
         """
         if (
-            not record["status"] or 
-            "m" in record["status"] or
-            record['status'] == 'be'
+            not record["status"] or  # blank for most members
+            "m" in record["status"] or  # member
+            record['status'] == 'be' or  # bad email
+            "w" in record["status"]   # fees waved
             ):
             return True
         for status in NON_MEMBER_STATI:
@@ -649,7 +541,8 @@ Membership"""
         bad_matches = []
         bad_matches_header = "Common email but names don't match:"
         no_emails = []
-        no_emails_header = "Members without an email address:"
+        no_emails_header = (
+            "Members ({} in number) without an email address:")
         differing_emails = []
         differing_emails_header = (
             "Differing emails: g-contacts & memlist:")
@@ -736,7 +629,8 @@ Membership"""
         if no_emails:
             while len(no_emails) % 3:
                 no_emails.append("")
-            for i in range(0, len(no_emails), 3):
+            n_no_emails = len(no_emails)
+            for i in range(0, n_no_emails, 3):
                 tabulated.append(table_format_string.format(
                     no_emails[i],
                     no_emails[i + 1],
@@ -775,7 +669,7 @@ Membership"""
 
         reports_w_names = (
             (bad_matches, "Common emails but names don't match:"),
-            (no_emails, no_emails_header),
+            (no_emails, no_emails_header.format(n_no_emails)),
             (emails_not_found_in_g,
                 "Member emails not found in google contacts:"),
             (differing_emails,
