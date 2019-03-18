@@ -20,7 +20,7 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version ]
-  ./utils.py ck_fields [-r -i <infile> -o <outfile>]
+  ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py applicants [-i <infile> -o <outfile>]
@@ -72,6 +72,8 @@ Options:
   -s <separator>  Some commands may have more than one component to
           their output.  Such componentes can be seprated by either
           a line feed (LF) or a form feed (FF).  [default: FF]
+  -S  ck_fields command also provides listing of members having
+            content in their 'status' field.
   --subject <subject>  The subject line of an email.
   -c <content>  The name of a file containing the body of an email.
   -a <attachment>  The name of a file to use as an attachment.
@@ -162,10 +164,6 @@ Commands:
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
 """
-ToDo = """
-Allow a 'w' to be placed in the 'dues' field to indicate that dues
-have been waived.
-"""
 
 # Constants required for correct rendering of "?" command:
 TOP_QUOTE_LINE_NUMBER = 5     #| These facilitate preparing
@@ -183,8 +181,19 @@ CSV = ".csv"   #| command.
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
 
-STATI = ('a', 'i', '', 'm', 'be')
-NON_MEMBER_STATI = STATI[:2]
+STATUS_SEPARATOR = ':'
+status_key_values = {
+    "a0": "Application received.",
+    "a1": "Attended one meeting.",
+    "a2": "Attended two meetings.",
+    "a3": "Attended three meetings.",
+    "ai": "Inducted, membership fee outstanding.",
+    "m": "Member in good standing.",
+    "w": "Fees being waived.",
+    "be": "Email on record doesn't work.",
+    }
+STATI = sorted([key for key in status_key_values.keys()])
+NON_MEMBER_STATI = STATI[:5]
 
 import os
 import shutil
@@ -364,16 +373,6 @@ class Membership(object):
         "total":   "TOTAL.........",
         }
 
-#   status_key_values = {
-#       "m": "Member in good standing.",
-#       "a0": "Application received.",
-#       "a1": "Attended one meeting.",
-#       "a2": "Attended two meetings.",
-#       "a3": "Attended three meetings.",
-#       "ai": "Inducted, membership fee outstanding.",
-#       "w": "Fees being waived.",
-#       }
-
     def __init__(self, params):
         """
         Each instance must know the format
@@ -416,7 +415,7 @@ class Membership(object):
 
     def add2malformed(self, record):
         """
-        Populates self.malformed.
+        Populates self.malformed (which must be set up by client.)
         Checks that each record has self.n_fields_per_record
         and that the money fields are blank or evaluate to
         an integer.
@@ -443,6 +442,14 @@ class Membership(object):
                 .format(*name_tuple))
         self.previous_name_tuple = name_tuple
 
+    def add2status_list(self, record):
+        """
+        Populates self.status_list (which must be set up by client.)
+        """
+        if record["status"]:
+            self.status_list.append(("{last}, {first} - {status}"
+                .format(**record)))
+
     def is_member(self, record):
         """
         Tries to determine if record is that of a member (based on
@@ -450,15 +457,17 @@ class Membership(object):
         If there is a problem, will either append notice to
         self.errors if it exists, or cause program to fail.
         """
+        stati = record['status'].split(STATUS_SEPARATOR)
         if (
-            not record["status"] or  # blank for most members
-            "m" in record["status"] or  # member
-            record['status'] == 'be' or  # bad email
-            "w" in record["status"]   # fees waved
+            stati == [''] or  # blank for most members
+            "m" in stati or  # member
+            stati == ['be'] or  # bad email
+            #    Notice the '==', not '"be" in ..'
+            "w" in stati   # fees waved
             ):
             return True
         for status in NON_MEMBER_STATI:
-            if status in record["status"]:
+            if status in stati:
                 return False
         error = ("Problem in 'is_member' with {}."
             .format("{last}, {first}".format(**record)))
@@ -1807,28 +1816,31 @@ def ck_fields_cmd():
     to select malformed records.
     """
     source = Membership(Dummy)
+    ret = []
     source.malformed = []
+    source.status_list = []
     infile = args["-i"]
     if not infile:
         infile = Membership.MEMBER_DB
     print("Checking fields...")
     err_code = source.traverse_records(infile,
-#                                   add2malformed)
-                                    source.add2malformed)
-#                                   Membership.add2malformed)
+                (source.add2malformed, source.add2status_list))
     if err_code:
         print("Error condition! #{}".format(err_code))
     if not source.malformed:
-        output("No malformed records found.")
-#       print("No malformed records found.")
+        ret.append("No malformed records found.")
     else:
         if not args['--raw']:
-            source.malformed = [
+            ret = [
                 'Malformed Records',
                 '================='] + source.malformed
-        output("\n".join(source.malformed))
-        if args['-o']:
-            print("See malformed records in {}.".format(args['-o']))
+    if args["-S"]:
+        ret.extend(["", "Members /w 'status' Content",
+                       '---------------------------']
+                       + source.status_list)
+    output("\n".join(ret))
+    if args['-o']:
+        print("See output in {}.".format(args['-o']))
     print("...done checking fields.")
 
 def show_cmd():

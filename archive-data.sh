@@ -12,6 +12,7 @@ mkdir $STAMP
 cp  applica*  ${STAMP}/
 cp  attrition  ${STAMP}/
 cp  extra_fees.txt  ${STAMP}/
+cp  leadership  ${STAMP}/
 cp  loose-ends  ${STAMP}/
 cp  memlist.csv  ${STAMP}/
 cp  mynotes  ${STAMP}/
