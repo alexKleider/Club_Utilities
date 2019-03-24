@@ -8,7 +8,7 @@
 """
 "utils.py" is a utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club records.
-Most commands deal with a csv file named "memlist.csv" so for
+Most commands deal with a csv file named "Data/memlist.csv" so for
 these it is the default input file.  This and other defaults are
 specified as attributes of the Membership class.
 Labels and Envelopes (along with the '-p <params>' option) have
@@ -79,7 +79,7 @@ Options:
   -a <attachment>  The name of a file to use as an attachment.
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
-  <gmail_contacts>  [default: google.csv]
+  <gmail_contacts>  [default: Data/google.csv]
 
 Commands:
     When run without a command, suggests a choice of usage statements.
@@ -186,8 +186,8 @@ status_key_values = {
     "a0": "Application received.",
     "a1": "Attended one meeting.",
     "a2": "Attended two meetings.",
-    "a3": "Attended three meetings.",
-    "ai": "Inducted, membership fee outstanding.",
+    "a3": "Attended three (or more) meetings.",
+    "ai": "Inducted, membership fee pending.",
     "m": "Member in good standing.",
     "w": "Fees being waived.",
     "be": "Email on record doesn't work.",
@@ -350,17 +350,17 @@ class Membership(object):
     YEARLY_DUES = 100
 
     # Data bases used:
-    MEMBER_DB = 'memlist.csv'          #|  Default
-    EXTRA_FEES = 'extra_fees.txt'      #|  file
-    CHECKS_RECEIVED = 'receipts.txt'   #|  names.
+    MEMBER_DB = 'Data/memlist.csv'          #|  Default
+    EXTRA_FEES = 'Data/extra_fees.txt'      #|  file
+    CHECKS_RECEIVED = 'Data/receipts.txt'   #|  names.
 
     # Intermediate &/or temporary files used:
-    EXTRA_FEES_JSON = 'extra_fees.json'
-    EXTRA_FEES_TBL = 'extra_fees.tbl'  # not used!
-    TEMP_MEMBER_DB = 'new_memlist.csv'
-    OUTPUT2READ = '2read.txt'       #| generally goes to stdout.
-    MAILING_DIR = 'MailingDir'
-    JSON_FILE_NAME4EMAILS = 'emails.json'
+    EXTRA_FEES_JSON = 'Data/extra_fees.json'
+    EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
+    TEMP_MEMBER_DB = 'Data/new_memlist.csv'
+    OUTPUT2READ = 'Data/2read.txt'       #| generally goes to stdout.
+    MAILING_DIR = 'Data/MailingDir'
+    JSON_FILE_NAME4EMAILS = 'Data/emails.json'
     ## ...end of Constants and Defaults.
 
     money_keys = ("dues", "mooring", "dock", "kayak") 

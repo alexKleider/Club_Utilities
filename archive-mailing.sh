@@ -8,8 +8,8 @@
 STAMP=`date +%y-%m-%d`
 MAILING_ARCHIVES='../Archives/Mailings'
 TARFILE=${STAMP}.tar.gz
-MAILING_DIR='MailingDir'
-EMAILS_JSON='emails.json'
+MAILING_DIR='Data/MailingDir'
+EMAILS_JSON='Data/emails.json'
 mv $EMAILS_JSON ${MAILING_DIR}/$EMAIL_JSON 
 mv $MAILING_DIR $STAMP
 
