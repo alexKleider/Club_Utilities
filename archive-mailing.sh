@@ -19,4 +19,4 @@ mv $TARFILE $MAILING_ARCHIVES
 
 
 # to extract:
-# tar xvzf file.tar.gz
+# tar xzvf file.tar.gz

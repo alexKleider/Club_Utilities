@@ -23,7 +23,7 @@ Usage:
   ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py applicants [-i <infile> -o <outfile>]
+  ./utils.py stati [-i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
@@ -92,8 +92,8 @@ Commands:
         file to which to send emails (in JSON format) to members with
         differing emails. (After proof reading, use 'send_emails'.)
     show: Returns membership demographics for display on the web site.
-    applicants: Returns a listing of appliacants and their current
-        statnding.  Depends on acurate entries in 'status' field.
+    stati: Returns a listing of stati.  Applicants plus ..
+        on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
         members who receive their Club minutes by post.
     extra_charges: Provides lists of members with special charges.
@@ -477,22 +477,22 @@ class Membership(object):
         except:
             assert False
 
-    def add2applicants_by_status(self, record):
+    def add2stati_by_status(self, record):
         """
-        Prerequisite: self.applicants_dict
-        Populates self.applicants_dict (which must be set up by
+        Prerequisite: self.stati_dict
+        Populates self.stati_dict (which must be set up by
         client) with lists of member names (last, first) keyed
         by status.
         """
-        status = record["status"]
-        if status:
-            _ = self.applicants_dict.setdefault(status, [])
-            self.applicants_dict[status].append(
+        stati = record["status"].split(STATUS_SEPARATOR)
+        for status in stati:
+            _ = self.stati_dict.setdefault(status, [])
+            self.stati_dict[status].append(
                         "{last}, {first}".format(**record))
 
     def add2memlist4web(self, record):
         """
-        Populate self.members, self.applicants & self.inductees.
+        Populate self.members, self.stati & self.inductees.
         All these attributes must be set up by the client.
         """
         line = (
@@ -510,8 +510,8 @@ class Membership(object):
             self.nmembers += 1
             self.members.append(line)
         elif 'a' in record["status"]:
-            self.applicants.append(line)
-            self.napplicants += 1
+            self.stati.append(line)
+            self.nstati += 1
         elif 'i' in record["status"]:
             self.inductees.append(line)
             self.ninductees += 1
@@ -1846,7 +1846,7 @@ def ck_fields_cmd():
 def show_cmd():
     source = Membership(Dummy)
     source.nmembers = 0
-    source.napplicants =0
+    source.nstati =0
     source.inductees =0
     source.members = []
     source.applicants = []
@@ -1913,24 +1913,24 @@ def compare_gmail_cmd():
             "Best do a Google Contacts export and then begin again.")
         sys.exit()
 
-def applicants_cmd():
+def stati_cmd():
     source = Membership(Dummy)
     infile = args["-i"]
     if not infile:
         infile = Membership.MEMBER_DB
-    print("Preparing listing of applicants")
-    print("... (and members with bad emails) ...")
-    source.applicants_dict = {}
+    print("Preparing listing of stati.")
+    source.stati_dict = {}
     err_code = source.traverse_records(infile,
-                                    source.add2applicants_by_status)
-    res = ["No applicants found."]
-    for key in source.applicants_dict.keys():
-        if key:
-#           print("key is: {}".format(key))
-#           print("value is: {}".format(source.applicants_dict[key]))
-            res.append("\n{}".format(key))
-            for value in source.applicants_dict[key]:
-                res.append("\t{}".format(value))
+                                    source.add2stati_by_status)
+    res = ["No entries found."]
+    keys = [k for k in source.stati_dict.keys() if k]
+    keys.sort()
+    for key in keys:
+#       print("key is: {}".format(key))
+#       print("value is: {}".format(source.stati_dict[key]))
+        res.append("\n{}".format(key))
+        for value in source.stati_dict[key]:
+            res.append("\t{}".format(value))
     if res:
         res[0] = "Applicants:\n==========="
     res = "\n".join(res)
@@ -1938,7 +1938,7 @@ def applicants_cmd():
 #   outfile = args["-o"]
 #   with open(outfile, 'w') as file_obj:
 #       file_obj.write(res)
-    print("\n... applicant listing sent to {}.".format(args["-o"]))
+    print("\n... listing sent to {}.".format(args["-o"]))
 
 def extra_charges(infile, json_file=None):
     """
@@ -2444,7 +2444,7 @@ cmds = dict(
     ck_fields = ck_fields_cmd,
     show = show_cmd,
     compare_gmail = compare_gmail_cmd,
-    applicants = applicants_cmd,
+    stati = stati_cmd,
     extra_charges = extra_charges_cmd,
     payables = payables_cmd,
     usps = usps_cmd,
@@ -2480,8 +2480,8 @@ if __name__ == "__main__":
     elif args["show"]:
         show_cmd()
 
-    elif args["applicants"]:
-        applicants_cmd()
+    elif args["stati"]:
+        stati_cmd()
 
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
