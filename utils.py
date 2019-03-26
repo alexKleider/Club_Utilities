@@ -23,7 +23,7 @@ Usage:
   ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py stati [-i <infile> -o <outfile>]
+  ./utils.py stati [-A | -B | -W] [-i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
@@ -80,6 +80,9 @@ Options:
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
   <gmail_contacts>  [default: Data/google.csv]
+  -A  A 'stati' only option: show only applicants.
+  -B  A 'stati' only option: show only bad emails.
+  -W  A 'stati' only option: show only members whose fees are waived.
 
 Commands:
     When run without a command, suggests a choice of usage statements.
@@ -1922,17 +1925,40 @@ def stati_cmd():
     source.stati_dict = {}
     err_code = source.traverse_records(infile,
                                     source.add2stati_by_status)
-    res = ["No entries found."]
+    res = ["No entries found.", ]
     keys = [k for k in source.stati_dict.keys() if k]
     keys.sort()
-    for key in keys:
-#       print("key is: {}".format(key))
-#       print("value is: {}".format(source.stati_dict[key]))
-        res.append("\n{}".format(key))
-        for value in source.stati_dict[key]:
-            res.append("\t{}".format(value))
-    if res:
-        res[0] = "Applicants:\n==========="
+    if args["-B"]:
+        if "be" in keys:
+            for value in source.stati_dict["be"]:
+                res.append("    {}".format(value))
+            if len(res) > 1:
+                res[0] = ("Those with bad emails:" +
+                        "\n======================")
+    elif args["-W"]:
+        if "w" in keys:
+            for value in source.stati_dict["w"]:
+                res.append("    {}".format(value))
+        if len(res) > 1:
+            res[0] = ("Those whose fees are being waived:" +
+                    "\n==================================")
+    elif args["-A"]:
+        for key in keys:
+            if key.startswith('a'):
+                res.append("  {}".format(key))
+                for value in source.stati_dict[key]:
+                    res.append("    {}".format(value))
+        if len(res) > 1:
+            res[0] = "Applicants:\n==========="
+    else:
+        for key in keys:
+#           print("key is: {}".format(key))
+#           print("value is: {}".format(source.stati_dict[key]))
+            res.append("\n{}".format(key))
+            for value in source.stati_dict[key]:
+                res.append("\t{}".format(value))
+            if len(res) > 1:
+                res[0] = "Stati:\n==========="
     res = "\n".join(res)
     output(res)
 #   outfile = args["-o"]
