@@ -24,11 +24,11 @@ A number of 'dict's are being used:
             "e_and_or_p": "one_only",
             },
     postal_headers - being redacted in favour of:
-    printer_specs: X6505, HL2170, ...
+    printers: X6505, HL2170, ...
 
 Other items:
     email_header
-    def prepare_letter(which_letter, printer_spec):
+    def letter_format(which_letter, printer):
     def prepare_email(which_letter):
 """
 
@@ -412,7 +412,7 @@ content_types = dict(
     )
     # ... end of content_types.
 
-printer_specs = dict(
+printers = dict(
     # Using tuples in case width will ever be needed.
     X6505 = dict(
         indent = 4,
@@ -430,16 +430,16 @@ printer_specs = dict(
         to = (7, 29),  # recipient window
         re = (3,),  # below windows => fold
         ),
-    other = dict(
+    Janice = dict(
         indent = 4,
-        top = (1,),  # blank lines at top
+        top = (3,),  # blank lines at top
         frm = (5, 25),  # return window
         date = (4,),  # between windows
         to = (7, 29),  # recipient window
         re = (3,),  # below windows => fold
         ),
     )
-### ... end of printer_specs.
+### ... end of printers (dict specifying printer being used.)
 
 def expand(content, nlines):
     """
@@ -472,18 +472,18 @@ def get_postscripts(which_letter):
         ret.append(post_script)
     return ret
 
-def prepare_letter(which_letter, printer_spec):
+def letter_format(which_letter, printer):
     """
     Prepares the template for a letter.
-    Expect its parameters to be determined by 'globals'-
-    probably set as command line arguments using docopt.
-    <which_letter> is one of the <content_types>.
-    <printer_specs> is one of the <printer_specs>
+    <which_letter> is one of the <content_types> and
+    <printer> specifies which printer is to be used-
+    one of the keys to the <printers> dict.
+    Both are found in this module.
     Returns a 'letter' with formatting fields of <record>:
     typically {first}, {last}, {address}, {town}, {state},
     {postal_code}, {country}, and possibly (one or more) {extra}(s).
     """
-    lpr = printer_specs[printer_spec]
+    lpr = printers[printer]
     # top margin:
     ret = [""] * lpr["top"][0]
     # return address:
@@ -521,7 +521,7 @@ if __name__ == "__main__":
     print("content.py has no syntax errors")
     which = content_types["for_testing"]
     lpr = "X6505"
-    letter = prepare_letter(which, lpr)
+    letter = letter_format(which, lpr)
     email = prepare_email(which)
     rec = dict(
         first = "First",
@@ -539,7 +539,7 @@ Just a lot of junk.""",
     print(letter.format(**rec))
     with open("letter2print", 'w') as fout:
         fout.write(helpers.indent(letter.format(**rec),
-            ' ' * printer_specs[lpr]['indent']))
+            ' ' * printers[lpr]['indent']))
     print(email)
     with open("email2print", 'w') as fout:
         fout.write(email.format(**rec))

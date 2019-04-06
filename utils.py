@@ -713,7 +713,8 @@ Membership"""
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"])))
         with open(path2write, 'w') as file_obj:
-            file_obj.write(indent(entry))
+            file_obj.write(indent(entry,
+            content.printers[args['--lpr']]["indent"]))
 
     def q_mailing(self, record):
         """
@@ -759,8 +760,13 @@ Membership"""
         self.traverse_records(mem_csv_file, 
             self.func_dict[self.which["func"]])
         print("Still within method: writing to json file...")
-        with open(self.json_file_name, 'w') as file_obj:
-            file_obj.write(json.dumps(self.json_data))
+        # No point in creating a json file if no content:
+        if self.json_data:
+            print("There is email to send.")
+            with open(self.json_file_name, 'w') as file_obj:
+                file_obj.write(json.dumps(self.json_data))
+        else:
+            print("There are no emails to send.")
 
     ## Following are special functions that need to be in the
     ## <func_dict> : the functions that add final content to
@@ -2195,7 +2201,7 @@ def emailing_cmd():
 
 def prepare_mailing_cmd():
     """
-    Usage:
+    msage:
   ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
 
     "--which <letter>" must be set to one of the keys found in 
@@ -2212,7 +2218,7 @@ def prepare_mailing_cmd():
     source.which = content.content_types[args["--which"]]
     source.lpr = args["--lpr"]
     source.email = content.prepare_email(source.which)
-    source.letter = content.prepare_letter(source.which, source.lpr)
+    source.letter = content.letter_format(source.which, source.lpr)
 #   print("Preparing mailing: '{}'".format(source.which))
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB

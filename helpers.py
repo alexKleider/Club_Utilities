@@ -8,8 +8,28 @@ Some helper functions needed by both formats.content and by utils
 
 import datetime
 
+_2delete = """
+printers = dict(
+    X6505= dict(
+            indentation=4,
+            top_blanks=2,
+            return_window=4,
+            middle_blanks=3
+            addr_window=4,
+            bottom_blanks=2,
+            ),
+    Janice= dict(
+            indentation=4,
+            top_blanks=2,
+            return_window=4,
+            middle_blanks=3
+            addr_window=4,
+            bottom_blanks=2,
+            ),
+
 POSTAL_INDENT = 8
 INDENTATION = " " * POSTAL_INDENT
+"""
 
 format = "%b %d, %Y"
 today = datetime.datetime.today()
@@ -45,10 +65,11 @@ def get_datestamp():
     """
     return date
 
-def indent(text, indentation=INDENTATION):
+def indent(text, n_spaces):
     """
     Helper function providing indentation for postal content.
     """
+    indentation = ' ' * n_spaces
     split_text = text.split("\n")
     indented = [indentation + line for line in split_text]
     return "\n".join(indented)
