@@ -1,0 +1,14 @@
+This directory concerns my attempt to help a Mac User (Janice)
+print the letters- the problem is to have her retrieve the attachments
+I send, extract the letters and then to print them.
+The attachments I send consist of a zipped version of the output of
+the ./utils.py prepare_mailings command and a bash script (jt.sh) for
+her to 'source.'  It extracts, deletes the json file (containing
+emails,) prints the remaining letters, and then cleans up after itself
+making the whole process idempotent.
+
+Her downloads some time or at least at one time seemed to go to the
+following directory:
+/Users/janicetweedy/Library/Containers/com.apple.mail/Data/Library/Mail\ Downloads/
+This seems to no longer be relevant.
+

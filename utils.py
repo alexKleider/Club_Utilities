@@ -169,34 +169,20 @@ Commands:
 """
 
 # Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE_NUMBER = 5     #| These facilitate preparing
-BLANK_LINE_ABOVE_USAGE = 17   #| response to the
-BLANK_LINE_BELOW_USAGE = 39   #| 'utils.py ?' command.
+TOP_QUOTE_LINE_NUMBER = 8     #| These facilitate preparing
+BLANK_LINE_ABOVE_USAGE = 20   #| response to the
+BLANK_LINE_BELOW_USAGE = 42   #| 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 TIME_TO_SLEEP = 10  # seconds between email postings
 
-GMAIL_CONTACTS = 'google.csv'
+GMAIL_CONTACTS = 'Data/google.csv'
 
 TEXT = ".txt"  #| Used by <extra_charges_cmd>
 CSV = ".csv"   #| command.
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
-
-STATUS_SEPARATOR = ':'
-status_key_values = {
-    "a0": "Application received.",
-    "a1": "Attended one meeting.",
-    "a2": "Attended two meetings.",
-    "a3": "Attended three (or more) meetings.",
-    "ai": "Inducted, membership fee pending.",
-    "m": "Member in good standing.",
-    "w": "Fees being waived.",
-    "be": "Email on record doesn't work.",
-    }
-STATI = sorted([key for key in status_key_values.keys()])
-NON_MEMBER_STATI = STATI[:5]
 
 import os
 import shutil
@@ -207,7 +193,8 @@ import time
 import json
 import subprocess
 from docopt import docopt
-from helpers import get_datestamp, indent, month
+import member
+import helpers
 import content
 
 args = docopt(__doc__, version="1.0.1a")
@@ -342,6 +329,11 @@ media = dict(  # keep the classes in a dict
         a5160= A5160,
         )
 
+### Unable to easily initiate a Member object from a record, will
+### simply have functions that need only a record for a param.
+### Put them all into a separate 'record' module: record.py
+
+
 # Specify input file and its data:
 class Membership(object):
     """
@@ -407,21 +399,21 @@ class Membership(object):
             self.fieldnames = dict_reader.fieldnames
             self.n_fields = len(self.fieldnames)
             for record in dict_reader:
-#               print("'record' is: {}".format(record))
                 for custom_func in custom_funcs:
-#                   print("Using 'custom_func': {}"
-#                       .format(custom_func))
                     try:
                         custom_func(record)
+#                       print("Used 'custom_func(record)'"
                     except TypeError:
                         custom_func(self, record)
+#                       print("Used 'custom_func(self, record)'"
 
     def add2malformed(self, record):
         """
         Populates self.malformed (which must be set up by client.)
-        Checks that each record has self.n_fields_per_record
-        and that the money fields are blank or evaluate to
-        an integer.
+        Checks that that for each record:
+        1. there are self.n_fields_per_record
+        2. the money fields are blank or evaluate to an integer.
+        3. the email field contains "@"
         __init__ sets self.previous_name_tuple to ("", "")
         (... used for comparison re correct ordering.)
         """
@@ -440,6 +432,9 @@ class Membership(object):
                     self.malformed.append("{}, {}, {}:{}"
                         .format(record['last'], record['first'],
                         key, value))
+        if record["email"] and not '@' in record["email"]:
+            self.malformed.append("{}, {}: Problem /w email."
+                .format(record['last'], record['first']))
         if name_tuple < self.previous_name_tuple:
             self.malformed.append("Record out of order: {0}, {1}"
                 .format(*name_tuple))
@@ -453,14 +448,17 @@ class Membership(object):
             self.status_list.append(("{last}, {first} - {status}"
                 .format(**record)))
 
-    def is_member(self, record):
+    def is_member(record):
         """
         Tries to determine if record is that of a member (based on
         status field.)
         If there is a problem, will either append notice to
         self.errors if it exists, or cause program to fail.
         """
-        stati = record['status'].split(STATUS_SEPARATOR)
+        stati = record['status'].split(utils.STATUS_SEPARATOR)
+        for status in utils.NON_MEMBER_STATI:
+            if status in stati:
+                return False
         if (
             stati == [''] or  # blank for most members
             "m" in stati or  # member
@@ -469,16 +467,9 @@ class Membership(object):
             "w" in stati   # fees waved
             ):
             return True
-        for status in NON_MEMBER_STATI:
-            if status in stati:
-                return False
-        error = ("Problem in 'is_member' with {}."
+        error = ("Problem in 'Membership.is_member' with {}."
             .format("{last}, {first}".format(**record)))
         print(error)
-        try:
-            self.errors.append(error)
-        except:
-            assert False
 
     def add2stati_by_status(self, record):
         """
@@ -503,7 +494,7 @@ class Membership(object):
                 .format(**record))
         if record["status"] and "be" in record["status"]:
             line = line + " (bad email!)"
-        if self.is_member(record): 
+        if member.is_member(record): 
             first_letter = record['last'][:1]
             if first_letter != self.first_letter:
     #           print("changing first letter from {} to {}"
@@ -513,8 +504,8 @@ class Membership(object):
             self.nmembers += 1
             self.members.append(line)
         elif 'a' in record["status"]:
-            self.stati.append(line)
-            self.nstati += 1
+            self.applicants.append(line)
+            self.napplicants += 1
         elif 'i' in record["status"]:
             self.inductees.append(line)
             self.ninductees += 1
@@ -713,7 +704,7 @@ Membership"""
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"])))
         with open(path2write, 'w') as file_obj:
-            file_obj.write(indent(entry,
+            file_obj.write(helpers.indent(entry,
             content.printers[args['--lpr']]["indent"]))
 
     def q_mailing(self, record):
@@ -741,8 +732,8 @@ Membership"""
 
     def prepare_mailing(self, mem_csv_file):
         """
-        Only client of this method is the prepare_mailing_cmd.
-        It assigns a number of instance attributes:
+        Only client of this method is the prepare_mailing_cmd
+        which must assign a number of instance attributes:
             self.which: one of the content.content_types which
                 in turn provides values for the following keys:
                     subject
@@ -759,7 +750,7 @@ Membership"""
         print("Begin prepare_mailing method. (traverse_records)")
         self.traverse_records(mem_csv_file, 
             self.func_dict[self.which["func"]])
-        print("Still within method: writing to json file...")
+        print("Still within method: checking if there are emails...")
         # No point in creating a json file if no content:
         if self.json_data:
             print("There is email to send.")
@@ -769,24 +760,26 @@ Membership"""
             print("There are no emails to send.")
 
     ## Following are special functions that need to be in the
-    ## <func_dict> : the functions that add final content to
-    ## each letter (depending on record.)
-
-    def some_func(self, record):
-        """
-        A prototype or can be used as a do nothing method
-        """
-        pass
+    ## <func_dict> : except for the first ('std_mailing') they
+    ## provide necessary attributes to their 'record' parameter
+    ## in order to add custom content letter.
 
     def std_mailing(self, record):
         """
         For mailings which require no special processing.
-        Mailing is sent if the 'test" lambda => True.
+        Mailing is sent if the "test" lambda => True.
         Otherwise the record is ignored.
         """
         if self.which["test"](record):
             record["subject"] = self.which["subject"]
             self.q_mailing(record)
+
+    def test_func(self, record):
+        """
+        Can be used as a prototype or can be used for testing.
+        Populates record["extra"]
+        """
+        pass
 
     def set_owing(self, record):
         """
@@ -795,7 +788,12 @@ Membership"""
         in which case those with zero or negative balances do not
         get a letter or email; othewise, these are acknowledged
         (so every one gets a message.)
+        Applies only to records that pass the "test" function.
         """
+        if not self.which["test"](record):
+            print( "{first} {last} fails 'test' function/lambda."
+                .format(**record))
+            return
         money = 0
         total = 0
         extra = []
@@ -863,7 +861,7 @@ Membership"""
             self.q_mailing(record)
 
     func_dict = {
-        "some_func": some_func,
+#       "some_func": some_func,
         "std_mailing": std_mailing,
         "set_owing": set_owing,
         "request_inductee_payment": request_inductee_payment,
@@ -1335,12 +1333,12 @@ Membership"""
                 and m["extras"]
                 ):
 #           else:  # create letter and add to directory
-                m["extras"] = indent(m["extras"])
-                m["extras"] = indent(m["extras"])
+                m["extras"] = helpers.indent(m["extras"])
+                m["extras"] = helpers.indent(m["extras"])
                 entry = (
                     content["postal_header"].format(**m)
                     + content["body"].format(m["extras"]))
-                entry = indent(entry)
+                entry = helpers.indent(entry)
                 path2write = os.path.join(dir4letters,
                     "_".join((m['last'], m['first'])))
                 with open(path2write, "w") as file_object:
@@ -1614,14 +1612,14 @@ Membership"""
         def send_letter():
             entry = (content["postal_header"]
                     + content["body"]).format(**record)
-            entry = indent(entry)
+            entry = helpers.indent(entry)
             path2write = os.path.join(self.dir4letters,
                 "_".join((record["last"], record["first"],)))
             with open(path2write, 'w') as file_object:
                 file_object.write(entry)
         letter_sent = False
         record["subject"] = content["subject"]
-        record["date"] = get_datestamp()
+        record["date"] = helpers.get_datestamp()
         if record['email']:
             entry = (content["email_header"]
                     + content["body"]).format(**record)
@@ -1637,10 +1635,10 @@ Membership"""
         Sends USPS letters to all.
         """
         record["subject"] = content["subject"]
-        record["date"] = get_datestamp()
+        record["date"] = helpers.get_datestamp()
         entry = (content["postal_header"]
                 + content["body"]).format(**record)
-        entry = indent(entry)
+        entry = helpers.indent(entry)
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"],)))
         with open(path2write, 'w') as file_object:
@@ -1854,12 +1852,12 @@ def ck_fields_cmd():
 
 def show_cmd():
     source = Membership(Dummy)
-    source.nmembers = 0
-    source.nstati =0
-    source.inductees =0
     source.members = []
-    source.applicants = []
+    source.nmembers = 0
     source.inductees = []
+    source.ninductees =0
+    source.applicants = []
+    source.napplicants = 0
     source.errors = []
     infile = args["-i"]
     if not infile:
@@ -2201,7 +2199,7 @@ def emailing_cmd():
 
 def prepare_mailing_cmd():
     """
-    msage:
+    Usage:
   ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
 
     "--which <letter>" must be set to one of the keys found in 

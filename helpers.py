@@ -8,29 +8,6 @@ Some helper functions needed by both formats.content and by utils
 
 import datetime
 
-_2delete = """
-printers = dict(
-    X6505= dict(
-            indentation=4,
-            top_blanks=2,
-            return_window=4,
-            middle_blanks=3
-            addr_window=4,
-            bottom_blanks=2,
-            ),
-    Janice= dict(
-            indentation=4,
-            top_blanks=2,
-            return_window=4,
-            middle_blanks=3
-            addr_window=4,
-            bottom_blanks=2,
-            ),
-
-POSTAL_INDENT = 8
-INDENTATION = " " * POSTAL_INDENT
-"""
-
 format = "%b %d, %Y"
 today = datetime.datetime.today()
 month = today.month
@@ -98,7 +75,6 @@ def expand(address, nlines):
         return '\n'.join(address)
     else:
         return address
-
 
 if __name__ == "__main__":
     print("The month is '{}'.".format(month))

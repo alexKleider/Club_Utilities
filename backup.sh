@@ -8,6 +8,7 @@ BACKUP="/media/alex/_EAGLE/Brbc"
 STAMP=`date +%y-%m-%d`
 DEST=${BACKUP}/$STAMP
 LAST=`cat ${BACKUP}/last`
+SRC="/home/alex/Club/Mshp/"
 
 if [ -d ${DEST} ]; then
   echo Backup already done today. No backup until tomorrow.
@@ -18,6 +19,6 @@ fi
 
 mkdir $DEST
 cp -al ${BACKUP}/${LAST}/. ${BACKUP}/$DEST
-rsync -av --exclude='Utils' --delete ../../Mshp/  $DEST
+rsync -av --exclude='Utils' --delete $SRC $DEST
 
 echo $STAMP > ${BACKUP}/last

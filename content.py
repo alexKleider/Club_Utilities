@@ -39,6 +39,12 @@ address_format = """{first} {last}
 {town}, {state} {postal_code}
 {country}"""
 
+email_header = """From: {}
+To: {{email}}
+Subject: {}
+
+Dear {{first}} {{last}},"""
+
 letter_bodies = dict(
     proto_content = """
 Blah, Blah-
@@ -53,6 +59,7 @@ May have as many 'extra's as required as long as each one
 has a corresponding entry in the record dict (typically arranged
 by the custom function.
 """,
+
     happyNY_and_0th_fees_request = """
 A very Happy New Year to all members of the Bolinas Rod & Boat
 Club!
@@ -73,6 +80,7 @@ year; don't forget to include provisions for payment of Club dues
 (and possibly fees as well.)  The following is included to help
 you in this regard.  It's always acceptable to pay early and get it
 behind you.{extra}""",
+
     February_meeting = """
 Things are to be somewhat different for the February meeting
 on Friday, the 1st. 
@@ -84,18 +92,21 @@ Applicants are invited but we ask members not to bring guests,
 for the simple reason that seating is limited (hence the importance
 of making a reservation.)
 """,
+
     thank_you_for_advanced_payment = """
 Your advance payment of dues for the next ({}) Club year
 has been received.  Thank you.
 
 All the best!
 """.format(helpers.next_club_year()),
+
     thank_you_for_timely_payment = """
 Your timely payment of dues for the next ({}) Club year
 has been received.  Thank you.
 
 All the best!
 """.format(helpers.next_club_year()),
+
     yearly_fees_1st_request = """
 The current Club membership year ends in June and ideally we'd
 like to have all dues and fees for the upcoming ({})
@@ -114,7 +125,10 @@ over to 'email_only' status.
 
 A statement of your current standing appears bellow;
 If there are any dues or fees outstanding, please don't delay.
+If the total is zero (or negative) you're all paid up (or more than
+paid up) and we thank you.
 {{extra}}""".format(helpers.next_club_year()),
+
     yearly_fees_2nd_request = """
 This is a second request being sent out to Club members whose
 dues (and/or fees where applicable) for the upcoming (begining
@@ -124,6 +138,7 @@ before the late penalty (of $25) is imposed.
 
 Details are as follows:
 {extra}""",
+
     penalty_notice = """
 The deadline for Club Dues payment has passed and records indicate
 that you are in arrears so a late fee of $25 has been applied.
@@ -133,6 +148,7 @@ risk being removed from the Club's list of members.
 
 Details are as follows:
 {extra}""", 
+
     bad_email = """
 Emails sent to you at
     "{email}"
@@ -142,6 +158,7 @@ Can you please help sort this out by contacting us
 at rodandboatclub@gmail.com?
 
 Thanks,""",
+
     new_applicant_welcome = """
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
@@ -150,6 +167,7 @@ Please come and enjoy the meetings (first Fiday of each month.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
 month period beginning the date your application was received.""",
+
     approved_but_waiting_for_vacancy = """
 The Club Executive has approved your application for Club
 membership but unfortunately there is currently no vacancy
@@ -159,6 +177,7 @@ to enjoy Club activities and participate as members do.
 "Welcome aboard!"
 
 I'll let you know once a vacancy opens up.  """,
+
     request_inductee_payment = """
 The Club Executive has approved your application for Club
 membership and there is currently a vacancy in the Club
@@ -173,6 +192,7 @@ of dues.  Please send a check for ${current_dues} to the Club at
 
 Upon receipt of your membership dues, I'll send you more information
 about the Club and your privileges as a member there of.""",
+
     welcome2full_membership = """
 It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
@@ -198,6 +218,7 @@ site: "Rules and Forms" and under that "Club Rentals".
 
 Most important of all, come to meetings and other functions to enjoy
 the comraderie!""",
+
     personal = """
 Enclosed please find the payment.
 
@@ -206,29 +227,37 @@ It was a good dinner and an enjoyable evening.
 Sincerely,
 Alex Kleider
 """,
+
     fromPeter = """
 Enjoy the minutes!
 Peter Pyle, Secretary
 """,
+
+    tpmg_social_security = """
+Please find enclosed the documentation I believe you require from the
+Social Security Administration concerning Medicare deductions for both
+my wife and for me.
+""",
+
     )
 # ... end of letter_bodies.
 
+
 post_scripts = dict(
-    gmail_warning = """
-PS If yours is a gmail account you'll get an alarming warning
+    gmail_warning = """ If yours is a gmail account you'll get an alarming warning
 that this email may not have come from the Rod and Boat Club.
 It was sent through a different mail server, hence the automatic
 notice from Google.  All is well.
 """,
-    remittance = """
-PS By the way, if/when you do pay, please send your remittance to
+
+    remittance = """ By the way, if/when you do pay, please send your remittance to
     The Bolinas Rod & Boat Club
     PO Box 248
     Bolinas, CA 94924
 It's always a good idea to jot down 'club dues' on the check
 in order to prevent any confusion.""",
-    ref1 = """
-[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
+
+    ref1 = """ [1] rodandboatclub@gmail.com or PO Box 748, 94924""",
     )
 
 authors = dict(
@@ -258,12 +287,6 @@ authors = dict(
         ),
     )  # ... end of authors.
 
-email_header = """From: {}
-To: {{email}}
-Subject: {}
-
-Dear {{first}} {{last}},"""
-
 # Need to assign one of the following content_types to the 
 # Membership instance attribute 'content_type'.
 
@@ -289,7 +312,7 @@ content_types = dict(
         "from": authors["ak"],
         "body": letter_bodies["proto_content"],
         "post_scripts": (post_scripts["gmail_warning"],),
-        "func": "some_func",
+        "func": "test_func",
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -335,7 +358,8 @@ content_types = dict(
         "body": letter_bodies["yearly_fees_1st_request"],
         "post_scripts": (post_scripts["remittance"],),
         "func": "set_owing",
-        "test": lambda record: True,
+        "test": lambda record: False if (('a' in record["status"]) or
+                ('w' in record["status"])) else True,
         "e_and_or_p": "one_only",
         },
     yearly_fees_2nd_request = {
@@ -346,7 +370,7 @@ content_types = dict(
         "post_scripts": (post_scripts["remittance"],
                     post_scripts["ref1"],),
         "func": "set_owing",
-        "test": lambda record: True,
+        "test": lambda record: helpers.is_member,
         "e_and_or_p": "one",
         },
     penalty_notice = {
@@ -356,7 +380,7 @@ content_types = dict(
         "post_scripts": (post_scripts["remittance"],
                     post_scripts["ref1"],),
         "func": "set_owing",
-        "test": lambda record: True,
+        "test": lambda record: helpers.is_member,
         "e_and_or_p": "both",
         },
     bad_email = {
@@ -376,7 +400,7 @@ content_types = dict(
         "post_scripts": (),
         "func": "std_mailing",
         "test": (
-        lambda record: True if 'a1' in record["status"] else False),
+        lambda record: True if 'a0' in record["status"] else False),
         "e_and_or_p": "both",
         },
     request_inductee_payment = {
@@ -386,7 +410,7 @@ content_types = dict(
         "post_scripts": (),
         "func": "request_inductee_payment",
         "test": (
-        lambda record: True if 'i' in record["status"] else False),
+        lambda record: True if 'ai' in record["status"] else False),
         "e_and_or_p": "both",
         },
     welcome2full_membership = {
@@ -409,34 +433,46 @@ content_types = dict(
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
         }, 
+    tpmg_social_security = {
+        "subject": "Medicare Reimbursement",
+        "from": authors["ak"],
+        "salutation": "Dear Sir or Madame,",
+        "body": letter_bodies["tpmg_social_security"],
+        "post_scripts": (),
+        "func": "std_mailing",
+        "test": (
+        lambda record: True if 'TPMG' in record["first"] else False),
+        "e_and_or_p": "usps",
+
+        },
     )
     # ... end of content_types.
 
 printers = dict(
-    # Using tuples in case width will ever be needed.
+    # tuples in the case of windows.
     X6505 = dict(
         indent = 4,
-        top = (1,),  # blank lines at top
+        top = 1,  # blank lines at top
         frm = (5, 25),  # return window
-        date = (4,),  # between windows
+        date = 4,  # between windows
         to = (7, 29),  # recipient window
-        re = (3,),  # below window
+        re = 3,  # below window
         ),
     HL2170 = dict(
         indent = 3,
-        top = (1,),  # blank lines at top
+        top = 1,  # blank lines at top
         frm = (5, 25),  # return window
-        date = (4,),  # between windows
+        date = 4,  # between windows
         to = (7, 29),  # recipient window
-        re = (3,),  # below windows => fold
+        re = 3,  # below windows => fold
         ),
     Janice = dict(
         indent = 4,
-        top = (3,),  # blank lines at top
+        top = 4,  # blank lines at top
         frm = (5, 25),  # return window
-        date = (4,),  # between windows
+        date = 4,  # between windows
         to = (7, 29),  # recipient window
-        re = (3,),  # below windows => fold
+        re = 3,  # below windows => fold
         ),
     )
 ### ... end of printers (dict specifying printer being used.)
@@ -467,9 +503,14 @@ def expand(content, nlines):
         return content
 
 def get_postscripts(which_letter):
+    """
+    Returns a list of lines representing the post scripts
+    """
     ret = []
+    n = 0
     for post_script in which_letter["post_scripts"]:
-        ret.append(post_script)
+        ret.append("\n" + "P"*n + "PS" + post_script)
+        n += 1
     return ret
 
 def letter_format(which_letter, printer):
@@ -485,19 +526,22 @@ def letter_format(which_letter, printer):
     """
     lpr = printers[printer]
     # top margin:
-    ret = [""] * lpr["top"][0]
+    ret = [""] * lpr["top"]
     # return address:
     ret_addr = address_format.format(**which_letter["from"])
     ret.append(expand(ret_addr, lpr['frm'][0]))
     # format string for date:
-    ret.append(expand((helpers.get_datestamp()),lpr['date'][0]))
+    ret.append(expand((helpers.get_datestamp()),lpr['date']))
     # format string for recipient adress:
     ret.append(expand(address_format,lpr['to'][0]))
     # subject/Re: line
     ret.append(expand("Re: {}".format(which_letter["subject"]),
-        lpr['re'][0]))
+        lpr['re']))
     # format string for salutation:
-    ret.append("Dear {first} {last},\n")
+    try:
+        ret.append(which_letter["salutation"] + "\n")
+    except KeyError:
+        ret.append("Dear {first} {last},\n")
     # body of letter (with or without {extra}(s))
     ret.append(which_letter["body"])
     # signarue:
