@@ -14,7 +14,8 @@ if [ -d ${DEST} ]; then
   echo Backup already done today. No backup until tomorrow.
   exit 1
 else
-  echo "All clear to go ahead. (Directory ${DEST} doesn't exist.)"
+  echo "All clear to go ahead:"
+  echo "(Directory ${DEST} doesn't already exist.)"
 fi
 
 mkdir $DEST

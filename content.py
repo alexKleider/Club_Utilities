@@ -33,6 +33,7 @@ Other items:
 """
 
 import helpers
+import member
 
 address_format = """{first} {last}
 {address}
@@ -64,22 +65,20 @@ by the custom function.
 A very Happy New Year to all members of the Bolinas Rod & Boat
 Club!
 
-One of our resolutions is to do a better job of maintaining
-the 'Membership' section of the Club web site:
-(rodandboatclub.com, password is 'fish'.) 
-Please check it out: click on 'Membership' and see if all
-your data is as you would like it to be. Let us know of any
+Another friendly reminder that the Club maintains a membership
+list on the 'Membership' section of the Club web site:
+(rodandboatclub.com, password is 'fish'.) Please check it out
+if you want to get in touch with a fellow member.
 changes that should be made.
-
-By the way, if you are getting this by post but have an email
-address that you might be willing to share, we'd very much like
-to switch you over to 'email_only' status.
 
 At this time you might be doing some financial planning for the
 year; don't forget to include provisions for payment of Club dues
 (and possibly fees as well.)  The following is included to help
 you in this regard.  It's always acceptable to pay early and get it
-behind you.{extra}""",
+behind you.{extra}
+
+If the number is negative or zero, there'll be nothing due in June.
+""",
 
     February_meeting = """
 Things are to be somewhat different for the February meeting
@@ -113,15 +112,10 @@ like to have all dues and fees for the upcoming ({})
 membership year in by then.  If you are already paid up,
 the Club thanks you.
 
-While we've got your attention: please go to the Club web site
-(rodandboatclub.com, password is 'fish',) click on 'Membership'
-and check that all your data is as you would like it to be.
-If you see anything not to your liking, let us know so corrections
-can be made.
-
-By the way, if you are getting this by post but have an email
-address, we'd very much like to know about it and switch you
-over to 'email_only' status.
+Remember that you can find out all about yourself and fellow
+club members by going to the Club web site (rodandboatclub.com,
+password is 'fish',) click on 'Membership.'  Let us know if any
+corrections should be made
 
 A statement of your current standing appears bellow;
 If there are any dues or fees outstanding, please don't delay.
@@ -131,7 +125,7 @@ paid up) and we thank you.
 
     yearly_fees_2nd_request = """
 This is a second request being sent out to Club members whose
-dues (and/or fees where applicable) for the upcoming (begining
+dues (and/or fees where applicable) for the current (began
 July 1st) Club year have not yet been payed. You should also
 note that this is the last notice you can expect to receive
 before the late penalty (of $25) is imposed.
@@ -312,7 +306,7 @@ content_types = dict(
         "from": authors["ak"],
         "body": letter_bodies["proto_content"],
         "post_scripts": (post_scripts["gmail_warning"],),
-        "func": "test_func",
+        "func": [member.get_owing, member.append2Dr],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },

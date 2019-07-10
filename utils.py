@@ -340,6 +340,7 @@ class Membership(object):
     Create such an object for each data base used.
     In the current use case this is the only one and
     it pertains to the 'Bolinas Rod and Boat Club'.
+    Might change name of this class to "Club".
     """
     ## Constants and Defaults...
     YEARLY_DUES = 100
@@ -358,16 +359,6 @@ class Membership(object):
     JSON_FILE_NAME4EMAILS = 'Data/emails.json'
     ## ...end of Constants and Defaults.
 
-    money_keys = ("dues", "mooring", "dock", "kayak") 
-    fees_keys = money_keys[1:]
-    money_headers = {
-        "dues":    "Dues..........",
-        "mooring": "Mooring.......",
-        "dock":    "Dock Usage....",
-        "kayak":   "Kayak Storage.",
-        "total":   "TOTAL.........",
-        }
-
     def __init__(self, params):
         """
         Each instance must know the format
@@ -378,139 +369,6 @@ class Membership(object):
         self.previous_name_tuple = ('', '')  # Used to check ordering.
         self.name_tuples = []
         self.json_data = []
-
-    def traverse_records(self, infile, custom_funcs):
-        """
-        Traverses <infile> and applies <custom_funcs> to each
-        record.  <custom_funcs> can be a single function or a
-        list of functions.
-        Generally each <custom_func> will leave its results in
-        one of the attributes (similarly named.)  These custom funcs
-        are generally methods with names beginning in 'get_'.
-        # Could wrap this up in a try clause and report an error
-        # number to prevent errors from aborting the program.
-        Also used for mailings.
-        """
-        if callable(custom_funcs):
-            custom_funcs = [custom_funcs]
-        with open(infile, 'r') as file_object:
-            print("Opening {}".format(infile))
-            dict_reader = csv.DictReader(file_object, restkey='status')
-            self.fieldnames = dict_reader.fieldnames
-            self.n_fields = len(self.fieldnames)
-            for record in dict_reader:
-                for custom_func in custom_funcs:
-                    try:
-                        custom_func(record)
-#                       print("Used 'custom_func(record)'"
-                    except TypeError:
-                        custom_func(self, record)
-#                       print("Used 'custom_func(self, record)'"
-
-    def add2malformed(self, record):
-        """
-        Populates self.malformed (which must be set up by client.)
-        Checks that that for each record:
-        1. there are self.n_fields_per_record
-        2. the money fields are blank or evaluate to an integer.
-        3. the email field contains "@"
-        __init__ sets self.previous_name_tuple to ("", "")
-        (... used for comparison re correct ordering.)
-        """
-        name_tuple = (record["last"], record["first"])
-        if len(record) != self.n_fields:
-            self.malformed.append("{}, {}: Wrong length."
-                .format(record['last'], record['first']))
-        for key in self.money_keys:
-            value = record[key]
-            if value:
-                try:
-                    res = int(value)
-                except ValueError:
-#                   if value == 'w':
-#                       continue
-                    self.malformed.append("{}, {}, {}:{}"
-                        .format(record['last'], record['first'],
-                        key, value))
-        if record["email"] and not '@' in record["email"]:
-            self.malformed.append("{}, {}: Problem /w email."
-                .format(record['last'], record['first']))
-        if name_tuple < self.previous_name_tuple:
-            self.malformed.append("Record out of order: {0}, {1}"
-                .format(*name_tuple))
-        self.previous_name_tuple = name_tuple
-
-    def add2status_list(self, record):
-        """
-        Populates self.status_list (which must be set up by client.)
-        """
-        if record["status"]:
-            self.status_list.append(("{last}, {first} - {status}"
-                .format(**record)))
-
-    def is_member(record):
-        """
-        Tries to determine if record is that of a member (based on
-        status field.)
-        If there is a problem, will either append notice to
-        self.errors if it exists, or cause program to fail.
-        """
-        stati = record['status'].split(utils.STATUS_SEPARATOR)
-        for status in utils.NON_MEMBER_STATI:
-            if status in stati:
-                return False
-        if (
-            stati == [''] or  # blank for most members
-            "m" in stati or  # member
-            stati == ['be'] or  # bad email
-            #    Notice the '==', not '"be" in ..'
-            "w" in stati   # fees waved
-            ):
-            return True
-        error = ("Problem in 'Membership.is_member' with {}."
-            .format("{last}, {first}".format(**record)))
-        print(error)
-
-    def add2stati_by_status(self, record):
-        """
-        Prerequisite: self.stati_dict
-        Populates self.stati_dict (which must be set up by
-        client) with lists of member names (last, first) keyed
-        by status.
-        """
-        stati = record["status"].split(STATUS_SEPARATOR)
-        for status in stati:
-            _ = self.stati_dict.setdefault(status, [])
-            self.stati_dict[status].append(
-                        "{last}, {first}".format(**record))
-
-    def add2memlist4web(self, record):
-        """
-        Populate self.members, self.stati & self.inductees.
-        All these attributes must be set up by the client.
-        """
-        line = (
-    "{first} {last}  {phone}  {address}, {town}, {state} {postal_code}  {email}"
-                .format(**record))
-        if record["status"] and "be" in record["status"]:
-            line = line + " (bad email!)"
-        if member.is_member(record): 
-            first_letter = record['last'][:1]
-            if first_letter != self.first_letter:
-    #           print("changing first letter from {} to {}"
-    #               .format(self.first_letter, first_letter))
-                self.first_letter = first_letter
-                self.members.append("")
-            self.nmembers += 1
-            self.members.append(line)
-        elif 'a' in record["status"]:
-            self.applicants.append(line)
-            self.napplicants += 1
-        elif 'i' in record["status"]:
-            self.inductees.append(line)
-            self.ninductees += 1
-        else:
-            self.errors.append(line)
 
     def compare_gmail(self, source_file, google_file, separator):
         """
@@ -590,6 +448,7 @@ Membership"""
             dict_reader = csv.DictReader(file_obj, restkey="status")
             for record in dict_reader:
                 record_number += 1
+                print(record)
                 email = record["email"]
                 if email:
                     # append to names_and_emails as a tuple:
@@ -688,204 +547,6 @@ Membership"""
                 ret.append("No entries for '{}'".format(report_name))
         return separator.join(ret)
     ### End of compare_gmail method.
-
-
-##### Next group of methods deal with sending out mailings. #######
-
-    def append_email(self, record):
-        entry = self.email.format(**record)
-#       if 'gmail' in record['email']:
-#           entry = '\n'.join([entry,
-#                       content.post_scripts["gmail_warning"]])
-        self.json_data.append([[record['email']],entry])
-
-    def file_letter(self, record):
-        entry = self.letter.format(**record)
-        path2write = os.path.join(self.dir4letters,
-            "_".join((record["last"], record["first"])))
-        with open(path2write, 'w') as file_obj:
-            file_obj.write(helpers.indent(entry,
-            content.printers[args['--lpr']]["indent"]))
-
-    def q_mailing(self, record):
-        """
-        Checks on desired type of mailing and
-        deals with mailing as appropriate.
-        """
-        record["subject"] = self.which["subject"]
-        if record['status'] and 'be' in record['status']:
-            self.file_letter(record)
-        elif self.which["e_and_or_p"] == "both":
-            self.append_email(record)
-            self.file_letter(record)
-        elif self.which["e_and_or_p"] == 'one_only':
-            if record['email']:
-                self.append_email(record)
-            else:
-                self.file_letter(record)
-        elif self.which["e_and_or_p"] == 'usps':
-                self.file_letter(record)
-        else:
-            print("Problem in q_mailing re {}"
-                .format("{last}, {first}".format(**record)))
-            assert False
-
-    def prepare_mailing(self, mem_csv_file):
-        """
-        Only client of this method is the prepare_mailing_cmd
-        which must assign a number of instance attributes:
-            self.which: one of the content.content_types which
-                in turn provides values for the following keys:
-                    subject
-                    email_header
-                    body of letter
-                    func to be used on each record
-                    test a boolean lambda- consider record or not
-                    e_and_or_p: both, usps or one_only
-            self.date (passed on to record.date)
-            self.json_file_name
-            self.json_data = []
-            self.dir4letters
-        """
-        print("Begin prepare_mailing method. (traverse_records)")
-        self.traverse_records(mem_csv_file, 
-            self.func_dict[self.which["func"]])
-        print("Still within method: checking if there are emails...")
-        # No point in creating a json file if no content:
-        if self.json_data:
-            print("There is email to send.")
-            with open(self.json_file_name, 'w') as file_obj:
-                file_obj.write(json.dumps(self.json_data))
-        else:
-            print("There are no emails to send.")
-
-    ## Following are special functions that need to be in the
-    ## <func_dict> : except for the first ('std_mailing') they
-    ## provide necessary attributes to their 'record' parameter
-    ## in order to add custom content letter.
-
-    def std_mailing(self, record):
-        """
-        For mailings which require no special processing.
-        Mailing is sent if the "test" lambda => True.
-        Otherwise the record is ignored.
-        """
-        if self.which["test"](record):
-            record["subject"] = self.which["subject"]
-            self.q_mailing(record)
-
-    def test_func(self, record):
-        """
-        Can be used as a prototype or can be used for testing.
-        Populates record["extra"]
-        """
-        pass
-
-    def set_owing(self, record):
-        """
-        Sets up record["extra"] for dues and fees notice,
-        Client has option of setting self.owing_only => True
-        in which case those with zero or negative balances do not
-        get a letter or email; othewise, these are acknowledged
-        (so every one gets a message.)
-        Applies only to records that pass the "test" function.
-        """
-        if not self.which["test"](record):
-            print( "{first} {last} fails 'test' function/lambda."
-                .format(**record))
-            return
-        money = 0
-        total = 0
-        extra = []
-        for key in self.money_keys:
-            if record[key] and 'w' in record[key]:
-                extra.append("{}.: waived."
-                .format(self.money_headers[key]))
-                continue
-            if not record[key]:
-                continue
-            try:
-                money = int(record[key])
-#           except TypeError:
-#               print("TypeError re '{}'.".format(record[key]))
-#               continue
-            except ValueError:
-                print("ValueError re '{}'.".format(record[key]))
-                continue
-            if money:
-                extra.append("{}.: ${}"
-                    .format(self.money_headers[key], money))
-                total += money
-        try:
-            owing_only = self.owing_only
-        except AttributeError:
-            owing_only = False
-        if total <= 0 and owing_only:
-            return  # no notice sent
-        if total <= 0:
-            extra.append("Total is 0 or a credit."
-                .format(total))
-        extra = ["\n"] + extra
-        extra.append("{}.: ${}"
-            .format(self.money_headers["total"], total))
-        if total < 0:
-            extra.extend(
-            ["Thank you for your advance payment.",
-             "Your balance is a credit so there is nothing due."])
-        if total == 0:
-            extra.append("You are all paid up! Thank you.")
-        record["extra"] = '\n'.join(extra)
-        self.q_mailing(record)
-
-    def set_inductee_dues(self, record):
-        """
-        Provides processing regarding what fee to charge
-        and sets record["current_dues"].
-        """
-        if month in (1, 2, 3, 4):
-            record["current_dues"] = 50
-        else:
-            record["current_dues"] = 100
-
-
-    def request_inductee_payment(self, record):
-        """
-        Contingent on the self.which["test"] lambda:
-        (If the record's status field contains 'i' for 'inducted'.)
-        Sets up record["current_dues"] (by calling set_inductee_dues)
-        and record["subject"]  ?? should this be elsewhere??
-        """
-        if self.which["test"](record):
-            self.set_inductee_dues(record)
-            record["subject"] = self.which["subject"]
-            self.q_mailing(record)
-
-    func_dict = {
-#       "some_func": some_func,
-        "std_mailing": std_mailing,
-        "set_owing": set_owing,
-        "request_inductee_payment": request_inductee_payment,
-        }
-
-    def send_attachment(self, record):
-        """
-        Uses 'mutt' (which in turns uses 'msmtp') to send emails
-        with attachment: relies on <mutt_send> which in turn
-        relies on command line args:
-            "-F": which muttrc (to specify 'From: ')
-            "-a": file name of the attachment
-            "-c": name of file containing content of the email
-            "-s": subject of the email
-        """
-        body = self.content.format(**record)
-        email = record["email"]
-        bad_email = "be" in record["status"]
-        if email and not bad_email:
-            mutt_send(email,
-                args["--subject"],
-                body,
-                args["-a"],
-                )
 
 
 ############  End of the mailing section  ###############
@@ -1530,38 +1191,6 @@ Membership"""
             for error in errors:
                 print(error)
 
-    def get_payables(self, record):
-        """
-        Populates self.still_owing and self.advance_payments.
-
-        Checks record for dues &/or fees. If found,
-        positives are added to self.still_owing,
-        negatives to self.advance_payments.
-        """
-        name = "{last}, {first}: ".format(**record)
-        line_positive = []
-        line_negative = []
-        for key in self.money_keys:
-            if record[key]:
-                amount = int(record[key])
-                if amount != 0:
-                    if amount > 0:
-                        assert amount > 0
-                        line_positive.append("{} {}".format(
-                            self.money_headers[key], amount))
-                    elif amount < 0:
-                        assert amount < 0
-                        line_negative.append("{} {}".format(
-                            self.money_headers[key], amount))
-                    else:
-                        assert False
-        if line_positive:
-            line = (name + ', '.join(line_positive))
-            self.still_owing.append(line)
-        if line_negative:
-            line = (name + ', '.join(line_negative))
-            self.advance_payments.append(line)
-
     def fees_intake(self, infile=CHECKS_RECEIVED):
         """
         Returns a list of strings: subtotals and grand total.
@@ -1863,8 +1492,9 @@ def show_cmd():
     if not infile:
         infile = source.infile
     print("Preparing membership listings...")
-    err_code = source.traverse_records(infile,
-                                source.add2memlist4web)
+    err_code = member.traverse_records(infile,
+                                member.add2memlist4web,
+                                source)
     print("...done preparing membership listing...")
     listing4web = ["""FOR MEMBER USE ONLY
 
@@ -2134,8 +1764,11 @@ def payables_cmd():
     if not infile:
         infile = Membership.MEMBER_DB
     source = Membership(Dummy)
-    err_code = source.traverse_records(infile, source.get_payables)
+    source.still_owing = []
+    source.advance_payments = []
     output = []
+    err_code = member.traverse_records(infile,
+                member.get_payables, source)
     if source.still_owing:
         output.extend(["Members owing",
                        "-------------"])
@@ -2380,6 +2013,7 @@ def fees_intake_cmd():
         fees_taken_in = source.fees_intake(infile)
     else:
         fees_taken_in = source.fees_intake()
+    fees_taken_in.append("\n")
     res = '\n'.join(fees_taken_in)
     if not outfile or outfile == 'stdout':
         print(res)
