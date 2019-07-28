@@ -6,6 +6,7 @@
 # ... assuming defaults are used:
 
 STAMP=`date +%y-%m-%d`
+# STAMP='19-07-24'
 MAILING_ARCHIVES='../Archives/Mailings'
 TARFILE=${STAMP}.tar.gz
 MAILING_DIR='Data/MailingDir'

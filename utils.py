@@ -204,6 +204,10 @@ if args["-s"] == "LF":
 else:
     args["-s"] = '\n\f'
 
+lpr = args["--lpr"]
+if lpr and lpr not in content.printers.keys():
+    print("Invalid '--lpr' parameter!")
+    sys.exit()
 if not args["<gmail_contacts>"]:
     args["<gmail_contacts>"] = GMAIL_CONTACTS
 
@@ -448,7 +452,7 @@ Membership"""
             dict_reader = csv.DictReader(file_obj, restkey="status")
             for record in dict_reader:
                 record_number += 1
-                print(record)
+#               print(record)
                 email = record["email"]
                 if email:
                     # append to names_and_emails as a tuple:
@@ -868,8 +872,8 @@ Membership"""
         Checks the name of the json output file where
         emails are to be stored.
         """
-        print("method check_json_file param is: {}"
-            .format(json_email_file))
+#       print("method check_json_file param is: {}"
+#           .format(json_email_file))
         if os.path.exists(json_email_file):
             print("The file '{}' already exists."
                 .format(json_email_file))
@@ -1557,8 +1561,9 @@ def stati_cmd():
         infile = Membership.MEMBER_DB
     print("Preparing listing of stati.")
     source.stati_dict = {}
-    err_code = source.traverse_records(infile,
-                                    source.add2stati_by_status)
+    err_code = member.traverse_records(infile,
+                                    member.add2stati_by_status,
+                                    source)
     res = ["No entries found.", ]
     keys = [k for k in source.stati_dict.keys() if k]
     keys.sort()
@@ -1847,9 +1852,10 @@ def prepare_mailing_cmd():
     import content
     source = Membership(Dummy)
     source.which = content.content_types[args["--which"]]
-    source.lpr = args["--lpr"]
+    source.lpr = content.printers[args["--lpr"]]
     source.email = content.prepare_email(source.which)
-    source.letter = content.letter_format(source.which, source.lpr)
+    source.letter = content.letter_format(source.which, 
+                                        args["--lpr"])
 #   print("Preparing mailing: '{}'".format(source.which))
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
@@ -1871,7 +1877,7 @@ def prepare_mailing_cmd():
         source.check_json_file(source.json_file_name)
         source.json_data = []
     # *****...
-    source.prepare_mailing(args["-i"])
+    member.prepare_mailing(args["-i"], source)
     # need to move the json_data to the file
     if source.json_data:
         with open(source.json_file_name, 'w') as f_obj:
@@ -2002,6 +2008,8 @@ def display_emails_cmd(json_file):
         email.append(record[1])
         email.append('\n')
         all_emails.append("\n".join(email))
+    print("Processed {} emails..."
+        .format(len(all_emails)))
     return "\n".join(all_emails)
 
 def fees_intake_cmd():

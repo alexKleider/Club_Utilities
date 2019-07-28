@@ -19,7 +19,7 @@ A number of 'dict's are being used:
             "from": authors["club"],
             "body": letter_bodies["happyNY_and_0th_fees_request"],
             "post_script": a string,
-            "func": "some_func", 
+            "funcs": [func_1, ..], 
             "test": lambda record: True,
             "e_and_or_p": "one_only",
             },
@@ -128,9 +128,27 @@ This is a second request being sent out to Club members whose
 dues (and/or fees where applicable) for the current (began
 July 1st) Club year have not yet been payed. You should also
 note that this is the last notice you can expect to receive
-before the late penalty (of $25) is imposed.
+before the late penalty (of $25) is imposed on those who's
+remitance has not been received postmarked on or before August 1st.
 
 Details are as follows:
+{extra}""",
+
+    yearly_fees_corrected_2nd_request = """
+Your membership secretary neglected in the last request for
+dues (and fees where applicable) to mention where to send
+your check.  Please forgive the oversight. It's:
+    Bolinas Rod and Boat Club
+    PO Box 248
+    Bolinas, CA 94924
+Details as to what you still owe follow:
+{extra}""",
+
+    warning = """
+Club records indicate that your dues (+/- other fees) have as
+yet not been paid.  Please be aware that a late fee of $25 is
+imposed on payments not received post marked on or before 
+August 1st.  Details follow.
 {extra}""",
 
     penalty_notice = """
@@ -293,11 +311,13 @@ authors = dict(
         #     one or more 'extra' sections.
         # signature: a 'yours truely' + name.
         # post_scripts:  a list of optional ps
-        # func: the Membership method used on each record.
-        # test: a lambda function that determines if the record
-        #     is to be considered at all.
-        # e_and_or_p: send 'both' email and usps, 'usps' (mail only)
-        #     or 'one_only' (email if available, othewise usps)
+        # funcs: a list of functions used on each record.
+        # test: a (usually 'lambda') function that determines
+        # if the record is to be considered at all.
+        # e_and_or_p: possibilities are:
+        #     'both' email and usps, 
+        #     'usps' mail only,
+        #  or 'one_only' email if available, othewise usps.
     # One of the following becomes the 'which' attribute
     # of a Membership instance.
 content_types = dict(
@@ -306,7 +326,7 @@ content_types = dict(
         "from": authors["ak"],
         "body": letter_bodies["proto_content"],
         "post_scripts": (post_scripts["gmail_warning"],),
-        "func": [member.get_owing, member.append2Dr],
+#       "funcs": [member.get_owing, member.append2Dr],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -315,7 +335,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
         "post_scripts": (post_scripts["remittance"],),
-        "func": "set_owing",
+        "funcs": (member.set_owing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -324,7 +344,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["February_meeting"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -333,7 +353,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["thank_you_for_advanced_payment"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -342,7 +362,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["thank_you_for_timely_payment"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -351,7 +371,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["yearly_fees_1st_request"],
         "post_scripts": (post_scripts["remittance"],),
-        "func": "set_owing",
+        "funcs": (member.set_owing,),
         "test": lambda record: False if (('a' in record["status"]) or
                 ('w' in record["status"])) else True,
         "e_and_or_p": "one_only",
@@ -361,11 +381,44 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["yearly_fees_2nd_request"],
         "signature": '',
-        "post_scripts": (post_scripts["remittance"],
-                    post_scripts["ref1"],),
-        "func": "set_owing",
-        "test": lambda record: helpers.is_member,
-        "e_and_or_p": "one",
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1"],
+            ),
+        "funcs": (member.set_owing,),
+        "test": lambda record: True if ((
+            member.is_member(record) and
+            member.not_paid_up(record))
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
+    yearly_fees_corrected_2nd_request = {
+        "subject":"Second request for BR&BC dues",
+        "from": authors["club"],
+        "body": letter_bodies["yearly_fees_corrected_2nd_request"],
+        "signature": '',
+        "post_scripts": (
+#           post_scripts["remittance"],
+#           post_scripts["ref1"],
+            ),
+        "funcs": (member.set_owing,),
+        "test": lambda record: True if ((
+            member.is_member(record) and
+            member.not_paid_up(record))
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
+    warning = {
+        "subject":"Warning of up coming penalty for late payment",
+        "from": authors["club"],
+        "body": letter_bodies["warning"],
+        "post_scripts": (post_scripts["remittance"],),
+        "funcs": (member.set_owing,),
+        "test": lambda record: True if ((
+            member.is_member(record) and
+            member.not_paid_up(record))
+            ) else False,
+        "e_and_or_p": "one_only",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
@@ -373,8 +426,11 @@ content_types = dict(
         "body": letter_bodies["penalty_notice"],
         "post_scripts": (post_scripts["remittance"],
                     post_scripts["ref1"],),
-        "func": "set_owing",
-        "test": lambda record: helpers.is_member,
+        "funcs": (member.set_owing,),
+        "test": lambda record: True if ((
+            member.is_member(record) and
+            member.not_paid_up(record))
+            ) else False,
         "e_and_or_p": "both",
         },
     bad_email = {
@@ -382,7 +438,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["bad_email"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'be' in record["status"] else False),
         "e_and_or_p": "usps",
@@ -392,7 +448,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["new_applicant_welcome"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'a0' in record["status"] else False),
         "e_and_or_p": "both",
@@ -402,7 +458,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
         "post_scripts": (),
-        "func": "request_inductee_payment",
+        "funcs": (member.request_inductee_payment,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
         "e_and_or_p": "both",
@@ -412,7 +468,7 @@ content_types = dict(
         "from": authors["club"],
         "body": letter_bodies["welcome2full_membership"],
         "post_scripts": (post_scripts["ref1"], ),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'm' in record["status"] else False),
         "e_and_or_p": "both",
@@ -422,7 +478,7 @@ content_types = dict(
         "from": authors["ak"],
         "body": letter_bodies["personal"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
@@ -433,7 +489,7 @@ content_types = dict(
         "salutation": "Dear Sir or Madame,",
         "body": letter_bodies["tpmg_social_security"],
         "post_scripts": (),
-        "func": "std_mailing",
+        "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'TPMG' in record["first"] else False),
         "e_and_or_p": "usps",
@@ -510,13 +566,14 @@ def get_postscripts(which_letter):
 def letter_format(which_letter, printer):
     """
     Prepares the template for a letter.
-    <which_letter> is one of the <content_types> and
-    <printer> specifies which printer is to be used-
-    one of the keys to the <printers> dict.
-    Both are found in this module.
+    <which_letter>: one of the <content_types> and
+    <printer>: one of the keys to the <printers> dict
+    specifying which printer is to be used (passed as the
+    "--lpr" command line parameter.)
     Returns a 'letter' with formatting fields of <record>:
     typically {first}, {last}, {address}, {town}, {state},
-    {postal_code}, {country}, and possibly (one or more) {extra}(s).
+    {postal_code}, {country}, and possibly (one or more)
+    {extra}(s) &/or 'PS's.
     """
     lpr = printers[printer]
     # top margin:

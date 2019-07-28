@@ -10,7 +10,11 @@ A few/some need to store data so those will get an extra
 (named) parameter: 'club=None'.
 """
 
+import os
 import csv
+import json
+import helpers
+# import content
 
 STATUS_SEPARATOR = ':'
 WAIVED = "w"
@@ -128,10 +132,14 @@ def add2stati_by_status(record, club=None):
         club.stati_dict[status].append(
                     "{last}, {first}".format(**record))
 
-def still_owing(record, club=None):
+def not_paid_up(record, club=None):
     """
+    Checks if there is a positive balance in any of the money fields.
     """
-    pass
+    for key in money_keys:
+      if record[key] and int(record[key]) > 0:
+        return True
+    return False
 
 def get_owing(record, club):
     """
@@ -235,6 +243,8 @@ def is_member(record, club=None):
     If there is a problem, will either append notice to
     club.errors if it exists, or cause program to fail.
     """
+    if record['status']==None:
+        return True
     stati = record['status'].split(STATUS_SEPARATOR)
     for status in NON_MEMBER_STATI:
         if status in stati:
@@ -312,9 +322,11 @@ def file_letter(record, club):
     entry = club.letter.format(**record)
     path2write = os.path.join(club.dir4letters,
         "_".join((record["last"], record["first"])))
+#   print("lpr['indent'] is set to {}"
+#       .format(club.lpr['indent']))
     with open(path2write, 'w') as file_obj:
         file_obj.write(helpers.indent(entry,
-        content.printers[args['--lpr']]["indent"]))
+        club.lpr["indent"]))
 
 def q_mailing(record, club):
     """
@@ -323,17 +335,17 @@ def q_mailing(record, club):
     """
     record["subject"] = club.which["subject"]
     if record['status'] and 'be' in record['status']:
-        club.file_letter(record)
+        file_letter(record, club)
     elif club.which["e_and_or_p"] == "both":
-        club.append_email(record)
-        club.file_letter(record)
+        append_email(record, club)
+        file_letter(record, club)
     elif club.which["e_and_or_p"] == 'one_only':
         if record['email']:
-            club.append_email(record)
+            append_email(record, club)
         else:
-            club.file_letter(record)
+            file_letter(record, club)
     elif club.which["e_and_or_p"] == 'usps':
-            club.file_letter(record)
+            club.file_letter(record, club)
     else:
         print("Problem in q_mailing re {}"
             .format("{last}, {first}".format(**record)))
@@ -356,10 +368,12 @@ def prepare_mailing(mem_csv_file, club):
         club.json_data = []
         club.dir4letters
     """
-    print("Begin prepare_mailing method. (traverse_records)")
-    club.traverse_records(mem_csv_file, 
-        club.func_dict[club.which["func"]])
-    print("Still within method: checking if there are emails...")
+#   print(
+#       "Begin member.prepare_mailing which calls traverse_records.")
+    traverse_records(mem_csv_file, 
+        club.which["funcs"], club)
+#   print("Still within 'prepare_mailing':")
+#   print("    checking if there are emails...")
     # No point in creating a json file if no content:
     if club.json_data:
         print("There is email to send.")
@@ -387,14 +401,14 @@ def set_owing(record, club):
     """
     Sets up record["extra"] for dues and fees notice,
     Client has option of setting club.owing_only => True
-    in which case those with zero or negative balances do not
-    get a letter or email; othewise, these are acknowledged
+    in which case those with zero or negative balances
+    are ignored; othewise, these are acknowledged
     (so every one gets a message.)
     Applies only to records that pass the "test" function.
     """
     if not club.which["test"](record):
-        print( "{first} {last} fails 'test' function/lambda."
-            .format(**record))
+#       print( "{first} {last} fails 'test' function/lambda."
+#           .format(**record))
         return
     money = 0
     total = 0
@@ -437,7 +451,7 @@ def set_owing(record, club):
     if total == 0:
         extra.append("You are all paid up! Thank you.")
     record["extra"] = '\n'.join(extra)
-    q_mailing(record)
+    q_mailing(record, club)
 
 def set_inductee_dues(record, club=None):
     """
@@ -463,6 +477,9 @@ def request_inductee_payment(record, club):
         q_mailing(record)
 
 func_dict = {
+    """
+    After refactoring, don't think this is necessary.
+    """
 #       "some_func": some_func,
     "std_mailing": std_mailing,
     "set_owing": set_owing,
