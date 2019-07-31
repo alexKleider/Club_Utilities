@@ -32,6 +32,7 @@ STATI = sorted([key for key in status_key_values.keys()])
 NON_MEMBER_STATI = STATI[:5]
 APPLICANT_SET = set(STATI[:5])
 
+n_fields = 15
 money_keys = ("dues", "mooring", "dock", "kayak") 
 fees_keys = money_keys[1:]
 money_headers = {
@@ -223,7 +224,7 @@ def add2malformed(record, club=None):
     if record["email"] and not '@' in record["email"]:
         club.malformed.append("{}, {}: Problem /w email."
             .format(record['last'], record['first']))
-    if name_tuple < previous_name_tuple:
+    if name_tuple < club.previous_name_tuple:
         club.malformed.append("Record out of order: {0}, {1}"
             .format(*name_tuple))
     club.previous_name_tuple = name_tuple

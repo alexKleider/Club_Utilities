@@ -654,6 +654,7 @@ Membership"""
         self.errors = []
         self.name_tuples = []
         self.still_owing = []
+        # MAJOR WORK NEEDS DONE HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         err_code = self.traverse_records(membership_csv_file,
                     [(record["last"], record["first"]),
                     self.get_payables])  # vvv
@@ -1463,8 +1464,9 @@ def ck_fields_cmd():
     if not infile:
         infile = Membership.MEMBER_DB
     print("Checking fields...")
-    err_code = source.traverse_records(infile,
-                (source.add2malformed, source.add2status_list))
+    err_code = member.traverse_records(infile,
+                (member.add2malformed, member.add2status_list),
+                source)
     if err_code:
         print("Error condition! #{}".format(err_code))
     if not source.malformed:
@@ -1728,7 +1730,7 @@ def extra_charges_cmd():
         source.errors = []
         for key in source.fees_keys:
             source.extras_by_category[key] = []
-        err_code = source.traverse_records(infile,
+        err_code = member.traverse_records(infile,
                 source.get_extra_charges)
     else:
         print("Bad input file!")
@@ -1799,7 +1801,7 @@ def usps_cmd():
         infile = Membership.MEMBER_DB
     source = Membership(Dummy)
     source.usps_only = []
-    err_code = source.traverse_records(infile, source.get_usps)
+    err_code = member.traverse_records(infile, source.get_usps)
     header = []
     for key in source.fieldnames:
         header.append(key)
@@ -1832,7 +1834,7 @@ def emailing_cmd():
         args["-i"] = source.MEMBER_DB
     with open(args["-c"], "r") as content_file:
         source.content = content_file.read()
-    err_code = source.traverse_records(args["-i"],
+    err_code = member.traverse_records(args["-i"],
         source.send_attachment)
 
 def prepare_mailing_cmd():
