@@ -23,7 +23,7 @@ status_key_values = {
     "a1": "Attended one meeting.",
     "a2": "Attended two meetings.",
     "a3": "Attended three (or more) meetings.",
-    "ai": "Inducted, membership fee pending.",
+    "ai": "Inducted, membership pending payment of fee.",
     "m": "Member in good standing.",
     WAIVED: "Fees being waived.",
     "be": "Email on record doesn't work.",
@@ -66,7 +66,8 @@ def traverse_records(infile, custom_funcs, club):
         print("Opening {}".format(infile))
         dict_reader = csv.DictReader(file_object, restkey='status')
 # Do we need the next two lines??
-#       club.fieldnames = dict_reader.fieldnames
+        # fieldnames is used by get_usps
+        club.fieldnames = dict_reader.fieldnames
 #       club.n_fields = len(self.fieldnames)
         for record in dict_reader:
             for custom_func in custom_funcs:
@@ -119,6 +120,19 @@ def is_fee_paying_member(record, club=None):
         return False
     if self.is_member(record):
         return True
+
+def get_usps(record, club=None):
+    """
+    Selects members who get their copy of meeting minutes by US
+    Postal Service. i.e. Their "email_only" field is blank.
+    Populates self.usps_only with a line for each such member
+    using csv format: first, last, address, town, state, and
+    postal_code.
+    """
+    if not record['email_only']:
+        club.usps_only.append(
+            "{first},{last},{address},{town},{state},{postal_code}"
+            .format(**record))
 
 def add2stati_by_status(record, club=None):
     """
@@ -307,6 +321,30 @@ def add2memlist4web(record, club=None):
     else:
         club.errors.append(line)
 
+def get_extra_charges(record, club=None):
+    """
+    Populates the club.extras_by_member list attribute
+    and the club.extras_by_category dict attribute.
+    Both these attributes must be initialized by the client.
+    """
+    name = "{}, {}".format(record['last'], record['first'])
+    _list = []
+    for key in fees_keys:
+        value = record[key]
+        if value:
+            try:
+                value = int(value)
+            except ValueError:
+                record['key'] = key
+                club.errors.append("{last}, {first}: '{key}'  "
+                    .format(**record))
+            _list.append("{}- {}".format(key, int(record[key])))
+            club.extras_by_category[key].append("{}: {}- {}"
+                .format(name, key, value))
+    if _list:
+        club.extras_by_member.append("{}: {}"
+            .format(name, ", ".join(_list)))
+
 ##### Next group of methods deal with sending out mailings. #######
 # Clients must set up the following attributes of the 'club' parameter
 # typically an instance of the Membership class:
@@ -459,7 +497,7 @@ def set_inductee_dues(record, club=None):
     Provides processing regarding what fee to charge
     and sets record["current_dues"].
     """
-    if month in (1, 2, 3, 4):
+    if helpers.month in (1, 2, 3, 4):
         record["current_dues"] = 50
     else:
         record["current_dues"] = 100
@@ -475,7 +513,7 @@ def request_inductee_payment(record, club):
     if club.which["test"](record):
         set_inductee_dues(record)
         record["subject"] = club.which["subject"]
-        q_mailing(record)
+        q_mailing(record, club)
 
 func_dict = {
     """

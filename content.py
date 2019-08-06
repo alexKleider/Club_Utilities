@@ -129,7 +129,7 @@ dues (and/or fees where applicable) for the current (began
 July 1st) Club year have not yet been payed. You should also
 note that this is the last notice you can expect to receive
 before the late penalty (of $25) is imposed on those who's
-remitance has not been received postmarked on or before August 1st.
+remittance has not been received postmarked on or before August 1st.
 
 Details are as follows:
 {extra}""",
@@ -191,16 +191,14 @@ to enjoy Club activities and participate as members do.
 I'll let you know once a vacancy opens up.  """,
 
     request_inductee_payment = """
-The Club Executive has approved your application for Club
-membership and there is currently a vacancy in the Club
-membership.
+The Club Executive Committee has, at its last meeting,
+approved your application for Club membership.
 
 "Welcome aboard!"
 
 All that remains for your membership to take effect is payment
-of dues.  Please send a check for ${current_dues} to the Club at
-    PO Box 248
-    Bolinas, CA 94924
+of dues.  Please send a check for ${current_dues} to the Club
+(address provided below.)
 
 Upon receipt of your membership dues, I'll send you more information
 about the Club and your privileges as a member there of.""",
@@ -262,12 +260,12 @@ It was sent through a different mail server, hence the automatic
 notice from Google.  All is well.
 """,
 
-    remittance = """ By the way, if/when you do pay, please send your remittance to
+    remittance = """ Please send remittances to:
     The Bolinas Rod & Boat Club
     PO Box 248
     Bolinas, CA 94924
-It's always a good idea to jot down 'club dues' on the check
-in order to prevent any confusion.""",
+It's always a good idea to jot down 'club dues' on
+the check in order to prevent any confusion.""",
 
     ref1 = """ [1] rodandboatclub@gmail.com or PO Box 748, 94924""",
     )
@@ -424,8 +422,7 @@ content_types = dict(
         "subject":"BR&BC dues and penalty for late payment",
         "from": authors["club"],
         "body": letter_bodies["penalty_notice"],
-        "post_scripts": (post_scripts["remittance"],
-                    post_scripts["ref1"],),
+        "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
         "test": lambda record: True if ((
             member.is_member(record) and
@@ -457,11 +454,11 @@ content_types = dict(
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
-        "post_scripts": (),
+        "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.request_inductee_payment,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
-        "e_and_or_p": "both",
+        "e_and_or_p": "one_only",
         },
     welcome2full_membership = {
         "subject": "You are a member!",
