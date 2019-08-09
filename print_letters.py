@@ -9,6 +9,9 @@ first (and only) parameter.
 Usage:
     print_letters.py target_dir
 
+Not used since just as easy to simply:
+  $ lpr target_dir/*
+
 """
 
 import os

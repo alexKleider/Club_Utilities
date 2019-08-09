@@ -144,11 +144,14 @@ your check.  Please forgive the oversight. It's:
 Details as to what you still owe follow:
 {extra}""",
 
-    warning = """
+    final_warning = """
 Club records indicate that your dues (+/- other fees) have as
-yet not been paid.  Please be aware that a late fee of $25 is
-imposed on payments not received post marked on or before 
-August 1st.  Details follow.
+yet not been paid.  Please be aware that according to Club bylaws,
+membership lapses if fees are not paid by Sept 1st.
+
+Please pay promptly; we'd hate to loose you as a member.
+
+Details follow.
 {extra}""",
 
     penalty_notice = """
@@ -406,17 +409,17 @@ content_types = dict(
             ) else False,
         "e_and_or_p": "one_only",
         },
-    warning = {
-        "subject":"Warning of up coming penalty for late payment",
+    final_warning = {
+        "subject":"Membership soon to expire",
         "from": authors["club"],
-        "body": letter_bodies["warning"],
+        "body": letter_bodies["final_warning"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
         "test": lambda record: True if ((
             member.is_member(record) and
             member.not_paid_up(record))
             ) else False,
-        "e_and_or_p": "one_only",
+        "e_and_or_p": "both",
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",

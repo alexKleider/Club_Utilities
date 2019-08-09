@@ -93,7 +93,7 @@ Commands:
         differing emails. (After proof reading, use 'send_emails'.)
     show: Returns membership demographics for display on the web site.
     stati: Returns a listing of stati.  Applicants plus ..
-        on acurate entries in 'status' field.
+        Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
         members who receive their Club minutes by post.
     extra_charges: Provides lists of members with special charges.
@@ -151,7 +151,7 @@ Commands:
 # Constants required for correct rendering of "?" command:
 TOP_QUOTE_LINE_NUMBER = 8     #| These facilitate preparing
 BLANK_LINE_ABOVE_USAGE = 20   #| response to the
-BLANK_LINE_BELOW_USAGE = 42   #| 'utils.py ?' command.
+BLANK_LINE_BELOW_USAGE = 39   #| 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 TIME_TO_SLEEP = 10  # seconds between email postings
@@ -1313,7 +1313,7 @@ def stati_cmd():
     elif args["-A"]:
         for key in keys:
             if key.startswith('a'):
-                res.append("  {}".format(key))
+                res.append("  {}".format(member.status_key_values[key]))
                 for value in source.stati_dict[key]:
                     res.append("    {}".format(value))
         if len(res) > 1:

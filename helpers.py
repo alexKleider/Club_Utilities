@@ -16,7 +16,7 @@ s = today.strftime(format)
 d = datetime.datetime.strptime(s, format)
 date = d.strftime(format)
 
-print("Setting the date to '{}'.".format(date))
+# print("Setting the date to '{}'.".format(date))
 
 def this_club_year():
     if month > 6:

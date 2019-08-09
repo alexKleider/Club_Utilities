@@ -40,7 +40,7 @@ money_headers = {
     "mooring": "Mooring.......",
     "dock":    "Dock Usage....",
     "kayak":   "Kayak Storage.",
-    "total":   "TOTAL.........",
+    "total":   "    TOTAL.........",
     }
 
 n_fields_per_record = 15
