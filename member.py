@@ -421,7 +421,7 @@ def prepare_mailing(mem_csv_file, club):
     else:
         print("There are no emails to send.")
 
-def std_mailing(self, record, club):
+def std_mailing(record, club):
     """
     For mailings which require no special processing.
     Mailing is sent if the "test" lambda => True.

@@ -210,20 +210,21 @@ about the Club and your privileges as a member there of.""",
 It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
-You will now be receiving meeting minutes (via email) as prepared by
+You will be receiving meeting minutes (via email) as prepared by
 our Club Secretary Peter Pyle.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
 guarded secret.)  By clicking on the "Membership" tab, you can find
 all your fellow members along with contact information.  If you see
-any inaccuracies there, please let me know [1] so corrections can be
+any inaccuracies there, please make it known[1] so corrections can be
 made.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
 having this access to spend time on the balconey enjoying views of
-the lagoon and Bolinas Ridge.  Please be sure to lock up upon leaving.
+the lagoon and Bolinas Ridge.  Please be sure to lock up upon
+leaving.
 
 The Club is available for members to rent for private functions (if
 certain conditions are met.)  More information can be found on the web
@@ -471,7 +472,7 @@ content_types = dict(
         "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'm' in record["status"] else False),
-        "e_and_or_p": "both",
+        "e_and_or_p": "one_only",
         },
     personal = {
         "subject": "Old Boys Dinner Reimbursement",

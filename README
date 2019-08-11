@@ -1,33 +1,55 @@
-Re: utils.py and what goes with it in the club_utils repository.
+# File: README
 
-This repository was begun to provide './label.py' (which no longer
-exists.) It grew out of my frustration over not being able to print
-labels from a spredsheet (in my capacity as newly appointed Membership
-Secretary for a local club.) It has since grown into a bigger project
-that provides many things all under the umbrella of ./utils.py: try...
+This 'readme' pertains to utils.py and associated modules:
+    helpers.py
+    member.py
+    content.py
+
+This project can be found at
+    https://github.com/alexKleider/Club_Utilities
+
+Try..
   ./utils.py -h  # very verbose,
 or simply
   ./utils.py ?  # more succinct.
 
 It provides functionality related to my position as membership
-secretary (to the Bolinas Rod & Boat Club.) The Club's main data base
-is the 'memlist.csv' file, hidden from the git repo for privacy
-reasons.  Other files also in the same category (i.e. private)
-include 'google.csv' (imported from the clubs gmail account,)
-'applicants*', 'extra_fees*', and perhaps a few more. See 'archive.sh'
-and 'backup.sh' for more info.
+secretary to the Bolinas Rod & Boat Club.
+
+Of necessity, Club records must be kept private and are found in the
+'Data' subdirectory which is excluded from the git repository and
+contains the following files:
+
+ 1. memlist.csv is the Club's main data base:
+Its fields/headers are:
+first,last,phone,address,town,state,postal_code,country,email,email_only,dues,mooring,dock,kayak,status
+The first 10 fields are self explanatory.
+The 'email_only' field is now rather redundant since it is blank only
+for those with a blank email field.
+The next 4 fields are the member.money_kyes.
+The final "status" field provides a place for added info. (See
+member.status_key_values for further detail.)
+
+ 2. applicants.txt
+ 3. extra_fees*
+ 4. google.csv (imported from the clubs gmail account)
+ 5. receipts**-**.txt
+
+The bash script utilities should be self explanatory. They include
+    archive-data.sh
+    archive-mailing.sh
+    backup.sh
 
 Comments, suggestions, criticisms ==> alexKleider@gmail.com
 
 
-Other notes (largely to myself:)
+Other notes (largely pertaining to work flow:)
 
 PRINTING LETTERS:
 How to make letters 'fit' the windowed envelopes seems to be printer
-dependent!  A <content.printer_specs> dict has been set up to solve
-this problem.
-Making the first fold along the bottom of the "Dear {recipient}" line
-has been working well.
+dependent!  A <content.printer> dict has been set up to solve this
+problem.  Making the first fold along the bottom of the
+"Dear {recipient}" line has been working well.
 
 ARCHIVING & BACKUP
 ==================
@@ -38,10 +60,9 @@ sister directory and also backed up to an external hard drive.
 
 WORK FLOW:
 The project can be found under the /home/alex/Club/Mshp
-(formerly /home/alex/Notes/Bo/Club/Mshp) directory.
-Under it, the Py directory is a git repository contianing utils.py
-and supporting files (all backed up on github:
-https://github.com/alexKleider/Club_Utilities.)
+(formerly /home/alex/Notes/Bo/Club/Mshp) directory which is a git
+repository contianing utils.py and supporting files (all backed up
+on github: https://github.com/alexKleider/Club_Utilities.)
 The club data within this directory is (for privacy reasons)
 excluded from github and archived in the 'Data' subdirectory of the
 'Archive' directory (see archive-data.sh.) It consists of the following:
@@ -55,63 +76,40 @@ These are edited using vim (or any editor of your choosing) and
 are copied (archive.sh) to the Archive directory from time to time
 (at a minimum after each meeting, to provide an historical record.)
 
-('newmembers' is a link to ../Lists/newmembers in which I keep track
-of new members and my reports to leadership and members. It is likely
-to be soon redacted.)
-
 Also archived are mailings: see archive-mailing.sh.  This should be
 done after each time letters/emails are sent out.
-
-Data backup is accomplished by backing up the 'Mshp' directory
-excluding its 'Py' subdirectory to an external drive using the
-backup.sh utility.
-
 
 Redacted Parts
 -------------
 
 Within utils.py, the 'labels', 'envelopes', 'email_billings2json',
 and 'usps_billings2print' commands have been pretty much deprecated.
-Billing is now done using the 'prepare_mailing' command. It depends
-on other infrastructure found in the ./Formats/content.py file which
-needs to be edited to suit current need. Specifically the two
-variables 'content' and 'custom_func' need to be defined and assigned.
+Billing is now done using the 'prepare_mailing' command.
 
-As of (late Aug/early Sept 2018) most commands are implemented by
+As of late Aug/early Sept 2018 most commands are implemented by
 having a single traversing command which takes a custom function
 (or list of custom functions) as its parameter and this/these
 function(s) deal(s) with each record traversed adding data as needed
-to one or more corresponding attribute(s) of
-the Membership instance.  (version 1.0.1a) The command is
-'prepare_mailing'
-
-
-Developments
-------------
-
-Special Note Regarding Mailings:
-    Sending of emails and letters is done as a two stage process
-in order to allow for proof reading.  Once checked, the send_emails
-and print_letters commands can be used to complete the process.
-Here is the suggested sequence:
-    # Export all contacts from gmail account => google.csv
-    ./utils.py compare_gmail google.csv -i memlist.csv -o results -j json2send
-    # Edit data as appropriate.
-    # Run a command that sends the emails to a file named json2send,
-    # typically:
-    ./utils.py billing -i memlist.csv  -j json2send --dir Billings
-    ./utils.py display -i json2send -o json2check
-    # Use vim to check the files in the Billings directory and also
-    # the json2check file.  Then procede with:
-    ./utils.py send_emails -i json2send
-    ./utils.py print_letters --dir Billings
-The send_emails functionality depends on the presence of
-a ~/.msmtprc (configuration) file.
-# https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
-
-After mass mailings I've been running archive-mailing.sh which zipps the
-content to an ../Archives/Mailling/z<YYYY-MM-DD>.zip file which contains
-a directory containing the letters and an 'emails.json' file (the emails.)
+to one or more corresponding attribute(s) of the Membership instance.
+The command is 'prepare_mailing'.
+It results in
+1. a directory (./Data/MailingDir/) full of individual
+letters to be printed, folded, inserted into windowed envelopes and
+mailed.  I simply use the command line to issue the following:
+  $ lpr Data/MailingDir/*
+rather than bother with the ./utils.py print_letters command.
+.. and 2. a file emails.json which can be processed using the 
+  $ ./utils.py display_emails ...
+command to allow a visual check before actually sending the emails
+using the 
+  $ ./utils.py send_emails ...
+command.
+    Note: The send_emails functionality depends on the
+    presence of a ~/.msmtprc configuration file
+    and lowering the gmail account security setting:
+    https://myaccount.google.com/lesssecureapps
+Once the above is all done, the mailings can be archived using the
+archive-mailings.sh script.
 
 
 Early Payment of Dues/Acknoledgement of payment

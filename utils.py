@@ -2,15 +2,17 @@
 
 # File: utils.py
 
-# After any changes to the docstring, contstants may need to be
-# changed: 
+# After any changes to the docstring, contstants
+# TOP_QUOTE_LINE_NUMBER         #| These facilitate preparing
+# BLANK_LINE_ABOVE_USAGE        #| response to the
+# BLANK_LINE_BELOW_USAGE        #| 'utils.py ?' command.
+# may need to be changed.
 
 """
 "utils.py" is a utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club records.
-Most commands deal with a csv file named "Data/memlist.csv" so for
-these it is the default input file.  This and other defaults are
-specified as attributes of the Membership class.
+Most commands deal with a csv file named "./Data/memlist.csv" so for
+these it is the default input file.
 Labels and Envelopes (along with the '-p <params>' option) have
 been deprecated but the code left in place incase anyone ever
 wishes to revert to using them.  Current usage replaces them with
@@ -146,6 +148,9 @@ Commands:
     envelopes: print envelopes. | default: -p E000   | redacted.
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
+    emailing: provides ability to send emails with attachments.
+        Uses a different mechanism than the prepare_mailing and
+        send_emails commands. Sends the same to all in the input file.
 """
 
 # Constants required for correct rendering of "?" command:
