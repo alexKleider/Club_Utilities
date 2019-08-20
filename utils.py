@@ -2,22 +2,21 @@
 
 # File: utils.py
 
-# After any changes to the docstring, contstants
-# TOP_QUOTE_LINE_NUMBER         #| These facilitate preparing
-# BLANK_LINE_ABOVE_USAGE        #| response to the
-# BLANK_LINE_BELOW_USAGE        #| 'utils.py ?' command.
-# may need to be changed.
+# After any changes to the docstring, 
+# the following contstants may need to be changed:
+#     TOP_QUOTE_LINE_NUMBER   } These facilitate preparing
+#     BLANK_LINE_ABOVE_USAGE  } a response to the
+#     BLANK_LINE_BELOW_USAGE  } 'utils.py ?' command.
 
 """
-"utils.py" is a utility providing functionality for usage and
-maintanance of the Bolinas Rod and Boat Club records.
+"utils.py" is an utility providing functionality for usage and
+maintanance of the Bolinas Rod and Boat Club membership records.
 Most commands deal with a csv file named "./Data/memlist.csv" so for
 these it is the default input file.
 Labels and Envelopes (along with the '-p <params>' option) have
 been deprecated but the code left in place incase anyone ever
-wishes to revert to using them.  Current usage replaces them with
-emails and letters (which can be prepared using the 'prepare_mailing'
-command..
+wishes to revive them.  Current usage replaces them with emails and
+letters (which can be prepared using the 'prepare_mailing' command.)
 Consult the README file for further info.
 
 Usage:
@@ -78,7 +77,7 @@ Options:
   -a <attachment>  The name of a file to use as an attachment.
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
-  <gmail_contacts>  [default: Data/google.csv]
+  <gmail_contacts>  [default: ~/Downloads/contacts.csv]
   -A  A 'stati' only option: show only applicants.
   -B  A 'stati' only option: show only bad emails.
   -W  A 'stati' only option: show only members whose fees are waived.
@@ -93,11 +92,13 @@ Commands:
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
         differing emails. (After proof reading, use 'send_emails'.)
-    show: Returns membership demographics for display on the web site.
+    show: Returns membership demographics. A copy is sent to the web
+        master for display on the web site.
     stati: Returns a listing of stati.  Applicants plus ..
         Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
-        members who receive their Club minutes by post.
+        members without an email address who therefore receive their
+        Club minutes by post. 
     extra_charges: Provides lists of members with special charges.
         Both a list of members each with the charge(s) they pay and
         separate lists for each category of charge. (Dues not
@@ -135,7 +136,8 @@ Commands:
         Note: Must first lower br&bc's account security at:
         https://myaccount.google.com/lesssecureapps
     print_letters: Sends the files contained in the directory
-        specified by the --dir parameter.
+        specified by the --dir parameter.  Depricated in favour of
+        simply using the lpr utility: $ lpr ./Data/MailDir/*
     restore_fees: Use this command after all dues and fees have been
         paid- will abort if any are outstanding. Will place the
         results into a file named as a concatination of "new_" and the
@@ -153,34 +155,36 @@ Commands:
         send_emails commands. Sends the same to all in the input file.
 """
 
-# Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE_NUMBER = 8     #| These facilitate preparing
-BLANK_LINE_ABOVE_USAGE = 20   #| response to the
-BLANK_LINE_BELOW_USAGE = 39   #| 'utils.py ?' command.
-
-MSMTP_ACCOUNT = "gmail"
-TIME_TO_SLEEP = 10  # seconds between email postings
-
-GMAIL_CONTACTS = 'Data/google.csv'
-
-TEXT = ".txt"  #| Used by <extra_charges_cmd>
-CSV = ".csv"   #| command.
-
-TEMP_FILE = "2print.temp"
-SECRETARY = ("Peter", "Pyle")
-
 import os
 import shutil
 import csv
 import codecs
 import sys
 import time
+import random
 import json
 import subprocess
 from docopt import docopt
 import member
 import helpers
 import content
+
+# Constants required for correct rendering of "?" command:
+TOP_QUOTE_LINE_NUMBER = 11    #| These facilitate preparing
+BLANK_LINE_ABOVE_USAGE = 21   #| response to the
+BLANK_LINE_BELOW_USAGE = 40   #| 'utils.py ?' command.
+
+MSMTP_ACCOUNT = "gmail"
+MIN_TIME_TO_SLEEP = 2   #| Seconds between
+MAX_TIME_TO_SLEEP = 10  #| email postings.
+
+GMAIL_CONTACTS = os.path.expanduser('~/Downloads/contacts.csv')
+
+TEXT = ".txt"  #| Used by <extra_charges_cmd>
+CSV = ".csv"   #| command.
+
+TEMP_FILE = "2print.temp"
+SECRETARY = ("Peter", "Pyle")
 
 args = docopt(__doc__, version="1.1")
 
@@ -377,7 +381,6 @@ Club records have two differing emails for you:
 Please reply telling us which is the one you want the club to use.
 Thanks in advance,
 Membership"""
-
         # Set up collectors:
         # ..temporary collectors:
         g_dict_e = dict()  # keyed by emails, names as values
@@ -403,7 +406,10 @@ Membership"""
 #       with open(google_file, 'r', encoding='utf-16') as file_obj:
         with open(google_file, 'r', encoding='utf-8') as file_obj:
             google_reader = csv.DictReader(file_obj, restkey='status')
+#           g_counter = 0
+#           g_collector = []
             for g_rec in google_reader:
+                contact_email = g_rec["E-mail 1 - Value"]
                 first_name = " ".join((
                     g_rec["Given Name"],
                     g_rec["Additional Name"],
@@ -412,8 +418,11 @@ Membership"""
                     g_rec["Family Name"],
                     g_rec["Name Suffix"],
                     )).strip()
+#               g_counter += 1
+#               g_collector.append("{} {} {}".format
+#                   (first_name, last_name, contact_email))
 
-                key = g_rec["E-mail 1 - Value"]
+                key = contact_email
                 g_dict_e[key] = (
                     first_name,
                     last_name,
@@ -421,7 +430,7 @@ Membership"""
                     )
                 
                 key = (first_name, last_name,)
-                g_dict_n[key] = g_rec["E-mail 1 - Value"]
+                g_dict_n[key] = contact_email
 #               _ = input("Key: '{}', Value: '{}'".
 #                   format(key, value))
         # We now have two dicts: g_dict_e & g_dict_n
@@ -534,6 +543,9 @@ Membership"""
                 ret.append(formatted_report)
             else:
                 ret.append("No entries for '{}'".format(report_name))
+#       with open("g_collector", 'w') as file_obj:
+#           file_obj.write("Number found: {}".format(g_counter) +
+#               '\n' + "\n".join(g_collector))
         return separator.join(ret)
     ### End of compare_gmail method.
 
@@ -1651,7 +1663,10 @@ def send_emails_cmd():
         print("Sending email #{} to {}."
             .format(counter, ", ".join(recipients)))
         smtp_send(recipients, content)
-        time.sleep(TIME_TO_SLEEP)
+        # Using random number to decrease liklyhood that mailing
+        # entity (Gmail) will think it's a 'bot' sending the emails.
+        time.sleep(random.randint(MIN_TIME_TO_SLEEP,
+                                MAX_TIME_TO_SLEEP))
 
 def print_letters_cmd():
     successes = []
