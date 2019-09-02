@@ -340,7 +340,7 @@ class Membership(object):
 
     # Data bases used:
     MEMBER_DB = 'Data/memlist.csv'          #|  Default
-    EXTRA_FEES = 'Data/extra_fees.txt'      #|  file
+    EXTRA_FEES_TXT = 'Data/extra_fees.txt'  #|  file
     CHECKS_RECEIVED = 'Data/receipts.txt'   #|  names.
 
     # Intermediate &/or temporary files used:
@@ -358,10 +358,10 @@ class Membership(object):
         of the media. i.e. the parameters.
         """
         self.infile = Membership.MEMBER_DB
-        self.first_letter = '_'
-        self.previous_name_tuple = ('', '')  # Used to check ordering.
         self.name_tuples = []
         self.json_data = []
+        self.previous_name_tuple = ('', '')  # }   Used to
+        self.first_letter = ''               # } check ordering.
 
     def compare_gmail(self, source_file, google_file, separator):
         """
@@ -435,9 +435,9 @@ Membership"""
 #                   format(key, value))
         # We now have two dicts: g_dict_e & g_dict_n
         # One keyed by email: values can be indexed as follows:
-        # [0] => first name
-        # [1] => last name
-        # [2] => colon separated list of groups
+        #     [0] => first name
+        #     [1] => last name
+        #     [2] => colon separated list of groups
         # The other keyed by name tuple: value is email
 
         # Next we iterate through the member list...
@@ -472,8 +472,8 @@ Membership"""
                     # Google knows this email...
                     info = (record["first"],
                         record["last"])
-                    if info != g_info[:2]:  # but names don't match so
-                        # append to bad_matches..
+                    if info != g_info[:2]:
+                    # but names don't match so append to bad_matches..
                         bad_matches.append("{} {} {}".format(
                             info, record["email"], g_info[:2]))
                 else:  # memlist has no email for this member so..
@@ -549,8 +549,6 @@ Membership"""
         return separator.join(ret)
     ### End of compare_gmail method.
 
-
-############  End of the mailing section  ###############
 
     @staticmethod
     def parse_extra_fees(extras_json_file):
@@ -943,13 +941,12 @@ Membership"""
     def fees_intake(self, infile=CHECKS_RECEIVED):
         """
         Returns a list of strings: subtotals and grand total.
-        Replaces the received_totals.py script.
-        Populates self.invalid_lines ....
+        Sets up and populates self.invalid_lines ....
         (... the only reason it's a class method
         rather than a function or a static method.)
         NOTE: Money taken in (or refunded) must appear
-        within line[23:28]! i.e. maximum 4 digit positive
-        and 3 digit negative numbers.
+        within line[23:28]! i.e. maximum 5 digits (munus sign
+        and only 4 digits if negatime).
         """
         res = ["Fees taken in to date:"]
         self.invalid_lines = []
@@ -1370,13 +1367,16 @@ def extra_charges(infile, json_file=None):
 
     with open(infile, "r") as f_obj:
         for line in f_obj:
-            if 'mooring' in line:
+            line = line.strip()
+            if not line or line[0] == '#':
+                continue
+            if 'Mooring' in line:
                 current = mooring
                 key = "Mooring"
-            elif 'dock' in line:
+            elif 'Dock' in line:
                 current = dock_usage
                 key = "Dock usage"
-            elif 'kayak' in line:
+            elif 'Kayak' in line:
                 current = kayak_storage
                 key = "Kayak storage"
             else:

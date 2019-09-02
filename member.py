@@ -34,7 +34,9 @@ APPLICANT_SET = set(STATI[:5])
 
 n_fields = 15
 money_keys = ("dues", "mooring", "dock", "kayak") 
+money_keys_capped = [item.capitolize() for item in money_keys]
 fees_keys = money_keys[1:]
+fees_keys_capped = money_keys_capped[1:]
 money_headers = {
     "dues":    "Dues..........",
     "mooring": "Mooring.......",
