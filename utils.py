@@ -211,11 +211,16 @@ def output(data, destination=args["-o"]):
     elif destination == 'printer':
         with open(TEMP_FILE, "w") as fileobj:
             fileobj.write(data)
-        subprocess.run(["lpr", TEMP_FILE])
+            print('Data written to temp file "{}".'
+                .format(fileobj.name))
+            subprocess.run(["lpr", TEMP_FILE])
+            subprocess.run(["rm", TEMP_FILE])
+            print('Temp file "{}" deleted after printing.'
+                .format(fileobj.name))
     else:
-        print("Writing to {}...".format(destination))
         with open(destination, "w") as fileobj:
             fileobj.write(data)
+            print('Data written to "{}".'.format(fileobj.name))
 
 # Medium specific classes:
 # e.g. labels, envelopes, ...
@@ -335,6 +340,9 @@ class Membership(object):
     it pertains to the 'Bolinas Rod and Boat Club'.
     Might change name of this class to "Club".
     """
+    ## Google Contact Labels:
+    google_labels = { "applicant," "DockUsers", "Kayak",
+            "LIST", "member", "moorings", "Officers"}
     ## Constants and Defaults...
     YEARLY_DUES = 100
 
@@ -356,6 +364,9 @@ class Membership(object):
         """
         Each instance must know the format
         of the media. i.e. the parameters.
+        This is being redacted since we are not using labels or
+        envelopes as was done before. For the time being will simply
+        use a "dummy".
         """
         self.infile = Membership.MEMBER_DB
         self.name_tuples = []
@@ -366,6 +377,8 @@ class Membership(object):
     def compare_gmail(self, source_file, google_file, separator):
         """
         Checks for incompatibilities between the two files.
+        Need to add examination of "Group Membership" field of Google
+        contacts.
         """
         # Determine if we'll be sending emails:
         args["-j"] = args["-j"]
@@ -406,6 +419,8 @@ Membership"""
 #       with open(google_file, 'r', encoding='utf-16') as file_obj:
         with open(google_file, 'r', encoding='utf-8') as file_obj:
             google_reader = csv.DictReader(file_obj, restkey='status')
+            print('DictReading Google contacts file "{}".'
+                .format(fileobj.name))
 #           g_counter = 0
 #           g_collector = []
             for g_rec in google_reader:
@@ -432,6 +447,9 @@ Membership"""
                 key = (first_name, last_name,)
                 g_dict_n[key] = contact_email
 #               _ = input("Key: '{}', Value: '{}'".
+                key = (first_name, last_name,)
+                g_dict_n[key] = contact_email
+#               _ = input("Key: '{}', Value: '{}'".
 #                   format(key, value))
         # We now have two dicts: g_dict_e & g_dict_n
         # One keyed by email: values can be indexed as follows:
@@ -444,6 +462,7 @@ Membership"""
         record_number = 0
         with open(source_file, 'r') as file_obj:
             dict_reader = csv.DictReader(file_obj, restkey="status")
+            print('DictReading "{}".'.format(file_obj.name))
             for record in dict_reader:
                 record_number += 1
 #               print(record)
@@ -526,6 +545,8 @@ Membership"""
         if args["-j"]:
             with open(args["-j"], 'w') as f_obj:
                 json.dump(emails2send, f_obj)
+                print('Emails JSON dumped to "{}".'
+                    .format(f_obj.name))
 
         reports_w_names = (
             (bad_matches, "Common emails but names don't match:"),
@@ -584,6 +605,8 @@ Membership"""
 
         with open(extras_json_file, 'r') as file_obj:
             extra_fees = json.load(file_obj)
+            print('Extra fees JSON loaded from "{}".'
+                .format(fileobj.name))
         extras = {}
         for category in extra_fees.keys():
             for value in extra_fees[category]:
@@ -687,6 +710,8 @@ Membership"""
         new_records = []
         with open(membership_csv_file, 'r') as file_obj:
             reader = csv.DictReader(file_obj, restkey='status')
+            print('Membership data loaded from "{}".'
+                .format(file_obj.name))
             key_list = reader.fieldnames  # Save this for later.
             for record in reader:
                 if 'w' in record["status"]:  # Fees are waved.
@@ -717,9 +742,10 @@ Membership"""
             writer.writeheader()
             for record in new_records:
                 writer.writerow(record)
+            new__file = file_obj.name
         print("Done with application of dues and fees...")
         print("...updated membership file is '{}'."
-            .format(new_file))
+            .format(new__file))
 
 
     def get_labels2print(self, source_file):
@@ -849,6 +875,8 @@ Membership"""
         Creates (or replaces) <dir4letters> and populates it with
         annual billing statements, one for each member without an
         email addresses on record.
+        Note: probably totally redacted- functionality replaced by
+        prepare_mailing command.
         """
         if os.path.exists(dir4letters):
             print("The directory '{}' already exists.".
@@ -956,6 +984,8 @@ Membership"""
         date = ''
 
         with open(infile, "r") as file_obj:
+            print('Reading from file "{}".'
+                .format(file_obj.name))
             for line in file_obj:
                 line= line.rstrip()
                 if line[:5] == "Date:":
@@ -991,6 +1021,8 @@ Membership"""
             path2write = os.path.join(self.dir4letters,
                 "_".join((record["last"], record["first"],)))
             with open(path2write, 'w') as file_object:
+                print('Writing to file "{}".'
+                    .format(file_object.name))
                 file_object.write(entry)
         letter_sent = False
         record["subject"] = content["subject"]
@@ -1017,6 +1049,7 @@ Membership"""
         path2write = os.path.join(self.dir4letters,
             "_".join((record["last"], record["first"],)))
         with open(path2write, 'w') as file_object:
+            print('Writing to "{}".'.format(file_object.name))
             file_object.write(entry)
 
     def proto_cust_func(self, record, content, destinations):
@@ -1169,6 +1202,8 @@ Membership"""
         Gets names and addresses from <source_file>
         and "prints" custom envelopes. Wether it goes to printer,
         stdout, or a file is determined by args["<outfile>"].
+        NOTE: This code is no longer in use and is expected to be
+        redacted completely.
         """
         record_reader = csv.reader(
             codecs.open(source_file, 'rU', 'utf-8'),
@@ -1366,6 +1401,7 @@ def extra_charges(infile, json_file=None):
     res = []
 
     with open(infile, "r") as f_obj:
+        print('Reading from "{}".'.format(f_obj.name))
         for line in f_obj:
             line = line.strip()
             if not line or line[0] == '#':
@@ -1431,9 +1467,9 @@ def extra_charges(infile, json_file=None):
             lines.append('    ],')
         lines[-1] = lines[-1][:-1]
         lines.append('}')
-        print("Writing json output to {}.".format(json_file))
         with open(json_file, 'w') as jfile:
             jfile.write('\n'.join(lines))
+            print("Wrote JSON data to {}.".format(jfile.name))
     return '\n'.join(res)
 
         
@@ -1568,6 +1604,7 @@ def emailing_cmd():
     if not args["-i"]:
         args["-i"] = source.MEMBER_DB
     with open(args["-c"], "r") as content_file:
+        print('Reading content from "{}".'.format(content_file.name))
         source.content = content_file.read()
     err_code = member.traverse_records(args["-i"],
         source.send_attachment)
@@ -1619,6 +1656,7 @@ def prepare_mailing_cmd():
     if source.json_data:
         with open(source.json_file_name, 'w') as f_obj:
             json.dump(source.json_data, f_obj)
+            print('JSON dumped to "{}".'.format(f_obj.name))
 
 def send_emails_cmd():
     """
@@ -1649,8 +1687,11 @@ def send_emails_cmd():
     if content:
         with open(content, 'r') as f_obj:
             message = f_obj.read()
+            print('Reading content from "{}".'
+                .format(f_obj))
     with open(j_file, 'r') as f_obj:
         data = json.load(f_obj)
+        print('Loading JSON from "{}"'.format(f_obj.name))
     counter = 0
     for datum in data:
         if message:
@@ -1721,12 +1762,14 @@ def restore_fees_cmd():
     if source.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
             file_obj.write(source.errors)
+            print('Wrote errors to "{}".'.format(file_obj.name))
     if ret:
         sys.exit(ret)
 
 def display_emails_cmd1(json_file, output_file=None):
     ret = []
     with open(json_file, 'r') as f_obj:
+        print('Reading JSON file "{}".'.format(f_obj.name))
         data = f_obj.read()
         emails = json.loads(data)
         print("Type 'emails' is '{}'.".format(type(emails)))
@@ -1739,6 +1782,7 @@ def display_emails_cmd1(json_file, output_file=None):
 
 def display_emails_cmd(json_file):
     with open(json_file, 'r') as f_obj:
+        print('Reading JSON file "{}".'.format(f_obj.name))
         records = json.load(f_obj)
     all_emails = []
     for record in records:
@@ -1767,9 +1811,11 @@ def fees_intake_cmd():
         print(res)
     else:
         with open(outfile, 'w') as file_obj:
+            print('Writing to "{}".'.format(file_obj.name))
             file_obj.write(res)
     if source.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
+            print('Writing to "{}".'.format(file_obj))
             file_obj.write('\n'.join(source.invalid_lines))
 
 def labels_cmd():
@@ -1947,7 +1993,4 @@ NOTE = """
 emailing_cmd()
     uses Membership.traverse_records(infile,
         source.send_attachment(args["-i"]))
-        
-        Membership.send_attachment(record)
-            uses mutt_send(record["email"], body)
-"""
+"""        

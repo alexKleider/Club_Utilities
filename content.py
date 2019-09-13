@@ -181,7 +181,10 @@ applicant for membership in the Bolinas Rod and Boat Club.
 Please come and enjoy the meetings (first Fiday of each month.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received.""",
+month period beginning the date your application was received.
+You've already been credited with one of those meetings, only two
+more to go before you are elegible to be considered by the Executive
+Commitee for full membership (pending a vacancy.)""",
 
     approved_but_waiting_for_vacancy = """
 The Club Executive has approved your application for Club
@@ -451,8 +454,10 @@ content_types = dict(
         "post_scripts": (),
         "funcs": (member.std_mailing,),
         "test": (
-        lambda record: True if 'a0' in record["status"] else False),
-        "e_and_or_p": "both",
+        lambda record: True if
+            (record["status"] and 'a1' in record["status"])
+            else False),
+        "e_and_or_p": "one_only",
         },
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",

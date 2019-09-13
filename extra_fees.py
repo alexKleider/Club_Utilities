@@ -55,7 +55,7 @@ categories = [key for key in by_category.keys()]
 
 with open(args["-i"], 'r') as infile:
 #   print("Opened {}."
-#       .format(args["-i"]))
+#       .format(infile.name))
     line_number = 0
     category = ""
     for line in infile:
@@ -96,12 +96,14 @@ def ret_by_category():
 
 def create_by_name_json_file():
     with open(args["-n"], "w") as json_file_obj:
+        print('Dumping JSON to "{}".'.format(json_file_obj))
         json.dump(by_name, json_file_obj)
     print("by_category dumped to {}"
         .format(args["-n"]))
 
 def create_by_category_json_file():
     with open(args["-c"], "w") as json_file_obj:
+        print('Dumping JSON to "{}".'.format(json_file_obj))
         json.dump(by_category, json_file_obj)
     print("by_category dumped to {}"
         .format(args["-c"]))

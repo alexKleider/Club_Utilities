@@ -34,7 +34,7 @@ APPLICANT_SET = set(STATI[:5])
 
 n_fields = 15
 money_keys = ("dues", "mooring", "dock", "kayak") 
-money_keys_capped = [item.capitolize() for item in money_keys]
+money_keys_capped = [item.capitalize() for item in money_keys]
 fees_keys = money_keys[1:]
 fees_keys_capped = money_keys_capped[1:]
 money_headers = {
@@ -65,7 +65,7 @@ def traverse_records(infile, custom_funcs, club):
     if callable(custom_funcs):
         custom_funcs = [custom_funcs]
     with open(infile, 'r') as file_object:
-        print("Opening {}".format(infile))
+        print("Opening {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='status')
 # Do we need the next two lines??
         # fieldnames is used by get_usps
@@ -366,6 +366,7 @@ def file_letter(record, club):
 #   print("lpr['indent'] is set to {}"
 #       .format(club.lpr['indent']))
     with open(path2write, 'w') as file_obj:
+        print('Writing to "{}".'.format(file_obj))
         file_obj.write(helpers.indent(entry,
         club.lpr["indent"]))
 
@@ -419,6 +420,7 @@ def prepare_mailing(mem_csv_file, club):
     if club.json_data:
         print("There is email to send.")
         with open(club.json_file_name, 'w') as file_obj:
+            print('Dumping JSON to "{}".'.format(file_obj.name))
             file_obj.write(json.dumps(club.json_data))
     else:
         print("There are no emails to send.")

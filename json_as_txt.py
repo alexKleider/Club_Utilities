@@ -27,6 +27,7 @@ for f in sys.argv[1:]:
         sys.exit()
     out_file = ".".join((components[0], 'txt'))
     with open(f, 'r') as f_obj:
+        print('Loading JSON from "{}".'.format(f_obj.name))
         data = json.load(f_obj)
     keys = [key for key in data.keys()]
     _keys = keys.sort()
@@ -40,4 +41,5 @@ for f in sys.argv[1:]:
             for s in data[key]:
                 collector.append("\t{};".format(s))
     with open(out_file, 'w') as f_obj:
+        print('Writing to file "{}".'.format(f_obj.name))
         f_obj.write("\n".join(collector))
