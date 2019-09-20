@@ -32,7 +32,8 @@ STATI = sorted([key for key in status_key_values.keys()])
 NON_MEMBER_STATI = STATI[:5]
 APPLICANT_SET = set(STATI[:5])
 
-n_fields = 15
+N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
+n_fields = 15  # Plan to redact in favour of N_FIELDS
 money_keys = ("dues", "mooring", "dock", "kayak") 
 money_keys_capped = [item.capitalize() for item in money_keys]
 fees_keys = money_keys[1:]
@@ -67,13 +68,32 @@ def traverse_records(infile, custom_funcs, club):
     with open(infile, 'r') as file_object:
         print("Opening {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='status')
-# Do we need the next two lines??
         # fieldnames is used by get_usps
-        club.fieldnames = dict_reader.fieldnames
-#       club.n_fields = len(self.fieldnames)
+        club.fieldnames = dict_reader.fieldnames  # used by get_usps
+        club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
             for custom_func in custom_funcs:
                 custom_func(record, club)
+
+def report_error(report, club=None):
+    try:
+        club.errors.append(error)
+    except AttributeError:
+        print(error)
+
+def ck_number_of_fields(record, club=None):
+    """
+    Checks that there are the correct number of fields in "record".
+    If "club" is specified, errors are appended to club.errors
+    which must be set up by client;
+    if not: error is reported by printing to stdout.
+    """
+    record.n_fields = len(record)
+    possible_error = ("{last} {first} has {n_fields}"
+        .format(**record))
+    if ((club and (record.n_fields != club.n_fields))
+    or record.n_fields != N_FIELDS):
+        report_error(possible_error, club)
 
 def is_applicant(record, club=None):
     stati = record['status'].split(STATUS_SEPARATOR)
@@ -89,31 +109,25 @@ def is_member(record, club=None):
     If there is a problem, will either append notice to
     club.errors (if it exists) or print out a warning.
     """
-    stati = record['status'].split(STATUS_SEPARATOR)
+    if record['status']==None:
+        return True
+#   stati = record['status'].split(STATUS_SEPARATOR)
+    stati = {status for status in record['status'].split(
+        STATUS_SEPARATOR)}
     for status in NON_MEMBER_STATI:
         if status in stati:
             return False
     if (
-        stati == [''] or  # blank for most members
-        "m" in stati or  # member
-        stati == ['be'] or  # bad email
+        stati == [''] # blank for most members
+        or  "m" in stati # member
+        or  stati == ['be'] # bad email
         #    Notice the '==', not '"be" in ..'
-        "w" in stati   # fees waved
+        or  "w" in stati   # fees waved
         ):
         return True
     error = ("Problem in 'is_member' with {}."
         .format("{last}, {first}".format(**record)))
-    try:
-        club.errors.append(error)
-    except AttributeError:
-        print(error)
-
-
-#   def is_member(self, record):
-#       """
-#       Anyone who is not an applicant.
-#       """
-#       return not self.is_applicant(record)
+    report_error(error, club)
 
 def is_fee_paying_member(record, club=None):
     """
@@ -122,6 +136,9 @@ def is_fee_paying_member(record, club=None):
         return False
     if self.is_member(record):
         return True
+    error = ("Problem in 'is_fee_paying__member' with {}."
+        .format("{last}, {first}".format(**record)))
+    report_error(error, club)
 
 def get_usps(record, club=None):
     """
@@ -136,17 +153,17 @@ def get_usps(record, club=None):
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
-def add2stati_by_status(record, club=None):
+def add2m_by_status(record, club):
     """
-    Prerequisite: club.stati_dict
-    Populates club.stati_dict (which must be set up by
-    client) with lists of member names (last, first) keyed
+    Prerequisite: club.m_by_status dict.
+    Populates club.m_by_status (a dict which must be set up
+    by client) with lists of member names (last, first) keyed
     by status.
     """
     stati = record["status"].split(STATUS_SEPARATOR)
     for status in stati:
-        _ = self.stati_dict.setdefault(status, [])
-        club.stati_dict[status].append(
+        _ = club.m_by_status.setdefault(status, [])
+        club.m_by_status[status].append(
                     "{last}, {first}".format(**record))
 
 def not_paid_up(record, club=None):
@@ -247,48 +264,23 @@ def add2malformed(record, club=None):
 
 def add2status_list(record, club=None):
     """
+    Redacted in favour of add2m_by_status.
     Populates club.status_list (which must be set up by client.)
     """
     if record["status"]:
         club.status_list.append(("{last}, {first} - {status}"
             .format(**record)))
 
-def is_member(record, club=None):
+def add2m_by_status(record, club):
     """
-    Tries to determine if record is that of a member (based on
-    status field.)
-    If there is a problem, will either append notice to
-    club.errors if it exists, or cause program to fail.
-    """
-    if record['status']==None:
-        return True
-    stati = record['status'].split(STATUS_SEPARATOR)
-    for status in NON_MEMBER_STATI:
-        if status in stati:
-            return False
-    if (
-        stati == [''] or  # blank for most members
-        "m" in stati or  # member
-        stati == ['be'] or  # bad email
-        #    Notice the '==', not '"be" in ..'
-        "w" in stati   # fees waved
-        ):
-        return True
-    error = ("Problem in 'member.is_member' with {}."
-        .format("{last}, {first}".format(**record)))
-    print(error)
-
-def add2stati_by_status(record, club=None):
-    """
-    Prerequisite: club.stati_dict
-    Populates club.stati_dict (which must be set up by
-    client) with lists of member names (last, first) keyed
-    by status.
+    Prerequisite: club.m_by_status (must be set up by client.)
+    Populates club.m_by_status dict keyed by status with lists
+    of member names (last, first) as values.
     """
     stati = record["status"].split(STATUS_SEPARATOR)
     for status in stati:
-        _ = club.stati_dict.setdefault(status, [])
-        club.stati_dict[status].append(
+        _ = club.m_by_status.setdefault(status, [])
+        club.m_by_status[status].append(
                     "{last}, {first}".format(**record))
 
 def add2memlist4web(record, club=None):

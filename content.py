@@ -646,3 +646,14 @@ Just a lot of junk.""",
         fout.write(email.format(**rec))
 
 
+bad_email_template = """From: rodandboatclub@gmail.com
+To: {}
+Subject: Which email is best?
+
+Dear {},
+Club records have two differing emails for you:
+    "{}" and
+    "{}" .
+Please reply telling us which is the one you want the club to use.
+Thanks in advance,
+Membership"""

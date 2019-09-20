@@ -4,9 +4,9 @@
 
 # After any changes to the docstring, 
 # the following contstants may need to be changed:
-#     TOP_QUOTE_LINE_NUMBER   } These facilitate preparing
-#     BLANK_LINE_ABOVE_USAGE  } a response to the
-#     BLANK_LINE_BELOW_USAGE  } 'utils.py ?' command.
+#     TOP_QUOTE_LINE_NUMBER     } These facilitate preparing
+#     BLANK_LINE_ABOVE_USAGE    } a response to the
+#     BLANK_LINE_ABOVE_OPTIONS  } 'utils.py ?' command.
 
 """
 "utils.py" is an utility providing functionality for usage and
@@ -83,7 +83,7 @@ Options:
   -W  A 'stati' only option: show only members whose fees are waived.
 
 Commands:
-    When run without a command, suggests a choice of usage statements.
+    When run without a command, suggests ways of getting help.
     ck_fields: Check for integrety of the data base- not fool proof!
         Sends results to -o <outfile> only if there are bad records.
         Use of -r --raw option supresses the header line.
@@ -170,9 +170,9 @@ import helpers
 import content
 
 # Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE_NUMBER = 11    #| These facilitate preparing
-BLANK_LINE_ABOVE_USAGE = 21   #| response to the
-BLANK_LINE_BELOW_USAGE = 40   #| 'utils.py ?' command.
+TOP_QUOTE_LINE_NUMBER = 11      #| These facilitate preparing
+BLANK_LINE_ABOVE_USAGE = 21     #| response to the
+BLANK_LINE_ABOVE_OPTIONS = 40   #| 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 2   #| Seconds between
@@ -382,18 +382,7 @@ class Membership(object):
         """
         # Determine if we'll be sending emails:
         args["-j"] = args["-j"]
-        # In case we are: here's the template:
-        email_template = """From: rodandboatclub@gmail.com
-To: {}
-Subject: Which email is best?
-
-Dear {},
-Club records have two differing emails for you:
-    "{}" and
-    "{}" .
-Please reply telling us which is the one you want the club to use.
-Thanks in advance,
-Membership"""
+        # In case we are: template = content.bad_email_template
         # Set up collectors:
         # ..temporary collectors:
         g_dict_e = dict()  # keyed by emails, names as values
@@ -1909,7 +1898,7 @@ if __name__ == "__main__":
         print('\n'.join(doc_lines[
             (BLANK_LINE_ABOVE_USAGE - TOP_QUOTE_LINE_NUMBER)
             :
-            (BLANK_LINE_BELOW_USAGE - TOP_QUOTE_LINE_NUMBER + 1)
+            (BLANK_LINE_ABOVE_OPTIONS - TOP_QUOTE_LINE_NUMBER + 1)
             ]))
 
     elif args["ck_fields"]:
