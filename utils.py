@@ -231,7 +231,7 @@ def output(data, destination=args["-o"]):
 # Clients typically refer to these as <params>.
 
 class Dummy(object):
-    """a Dummy class for use when templates are not required."""
+    """a Dummy class for use when templates are not required"""
     formatter = ""
     @classmethod
     def self_check(cls):  # No need for the sanity check in this case
@@ -1259,12 +1259,14 @@ def show_cmd():
     source.applicants = []
     source.napplicants = 0
     source.errors = []
+    source.by_n_meetings = {}
     infile = args["-i"]
     if not infile:
         infile = source.infile
     print("Preparing membership listings...")
     err_code = member.traverse_records(infile,
-                                member.add2memlist4web,
+                                (member.add2memlist4web,
+                                member.is_applicant),
                                 source)
     print("...done preparing membership listing...")
     listing4web = ["""FOR MEMBER USE ONLY
@@ -1284,12 +1286,21 @@ LOSS OF MEMBERSHIP IS THE PENALTY.
         listing4web.extend(("", "Applicants ({} in number)"
                 .format(source.napplicants),
                                 "=========="))
-        listing4web.extend(source.applicants)
-    if source.inductees:
-        listing4web.extend(("", "Inductees ({} in number)"
-                .format(source.ninductees),
-                                "========="))
-        listing4web.extend(source.inductees)
+        if source.by_n_meetings:
+            sorted_keys = sorted(
+                [key for key in source.by_n_meetings.keys()])
+            for key in sorted_keys:
+                listing4web.append("{}".format(key))
+                listing4web.append("--")
+                sorted_applicants = sorted(source.by_n_meetings[key])
+                listing4web.extend(sorted_applicants)
+        else:
+            listing4web.extend(source.applicants)
+        if source.ninductees:
+            listing4web.extend(("", "Inductees ({} in number)"
+                    .format(source.ninductees),
+                                    "========="))
+            listing4web.extend(source.inductees)
     if source.errors:
         listing4web.extend(("", "ERRORS",
                                 "======"))

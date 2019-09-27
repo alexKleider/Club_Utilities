@@ -77,9 +77,9 @@ def traverse_records(infile, custom_funcs, club):
 
 def report_error(report, club=None):
     try:
-        club.errors.append(error)
+        club.errors.append(report)
     except AttributeError:
-        print(error)
+        print(report)
 
 def ck_number_of_fields(record, club=None):
     """
@@ -97,8 +97,13 @@ def ck_number_of_fields(record, club=None):
 
 def is_applicant(record, club=None):
     stati = record['status'].split(STATUS_SEPARATOR)
+    name = "{last}, {first}".format(**record)
     for status in stati:
         if status in APPLICANT_SET: 
+            if hasattr(club, "by_n_meetings"):
+                print("Detected applicant '{}'.".format(name))
+                _ = club.by_n_meetings.setdefault(status, [])
+                club.by_n_meetings[status].append(name)
             return True
     return False
 
@@ -109,7 +114,8 @@ def is_member(record, club=None):
     If there is a problem, will either append notice to
     club.errors (if it exists) or print out a warning.
     """
-    if record['status']==None:
+    if ((record['status']==None)
+    or (record['status'] == '')):
         return True
 #   stati = record['status'].split(STATUS_SEPARATOR)
     stati = {status for status in record['status'].split(
@@ -117,13 +123,10 @@ def is_member(record, club=None):
     for status in NON_MEMBER_STATI:
         if status in stati:
             return False
-    if (
-        stati == [''] # blank for most members
-        or  "m" in stati # member
-        or  stati == ['be'] # bad email
-        #    Notice the '==', not '"be" in ..'
-        or  "w" in stati   # fees waved
-        ):
+    if ("m" in stati # member
+    or  stati == ['be'] # bad email
+    #    Notice the '==', not '"be" in ..'
+    or  "w" in stati):   # fees waved
         return True
     error = ("Problem in 'is_member' with {}."
         .format("{last}, {first}".format(**record)))
@@ -152,19 +155,69 @@ def get_usps(record, club=None):
         club.usps_only.append(
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
+def add2m_by_name(record, club):
+    """
+    Adds to already existing dict club.m_by_name which is
+    keyed by name tuple (first, last) with value also a tuple
+    indexed as follows:
+    [0] => email as a string
+    [1] => stati as a set
+    """
+    club.m_by_name[(record['last'], record['first'])] = (
+        (record['email'],
+        {stati for stati in record["status"].split(
+        STATUS_SEPARATOR)}))
+
+def add2m_by_email(record, club):
+    club.m_by_email[record['email']] = (
+        record['last'], record['first'])
+
+def add2malformed(record, club=None):
+    """
+    Populates club.malformed (which must be set up by client.)
+    Checks that that for each record:
+    1. there are n_fields_per_record
+    2. the money fields are blank or evaluate to an integer.
+    3. the email field contains "@"
+    club.__init__ sets club.previous_name_tuple to ("", "")
+    (... used for comparison re correct ordering.)
+    Client must set up a club.malformed[] empty list to be populated.
+    """
+    name_tuple = (record["last"], record["first"])
+    if len(record) != n_fields:
+        club.malformed.append("{}, {}: Wrong length."
+            .format(record['last'], record['first']))
+    for key in money_keys:
+        value = record[key]
+        if value:
+            try:
+                res = int(value)
+            except ValueError:
+#                   if value == 'w':
+#                       continue
+                club.malformed.append("{}, {}, {}:{}"
+                    .format(record['last'], record['first'],
+                    key, value))
+    if record["email"] and not '@' in record["email"]:
+        club.malformed.append("{}, {}: Problem /w email."
+            .format(record['last'], record['first']))
+    if name_tuple < club.previous_name_tuple:
+        club.malformed.append("Record out of order: {0}, {1}"
+            .format(*name_tuple))
+    club.previous_name_tuple = name_tuple
 
 def add2m_by_status(record, club):
     """
     Prerequisite: club.m_by_status dict.
     Populates club.m_by_status (a dict which must be set up
-    by client) with lists of member names (last, first) keyed
-    by status.
+    by client) with lists of member (first, last) name tuples
+    keyed by status.
     """
     stati = record["status"].split(STATUS_SEPARATOR)
     for status in stati:
         _ = club.m_by_status.setdefault(status, [])
         club.m_by_status[status].append(
-                    "{last}, {first}".format(**record))
+            (record['last'], record['first']))
 
 def not_paid_up(record, club=None):
     """
@@ -227,40 +280,6 @@ def get_payables(record, club=None):
     if line_negative:
         line = (name + ', '.join(line_negative))
         club.advance_payments.append(line)
-
-def add2malformed(record, club=None):
-    """
-    Populates club.malformed (which must be set up by client.)
-    Checks that that for each record:
-    1. there are n_fields_per_record
-    2. the money fields are blank or evaluate to an integer.
-    3. the email field contains "@"
-    club.__init__ sets club.previous_name_tuple to ("", "")
-    (... used for comparison re correct ordering.)
-    Client must set up a club.malformed[] empty list to be populated.
-    """
-    name_tuple = (record["last"], record["first"])
-    if len(record) != n_fields:
-        club.malformed.append("{}, {}: Wrong length."
-            .format(record['last'], record['first']))
-    for key in money_keys:
-        value = record[key]
-        if value:
-            try:
-                res = int(value)
-            except ValueError:
-#                   if value == 'w':
-#                       continue
-                club.malformed.append("{}, {}, {}:{}"
-                    .format(record['last'], record['first'],
-                    key, value))
-    if record["email"] and not '@' in record["email"]:
-        club.malformed.append("{}, {}: Problem /w email."
-            .format(record['last'], record['first']))
-    if name_tuple < club.previous_name_tuple:
-        club.malformed.append("Record out of order: {0}, {1}"
-            .format(*name_tuple))
-    club.previous_name_tuple = name_tuple
 
 def add2status_list(record, club=None):
     """

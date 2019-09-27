@@ -1,25 +1,40 @@
 #!/bin/bash
 
 # File: backup.sh
+# Versions of this script exist in the following directories:
+#    /home/alex/Club/Mshp/Utils
+#    /home/alex/Encrypted
 
-# ToDo: make this idempotent.
+# Idempotent to the extent that it will not
+# do a back up more than once each day.
 
-BACKUP="/media/alex/_EAGLE/Brbc"
+# Case specific parts (clearly indicated by "#***")
+# are the destination device/directory assigned in the
+# next line and the rsync command at the end of the script.
+
+BACKUP="/media/alex/_EAGLE/Brbc"  #***
+
 STAMP=`date +%y-%m-%d`
 DEST=${BACKUP}/$STAMP
 LAST=`cat ${BACKUP}/last`
 SRC="/home/alex/Club/Mshp/"
 
-if [ -d ${DEST} ]; then
+if [ -d ${DEST} ]; then  # This segment provides idempotency.
   echo Backup already done today. No backup until tomorrow.
   exit 1
 else
-  echo "All clear to go ahead:"
-  echo "(Directory ${DEST} doesn't already exist.)"
+  echo "All clear to go ahead since the following directory..."
+  echo "    ${DEST}"
+  echo "doesn't already exist."
 fi
 
 mkdir $DEST
+
+# Copy what was previously backed up using hard links...
 cp -al ${BACKUP}/${LAST}/. ${BACKUP}/$DEST
-rsync -av --exclude='Utils' --delete $SRC $DEST
+
+# ... then rsync to update that copy with current versions:
+rsync -a --exclude='Utils' --delete $SRC $DEST   #***
+#rsync -av --exclude='Utils' --delete $SRC $DEST  #***
 
 echo $STAMP > ${BACKUP}/last
