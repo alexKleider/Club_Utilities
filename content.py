@@ -209,6 +209,19 @@ of dues.  Please send a check for ${current_dues} to the Club
 Upon receipt of your membership dues, I'll send you more information
 about the Club and your privileges as a member there of.""",
 
+    second_request_inductee_payment = """
+Your application for Club membership was approved by the
+Club Executive Committee at its last meeting and membership
+fees have been requested but as yet not received.  Until
+payment is received you are not yet a member.  This could
+create a problem for the Exec committee since there are applicants
+ready to take the spot that you would take if, but only if, the
+dues are paid.  The Committee meets in less than a week!
+
+Please send a check for ${current_dues} to the Club
+(address provided below.)""",
+
+
     welcome2full_membership = """
 It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
@@ -463,6 +476,16 @@ content_types = dict(
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["club"],
         "body": letter_bodies["request_inductee_payment"],
+        "post_scripts": (post_scripts["remittance"],),
+        "funcs": (member.request_inductee_payment,),
+        "test": (
+        lambda record: True if 'ai' in record["status"] else False),
+        "e_and_or_p": "one_only",
+        },
+    second_request_inductee_payment = {
+        "subject": "Still awaiting Club dues",
+        "from": authors["club"],
+        "body": letter_bodies["second_request_inductee_payment"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.request_inductee_payment,),
         "test": (

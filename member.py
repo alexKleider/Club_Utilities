@@ -34,7 +34,7 @@ APPLICANT_SET = set(STATI[:5])
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
 n_fields = 15  # Plan to redact in favour of N_FIELDS
-money_keys = ("dues", "mooring", "dock", "kayak") 
+money_keys = ("dues", "dock", "kayak", "mooring") 
 money_keys_capped = [item.capitalize() for item in money_keys]
 fees_keys = money_keys[1:]
 fees_keys_capped = money_keys_capped[1:]
@@ -101,7 +101,7 @@ def is_applicant(record, club=None):
     for status in stati:
         if status in APPLICANT_SET: 
             if hasattr(club, "by_n_meetings"):
-                print("Detected applicant '{}'.".format(name))
+#               print("Detected applicant '{}'.".format(name))
                 _ = club.by_n_meetings.setdefault(status, [])
                 club.by_n_meetings[status].append(name)
             return True
