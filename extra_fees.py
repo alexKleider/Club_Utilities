@@ -3,9 +3,8 @@
 # File: extra_fees.py
 
 """
-Accepts a text file in the format of Data/extra_fees.txt
-and provides functionality to create 'dict's keyed by
-category or by name and to send data to json files.
+Input must be a text file in the format of Data/extra_fees.txt.
+Functionality provided 'dict's keyed by category or by name.
 
 Usage:
   ./extra_fees.py [ --help | --version ]
@@ -24,23 +23,26 @@ Options:
 Input file has the following format:
 
 Members paying for a Mooring:
-Michael Chadwick:  114
+Michael Cook:  114
 .....
 
 Members paying for Dock privileges:
-Rick Bettini:  75
-Jeff McPhail:  75
+Rick Butler:  75
+Jeff McPhearson:  75
 .....
 
 Members paying for Kayak storage:
-Doug Barth:  70
-Kathryn Cirincione-Coles:  70
-Jeff McPhail:  70
+Doug Birch:  70
+Kathryn Cook:  70
+Jeff McPhearson:  70
 .....
 """
 
 import json
 from docopt import docopt
+
+NAME_KEY = "by_name"
+CATEGORY_KEY = "by_category"
 
 args = docopt(__doc__, version="0.0")
 by_name = {}
@@ -114,28 +116,48 @@ def gather_extra_fees_data(in_file):
             }
 
 
-def present_by_name(json_version):
-    ret =     ["Extra fees by member:"]
-    ret.append("=====================")
-    for key in json_version:
+def present_by_name(json_version, raw=None):
+    """
+    Param would typically be the returned value of
+    gather_extra_fees_data(infile)
+    or its NAME_KEY value.
+    Returns a text listing with header.
+    """
+    if NAME_KEY in json_version:
+        jv = json_version[NAME_KEY]
+    else:
+        jv = json_version
+    ret = []
+    if not raw:
+        ret.append("Extra fees by member:")
+        ret.append("=====================")
+    for key in jv:
         entry = key + ':'
-        for value in json_version[key]:
+        for value in jv[key]:
             entry = entry + " {} {}".format(value[0], value[1]) 
         ret.append(entry)
     return '\n'.join(ret)
 
 
-def present_by_category(json_version):
+def present_by_category(json_version, raw=None):
+    """
+    Param would typically be the returned value of
+    gather_extra_fees_data(infile)
+    or its CATEGORY_KEY value.
+    Returns a text listing with header.
+    """
+    if CATEGORY_KEY in json_version:
+        jv = json_version[CATEGORY_KEY]
+    else:
+        jv = json_version
+    keys = sorted([key for key in jv])
+    ret = []
+    if not raw:
+        ret.append("Extra fees by category:")
+        ret.append("=======================")
     pass
 
  
-def ret_by_name(in_file):
-    return gather_extra_fees_data(in_file)["by_name"]
-
-
-def ret_by_category(in_file):
-    return gather_extra_fees_data(in_file)["by_category"]
-
 
 def create_by_name_json_file(in_file):
     with open(args["-n"], "w") as json_file_obj:
@@ -148,13 +170,7 @@ def create_by_category_json_file(in_file):
         print('Dumping JSON to "{}".'.format(json_file_obj.name))
         json.dump(ret_by_category(in_file), json_file_obj)
 
-"""
-if __name__ == "__main__":
-    ret = gather_extra_fees_data(args["-i"])
-"""
 
 if __name__ == "__main__":
-#   create_by_name_json_file(args["-i"])
-#   create_by_category_json_file(args["-i"])
     print(present_by_name(
-        gather_extra_fees_data(args["-i"])["by_name"]))
+        gather_extra_fees_data(args["-i"])[NAME_KEY]))

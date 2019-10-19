@@ -61,6 +61,12 @@ has a corresponding entry in the record dict (typically arranged
 by the custom function.
 """,
 
+    meeting_announcement = """
+Board members meet at 6pm.
+General meeting scheduled for 7:30pm.
+Come for the fun!
+""",
+
     happyNY_and_0th_fees_request = """
 A very Happy New Year to all members of the Bolinas Rod & Boat
 Club!
@@ -274,6 +280,8 @@ my wife and for me.
 
 
 post_scripts = dict(
+    at_request_of_secretary = """ Sent at the request of Peter Pyle, Secretary""",
+
     gmail_warning = """ If yours is a gmail account you'll get an alarming warning
 that this email may not have come from the Rod and Boat Club.
 It was sent through a different mail server, hence the automatic
@@ -346,6 +354,15 @@ content_types = dict(
         "post_scripts": (post_scripts["gmail_warning"],),
 #       "funcs": [member.get_owing, member.append2Dr],
         "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
+    meeting_announcement = {
+        "subject": "Meeting Tonight",
+        "from": authors["club"],
+        "body": letter_bodies["meeting_announcement"],
+        "post_scripts": (post_scripts["at_request_of_secretary"],),
+        "funcs": (member.std_mailing,),
+        "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "one_only",
         },
     happyNY_and_0th_fees_request = {

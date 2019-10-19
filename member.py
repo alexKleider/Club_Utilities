@@ -48,7 +48,7 @@ money_headers = {
 
 n_fields_per_record = 15
 
-def traverse_records(infile, custom_funcs, club):
+def traverse_records(infile, custom_funcs, club=None):
     """
     Traverses <infile> and applies <custom_funcs> to each
     record.  <custom_funcs> can be a single function or a
@@ -57,7 +57,7 @@ def traverse_records(infile, custom_funcs, club):
     'Membership' (this) class.
     Generally each <custom_func> will leave its results in
     one of the "club" attributes (similarly named.)  These
-    custom funcs are mostly found in the this ('member.py')
+    custom funcs are mostly found in this ('member.py')
     module although initially they were methods of the
     Membership class in the 'utils.py' module (and some may
     still be.) Their names often begin with 'get_'.
@@ -65,15 +65,24 @@ def traverse_records(infile, custom_funcs, club):
     """
     if callable(custom_funcs):
         custom_funcs = [custom_funcs]
-    with open(infile, 'r') as file_object:
+    with open(infile, 'r', newline='') as file_object:
         print("Opening {}".format(file_object.name))
-        dict_reader = csv.DictReader(file_object, restkey='status')
+        dict_reader = csv.DictReader(file_object, restkey='extra')
         # fieldnames is used by get_usps
-        club.fieldnames = dict_reader.fieldnames  # used by get_usps
-        club.n_fields = len(club.fieldnames)  # to check db integrity
+        if club:
+            club.fieldnames = dict_reader.fieldnames  # used by get_usps
+            club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
             for custom_func in custom_funcs:
                 custom_func(record, club)
+
+
+def member_name(record, club=None):
+    """
+    Returns a string.
+    """
+    return "{last}, {first}".format(**record)
+
 
 def report_error(report, club=None):
     try:
@@ -103,9 +112,12 @@ def is_applicant(record, club=None):
             if hasattr(club, "by_n_meetings"):
 #               print("Detected applicant '{}'.".format(name))
                 _ = club.by_n_meetings.setdefault(status, [])
-                club.by_n_meetings[status].append(name)
+                club.by_n_meetings[status].append(
+                    member_entry(record))
             return True
     return False
+
+
 
 def is_member(record, club=None):
     """
@@ -132,16 +144,17 @@ def is_member(record, club=None):
         .format("{last}, {first}".format(**record)))
     report_error(error, club)
 
+
 def is_fee_paying_member(record, club=None):
     """
     """
     if WAIVED in record['status'].split(STATUS_SEPARATOR):
         return False
-    if self.is_member(record):
+    if is_member(record):
         return True
-    error = ("Problem in 'is_fee_paying__member' with {}."
-        .format("{last}, {first}".format(**record)))
-    report_error(error, club)
+    else:
+        return False
+
 
 def get_usps(record, club=None):
     """
@@ -155,22 +168,49 @@ def get_usps(record, club=None):
         club.usps_only.append(
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
+
+
 def add2m_by_name(record, club):
     """
     Adds to already existing dict club.m_by_name which is
-    keyed by name tuple (first, last) with value also a tuple
-    indexed as follows:
-    [0] => email as a string
-    [1] => stati as a set
+    keyed by "name" with value also a dict with keys:
+    ["email"] => email as a string
+    ["stati"] => stati as a set
     """
-    club.m_by_name[(record['last'], record['first'])] = (
-        (record['email'],
-        {stati for stati in record["status"].split(
-        STATUS_SEPARATOR)}))
+    club.m_by_name[member_name(record)] = dict(
+        email= record['email'],
+        stati= {status for status in record["status"].split(
+        STATUS_SEPARATOR)})
+
 
 def add2m_by_email(record, club):
-    club.m_by_email[record['email']] = (
-        record['last'], record['first'])
+    """
+    Adds record's "name" to the set: club.m_by_email.
+    ... to see if the same email is used by more than one person.
+    If 'email' field is empty, appends name to club.without_email.
+    """
+    if record['email']:
+        _ = club.m_by_email.setdefault(record['email'], set())
+        club.m_by_email[record['email']].add(member_name(record))
+    else:
+        if hasattr(club, "without_email"):
+            club.without_email.append(member_name(record))
+
+
+def add2m_by_status(record, club):
+    """
+    Prerequisite: club.m_by_status (must be set up by client.)
+    Populates club.m_by_status dict keyed by status with lists
+    of member names (last, first) as values.
+    """
+#   print("record['status'] is '{}'".format(record['status']))
+    if not record["status"]:
+        return
+    stati = record["status"].split(STATUS_SEPARATOR)
+    for status in stati:
+        _ = club.m_by_status.setdefault(status, [])
+        club.m_by_status[status].append(member_name(record))
+
 
 def add2malformed(record, club=None):
     """
@@ -179,14 +219,14 @@ def add2malformed(record, club=None):
     1. there are n_fields_per_record
     2. the money fields are blank or evaluate to an integer.
     3. the email field contains "@"
-    club.__init__ sets club.previous_name_tuple to ("", "")
+    club.__init__ sets club.previous_name to "".
     (... used for comparison re correct ordering.)
     Client must set up a club.malformed[] empty list to be populated.
     """
-    name_tuple = (record["last"], record["first"])
+    name = member_name(record)
     if len(record) != n_fields:
-        club.malformed.append("{}, {}: Wrong length."
-            .format(record['last'], record['first']))
+        club.malformed.append("{}: Wrong # of fields."
+            .format(name))
     for key in money_keys:
         value = record[key]
         if value:
@@ -195,29 +235,15 @@ def add2malformed(record, club=None):
             except ValueError:
 #                   if value == 'w':
 #                       continue
-                club.malformed.append("{}, {}, {}:{}"
-                    .format(record['last'], record['first'],
-                    key, value))
+                club.malformed.append("{}, {}:{}"
+                    .format(name, key, value))
     if record["email"] and not '@' in record["email"]:
-        club.malformed.append("{}, {}: Problem /w email."
-            .format(record['last'], record['first']))
-    if name_tuple < club.previous_name_tuple:
-        club.malformed.append("Record out of order: {0}, {1}"
-            .format(*name_tuple))
-    club.previous_name_tuple = name_tuple
-
-def add2m_by_status(record, club):
-    """
-    Prerequisite: club.m_by_status dict.
-    Populates club.m_by_status (a dict which must be set up
-    by client) with lists of member (first, last) name tuples
-    keyed by status.
-    """
-    stati = record["status"].split(STATUS_SEPARATOR)
-    for status in stati:
-        _ = club.m_by_status.setdefault(status, [])
-        club.m_by_status[status].append(
-            (record['last'], record['first']))
+        club.malformed.append("{}: {} Problem /w email."
+            .format(name, record[emal]))
+    if name < club.previous_name:
+        club.malformed.append("Record out of order: {}"
+            .format(name))
+    club.previous_name = name
 
 def not_paid_up(record, club=None):
     """
@@ -290,30 +316,26 @@ def add2status_list(record, club=None):
         club.status_list.append(("{last}, {first} - {status}"
             .format(**record)))
 
-def add2m_by_status(record, club):
+def member_entry(record, club=None):
     """
-    Prerequisite: club.m_by_status (must be set up by client.)
-    Populates club.m_by_status dict keyed by status with lists
-    of member names (last, first) as values.
+    Returns a string suitable for the membership (and applicant)
+    listing.
     """
-    stati = record["status"].split(STATUS_SEPARATOR)
-    for status in stati:
-        _ = club.m_by_status.setdefault(status, [])
-        club.m_by_status[status].append(
-                    "{last}, {first}".format(**record))
+    return (
+"{first} {last}  {phone}  {address}, {town}, {state} {postal_code}  {email}"
+            .format(**record))
+
 
 def add2memlist4web(record, club=None):
     """
     Populates club.members, club.stati, club.applicants,
-    club.inductees and club.errors (initially empty lists)
+    Club.inductees and club.errors (initially empty lists)
     and increments club.nmembers, club.napplicants
     and club.ninductees (initially set to 0.)
     All these attributes (of 'club', an instance of utils.membership
     class) must be set up by the client.
     """
-    line = (
-"{first} {last}  {phone}  {address}, {town}, {state} {postal_code}  {email}"
-            .format(**record))
+    line = member_entry(record)
     if record["status"] and "be" in record["status"]:
         line = line + " (bad email!)"
     if is_member(record): 

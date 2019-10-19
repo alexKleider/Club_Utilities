@@ -76,6 +76,15 @@ def expand(address, nlines):
     else:
         return address
 
+
+def create_json_file(json_data, json_file, verbose=True):
+    with open(json_file, "w") as json_file_obj:
+        if verbose:
+            print('Dumping JSON to "{}".'
+                .format(json_file_obj.name))
+        json.dump(json_data, json_file_obj)
+
+
 if __name__ == "__main__":
     print("The month is '{}'.".format(month))
     print("'helpers.get_datestamp() returns '{}'."

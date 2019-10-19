@@ -146,6 +146,7 @@ Commands:
     display_emails: Provides an opportunity to proof read the emails.
     fees_intake: Input file should be a 'receipts' file (which has a
         specific format,) output yields subtotals and the grand total.
+        This simply automates totaling the numbers.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
     show_mailing_categories: Sends a list of possible entries for the
@@ -170,18 +171,18 @@ import helpers
 import content
 
 # Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE_NUMBER = 11      #| These facilitate preparing
-BLANK_LINE_ABOVE_USAGE = 21     #| response to the
-BLANK_LINE_ABOVE_OPTIONS = 40   #| 'utils.py ?' command.
+TOP_QUOTE_LINE_NUMBER = 11      #} These facilitate preparing
+BLANK_LINE_ABOVE_USAGE = 21     #} response to the
+BLANK_LINE_ABOVE_OPTIONS = 40   #} 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
-MIN_TIME_TO_SLEEP = 2   #| Seconds between
-MAX_TIME_TO_SLEEP = 10  #| email postings.
+MIN_TIME_TO_SLEEP = 2   #} Seconds between
+MAX_TIME_TO_SLEEP = 10  #} email postings.
 
 GMAIL_CONTACTS = os.path.expanduser('~/Downloads/contacts.csv')
 
-TEXT = ".txt"  #| Used by <extra_charges_cmd>
-CSV = ".csv"   #| command.
+TEXT = ".txt"  #} Used by <extra_charges_cmd>
+CSV = ".csv"   #} command.
 
 TEMP_FILE = "2print.temp"
 SECRETARY = ("Peter", "Pyle")
@@ -347,15 +348,15 @@ class Membership(object):
     YEARLY_DUES = 100
 
     # Data bases used:
-    MEMBER_DB = 'Data/memlist.csv'          #|  Default
-    EXTRA_FEES_TXT = 'Data/extra_fees.txt'  #|  file
-    CHECKS_RECEIVED = 'Data/receipts.txt'   #|  names.
+    MEMBER_DB = 'Data/memlist.csv'          #}  Default
+    EXTRA_FEES_TXT = 'Data/extra_fees.txt'  #}  file
+    CHECKS_RECEIVED = 'Data/receipts.txt'   #}  names.
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'
     EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
     TEMP_MEMBER_DB = 'Data/new_memlist.csv'
-    OUTPUT2READ = 'Data/2read.txt'       #| generally goes to stdout.
+    OUTPUT2READ = 'Data/2read.txt'       #} generally goes to stdout.
     MAILING_DIR = 'Data/MailingDir'
     JSON_FILE_NAME4EMAILS = 'Data/emails.json'
     ## ...end of Constants and Defaults.
@@ -409,7 +410,7 @@ class Membership(object):
         with open(google_file, 'r', encoding='utf-8') as file_obj:
             google_reader = csv.DictReader(file_obj, restkey='status')
             print('DictReading Google contacts file "{}".'
-                .format(fileobj.name))
+                .format(file_obj.name))
 #           g_counter = 0
 #           g_collector = []
             for g_rec in google_reader:
@@ -1807,12 +1808,14 @@ def fees_intake_cmd():
         fees_taken_in = source.fees_intake()
     fees_taken_in.append("\n")
     res = '\n'.join(fees_taken_in)
+    ## REFACTOR: The following can be replaced by output(res)
     if not outfile or outfile == 'stdout':
         print(res)
     else:
         with open(outfile, 'w') as file_obj:
             print('Writing to "{}".'.format(file_obj.name))
             file_obj.write(res)
+    ## End of refactoring
     if source.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
             print('Writing to "{}".'.format(file_obj))

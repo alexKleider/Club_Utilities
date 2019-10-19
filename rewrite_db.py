@@ -3,13 +3,19 @@
 # File: rewrite_db.py
 
 """
-# Traverses a csv file and applies one or more functions tranforming
-# it into another csv file. Two file names must be specified- an in
-# and an out put file.
+Traverses a csv file and applies one or more functions tranforming
+it into another csv file. Two file names must be specified- an in
+and an out put file.
+Used Sept 28th, 2019 to reinstall the dues/fees owed for the upcoming
+year and at the same time put the extra fees categories into
+alphabetical order.
+(Data/memlist.csv was backed up and then replaced with new
+version.)
 """
 
 import csv
 import utils
+import member
 import extra_fees
 
 in_file = "Temp/in.csv"
@@ -33,6 +39,13 @@ def move_fields2new_record(record, new_record, **kwargs):
 
 
 def restore_dues_and_fees(record, new_record, **kwargs):
+    """
+    The **kwargs is the by_name dict part of what is returned
+    by extra_fees.gather_extra_fees_data(infile).
+    Must be preceded by move_fields2new_record.
+    """
+    if not member.is_fee_paying_member(record):
+        return
     # first deal with dues:
     if not record["dues"]:
         new_record["dues"] = utils.Membership.YEARLY_DUES
