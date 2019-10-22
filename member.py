@@ -66,7 +66,7 @@ def traverse_records(infile, custom_funcs, club=None):
     if callable(custom_funcs):
         custom_funcs = [custom_funcs]
     with open(infile, 'r', newline='') as file_object:
-        print("Opening {}".format(file_object.name))
+        print("DictReading {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         # fieldnames is used by get_usps
         if club:
@@ -208,8 +208,8 @@ def add2m_by_status(record, club):
         return
     stati = record["status"].split(STATUS_SEPARATOR)
     for status in stati:
-        _ = club.m_by_status.setdefault(status, [])
-        club.m_by_status[status].append(member_name(record))
+        _ = club.m_by_status.setdefault(status, set())
+        club.m_by_status[status].add(member_name(record))
 
 
 def add2malformed(record, club=None):
@@ -244,6 +244,30 @@ def add2malformed(record, club=None):
         club.malformed.append("Record out of order: {}"
             .format(name))
     club.previous_name = name
+
+
+def add2fee_sets(record, club=None):
+    """
+    Populates club.fee_by_category
+    and club.fee_by_name.
+    This is the one used by ck_integrity.
+    """
+    name = member_name(record)
+#   print(repr(fees_keys))
+    for key in fees_keys:
+#       print("Checking key '{}' for {}".format(key, name))
+        try:
+            fee = int(record[key])
+        except ValueError:
+#           print("'{}' => ValueError".format(record[key]))
+            continue
+        capped = key.capitalize()
+#       print("'{}' <=> {}".format(name, capped))
+        _ = club.fee_by_category.setdefault(capped, set())
+        club.fee_by_category[capped].add(name)
+        _ = club.fee_by_name.setdefault(name, set())
+        club.fee_by_name[name].add(capped)
+
 
 def not_paid_up(record, club=None):
     """
@@ -356,6 +380,7 @@ def add2memlist4web(record, club=None):
     else:
         club.errors.append(line)
 
+############ redacted #########################
 def get_extra_charges(record, club=None):
     """
     Populates the club.extras_by_member list attribute
@@ -588,6 +613,10 @@ def test_func(record, club=None):
     Populates record["extra"]
     """
     pass
+
+print(fees_keys)
+print(fees_keys_capped)
+
 
 if __name__ == "__main__":
     print("member.py compiles OK.")
