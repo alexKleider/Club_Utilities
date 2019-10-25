@@ -185,22 +185,10 @@ As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
 
 Please come and enjoy the meetings (first Fiday of each month.)
+
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received.
-You've already been credited with one of those meetings, only two
-more to go before you are elegible to be considered by the Executive
-Commitee for full membership (pending a vacancy.)""",
-
-    approved_but_waiting_for_vacancy = """
-The Club Executive has approved your application for Club
-membership but unfortunately there is currently no vacancy
-in the Club membership.  In the mean time you are welcome
-to enjoy Club activities and participate as members do.
-
-"Welcome aboard!"
-
-I'll let you know once a vacancy opens up.  """,
+month period beginning the date your application was received.""",
 
     request_inductee_payment = """
 The Club Executive Committee has, at its last meeting,
@@ -485,7 +473,7 @@ content_types = dict(
         "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if
-            (record["status"] and 'a1' in record["status"])
+            (record["status"] and 'a' in record["status"].split("|"))
             else False),
         "e_and_or_p": "one_only",
         },

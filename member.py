@@ -246,8 +246,22 @@ def add2malformed(record, club=None):
     club.previous_name = name
 
 
-def add2fee_sets(record, club=None):
+def add2mooring_w_fee(record, club):
     """
+    Populates club.mooring_w_fee
+    (which must be set up as an empty list by the client.)
+    """
+    try:
+        fee = int(record[mooring])
+    except ValueError:
+        return
+    club.mooring_w_fee.append("{}  {}"
+        .format(member_name(record), fee))
+
+def add2fee_sets(record, club):
+    """
+    Client must provide 'club' with the
+    necessary two (list) attributes.
     Populates club.fee_by_category
     and club.fee_by_name.
     This is the one used by ck_integrity.
@@ -613,9 +627,6 @@ def test_func(record, club=None):
     Populates record["extra"]
     """
     pass
-
-print(fees_keys)
-print(fees_keys_capped)
 
 
 if __name__ == "__main__":

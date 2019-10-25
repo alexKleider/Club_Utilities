@@ -373,8 +373,8 @@ def ck_integrity(club,
         extra_fees.txt
         ...
     """
-    ret = [  # Collector of information.
-        "Checking data integrity...", '',]
+    print("Checking data integrity...\n")
+    ret = []  # Collector of information.
 
     # Collect MEMBERSHIP data
     gather_membership_data(member_csv_file, club)
@@ -523,9 +523,9 @@ def compare(data1, data2, underline_char='=', inline=False):
         print("Bad News: data1 != data2")
     listing1 = "\n".join(data_listed(data1, underline_char, inline))
     listing2 = "\n".join(data_listed(data2, underline_char, inline))
-    print("Listing1...")
+    print("\nListing1...")
     print(listing1)
-    print("Listing2...")
+    print("\nListing2...")
     print(listing2)
     print("... end of listings")
 
@@ -541,9 +541,9 @@ def test_extras():
     club = Club()
     gather_membership_data(MEMBERSHIP_SPoT, club)
     data = club.fee_by_category
-    print("\n".join(data_listed(data)))
+#   print("\n".join(data_listed(data)))
 
-    return
+#   return
     extra_fees_data = gather_extra_fees_data(
         EXTRA_FEES_SPoT, without_fees=True)
     print("\nmemlist compared to extra_fees file by Category:")
@@ -560,16 +560,31 @@ def test_ck_integrity():
                 CONTACTS_SPoT,
                 EXTRA_FEES_SPoT,
                 APPLICANT_SPoT)
+    print("Call to ck_integrity has returned...")
     print(res)
 
+
+def list_mooring_data(extra_fees_spot):
+    extra_fees_data = gather_extra_fees_data(
+        extra_fees_spot, without_fees=False)
+#   data = extra_fees_data["by_category"]
+#   print(repr(data["Mooring"]))
+    mooring_data = extra_fees_data["by_category"]["Mooring"]
+    return sorted(
+#       ["{} - {}".format(datum[0], datum[1]) for datum in mooring_data])
+        ["{0} - {1}".format(*datum) for datum in mooring_data])
+
+    
+def test_list_mooring():
+    print("\n".join(list_mooring_data(EXTRA_FEES_SPoT )))
     
 if __name__ == "__main__":
     club = Club()
     
 #   test_applicants()
 #   test_extras()
-    test_ck_integrity()
-    
+#   test_ck_integrity()
+    test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
 
