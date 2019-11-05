@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
 
-# File: ck_integrity.py  (expect to merge into utils.py)
+# File: ck_data.py
+
+"""
+Provides automated access to the 
+Bolinas Rod and Boat Club's data files:
+Those identified by the constants ending in "SPoT".
+Motivated by the desire to have a way of checking for data integrity,
+it then morphed into a way of collecting data for presentation:
+    eg list of applicants by number of meetings attended.
+    
+"""
 
 import os
 import csv
 import member
 
-NAME_KEY = "by_name"
-CATEGORY_KEY = "by_category"
-
 MEMBERSHIP_SPoT = "Data/memlist.csv"
 CONTACTS_SPoT = os.path.expanduser('~/Downloads/contacts.csv')
 EXTRA_FEES_SPoT = "Data/extra_fees.txt"
 APPLICANT_SPoT = "Data/applicants.txt"
+
 FIELD_SEPARATOR = "|"   #} Depends on strict adhearance to 
 status_adjustment = 4   #} formatting of APPLICANT_SPoT 
                         #} Essentially used to count number of
                         #} FIELD_SEPARATORs.
+NAME_KEY = "by_name"
+CATEGORY_KEY = "by_category"
 
 
 class Club(object):
@@ -269,7 +279,7 @@ def present_fees_by_name(extra_fees, raw=False):
         for value in jv[key]:
             entry = entry + " {} {}".format(value[0], value[1]) 
         ret.append(entry)
-    return '\n'.join(ret)
+    return ret
 
 
 def present_fees_by_category(extra_fees, raw=False):
@@ -289,15 +299,16 @@ def present_fees_by_category(extra_fees, raw=False):
         ret.append("Extra fees by category:")
         ret.append("=======================")
     for key in categories:
-        ret.append(key)
+        ret.append('\n' + key)
         ret.append("-" * len(key))
         for value in jv[key]:
-            ret.append(repr(value))
-    return "\n".join(ret)
+            ret.append("{0}: ${1}".format(*value))
+    return ret
 
 
 def present_expired(list_of_expired_applications, raw=False):
     """
+    Returns a list of strings which can be "\n".join(ed).
     It's expected that the parameter will be the the following:
     gather_applicant_data(APPLICANT_SPoT)["expired"]
     which is just a list of last_first names.
@@ -309,11 +320,12 @@ def present_expired(list_of_expired_applications, raw=False):
                "=========================================="]
     for name in list_of_expired_applications:
         ret.append(name)
-    return "\n".join(ret)
+    return ret
 
 
 def present_applicants(applicants_keyed_by_status, raw=False):
     """
+    Returns a list of strings which can be "\n".join(ed).
     It's expected that the parameter will be the the following:
     gather_applicant_data(APPLICANT_SPoT)["applicants"]
     which is a dict keyed by status /w each value => set
@@ -332,7 +344,7 @@ def present_applicants(applicants_keyed_by_status, raw=False):
         values = sorted(list(applicants_keyed_by_status[key]))
         for value in values:
             ret.append("{}".format(value))
-    return "\n".join(ret)
+    return ret
 
 
 
@@ -349,22 +361,18 @@ def add2problems(problem_header, problem_list, problems,
         problems.extend(problem_list)
 
 
-def ck_integrity(club,
-                member_csv_file,
-                contacts_csv_file,
-                extra_fees_txt_file,
-                applicants_txt_file,
-                report_status=True,
-                raw=False,
-                line_or_formfeed="\n"):
+def ck_data(member_csv_file,
+            contacts_csv_file,
+            extra_fees_txt_file,
+            applicants_txt_file,
+            report_status=True,
+            raw=False,
+            line_or_formfeed="\n"):
     """
-    Assume the client has called:
-        club = Club()
-    Working on a function that will check the integrity of the Club's
-    data base(s.)  It will combine the ck_fields and compare_gmail
-    commands and also possibly check for consistency with the
-    'extra_fees'/'extra_charges', applicant 'stati', and perhaps other
-    things.
+    Check integrity/consistency of of the Club's data base(s.)
+    (Meant to replace ck_fields and compare_gmail as well as 
+    dealing with 'extra_fees'/'extra_charges', applicant 'stati',
+    and perhaps other things.
     We collect data from the membership data base (memlist.csv)
     and compare it with data collected from other sources,
     specifically:
@@ -373,12 +381,14 @@ def ck_integrity(club,
         extra_fees.txt
         ...
     """
-    print("Checking data integrity...\n")
-    ret = []  # Collector of information.
+    club = Club()
+    ret = ["Checking data integrity...\n"]
 
-    # Collect MEMBERSHIP data
+    # Collect data:
     gather_membership_data(member_csv_file, club)
+    gather_contacts_data(contacts_csv_file, club)
 
+    # Deal with MEMBERSHIP data-
     # First check for malformed records:
     if not club.malformed:
         ret.append("No malformed records found.")
@@ -405,9 +415,10 @@ def ck_integrity(club,
     add2problems("Shared Member Email(s)", shared_m_email, ret,
             underline_with="=", raw=False, line_or_formfeed="\n")
 
-    # Collect CONTACTS data
-    gather_contacts_data(contacts_csv_file, club)
+    # Deal with (gmail) CONTACTS data
     # Catch problem cases & set ==> one name for each email.
+    #### NOTE: Seems to not be picking up contacts  ####
+    #### entered twice with differing emails.       ####
     dangling_g_email = []
     shared_g_email = []
     for g_email in club.g_by_email:
@@ -482,24 +493,27 @@ def ck_integrity(club,
                                     APPLICANT_SPoT)["applicants"]
     if ((extra_fees_info["by_category"] != club.fee_by_category)
     or (extra_fees_info["by_name"] != club.fee_by_name)):
-        print("Fees problem:")
-        print(repr(extra_fees_info["by_category"]))
-        print(repr(club.fee_by_category))
+        ret.append("\nFees problem:")
+        ret.append(repr(extra_fees_info["by_category"]))
+        ret.append(repr(club.fee_by_category))
     else:
-        print("No fees problem.")
+        ret.append("No fees problem.")
     keys = [key for key in club.m_by_status.keys()]
     for key in keys:
         if not 'a' in key:
             val = (club.m_by_status.pop(key))
-            print("Key '{}': {} being ignored."
+            ret.append("Key '{}': {} being ignored."
                 .format(key, val))
     if applicants_by_status != club.m_by_status:
-        print("Applicant problem:")
-        print(repr(applicants_by_status))
-        print(repr(club.m_by_status))
+        ret.append("Applicant problem:")
+        ret.append("The following-")
+        ret.extend(applicants_by_status)
+        ret.append("- is not the same as what follows-")
+        ret.extend(club.m_by_status)
+        ret.append("- End of comparison -")
     else:
-        print("No applicant problem.")
-    return "\n".join(ret)
+        ret.append("No applicant problem.")
+    return ret
 
 
 def data_listed(data, underline_char='=', inline=False):
@@ -517,51 +531,47 @@ def data_listed(data, underline_char='=', inline=False):
 
 
 def compare(data1, data2, underline_char='=', inline=False):
-    if data1 == data2:
-        print("Good News: data1 == data2")
-    else:
-        print("Bad News: data1 != data2")
-    listing1 = "\n".join(data_listed(data1, underline_char, inline))
-    listing2 = "\n".join(data_listed(data2, underline_char, inline))
-    print("\nListing1...")
-    print(listing1)
-    print("\nListing2...")
-    print(listing2)
-    print("... end of listings")
-
-def test_applicants():
     ret = []
-    data = gather_applicant_data(APPLICANT_SPoT)
-    print(present_applicants(data["applicants"]))
-    print("\n\n")
-    print(present_expired(data["expired"]))
+    if data1 == data2:
+        ret.append("Good News: data1 == data2")
+    else:
+        ret.append("Bad News: data1 != data2")
+    ret.append("\nListing1...")
+    ret.append(data_listed(data1, underline_char, inline))
+    ret.append("\nListing2...")
+    ret.append(data_listed(data2, underline_char, inline))
+    ret.append("... end of listings")
+    return ret
 
 
 def test_extras():
     club = Club()
+    ret = []
     gather_membership_data(MEMBERSHIP_SPoT, club)
     data = club.fee_by_category
 #   print("\n".join(data_listed(data)))
+    return data_listed(data)
 
 #   return
     extra_fees_data = gather_extra_fees_data(
         EXTRA_FEES_SPoT, without_fees=True)
-    print("\nmemlist compared to extra_fees file by Category:")
-    compare(club.fee_by_category,
-            extra_fees_data["by_category"])
-    print("\nmemlist compared to extra_fees file by Name:")
-    compare(club.fee_by_name,
-            extra_fees_data["by_name"], inline=True)
+    ret.append("\nmemlist compared to extra_fees file by Category:")
+    ret.extend(compare(club.fee_by_category,
+            extra_fees_data["by_category"]))
+    ret.append("\nmemlist compared to extra_fees file by Name:")
+    ret.extend(compare(club.fee_by_name,
+            extra_fees_data["by_name"], inline=True))
 
 
-def test_ck_integrity():
-    res = ck_integrity(club,
+def test_ck_data():
+    res = ck_data(
                 MEMBERSHIP_SPoT,
                 CONTACTS_SPoT,
                 EXTRA_FEES_SPoT,
                 APPLICANT_SPoT)
-    print("Call to ck_integrity has returned...")
-    print(res)
+#   print("Call to ck_integrity has returned...")
+#   print(res)
+    return res
 
 
 def list_mooring_data(extra_fees_spot):
@@ -576,15 +586,77 @@ def list_mooring_data(extra_fees_spot):
 
     
 def test_list_mooring():
-    print("\n".join(list_mooring_data(EXTRA_FEES_SPoT )))
+    return list_mooring_data(EXTRA_FEES_SPoT )
+
+
+def test_fees_by():
+    ret = []
+    data = gather_extra_fees_data(EXTRA_FEES_SPoT)
+    by_name0= present_fees_by_name(data)
+    by_category0= present_fees_by_category(data)
+    by_name1= present_fees_by_name(data[NAME_KEY])
+    by_category1= present_fees_by_category(data[CATEGORY_KEY])
+    ret.append("\nBy Name (0)...")
+    ret.extend(by_name0)
+    ret.append("\nBy Name (1)...")
+    ret.extend(by_name1)
+    ret.append("\nBy Category (0)...")
+    ret.extend(by_category0)
+    ret.append("\nBy Category (1)...")
+    ret.extend(by_category1)
+    return ret
+
+
+def test_applicant_presentations():
+    ret = []
+    data = gather_applicant_data(APPLICANT_SPoT)
+    ret.extend(present_applicants(data["applicants"]))
+    ret.append("\n\n")
+    ret.extend(present_expired(data["expired"]))
+    return ret
+
+
+def test_applicants_incl_expired():
+    expired = present_expired(
+        gather_applicant_data(APPLICANT_SPoT)["expired"])
+    applicants = present_applicants(
+        gather_applicant_data(APPLICANT_SPoT)["applicants"])
+    ret = ["\nExpired Applications..."]
+    ret.extend(expired)
+    ret.append("\nApplicants...")
+    ret.extend(applicants)
+    return ret
     
+
 if __name__ == "__main__":
-    club = Club()
+    n = 0
+    for test_routine in (
+        test_applicant_presentations,  #1
+        test_applicants_incl_expired,  #2
+        test_extras,                   #3
+        test_ck_data,                  #4
+        test_fees_by,                  #5
+        test_list_mooring,             #6
+    ):
+        n += 1
+        print("Test #{}: {}".format(n, test_routine.__name__))
+        res = "\n".join(test_routine())
+        file_name = "2check{}".format(str(n))
+        with open(file_name, "w") as f_obj:
+            header = "Result of ({}) {}...".format(n,
+                func_name := test_routine.__name__)
+            f_obj.write(header + "\n")
+            f_obj.write("=" * len(header) + "\n")
+            f_obj.write(res)
+
+#   club = Club()
     
-#   test_applicants()
+#   test_applicant_presentations()
+#   test_applicants_incl_expired()
 #   test_extras()
-#   test_ck_integrity()
-    test_list_mooring()    
+#   test_ck_data()
+#   test_fees_by()
+#   test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
 
