@@ -446,7 +446,7 @@ def ck_data(member_csv_file,
         stati_w_members = sorted(club.m_by_status.keys())
 #       print("Stati w members: {}".format(repr(stati_w_members)))
         for key in stati_w_members:
-            add2problems(key, 
+            add2problems(("\n" + key), 
                 [member for member in club.m_by_status[key]], ret,
             underline_with="-", raw=False, line_or_formfeed="\n",
             preface_w_linefeed=False)
@@ -477,46 +477,56 @@ def ck_data(member_csv_file,
         try:
             m = club.m_by_email[g_email]  # member name
         except KeyError:
-            non_member_contacts.append(
-                "{} ({})"
+            non_member_contacts.append("{} ({})"
                     .format(g_email, g))
-
-    add2problems("Contacts that are Not Members",
-            non_member_contacts, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
-    
+     
     # Compare results of the next sets of data with
     # membership data already collected:
     extra_fees_info = gather_extra_fees_data(
                     extra_fees_txt_file, without_fees=True)
     applicants_by_status = gather_applicant_data(
                                     APPLICANT_SPoT)["applicants"]
-    if ((extra_fees_info["by_category"] != club.fee_by_category)
-    or (extra_fees_info["by_name"] != club.fee_by_name)):
-        ret.append("\nFees problem:")
-        ret.append(repr(extra_fees_info["by_category"]))
-        ret.append(repr(club.fee_by_category))
-    else:
-        ret.append("No fees problem.")
+    
     keys = [key for key in club.m_by_status.keys()]
+    temp_ret = []
     for key in keys:
         if not 'a' in key:
             val = (club.m_by_status.pop(key))
-            ret.append("Key '{}': {} being ignored."
-                .format(key, val))
+            temp_ret.append(key)
+    if temp_ret:
+        ret.append("\nNon Applicant Stati: {}"
+            .format(','.join(temp_ret)))
     if applicants_by_status != club.m_by_status:
-        ret.append("Applicant problem:")
+        ret.append("\nApplicant problem:")
         ret.append("The following-")
         ret.extend(applicants_by_status)
         ret.append("- is not the same as what follows-")
         ret.extend(club.m_by_status)
         ret.append("- End of comparison -")
     else:
-        ret.append("No applicant problem.")
+        ret.append("\nNo applicant problem.")
+
+    add2problems("Contacts that are Not Members",
+            non_member_contacts, ret,
+            underline_with="=", raw=False, line_or_formfeed="\n")
+            
+    if ((extra_fees_info["by_category"] != club.fee_by_category) or
+                (extra_fees_info["by_name"] != club.fee_by_name)):
+        ret.append("\nFees problem:")
+        ret.append(repr(extra_fees_info["by_category"]))
+        ret.append(repr(club.fee_by_category))
+    else:
+        ret.append("\nNo fees problem.")
     return ret
 
 
 def data_listed(data, underline_char='=', inline=False):
+    """
+    Assumes 'data' is a dict with list values.
+    Returns a list of lines: each key as a header +/- underlining
+    followed by its values one per line, or (if 'inline'=True) on
+    the same line separated by commas after a colon.
+    """
     ret = []
     keys = sorted(data.keys())
     for key in keys:
@@ -544,6 +554,12 @@ def compare(data1, data2, underline_char='=', inline=False):
     return ret
 
 
+def ret2file(ret, outfile):
+    with open(outfile, 'w') as f_obj:
+        f_obj.write("\n".join(ret))
+    print("Results written to '{}'."
+        .format(f_obj.name))
+
 def test_extras():
     club = Club()
     ret = []
@@ -563,15 +579,16 @@ def test_extras():
             extra_fees_data["by_name"], inline=True))
 
 
-def test_ck_data():
-    res = ck_data(
+def test_ck_data(outfile):
+    ret2file(ck_data(
                 MEMBERSHIP_SPoT,
                 CONTACTS_SPoT,
                 EXTRA_FEES_SPoT,
-                APPLICANT_SPoT)
+                APPLICANT_SPoT),
+            outfile)
 #   print("Call to ck_integrity has returned...")
 #   print(res)
-    return res
+#   return res
 
 
 def list_mooring_data(extra_fees_spot):
@@ -628,7 +645,7 @@ def test_applicants_incl_expired():
     return ret
     
 
-if __name__ == "__main__":
+def ck_all():
     n = 0
     for test_routine in (
         test_applicant_presentations,  #1
@@ -644,17 +661,21 @@ if __name__ == "__main__":
         file_name = "2check{}".format(str(n))
         with open(file_name, "w") as f_obj:
             header = "Result of ({}) {}...".format(n,
-                func_name := test_routine.__name__)
+                test_routine.__name__)
             f_obj.write(header + "\n")
             f_obj.write("=" * len(header) + "\n")
             f_obj.write(res)
 
+
+if __name__ == "__main__":
+
+#   ck_all()
 #   club = Club()
     
 #   test_applicant_presentations()
 #   test_applicants_incl_expired()
 #   test_extras()
-#   test_ck_data()
+    test_ck_data("2check")
 #   test_fees_by()
 #   test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
