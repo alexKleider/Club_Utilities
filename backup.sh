@@ -36,5 +36,6 @@ cp -al ${BACKUP}/${LAST}/. ${BACKUP}/$DEST
 # ... then rsync to update that copy with current versions:
 rsync -a --exclude='Utils' --delete $SRC $DEST   #***
 #rsync -av --exclude='Utils' --delete $SRC $DEST  #***
+# The excluded 'Utils' directory is backed up by git.
 
 echo $STAMP > ${BACKUP}/last

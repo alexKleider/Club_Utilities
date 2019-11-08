@@ -1,0 +1,244 @@
+# File: README.rst
+
+==========
+Background
+==========
+
+This 'README' pertains to utils.py and associated modules:
+
+-   helpers.py
+
+-   member.py
+
+-   content.py
+
+-   ck_data.py
+
+This project can be found at
+https://github.com/alexKleider/Club_Utilities
+(It's dependencies are discussed at the end of this document.)
+
+Try..
+  ``./utils.py -h``  # very verbose,
+or simply
+  ``./utils.py ?``  # more succinct.
+
+The project arose to facilitate my duties when appointed membership
+secretary to the Bolinas Rod & Boat Club.  It may be of use (perhaps
+with modifications, certainly to the content.py module) to someone
+else working on behalf of another organization.
+
+=====================
+Data & Privacy Issues
+=====================
+
+Of necessity, Club records must be kept private and are found in the
+'Data' subdirectory which is excluded from the git repository and
+contains the following files:
+
+- memlist.csv is the Club's main data base
+
+    Its fields/headers are:
+    first,last,phone,address,town,state,postal_code,country,email,email_only,dues,mooring,dock,kayak,status
+    The first 10 fields are self explanatory.
+    The 'email_only' field is now rather redundant since it is blank only
+    for those with a blank email field.  My long range plan is to
+    eliminate this field.
+    The next 4 fields are the member.money_kyes.
+    The final "status" field provides a place for added info. (See
+    member.status_key_values for further detail.)
+
+- applicants.txt  # a SPoT file  [1]
+
+    This is where I've been keeping a record of applicants for Club
+    membership along with dates of application, payment of application
+    fee, dates of required three meetings and date of induction by the
+    Executive Committee.
+
+- extra_fees*  # extra_fees.txt is the SPoT
+
+    The Club offers kayak storage, dock usage and mooring for some members
+    at an extra charge. This file maintains the record of who is paying
+    for what extra.
+
+- google.csv (imported from the clubs gmail account)
+
+    This (contacts.csv) file can be imported from the Cub's Gmail account
+    and used to compare with the Club data base (Data/memlist.csv) using the
+    'compare_gmail' sub-command.
+
+- receipts<year>.txt
+
+    This file is used to keep track of incoming fees. When ever money
+    comes in (pertaining to Membership) an entry is made.  The format to
+    which it must conform is described in the docstring of the fees_intake
+    method.
+
+
+=====================
+Bash Script Utilities
+=====================
+
+The bash script utilities are commented and should be self explanatory. 
+More information is provided in the next section: Archiving and
+Backup.
+
+- archive-data.sh
+
+- archive-mailing.sh
+
+- backup.sh
+
+- utils-completion.bash
+
+Comments, suggestions, criticisms ==> alexKleider@gmail.com
+
+
+=============================================
+Further Notes Pertaining Largely to Work Flow
+=============================================
+
+------------------
+ARCHIVING & BACKUP
+------------------
+
+Code is backed up here: https://github.com/alexKleider/Club_Utils
+Data is archived (to preserve an historical record) to the Archive
+sister directory and also backed up to an external hard drive.
+
+---------
+WORK FLOW
+---------
+
+The project can be found under the /home/alex/Club/Mshp directory
+which is a git repository: https://github.com/alexKleider/Club_Utilities.
+The club data within this directory is (for privacy reasons)
+excluded from github and archived in the 'Data' subdirectory of the
+'Archive' directory (see archive-data.sh.) It consists of the following:
+
+- applicants.txt  # The SPoT for applicant status.
+
+- extra_fees.txt  # The SPoT for dock, mooring and kayak storage.
+
+- memlist.csv  # The main membership data base.
+
+- receipts..  # Money taken in (by membership year.)
+
+- report..    # One for every month.
+
+These are edited using vim (or any editor of your choosing) and
+are copied (archive.sh) to the Archive directory from time to time
+(at a minimum after each meeting, to provide an historical record.)
+
+Also archived are mailings: see ``archive-mailing.sh.``  This should be
+done after each time letters/emails are sent out.
+
+--------------
+Redacted Parts
+--------------
+
+Within utils.py, the 'labels', 'envelopes', 'email_billings2json',
+and 'usps_billings2print' commands have been pretty much deprecated
+and may soon disappear.
+Billing is now done using the 'prepare_mailing' command.
+
+As of late Aug/early Sept 2018 most commands are implemented by
+having a single traversing command which takes a custom function
+(or list of custom functions) as its parameter and this/these
+function(s) deal(s) with each record traversed adding data as needed
+to one or more corresponding attribute(s) of the Membership instance.
+The command is 'prepare_mailing'.
+It results in
+1. a directory (./Data/MailingDir/) full of individual
+letters to be printed, folded, inserted into windowed envelopes and
+mailed.  I simply use the command line to issue the following:
+
+  ``$ lpr Data/MailingDir/*``
+
+rather than bother with the ./utils.py print_letters command.
+.. and 2. a file emails.json which can be processed using the 
+
+  ``$ ./utils.py display_emails ...``
+
+command to allow a visual check before actually sending the emails
+using the 
+
+  ``$ ./utils.py send_emails ...``
+
+command.
+    Note: The send_emails functionality depends on the
+    presence of a ~/.msmtprc configuration file
+    and lowering the gmail account security setting:
+    https://myaccount.google.com/lesssecureapps
+
+Once the above is all done, the mailings can be archived using the
+archive-mailings.sh script.
+
+
+-----------------------------------------------
+Early Payment of Dues/Acknoledgement of payment
+-----------------------------------------------
+
+When people pay, I've been 'copy/past'ing their line in the
+memlist.csv file into the payed.csv file until enough accumulate to
+make it worth while sending out the thank_you_for_payment letter after
+which I zero out the entries in the latter.
+
+------------
+DEPENDENCIES
+------------
+
+See requirements.txt. Only the first item is required for current
+usage.  I believe (but am not completely certain) that the others were
+added in my (failed) attempt to automate the exportation of google
+contacts.
+'docopt' is not part of the Python standard library but is available
+using pip.  It is recommended to use pip in the following manner:
+
+    ``$ python3 -m pip install docopt``
+
+Also required is msmtp along with a custom ~/.msmtprc configuration
+file.
+
+    ``# apt install msmtp``
+
+The ~/.msmtprc is in the following format:
+
+.. code-block::
+
+    # see:
+    # https://websistent.com/how-to-use-msmtp-with-gmail-yahoo-and-php-mail/
+    defaults
+    protocol smtp
+    auth on
+    tls_starttls on
+    tls on
+    # tls_nocertcheck
+    tls_trust_file /etc/ssl/certs/ca-certificates.crt
+    logfile ~/.msmtp.log
+
+    account gmail
+    host smtp.gmail.com
+    port 587
+    user rodandboatclub@gmail.com
+    from "rodandboatclub@gmail.com"
+    password "REDACTED"
+
+    # parts added when the above didn't work:
+    # $ cat demo_email | msmtp -a gmail akleider@sonic.net
+    # msmtp: account gmail from /home/alex/.msmtprc: tls requires either
+    # tls_trust_file (highly recommended) or tls_fingerprint or a disabled
+    # tls_certcheck
+    # Working but only because "Allow less secure apps: ON"
+    # This can be changed here:
+    # https://myaccount.google.com/lesssecureapps?rfn=27&rfnc=1&eid=8982448633122002402&et=0&asae=2&pli=1
+
+==========
+Foot Notes
+==========
+
+[1] Acronyms:
+
+- "SPoT" <= Single Point of Truth; applying the DRY principle.
+
+- "DRY" <= Donnot Repeat Yourself
