@@ -28,6 +28,9 @@ status_adjustment = 4   #} formatting of APPLICANT_SPoT
 NAME_KEY = "by_name"
 CATEGORY_KEY = "by_category"
 
+APPLICANT_GROUP = "applicant"  # } These are specific to
+MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
+                               # } CONTACTS_SPoT
 
 class Club(object):
     """
@@ -55,6 +58,7 @@ def gather_membership_data(member_csv_file, club):
         fee_by_category { keyed by category or name, values are a
         fee_by_name     { set of names or categories
     """
+    club.members = set()
     club.m_by_name = dict()    #{ member emails keyed by (first, last)
                                #{ name
     club.m_by_email = dict()   # sets of member names keyed by email
@@ -129,8 +133,8 @@ def gather_contacts_data(contacts, club):
                     groups= group_membership)
 
             for key in group_membership:
-                _ = club.g_by_group_membership.setdefault(key, [])
-                club.g_by_group_membership[key].append(gname)
+                _ = club.g_by_group_membership.setdefault(key, set())
+                club.g_by_group_membership[key].add(gname)
 
 
 def gather_applicant_data(in_file):
@@ -487,6 +491,35 @@ def ck_data(member_csv_file,
     applicants_by_status = gather_applicant_data(
                                     APPLICANT_SPoT)["applicants"]
     
+    # Check that gmail contacts' "groups" match membership data:
+######  Following code could be refactored, perhaps /w Walrus!!#####
+    m_applicants = set()
+    for key in club.m_by_status:
+#       print(key)
+        if 'a' in key:
+#           print("key chosen")
+            for member in club.m_by_status[key]:
+                m_applicants.add(member)
+### The following should be checked for equivalence and    ###
+### if different, they need to be reported in the output-  ###
+### left here for time being until Data can be corrected.  ###
+    if m_applicants == set(
+            club.g_by_group_membership[APPLICANT_GROUP]):
+        ret.append("\nGmail groups match Club data")
+    else:
+        ret.append("\nMismatch: Gmail groups vs Club data")
+        ret.append(  "===================================")
+        ret.append(sorted(list(
+            club.g_by_group_membership[APPLICANT_GROUP])))
+        ret.append(sorted(list(m_applicants)))
+#       print(
+#       "The following two (sorted) sets should be the same- They're NOT!")
+#       print(sorted(list(m_applicants)))
+#       print(sorted(list(club.g_by_group_membership[APPLICANT_GROUP])))
+#       print()
+
+    g_members = club.g_by_group_membership[MEMBER_GROUP]
+    g_applicants = club.g_by_group_membership[APPLICANT_GROUP] 
     keys = [key for key in club.m_by_status.keys()]
     temp_ret = []
     for key in keys:

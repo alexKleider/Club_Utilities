@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# File: utils-completion.bash
-# ... a completion script for utils.py
+# File: auto-completion.bash
+# ... a completion script for utils.py & ck_data.py
 # To be effective, this script must be "sourced". This can be done
 # automatically by adding
-# "source <path-to-script>/utils-completion.bash"
+# "source <path-to-script>/auto-completion.bash"
 # as a single line to ~/.profile in your home directory.
-#
+# or moving the file to /etc/bash_completion.d
+
+complete -W "test_data do_nothing" ck_data.py
 
 complete -W "ck_fields \
             show \

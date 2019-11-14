@@ -169,6 +169,11 @@ def get_usps(record, club=None):
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
+def add2members(record, club):
+    """
+    """
+    club.members.add()
+
 
 def add2m_by_name(record, club):
     """
