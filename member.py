@@ -6,7 +6,7 @@
 Many methods of Membership class are essentially
 independant of Membership but pertain to each record.
 Hence makes sense to separate them out.
-A few/some need to store data so those will get an extra
+A many need to store data so those will get an extra
 (named) parameter: 'club=None'.
 """
 
@@ -16,7 +16,7 @@ import json
 import helpers
 # import content
 
-STATUS_SEPARATOR = ':'
+SEPARATOR = '|'  
 WAIVED = "w"
 status_key_values = {
     "a0": "Application received.",
@@ -29,7 +29,7 @@ status_key_values = {
     "be": "Email on record doesn't work.",
     }
 STATI = sorted([key for key in status_key_values.keys()])
-NON_MEMBER_STATI = STATI[:5]
+APPLICANT_STATI = STATI[:5]
 APPLICANT_SET = set(STATI[:5])
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
@@ -105,7 +105,7 @@ def ck_number_of_fields(record, club=None):
         report_error(possible_error, club)
 
 def is_applicant(record, club=None):
-    stati = record['status'].split(STATUS_SEPARATOR)
+    stati = record['status'].split(SEPARATOR)
     name = "{last}, {first}".format(**record)
     for status in stati:
         if status in APPLICANT_SET: 
@@ -127,28 +127,20 @@ def is_member(record, club=None):
     club.errors (if it exists) or print out a warning.
     """
     if ((record['status']==None)
-    or (record['status'] == '')):
+    or (record['status'] == '')
+    or ("m" in {status for status in record['status'].split(
+        SEPARATOR)})
+    ):
         return True
-#   stati = record['status'].split(STATUS_SEPARATOR)
-    stati = {status for status in record['status'].split(
-        STATUS_SEPARATOR)}
-    for status in NON_MEMBER_STATI:
-        if status in stati:
-            return False
-    if ("m" in stati # member
-    or  stati == ['be'] # bad email
-    #    Notice the '==', not '"be" in ..'
-    or  "w" in stati):   # fees waved
-        return True
-    error = ("Problem in 'is_member' with {}."
-        .format("{last}, {first}".format(**record)))
-    report_error(error, club)
+    else:
+        return False
 
 
 def is_fee_paying_member(record, club=None):
     """
     """
-    if WAIVED in record['status'].split(STATUS_SEPARATOR):
+    if WAIVED in {status for status in
+    record['status'].split(SEPARATOR)}:
         return False
     if is_member(record):
         return True
@@ -169,12 +161,8 @@ def get_usps(record, club=None):
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
-def add2members(record, club):
-    """
-    """
-    club.members.add()
 
-
+### ?? Not Used ?? ###
 def add2m_by_name(record, club):
     """
     Adds to already existing dict club.m_by_name which is
@@ -185,7 +173,7 @@ def add2m_by_name(record, club):
     club.m_by_name[member_name(record)] = dict(
         email= record['email'],
         stati= {status for status in record["status"].split(
-        STATUS_SEPARATOR)})
+        SEPARATOR)})
 
 
 def add2m_by_email(record, club):
@@ -211,7 +199,7 @@ def add2m_by_status(record, club):
 #   print("record['status'] is '{}'".format(record['status']))
     if not record["status"]:
         return
-    stati = record["status"].split(STATUS_SEPARATOR)
+    stati = record["status"].split(SEPARATOR)
     for status in stati:
         _ = club.m_by_status.setdefault(status, set())
         club.m_by_status[status].add(member_name(record))
@@ -332,22 +320,20 @@ def get_payables(record, club=None):
     for key in money_keys:
         if record[key]:
             amount = int(record[key])
-            if amount != 0:
-                if amount > 0:
-                    assert amount > 0
-                    line_positive.append("{} {}".format(
-                        money_headers[key], amount))
-                elif amount < 0:
-                    assert amount < 0
-                    line_negative.append("{} {}".format(
-                        money_headers[key], amount))
-                else:
-                    assert False
+            if amount > 0:
+                line_positive.append("{} {}".format(
+                    key, amount))
+#                       money_headers[key], amount))
+            elif amount < 0:
+                line_negative.append("{} {}".format(
+                    key, amount))
     if line_positive:
-        line = (name + ', '.join(line_positive))
+        line = ("{:<26}".format(name)
+                    + ', '.join(line_positive))
         club.still_owing.append(line)
     if line_negative:
-        line = (name + ', '.join(line_negative))
+        line = ("{:<26}".format(name)
+                    + ', '.join(line_negative))
         club.advance_payments.append(line)
 
 def add2status_list(record, club=None):
@@ -399,14 +385,15 @@ def add2memlist4web(record, club=None):
     else:
         club.errors.append(line)
 
-############ redacted #########################
+
 def get_extra_charges(record, club=None):
     """
     Populates the club.extras_by_member list attribute
     and the club.extras_by_category dict attribute.
     Both these attributes must be initialized by the client.
+    Used by utils.extra_charges_cmd()
     """
-    name = "{}, {}".format(record['last'], record['first'])
+    name = member_name(record)
     _list = []
     for key in fees_keys:
         value = record[key]
@@ -418,11 +405,11 @@ def get_extra_charges(record, club=None):
                 club.errors.append("{last}, {first}: '{key}'  "
                     .format(**record))
             _list.append("{}- {}".format(key, int(record[key])))
-            club.extras_by_category[key].append("{}: {}- {}"
-                .format(name, key, value))
+            club.extras_by_category[key].append("{:<26} {}- {}"
+                .format(name + ":", key, value))
     if _list:
-        club.extras_by_member.append("{}: {}"
-            .format(name, ", ".join(_list)))
+        club.extras_by_member.append("{:<26} {}"
+            .format(name + ":", ", ".join(_list)))
 
 ##### Next group of methods deal with sending out mailings. #######
 # Clients must set up the following attributes of the 'club' parameter

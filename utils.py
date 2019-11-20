@@ -28,15 +28,15 @@ Usage:
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
+  ./utils.py show_mailing_categories [-o <outfile>]
   ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py display_emails -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
   ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
-  ./utils.py display_emails -j <json_file> [-o <txt_file>]
+  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
   ./utils.py fees_intake [-i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
-  ./utils.py show_mailing_categories [-o <outfile>]
-  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
 
 Options:
   -h --help  Print this docstring.
@@ -114,11 +114,14 @@ Commands:
     payables: reports on content of the member data money fields
         providing a listing of those who owe and those who have paid
         in advance.
+    show_mailing_categories: Sends a list of possible entries for the
+        '--which' parameter required by the prepare_mailings command.
     prepare_mailing: A general form of the billing command (above.)
         This command demands a TYPE positional argument to specify the
         mailing: more specifically, it specifies the content and the
         custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
+    display_emails: Provides an opportunity to proof read the emails.
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
         second level iterable consists of an iterable of one or more
@@ -143,17 +146,14 @@ Commands:
         results into a file named as a concatination of "new_" and the
         specified membership csv file. One can then mannually check
         the new file and move it if all is well.
-    display_emails: Provides an opportunity to proof read the emails.
+    emailing: provides ability to send emails with attachments.
+        Uses a different mechanism than the prepare_mailing and
+        send_emails commands. Sends the same to all in the input file.
     fees_intake: Input file should be a 'receipts' file (which has a
         specific format,) output yields subtotals and the grand total.
         This simply automates totaling the numbers.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
-    show_mailing_categories: Sends a list of possible entries for the
-        '--which' parameter required by the prepare_mailings command.
-    emailing: provides ability to send emails with attachments.
-        Uses a different mechanism than the prepare_mailing and
-        send_emails commands. Sends the same to all in the input file.
 """
 
 import os
@@ -1339,23 +1339,23 @@ def stati_cmd():
     if not infile:
         infile = Membership.MEMBER_DB
     print("Preparing listing of stati.")
-    source.stati_dict = {}
+    source.m_by_status = {}
     err_code = member.traverse_records(infile,
-                                    member.add2stati_by_status,
+                                    member.add2m_by_status,
                                     source)
     res = ["No entries found.", ]
-    keys = [k for k in source.stati_dict.keys() if k]
+    keys = [k for k in source.m_by_status.keys() if k]
     keys.sort()
     if args["-B"]:
         if "be" in keys:
-            for value in source.stati_dict["be"]:
+            for value in source.m_by_status["be"]:
                 res.append("    {}".format(value))
             if len(res) > 1:
                 res[0] = ("Those with bad emails:" +
                         "\n======================")
     elif args["-W"]:
         if "w" in keys:
-            for value in source.stati_dict["w"]:
+            for value in source.m_by_status["w"]:
                 res.append("    {}".format(value))
         if len(res) > 1:
             res[0] = ("Those whose fees are being waived:" +
@@ -1364,18 +1364,18 @@ def stati_cmd():
         for key in keys:
             if key.startswith('a'):
                 res.append("  {}".format(member.status_key_values[key]))
-                for value in source.stati_dict[key]:
+                for value in source.m_by_status[key]:
                     res.append("    {}".format(value))
         if len(res) > 1:
             res[0] = "Applicants:\n==========="
     else:
         for key in keys:
 #           print("key is: {}".format(key))
-#           print("value is: {}".format(source.stati_dict[key]))
+#           print("value is: {}".format(source.m_by_status[key]))
             res.append("\n{}".format(
                         member.status_key_values[key]
                                     ))
-            for value in source.stati_dict[key]:
+            for value in source.m_by_status[key]:
                 res.append("\t{}".format(value))
             if len(res) > 1:
                 res[0] = "Stati:\n==========="
@@ -1521,12 +1521,14 @@ def extra_charges_cmd():
     res_by_category = []
     if source.extras_by_category:
         res_by_category.extend(["Extra Fees Charged by the Club",
-                                "------------------------------"])
+                                "=============================="])
         for key in source.extras_by_category:
             if source.extras_by_category[key]:
                 res_by_category.append("")
-                res_by_category.append("Members paying for {}:"
-                    .format(member.money_headers[key]))
+                res_by_category.append("Members paying for {}"
+                    .format(key))
+                res_by_category.append("-" * len(
+                        res_by_category[-1]))
                 for val in source.extras_by_category[key]:
                     res_by_category.append(val)
         res_by_category = '\n'.join(res_by_category)
@@ -1535,7 +1537,7 @@ def extra_charges_cmd():
     res_by_member = []
     if source.extras_by_member:
         res_by_member.extend(["Members Paying Extra Fees",
-                              "-------------------------"])
+                              "========================="])
         for line in source.extras_by_member:
             res_by_member.append(line)
         res_by_member = '\n'.join(res_by_member)
@@ -1564,8 +1566,7 @@ def payables_cmd():
                        "-------------"])
         output.extend(source.still_owing)
     if source.advance_payments:
-        if source.still_owing:
-            output.append("\n")
+        output.append("\n")
         output.extend(["Members Payed in Advance",
                        "------------------------"])
         output.extend(source.advance_payments)
