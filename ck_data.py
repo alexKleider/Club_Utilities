@@ -32,6 +32,19 @@ APPLICANT_GROUP = "applicant"  # } These are specific to
 MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
                                # } CONTACTS_SPoT
 
+def show_dict(d, underline_char=None):
+    ret = []
+    for key in sorted([key for key in d.keys()]):
+        if underline_char:
+            ret.append(key)
+            ret.append(underline_char * len(key))
+            for val in sorted([val for val in d[key]]):
+                ret.append(val)
+        else:
+            line = ", ".join([val for val in d[key]])
+            ret.append("{}: {}".format(key, line))
+    return ret
+
 class Club(object):
     """
     Used to hold data for subsequent processing, display, ...
@@ -154,8 +167,8 @@ def gather_applicant_data(in_file):
     with open(in_file, 'r') as f_obj:
         print('Reading file "{}".'
             .format(f_obj.name))
-        for line in f_obj:
-            line = line.strip()
+        for raw_line in f_obj:
+            line = raw_line.strip()
             if line:
 #               print("Processing: {}".format(line))
                 parts = [part.strip() for part in line.split(
@@ -176,7 +189,7 @@ def gather_applicant_data(in_file):
                     names = name.split()
                     if len(names) == 2:
                         last_first = ", ".join((names[1], names[0]))
-                        print("Processing '{}'.".format(last_first))
+#                       print("Processing '{}'.".format(last_first))
                         last_segment = parts[-1]
 #                       print("last_segment is '{}'"
 #                           .format(last_segment))
@@ -184,11 +197,13 @@ def gather_applicant_data(in_file):
                             expired_applications.append(last_first)
                         else:
                             _ = applicants.setdefault(status,set())
-                            print("Adding '{}'.".format(last_first))
+#                           print("Adding '{}'.".format(last_first))
                             applicants[status].add(last_first)
-                    else:
-                        print("Difficulty processing applicant '{}'."
+                    elif name:
+                        print(
+                        "Difficulty processing applicant '{}' in line:"
                                 .format(name))
+#                       print(raw_line)
     return {"expired": expired_applications,  # just a list
             "applicants": applicants,  # sets keyed by status:
                         # client will want to sort the keys.
@@ -375,6 +390,59 @@ def add2problems(problem_header, problem_list, problems,
         problems.extend(problem_list)
 
 
+def ck_applicants(club, # provides data from memlist and gmail
+           applicants): # gather_applicant_data(SPoT, "applicants")
+    """
+    The 'club' parameter assumes gather_membership_data
+    and gather_contacts_data functions have been run in order to
+    populate the following club attributes:
+        club.m_by_status
+        club.m_by_group_membership
+    and also that the client has run the gather_applicant_data
+    function to provide the 'applicants' parameter.
+    """
+    m_applicants = club.m_by_status
+    a_applicants = applicants
+    g_applicants = club.m_by_group_membership["applicant"]
+
+
+def ck_applicants_cmd():
+    """
+    Driver for ck_applicants function.
+    """
+    club = Club()
+    gather_contacts_data(CONTACTS_SPoT, club)
+    gather_membership_data(MEMBERSHIP_SPoT, club)
+    a_by_status = gather_applicant_data(APPLICANT_SPoT)['applicants']
+
+    ret = []
+    g_set = club.g_by_group_membership[APPLICANT_GROUP]
+    m_set = set()  # applicants per the membership db
+    a_set = set()  # applicants per the applicant SPoT
+
+    if club.m_by_status == a_by_status:
+        ret.append("\n Club records match applicant SPoT")
+
+    for key in club.m_by_status:
+        if 'a' in key:
+            m_set = m_set.union(club.m_by_status[key])
+    for key in a_by_status:
+        if 'a' in key:
+            a_set = a_set.union(a_by_status[key])
+    if g_set == m_set:
+        ret.append("\nContacts match Club records.")
+    else:
+        ret.append("\nContacts do NOT match Club records.")
+    if g_set == a_set:
+        ret.append("\nContacts match applicant file.")
+    else:
+        ret.append("\nContacts do NOT match applicant file.")
+
+    ck_applicants(club, a_by_status)
+
+
+
+
 def ck_data(member_csv_file,
             contacts_csv_file,
             extra_fees_txt_file,
@@ -400,16 +468,18 @@ def ck_data(member_csv_file,
     club = Club()
     ret = ["Checking data integrity...\n"]
 
-    # Collect data from csv files:
+    # Collect data from csv files ==> club attributes
     gather_membership_data(member_csv_file, club)
     gather_contacts_data(contacts_csv_file, club)
 
-    # Collect data from custom files:
+    # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(
                     extra_fees_txt_file, without_fees=True)
     a_applicants = gather_applicant_data(
                                     APPLICANT_SPoT)["applicants"]
 
+#   print('gather_applicant_data(APPLICANT_SPoT)["applicants"] gets:')
+#   print(a_applicants)
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
     if not club.malformed:
@@ -550,9 +620,9 @@ def ck_data(member_csv_file,
     if a_applicants != club.m_by_status:
         ret.append("\nApplicant problem:")
         ret.append("The following-")
-        ret.extend(a_applicants)
+        ret.extend(show_dict(a_applicants))
         ret.append("- is not the same as what follows-")
-        ret.extend(club.m_by_status)
+        ret.extend(show_dict(club.m_by_status))
         ret.append("- End of comparison -")
     else:
         ret.append("\nNo applicant problem.")
