@@ -47,7 +47,7 @@ Options:
                     can be written.  If not specified, errors are
                     generally reported to stdout.
   -i <infile>  Specify file used as input. Usually defaults to
-                the MEMBER_DB attribute of the Membership class.
+                the MEMBER_DB attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   -t <temp_file>  An option provided for when one does not want to risk
@@ -206,6 +206,7 @@ def output(data, destination=args["-o"]):
     Sends data (text) to destination as specified
     by the -o <outfile> command line parameter (which
     defaults to stdout.)
+    Reports file manipulations to stdout.
     """
     if destination == 'stdout':
         print(data)
@@ -334,7 +335,7 @@ media = dict(  # keep the classes in a dict
 
 
 # Specify input file and its data:
-class Membership(object):
+class Club(object):
     """
     Create such an object for each data base used.
     In the current use case this is the only one and
@@ -369,7 +370,7 @@ class Membership(object):
         envelopes as was done before. For the time being will simply
         use a "dummy".
         """
-        self.infile = Membership.MEMBER_DB
+        self.infile = Club.MEMBER_DB
         self.name_tuples = []
         self.json_data = []
         self.previous_name = ''              # } Used to
@@ -1214,42 +1215,44 @@ class Membership(object):
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
-####  End of Membership class declaration.
+####  End of Club class declaration.
 
 
 def ck_fields_cmd():
     """
     Traverses the input file using
-    Membership method add2malformed
+    Club method add2malformed
     to select malformed records.
     """
-    source = Membership(Dummy)
+    club = Club(Dummy)
     ret = []
-    source.malformed = []
-    source.status_list = []
+    club.malformed = []
+    club.status_list = []
     infile = args["-i"]
     if not infile:
-        infile = Membership.MEMBER_DB
+        infile = Club.MEMBER_DB
     print("Checking fields...")
     err_code = member.traverse_records(infile,
                 (member.add2malformed, member.add2status_list),
-                source)
+                club)
     if err_code:
         print("Error condition! #{}".format(err_code))
-    if not source.malformed:
+    if not club.malformed:
         ret.append("No malformed records found.")
     else:
         if not args['--raw']:
             ret = [
                 'Malformed Records',
-                '================='] + source.malformed
+                '================='] + club.malformed
     if args["-S"]:
         ret.extend(["", "Members /w 'status' Content",
                        '---------------------------']
-                       + source.status_list)
+                       + club.status_list)
     output("\n".join(ret))
-    if args['-o']:
-        print("Output sent to {}.".format(args['-o']))
+##  'output' function reports file manipulation 
+##  making the following two lines redundant:
+#   if args['-o']:
+#       print("Output sent to {}.".format(args['-o']))
     print("...done checking fields.")
 
 def compare_gmail_cmd():
@@ -1260,14 +1263,14 @@ def compare_gmail_cmd():
 
     verification = "Is your google contacts cvs file up to date? "
     if verification and input(verification).lower()[0] == 'y':
-        source = Membership(Dummy)
+        club = Club(Dummy)
         if not args["-i"]:
-            args["-i"] = Membership.MEMBER_DB
+            args["-i"] = Club.MEMBER_DB
         if  not args['<gmail_contacts>']:
             args['<gmail_contacts>'] = GMAIL_CONTACTS 
         print("File from google: '{}'"
             .format(args['<gmail_contacts>']))
-        return source.compare_gmail(args['-i'],
+        return club.compare_gmail(args['-i'],
                                 args['<gmail_contacts>'],
                                 args['-s'])
     else:
@@ -1276,23 +1279,23 @@ def compare_gmail_cmd():
         sys.exit()
 
 def show_cmd():
-    source = Membership(Dummy)
-    source.members = []
-    source.nmembers = 0
-    source.inductees = []
-    source.ninductees =0
-    source.applicants = []
-    source.napplicants = 0
-    source.errors = []
-    source.by_n_meetings = {}
+    club = Club(Dummy)
+    club.members = []
+    club.nmembers = 0
+    club.inductees = []
+    club.ninductees =0
+    club.applicants = []
+    club.napplicants = 0
+    club.errors = []
+    club.by_n_meetings = {}
     infile = args["-i"]
     if not infile:
-        infile = source.infile
+        infile = club.infile
     print("Preparing membership listings...")
     err_code = member.traverse_records(infile,
                                 (member.add2memlist4web,
                                 member.is_applicant),
-                                source)
+                                club)
     print("...done preparing membership listing...")
     listing4web = ["""FOR MEMBER USE ONLY
 
@@ -1302,61 +1305,61 @@ OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
 BOARD OF THE BRBC.
 LOSS OF MEMBERSHIP IS THE PENALTY.
     """]
-    if source.members:
+    if club.members:
         listing4web.extend(("Club Members ({} in number as of {})"
-                .format(source.nmembers, helpers.date),
+                .format(club.nmembers, helpers.date),
                             "============"))
-        listing4web.extend(source.members)
-    if source.applicants:
+        listing4web.extend(club.members)
+    if club.applicants:
         listing4web.extend(("", "Applicants ({} in number)"
-                .format(source.napplicants),
+                .format(club.napplicants),
                                 "=========="))
-        if source.by_n_meetings:
+        if club.by_n_meetings:
             sorted_keys = sorted(
-                [key for key in source.by_n_meetings.keys()])
+                [key for key in club.by_n_meetings.keys()])
             for key in sorted_keys:
                 listing4web.append("{}".format(key))
                 listing4web.append("--")
-                sorted_applicants = sorted(source.by_n_meetings[key])
+                sorted_applicants = sorted(club.by_n_meetings[key])
                 listing4web.extend(sorted_applicants)
         else:
-            listing4web.extend(source.applicants)
-        if source.ninductees:
+            listing4web.extend(club.applicants)
+        if club.ninductees:
             listing4web.extend(("", "Inductees ({} in number)"
-                    .format(source.ninductees),
+                    .format(club.ninductees),
                                     "========="))
-            listing4web.extend(source.inductees)
-    if source.errors:
+            listing4web.extend(club.inductees)
+    if club.errors:
         listing4web.extend(("", "ERRORS",
                                 "======"))
-        listing4web.extend(source.errors)
+        listing4web.extend(club.errors)
 
     output("\n".join(listing4web))
     print("...results sent to {}.".format(args['-o']))
 
 def stati_cmd():
-    source = Membership(Dummy)
+    club = Club(Dummy)
     infile = args["-i"]
     if not infile:
-        infile = Membership.MEMBER_DB
+        infile = Club.MEMBER_DB
     print("Preparing listing of stati.")
-    source.m_by_status = {}
+    club.m_by_status = {}
     err_code = member.traverse_records(infile,
                                     member.add2m_by_status,
-                                    source)
+                                    club)
     res = ["No entries found.", ]
-    keys = [k for k in source.m_by_status.keys() if k]
+    keys = [k for k in club.m_by_status.keys() if k]
     keys.sort()
     if args["-B"]:
         if "be" in keys:
-            for value in source.m_by_status["be"]:
+            for value in club.m_by_status["be"]:
                 res.append("    {}".format(value))
             if len(res) > 1:
                 res[0] = ("Those with bad emails:" +
                         "\n======================")
     elif args["-W"]:
         if "w" in keys:
-            for value in source.m_by_status["w"]:
+            for value in club.m_by_status["w"]:
                 res.append("    {}".format(value))
         if len(res) > 1:
             res[0] = ("Those whose fees are being waived:" +
@@ -1365,18 +1368,18 @@ def stati_cmd():
         for key in keys:
             if key.startswith('a'):
                 res.append("  {}".format(member.status_key_values[key]))
-                for value in source.m_by_status[key]:
+                for value in club.m_by_status[key]:
                     res.append("    {}".format(value))
         if len(res) > 1:
             res[0] = "Applicants:\n==========="
     else:
         for key in keys:
 #           print("key is: {}".format(key))
-#           print("value is: {}".format(source.m_by_status[key]))
+#           print("value is: {}".format(club.m_by_status[key]))
             res.append("\n{}".format(
                         member.status_key_values[key]
                                     ))
-            for value in source.m_by_status[key]:
+            for value in club.m_by_status[key]:
                 res.append("\t{}".format(value))
             if len(res) > 1:
                 res[0] = "Stati:\n==========="
@@ -1485,17 +1488,17 @@ def usps_cmd():
     """
     infile = args['-i']
     if not infile:
-        infile = Membership.MEMBER_DB
-    source = Membership(Dummy)
-    source.usps_only = []
-    err_code = member.traverse_records(infile, member.get_usps, source)
+        infile = Club.MEMBER_DB
+    club = Club(Dummy)
+    club.usps_only = []
+    err_code = member.traverse_records(infile, member.get_usps, club)
     header = []
-    for key in source.fieldnames:
+    for key in club.fieldnames:
         header.append(key)
         if key == "postal_code":
             break
     res = [",".join(header)]
-    res.extend(source.usps_only)
+    res.extend(club.usps_only)
     return '\n'.join(res)
         
 
@@ -1519,7 +1522,7 @@ def extra_charges_cmd():
     """
     infile = args["-i"]
     if not infile:
-        infile = Membership.MEMBER_DB
+        infile = Club.MEMBER_DB
     suffix = infile[-4:]
     if suffix == ".txt":
         # use function vs method
@@ -1531,46 +1534,46 @@ def extra_charges_cmd():
         # use methods: traversal with get_extra_fees
         print("Traversing {} to select mempbers owing extra_fees..."
             .format(infile))
-        source = Membership(Dummy)
-        source.extras_by_member = []
-        source.extras_by_category = {}
-        source.errors = []
+        club = Club(Dummy)
+        club.extras_by_member = []
+        club.extras_by_category = {}
+        club.errors = []
         for key in member.fees_keys:
-            source.extras_by_category[key] = []
+            club.extras_by_category[key] = []
         err_code = member.traverse_records(infile,
-                member.get_extra_charges, source)
+                member.get_extra_charges, club)
     else:
         print("Bad input file!")
         assert False
     res_by_category = []
-    if source.extras_by_category:
+    if club.extras_by_category:
         res_by_category.extend(["Extra Fees Charged by the Club",
                                 "=============================="])
-        for key in source.extras_by_category:
-            if source.extras_by_category[key]:
+        for key in club.extras_by_category:
+            if club.extras_by_category[key]:
                 res_by_category.append("")
                 res_by_category.append("Members paying for {}"
                     .format(key))
                 res_by_category.append("-" * len(
                         res_by_category[-1]))
-                for val in source.extras_by_category[key]:
+                for val in club.extras_by_category[key]:
                     res_by_category.append(val)
         res_by_category = '\n'.join(res_by_category)
     else:
         res_by_category = ''
     res_by_member = []
-    if source.extras_by_member:
+    if club.extras_by_member:
         res_by_member.extend(["Members Paying Extra Fees",
                               "========================="])
-        for line in source.extras_by_member:
+        for line in club.extras_by_member:
             res_by_member.append(line)
         res_by_member = '\n'.join(res_by_member)
     else:
         res_by_member = ''
     output("\n\n".join((res_by_category, res_by_member)))
-    if source.errors:
+    if club.errors:
         print("Errors:")
-        print("\n".join(source.errors))
+        print("\n".join(club.errors))
 
 def payables_cmd():
     """
@@ -1578,22 +1581,22 @@ def payables_cmd():
     """
     infile = args['-i']
     if not infile:
-        infile = Membership.MEMBER_DB
-    source = Membership(Dummy)
-    source.still_owing = []
-    source.advance_payments = []
+        infile = Club.MEMBER_DB
+    club = Club(Dummy)
+    club.still_owing = []
+    club.advance_payments = []
     output = []
     err_code = member.traverse_records(infile,
-                member.get_payables, source)
-    if source.still_owing:
+                member.get_payables, club)
+    if club.still_owing:
         output.extend(["Members owing",
                        "-------------"])
-        output.extend(source.still_owing)
-    if source.advance_payments:
+        output.extend(club.still_owing)
+    if club.advance_payments:
         output.append("\n")
         output.extend(["Members Payed in Advance",
                        "------------------------"])
-        output.extend(source.advance_payments)
+        output.extend(club.advance_payments)
     return '\n'.join(output)
 
 def show_mailing_categories_cmd():
@@ -1609,45 +1612,45 @@ def prepare_mailing_cmd():
     "--which <letter>" must be set to one of the keys found in 
     content.content_types.
     Depending on the above, this command will also need to assign
-    attributes to the Membership instance to collect "extra_data".
+    attributes to the Club instance to collect "extra_data".
 
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
     Accompanying module 'content' provides support.
     """
     import content
-    source = Membership(Dummy)
-    source.which = content.content_types[args["--which"]]
-    source.lpr = content.printers[args["--lpr"]]
-    source.email = content.prepare_email(source.which)
-    source.letter = content.letter_format(source.which, 
+    club = Club(Dummy)
+    club.which = content.content_types[args["--which"]]
+    club.lpr = content.printers[args["--lpr"]]
+    club.email = content.prepare_email(club.which)
+    club.letter = content.letter_format(club.which, 
                                         args["--lpr"])
-#   print("Preparing mailing: '{}'".format(source.which))
+#   print("Preparing mailing: '{}'".format(club.which))
     if not args["-i"]:
-        args["-i"] = source.MEMBER_DB
+        args["-i"] = club.MEMBER_DB
     if not args["-j"]:
-        args["-j"] = source.JSON_FILE_NAME4EMAILS
-    source.json_file_name = args["-j"]
+        args["-j"] = club.JSON_FILE_NAME4EMAILS
+    club.json_file_name = args["-j"]
     if not args["--dir"]:
-        args["--dir"] = source.MAILING_DIR
-    source.dir4letters = args["--dir"]
+        args["--dir"] = club.MAILING_DIR
+    club.dir4letters = args["--dir"]
     # *****...
-    if source.which["e_and_or_p"] in ("both", "usps", "one_only"):
+    if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'."
             .format(args["--dir"]))
-        source.check_dir4letters(source.dir4letters)
-    if source.which["e_and_or_p"] in ("both", "email", "one_only"):
+        club.check_dir4letters(club.dir4letters)
+    if club.which["e_and_or_p"] in ("both", "email", "one_only"):
         print("Checking for file '{}'."
             .format(args["-j"]))
-        source.json_file_name = args["-j"]
-        source.check_json_file(source.json_file_name)
-        source.json_data = []
+        club.json_file_name = args["-j"]
+        club.check_json_file(club.json_file_name)
+        club.json_data = []
     # *****...
-    member.prepare_mailing(args["-i"], source)
+    member.prepare_mailing(args["-i"], club)
     # need to move the json_data to the file
-#   if source.json_data:
-#       with open(source.json_file_name, 'w') as f_obj:
-#           json.dump(source.json_data, f_obj)
+#   if club.json_data:
+#       with open(club.json_file_name, 'w') as f_obj:
+#           json.dump(club.json_data, f_obj)
 #           print('JSON dumped to "{}".'.format(f_obj.name))
 
 def display_emails_cmd(json_file):
@@ -1760,18 +1763,18 @@ def display_emails_cmd1(json_file, output_file=None):
 def emailing_cmd():
     """
     Sends emails with an attachment.
-    Sets up an instance of Membership and traverses
+    Sets up an instance of Club and traverses
     the input file calling the send_attachment method
     on each record.
     """
-    source = Membership(Dummy)
+    club = Club(Dummy)
     if not args["-i"]:
-        args["-i"] = source.MEMBER_DB
+        args["-i"] = club.MEMBER_DB
     with open(args["-c"], "r") as content_file:
         print('Reading content from "{}".'.format(content_file.name))
-        source.content = content_file.read()
+        club.content = content_file.read()
     err_code = member.traverse_records(args["-i"],
-        source.send_attachment)
+        club.send_attachment)
 
 def restore_fees_cmd():
     """
@@ -1784,22 +1787,22 @@ def restore_fees_cmd():
     membership file is not modified and output is to the new file,
     else the original file is changed.
     """
-    source = Membership(Dummy)
+    club = Club(Dummy)
     if not args['<membership_file>']:
-        args['<membership_file>'] = source.MEMBER_DB
+        args['<membership_file>'] = club.MEMBER_DB
     if not args['-j']:
-        args['-j'] = source.EXTRA_FEES_JSON
+        args['-j'] = club.EXTRA_FEES_JSON
     if not args['-t']:
-        args['-t'] = source.TEMP_MEMBER_DB
-    ret = source.restore_fees(
+        args['-t'] = club.TEMP_MEMBER_DB
+    ret = club.restore_fees(
         args['<membership_file>'],
-        source.YEARLY_DUES,
+        club.YEARLY_DUES,
         args['-j'],
         args['-t']
         )
-    if source.errors and args["-e"]:
+    if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
-            file_obj.write(source.errors)
+            file_obj.write(club.errors)
             print('Wrote errors to "{}".'.format(file_obj.name))
     if ret:
         sys.exit(ret)
@@ -1808,11 +1811,11 @@ def fees_intake_cmd():
     infile = args['-i']
     outfile = args['-o']
     errorfile = args['-e']
-    source = Membership(Dummy)
+    club = Club(Dummy)
     if infile:
-        fees_taken_in = source.fees_intake(infile)
+        fees_taken_in = club.fees_intake(infile)
     else:
-        fees_taken_in = source.fees_intake()
+        fees_taken_in = club.fees_intake()
     fees_taken_in.append("\n")
     res = '\n'.join(fees_taken_in)
     ## REFACTOR: The following can be replaced by output(res)
@@ -1823,28 +1826,28 @@ def fees_intake_cmd():
             print('Writing to "{}".'.format(file_obj.name))
             file_obj.write(res)
     ## End of refactoring
-    if source.invalid_lines and errorfile:
+    if club.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
             print('Writing to "{}".'.format(file_obj))
-            file_obj.write('\n'.join(source.invalid_lines))
+            file_obj.write('\n'.join(club.invalid_lines))
 
 def labels_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
     else:
         medium = A5160
-    source = Membership(medium)
-    source_file = args["-i"]
-    return source.get_labels2print(source_file)
+    club = Club(medium)
+    club = args["-i"]
+    return club.get_labels2print(source_file)
 
 def envelopes_cmd():
     if args["--parameters"]:
         medium = media[args["--parameters"]]
     else:
         medium = E0000
-    source = Membership(medium)
+    club = Club(medium)
     source_file = args["-i"]
-    source.print_custom_envelopes(source_file)
+    club.print_custom_envelopes(source_file)
 
 def smtp_send(recipients, message):
     """
@@ -1982,7 +1985,7 @@ if __name__ == "__main__":
         output(labels_cmd())
 
     elif args["envelopes"]:
-        # destination is specified within Membership 
+        # destination is specified within Club 
         # method print_custom_envelopes() which is called 
         # by print_statement_envelopes()
         print("""Printing envelopes...
@@ -1998,6 +2001,6 @@ if __name__ == "__main__":
 
 NOTE = """
 emailing_cmd()
-    uses Membership.traverse_records(infile,
-        source.send_attachment(args["-i"]))
+    uses Club.traverse_records(infile,
+        club.send_attachment(args["-i"]))
 """        

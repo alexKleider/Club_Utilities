@@ -54,11 +54,6 @@ class Club(object):
                                  # data base csv file are ordered.
 
 
-def name2comma_name(name):
-    name = name.split()
-    return ", ".join((name[1], name[0]))
-    
-
 def gather_membership_data(member_csv_file, club):
     """
     Gathers the info we want from the membership csv file.
