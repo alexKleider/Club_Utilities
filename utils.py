@@ -33,8 +33,8 @@ Usage:
   ./utils.py display_emails -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [<content>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
-  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
+  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py fees_intake [-i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
 
@@ -372,8 +372,9 @@ class Membership(object):
         self.infile = Membership.MEMBER_DB
         self.name_tuples = []
         self.json_data = []
-        self.previous_name_tuple = ('', '')  # }   Used to
-        self.first_letter = ''               # } check ordering.
+        self.previous_name = ''              # } Used to
+        self.previous_name_tuple = ('', '')  # } check 
+        self.first_letter = ''               # } ordering.
 
     def compare_gmail(self, source_file, google_file, separator):
         """
@@ -1251,6 +1252,29 @@ def ck_fields_cmd():
         print("Output sent to {}.".format(args['-o']))
     print("...done checking fields.")
 
+def compare_gmail_cmd():
+    """
+    Reports inconsistencies between the clubs membership list
+    and the google csv file (exported gmail contacts.)
+    """
+
+    verification = "Is your google contacts cvs file up to date? "
+    if verification and input(verification).lower()[0] == 'y':
+        source = Membership(Dummy)
+        if not args["-i"]:
+            args["-i"] = Membership.MEMBER_DB
+        if  not args['<gmail_contacts>']:
+            args['<gmail_contacts>'] = GMAIL_CONTACTS 
+        print("File from google: '{}'"
+            .format(args['<gmail_contacts>']))
+        return source.compare_gmail(args['-i'],
+                                args['<gmail_contacts>'],
+                                args['-s'])
+    else:
+        print(
+            "Best do a Google Contacts export and then begin again.")
+        sys.exit()
+
 def show_cmd():
     source = Membership(Dummy)
     source.members = []
@@ -1309,29 +1333,6 @@ LOSS OF MEMBERSHIP IS THE PENALTY.
 
     output("\n".join(listing4web))
     print("...results sent to {}.".format(args['-o']))
-
-def compare_gmail_cmd():
-    """
-    Reports inconsistencies between the clubs membership list
-    and the google csv file (exported gmail contacts.)
-    """
-
-    verification = "Is your google contacts cvs file up to date? "
-    if verification and input(verification).lower()[0] == 'y':
-        source = Membership(Dummy)
-        if not args["-i"]:
-            args["-i"] = Membership.MEMBER_DB
-        if  not args['<gmail_contacts>']:
-            args['<gmail_contacts>'] = GMAIL_CONTACTS 
-        print("File from google: '{}'"
-            .format(args['<gmail_contacts>']))
-        return source.compare_gmail(args['-i'],
-                                args['<gmail_contacts>'],
-                                args['-s'])
-    else:
-        print(
-            "Best do a Google Contacts export and then begin again.")
-        sys.exit()
 
 def stati_cmd():
     source = Membership(Dummy)
@@ -1473,6 +1474,29 @@ def extra_charges(infile, json_file=None):
             print("Wrote JSON data to {}.".format(jfile.name))
     return '\n'.join(res)
 
+
+def usps_cmd():
+    """
+    Generates a cvs file used by Peter to send out minutes.
+        first,last,address,town,state,postal_code
+    (Members who are NOT in the 'email only' category.)
+    Note: Peter (secretary) is purposely NOT 'email_only' so that he
+    can get a copy of the printed minutes for inspection.
+    """
+    infile = args['-i']
+    if not infile:
+        infile = Membership.MEMBER_DB
+    source = Membership(Dummy)
+    source.usps_only = []
+    err_code = member.traverse_records(infile, member.get_usps, source)
+    header = []
+    for key in source.fieldnames:
+        header.append(key)
+        if key == "postal_code":
+            break
+    res = [",".join(header)]
+    res.extend(source.usps_only)
+    return '\n'.join(res)
         
 
 def extra_charges_cmd():
@@ -1572,44 +1596,10 @@ def payables_cmd():
         output.extend(source.advance_payments)
     return '\n'.join(output)
 
-def usps_cmd():
-    """
-    Generates a cvs file used by Peter to send out minutes.
-        first,last,address,town,state,postal_code
-    (Members who are NOT in the 'email only' category.)
-    Note: Peter (secretary) is purposely NOT 'email_only' so that he
-    can get a copy of the printed minutes for inspection.
-    """
-    infile = args['-i']
-    if not infile:
-        infile = Membership.MEMBER_DB
-    source = Membership(Dummy)
-    source.usps_only = []
-    err_code = member.traverse_records(infile, member.get_usps, source)
-    header = []
-    for key in source.fieldnames:
-        header.append(key)
-        if key == "postal_code":
-            break
-    res = [",".join(header)]
-    res.extend(source.usps_only)
-    return '\n'.join(res)
-
-def emailing_cmd():
-    """
-    Sends emails with an attachment.
-    Sets up an instance of Membership and traverses
-    the input file calling the send_attachment method
-    on each record.
-    """
-    source = Membership(Dummy)
-    if not args["-i"]:
-        args["-i"] = source.MEMBER_DB
-    with open(args["-c"], "r") as content_file:
-        print('Reading content from "{}".'.format(content_file.name))
-        source.content = content_file.read()
-    err_code = member.traverse_records(args["-i"],
-        source.send_attachment)
+def show_mailing_categories_cmd():
+    ret = ["Possible choices for the '--which' option are: ", ]
+    ret.extend((("\t" + key) for key in content.content_types.keys()))
+    output('\n'.join(ret))
 
 def prepare_mailing_cmd():
     """
@@ -1655,10 +1645,26 @@ def prepare_mailing_cmd():
     # *****...
     member.prepare_mailing(args["-i"], source)
     # need to move the json_data to the file
-    if source.json_data:
-        with open(source.json_file_name, 'w') as f_obj:
-            json.dump(source.json_data, f_obj)
-            print('JSON dumped to "{}".'.format(f_obj.name))
+#   if source.json_data:
+#       with open(source.json_file_name, 'w') as f_obj:
+#           json.dump(source.json_data, f_obj)
+#           print('JSON dumped to "{}".'.format(f_obj.name))
+
+def display_emails_cmd(json_file):
+    with open(json_file, 'r') as f_obj:
+        print('Reading JSON file "{}".'.format(f_obj.name))
+        records = json.load(f_obj)
+    all_emails = []
+    for record in records:
+        email = []
+        recipients = ', '.join(record[0])
+        email.append(">>: " + recipients)
+        email.append(record[1])
+        email.append('\n')
+        all_emails.append("\n".join(email))
+    print("Processed {} emails..."
+        .format(len(all_emails)))
+    return "\n".join(all_emails)
 
 def send_emails_cmd():
     """
@@ -1737,6 +1743,36 @@ def print_letters_cmd():
     report = successes + args['-s'] + failures
     output(report)
 
+def display_emails_cmd1(json_file, output_file=None):
+    ret = []
+    with open(json_file, 'r') as f_obj:
+        print('Reading JSON file "{}".'.format(f_obj.name))
+        data = f_obj.read()
+        emails = json.loads(data)
+        print("Type 'emails' is '{}'.".format(type(emails)))
+    for recipients in emails:
+        ret.append(recipients)
+        for line in emails[recipients]:
+            ret.append(line)
+    out_put = "\n".join(ret)
+    output(out_put)
+
+def emailing_cmd():
+    """
+    Sends emails with an attachment.
+    Sets up an instance of Membership and traverses
+    the input file calling the send_attachment method
+    on each record.
+    """
+    source = Membership(Dummy)
+    if not args["-i"]:
+        args["-i"] = source.MEMBER_DB
+    with open(args["-c"], "r") as content_file:
+        print('Reading content from "{}".'.format(content_file.name))
+        source.content = content_file.read()
+    err_code = member.traverse_records(args["-i"],
+        source.send_attachment)
+
 def restore_fees_cmd():
     """
     Assumes the dues paying season is over and all dues and fees
@@ -1767,36 +1803,6 @@ def restore_fees_cmd():
             print('Wrote errors to "{}".'.format(file_obj.name))
     if ret:
         sys.exit(ret)
-
-def display_emails_cmd1(json_file, output_file=None):
-    ret = []
-    with open(json_file, 'r') as f_obj:
-        print('Reading JSON file "{}".'.format(f_obj.name))
-        data = f_obj.read()
-        emails = json.loads(data)
-        print("Type 'emails' is '{}'.".format(type(emails)))
-    for recipients in emails:
-        ret.append(recipients)
-        for line in emails[recipients]:
-            ret.append(line)
-    out_put = "\n".join(ret)
-    output(out_put)
-
-def display_emails_cmd(json_file):
-    with open(json_file, 'r') as f_obj:
-        print('Reading JSON file "{}".'.format(f_obj.name))
-        records = json.load(f_obj)
-    all_emails = []
-    for record in records:
-        email = []
-        recipients = ', '.join(record[0])
-        email.append(">>: " + recipients)
-        email.append(record[1])
-        email.append('\n')
-        all_emails.append("\n".join(email))
-    print("Processed {} emails..."
-        .format(len(all_emails)))
-    return "\n".join(all_emails)
 
 def fees_intake_cmd():
     infile = args['-i']
@@ -1840,11 +1846,6 @@ def envelopes_cmd():
     source_file = args["-i"]
     source.print_custom_envelopes(source_file)
 
-def show_mailing_categories_cmd():
-    ret = ["Possible choices for the '--which' option are: ", ]
-    ret.extend((("\t" + key) for key in content.content_types.keys()))
-    output('\n'.join(ret))
-
 def smtp_send(recipients, message):
     """
     Send email, as defined in <message>,
@@ -1885,6 +1886,7 @@ def mutt_send(recipient, subject, body, attachment=None):
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
+not_used = """
 cmds = dict(
     ck_fields = ck_fields_cmd,
     show = show_cmd,
@@ -1903,7 +1905,7 @@ cmds = dict(
     envelopes = envelopes_cmd,
     show_mailing_categories = show_mailing_categories_cmd,
     )
-
+"""
 
 if __name__ == "__main__":
 #   print(args)
@@ -1919,20 +1921,60 @@ if __name__ == "__main__":
     elif args["ck_fields"]:
         ck_fields_cmd()
 
+    elif args["compare_gmail"]:
+        print("Check the google list against the membership list.")
+        output(compare_gmail_cmd())
+
     elif args["show"]:
         show_cmd()
 
     elif args["stati"]:
         stati_cmd()
 
+    elif args["usps"]:
+        print("Preparing a csv file listing showing members who")
+        print("receive meeting minutes by mail. i.e. don't have (or")
+        print("haven't provided) an email address (to the Club.)")
+        output(usps_cmd())
+
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
 #       print("...being sent to {}.".format(args['-o']))
         extra_charges_cmd()
 
-    elif args["compare_gmail"]:
-        print("Check the google list against the membership list.")
-        output(compare_gmail_cmd())
+    elif args["payables"]:
+        print("Preparing listing of payables...")
+        output(payables_cmd())
+
+    elif args['show_mailing_categories']:
+        show_mailing_categories_cmd()
+
+    elif args["prepare_mailing"]:
+        print("Preparing emails and letters...")
+        prepare_mailing_cmd()
+        print("...finished preparing emails and letters.")
+
+    elif args['display_emails']:
+        output(display_emails_cmd(args['-j']))
+
+    elif args["send_emails"]:
+        print("Sending emails...")
+        send_emails_cmd()
+        print("Done sending emails.")
+
+    elif args["print_letters"]:
+        print("Printing letters ...")
+        print_letters_cmd()
+        print("Done printing letters.")
+
+    elif args['emailing']:
+        emailing_cmd()
+    
+    elif args['restore_fees']:
+        restore_fees_cmd()
+
+    elif args['fees_intake']:
+        fees_intake_cmd()
 
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
@@ -1949,45 +1991,6 @@ if __name__ == "__main__":
             .format(args['-i'], args['-o']))
         envelopes_cmd()
 
-    elif args["usps"]:
-        print("Preparing a csv file listing showing members who")
-        print("receive meeting minutes by mail. i.e. don't have (or")
-        print("haven't provided) an email address (to the Club.)")
-        output(usps_cmd())
-
-    elif args["prepare_mailing"]:
-        print("Preparing emails and letters...")
-        prepare_mailing_cmd()
-        print("...finished preparing emails and letters.")
-
-    elif args["payables"]:
-        print("Preparing listing of payables...")
-        output(payables_cmd())
-
-    elif args["send_emails"]:
-        print("Sending emails...")
-        send_emails_cmd()
-        print("Done sending emails.")
-
-    elif args["print_letters"]:
-        print("Printing letters ...")
-        print_letters_cmd()
-        print("Done printing letters.")
-
-    elif args['display_emails']:
-        output(display_emails_cmd(args['-j']))
-    
-    elif args['restore_fees']:
-        restore_fees_cmd()
-
-    elif args['fees_intake']:
-        fees_intake_cmd()
-
-    elif args['show_mailing_categories']:
-        show_mailing_categories_cmd()
-
-    elif args['emailing']:
-        emailing_cmd()
     else:
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
