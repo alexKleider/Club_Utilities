@@ -90,6 +90,7 @@ def report_error(report, club=None):
     except AttributeError:
         print(report)
 
+
 def ck_number_of_fields(record, club=None):
     """
     Checks that there are the correct number of fields in "record".
@@ -103,6 +104,7 @@ def ck_number_of_fields(record, club=None):
     if ((club and (record.n_fields != club.n_fields))
     or record.n_fields != N_FIELDS):
         report_error(possible_error, club)
+
 
 def is_applicant(record, club=None):
     stati = record['status'].split(SEPARATOR)
@@ -131,6 +133,19 @@ def is_member(record, club=None):
     or ("m" in {status for status in record['status'].split(
         SEPARATOR)})
     ):
+        return True
+    else:
+        return False
+
+
+def is_member_or_applicant(record, club=None):
+    return is_member(record) or is_applicant(record)
+
+def has_email(record, club=None):
+    if (record["status"]
+    and 'be' in record['status'].split(SEPARATOR)):
+        return False
+    if record["email"]:
         return True
     else:
         return False
@@ -440,8 +455,13 @@ def q_mailing(record, club):
     deals with mailing as appropriate.
     """
     record["subject"] = club.which["subject"]
-    if record['status'] and 'be' in record['status']:
+    if (record['status']
+    and 'be' in record['status']
+    and not club.which["e_and_or_p"] == "email"): # If only sending emails...
+        # don't want to send a letter in spite of a known bad email.
         file_letter(record, club)
+    elif club.which["e_and_or_p"] == "email":
+        append_email(record, club)
     elif club.which["e_and_or_p"] == "both":
         append_email(record, club)
         file_letter(record, club)

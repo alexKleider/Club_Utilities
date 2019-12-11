@@ -31,7 +31,7 @@ fi
 mkdir $DEST
 
 # Copy what was previously backed up using hard links...
-cp -al ${BACKUP}/${LAST}/. ${BACKUP}/$DEST
+cp -al ${BACKUP}/${LAST}/. $DEST
 
 # ... then rsync to update that copy with current versions:
 rsync -a --exclude='Utils' --delete $SRC $DEST   #***

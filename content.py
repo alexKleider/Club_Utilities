@@ -17,6 +17,7 @@ A number of 'dict's are being used:
         each provides: {
             "subject": 
             "from": authors["club"],
+#           'reply2': 'randolf@sonic.net'
             "body": letter_bodies["happyNY_and_0th_fees_request"],
             "post_script": a string,
             "funcs": [func_1, ..], 
@@ -41,6 +42,7 @@ address_format = """{first} {last}
 {country}"""
 
 email_header = """From: {}
+Reply-To: {}
 To: {{email}}
 Subject: {}
 
@@ -263,6 +265,22 @@ Social Security Administration concerning Medicare deductions for both
 my wife and for me.
 """,
 
+    fromRandy = """
+The pluma pescadores, fly fishers, wing of the BRBC will be meeting
+in the yurt at the Rushes Thursday at 7 pm.  Snacks, stories, lessons
+on knots, equipment comments, lines, leaders, flies and laughter.
+
+Due to lack of outdoor light we will not be casting...yet.  Bring
+questions, show and tell items, stories and your own elixir.  We
+usually adjourn sometime after 9ish.
+
+15 Rafael Ave.,  off Marin Way.
+Park and follow solar yard lights to yurt.
+Bring flashlight is best.
+
+Cheers and tight lines.
+""",
+
     )
 # ... end of letter_bodies.
 
@@ -286,7 +304,7 @@ the check in order to prevent any confusion.""",
     ref1 = """ [1] rodandboatclub@gmail.com or PO Box 748, 94924""",
     )
 
-authors = dict(
+authors = dict(  # from
     ak = dict(
         first = "Alex",
         last = "Kleider",
@@ -297,6 +315,7 @@ authors = dict(
         country = "USA",
         email_signature = "\nSincerely,\nAlex Kleider",
         email = "akleider@sonic.net",
+        reply2 = "akleider@sonic.net",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider",
         ),
     club = dict(
@@ -309,7 +328,21 @@ authors = dict(
         country = "USA",
         email_signature = "\nSincerely,\nAlex Kleider (Membership)",
         email = "rodandboatclub@gmail.com",
+        reply2 = "rodandboatclub@gmail.com",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider (Membership)",
+        ),
+    randy = dict(
+        first = "Randy",
+        last = "Rush",
+        address = "15 Rafael Ave.",
+        town = "Bolinas",
+        state = "CA",
+        postal_code = "94924",
+        country = "USA",
+        email_signature = "\nSincerely,\nRandy Rush",
+        email = "rodandboatclub@gmail.com",
+        reply2 = 'randolph@sonic.net',
+        mail_signature = "\nSincerely,\n\n\nRandy Rush",
         ),
     )  # ... end of authors.
 
@@ -317,6 +350,7 @@ authors = dict(
 # Membership instance attribute 'content_type'.
 
     # Each item in the following dict specifies:
+        # subject: re line in letter_bodies, subject line in emails
         # subject: re line in letter_bodies, subject line in emails
         # postal_header: to be assigned depending on which
         #     printer is to be used.
@@ -334,7 +368,8 @@ authors = dict(
         #  or 'one_only' email if available, othewise usps.
     # One of the following becomes the 'which' attribute
     # of a Membership instance.
-content_types = dict(
+
+content_types = dict(  # which_letter
     for_testing = {
         "subject": "This is a test.",
         "from": authors["ak"],
@@ -527,6 +562,20 @@ content_types = dict(
         "test": (
         lambda record: True if 'TPMG' in record["first"] else False),
         "e_and_or_p": "usps",
+        },
+    randy = {
+        "subject": "Pluma Pescadores",
+        "from": authors["randy"],
+#       "salutation": "Dear Sir or Madame,",
+        "body": letter_bodies["fromRandy"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing,),
+        "test": (
+            lambda record:
+            True if (member.is_member_or_applicant(record)
+            and member.has_email(record))
+            else False),
+        "e_and_or_p": "email",
 
         },
     )
@@ -639,7 +688,9 @@ def prepare_email(which_letter):
     """
     Prepares the template for an email.
     """
-    ret = [email_header.format(which_letter["from"]["email"],
+    ret = [email_header.format(
+                which_letter["from"]["email"],
+                which_letter["from"]["reply2"],
                 which_letter["subject"]),]
     ret.append(which_letter["body"])
     ret.append(which_letter["from"]["email_signature"])
