@@ -13,8 +13,9 @@ DATA_ARCHIVES='../Archives/Data/'
 TARFILE=${STAMP}.tar.gz
 mkdir $STAMP
 cp -r Data/  ${STAMP}/
-cp -r Info/  ${STAMP}/
 cp -r Exclude/  ${STAMP}/
+cp -r Info/  ${STAMP}/
+cp -r Mydata/  ${STAMP}/
 cp -r Temp/  ${STAMP}/
 
 tar -czvf $TARFILE $STAMP

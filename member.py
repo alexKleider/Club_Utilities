@@ -471,7 +471,7 @@ def q_mailing(record, club):
         else:
             file_letter(record, club)
     elif club.which["e_and_or_p"] == 'usps':
-            club.file_letter(record, club)
+            file_letter(record, club)
     else:
         print("Problem in q_mailing re {}"
             .format("{last}, {first}".format(**record)))

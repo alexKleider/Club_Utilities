@@ -281,6 +281,9 @@ Bring flashlight is best.
 Cheers and tight lines.
 """,
 
+    payment = """
+Thank you for your services. 
+"""
     )
 # ... end of letter_bodies.
 
@@ -364,6 +367,7 @@ authors = dict(  # from
         # if the record is to be considered at all.
         # e_and_or_p: possibilities are:
         #     'both' email and usps, 
+        #     'email' email only,
         #     'usps' mail only,
         #  or 'one_only' email if available, othewise usps.
     # One of the following becomes the 'which' attribute
@@ -576,20 +580,30 @@ content_types = dict(  # which_letter
             and member.has_email(record))
             else False),
         "e_and_or_p": "email",
-
         },
+    payment = {
+        "subject": "Payment of Amount Due",
+        "from": authors["ak"],
+#       "salutation": "Dear Sir or Madame,",
+        "body": letter_bodies["payment"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing,),
+        "test": lambda record: True,
+        "e_and_or_p": "usps",
+        },
+
     )
     # ... end of content_types.
 
 printers = dict(
     # tuples in the case of windows.
     X6505 = dict(
-        indent = 4,
-        top = 1,  # blank lines at top
+        indent = 5,
+        top = 2,  # blank lines at top
         frm = (5, 25),  # return window
-        date = 4,  # between windows
-        to = (7, 29),  # recipient window
-        re = 3,  # below window
+        date = 3,  # lines between windows
+        to = (6, 30),  # recipient window
+        re = 3,  # lines below bottom window
         ),
     HL2170 = dict(
         indent = 3,
