@@ -24,7 +24,6 @@ A number of 'dict's are being used:
             "test": lambda record: True,
             "e_and_or_p": "one_only",
             },
-    postal_headers - being redacted in favour of:
     printers: X6505, HL2170, ...
 
 Other items:
@@ -40,6 +39,17 @@ address_format = """{first} {last}
 {address}
 {town}, {state} {postal_code}
 {country}"""
+
+custom_lambdas = dict(
+    QuattroSolar= (
+        lambda record: True
+            if 'Quattro Solar' in record["company"]
+            else False),
+    MarinMechanical= (
+        lambda record: True
+            if 'Marin Mechanical' in record["company"]
+            else False),
+    )
 
 email_header = """From: {}
 Reply-To: {}
@@ -577,18 +587,19 @@ content_types = dict(  # which_letter
         "test": (
             lambda record:
             True if (member.is_member_or_applicant(record)
-            and member.has_email(record))
+            and member.has_valid_email(record))
             else False),
         "e_and_or_p": "email",
         },
-    payment = {
+    payment = { ## If using this, must edit "test" ##
         "subject": "Payment of Amount Due",
         "from": authors["ak"],
 #       "salutation": "Dear Sir or Madame,",
         "body": letter_bodies["payment"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
-        "test": lambda record: True,
+        "test": custom_lambdas['MarinMechanical'],
+#       "test": custom_lambdas['QuattroSolar'],
         "e_and_or_p": "usps",
         },
 
@@ -674,7 +685,7 @@ def letter_format(which_letter, printer):
     """
     lpr = printers[printer]
     # top margin:
-    ret = [""] * lpr["top"]
+    ret = [""] * lpr["top"]  # add blank lines at top
     # return address:
     ret_addr = address_format.format(**which_letter["from"])
     ret.append(expand(ret_addr, lpr['frm'][0]))

@@ -141,7 +141,7 @@ def is_member(record, club=None):
 def is_member_or_applicant(record, club=None):
     return is_member(record) or is_applicant(record)
 
-def has_email(record, club=None):
+def has_valid_email(record, club=None):
     if (record["status"]
     and 'be' in record['status'].split(SEPARATOR)):
         return False
