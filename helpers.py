@@ -42,39 +42,53 @@ def get_datestamp():
     """
     return date
 
+
 def indent(text, n_spaces):
     """
     Helper function providing indentation for postal content.
+    Can deal with either a list of strings ('lines')
+    or one string ('lines' terminated by linefeeds.)
+    In either case, returns a string.
     """
+    print("Entering function 'indent'.")
     indentation = ' ' * n_spaces
-    split_text = text.split("\n")
-    indented = [indentation + line for line in split_text]
-    return "\n".join(indented)
+    if isinstance(text, str):
+        return (indentation + text.replace(
+                            '\n', '\n' + indentation))
+    elif isinstance(text, list):
+        print("Encountering a list...")
+        return '\n'.join([indentation + line for line in text])
+    else:
+        print("Should NOT get here!")
+        assert(False)
 
-def expand(address, nlines):
+
+def expand(text, nlines):
     """
-    Takes an address which can be a list of strings/lines
+    A helper function to expand addresses to requisite
+    number of lines:
+    Takes text which can be a list of strings/lines
     or all one string (with line feeds separating lines,)
     and returns the same type (either string or list) but
     containing nlines.
     Fails if address already has more than nlines.
     """
     isstring = False
-    if isinstance(address, str):
+    if isinstance(text, str):
         isstring = True
-        address = address.split("\n")
-    if len(address) > nlines:
+        text = text.split("\n")
+    if len(text) > nlines:
         print("Error: too many lines in an address!")
         assert False
-    while nlines > len(address):
-        if nlines - len(address) >= 2:
-            address = [''] + address + ['']
+    while nlines > len(text):
+        if nlines - len(text) >= 2:
+            text = [''] + text + ['']
         else:
-            address.append('')
+            text.append('')
     if isstring:
-        return '\n'.join(address)
+        return '\n'.join(text)
     else:
-        return address
+        return text
 
 
 def create_json_file(json_data, json_file, verbose=True):
@@ -90,15 +104,46 @@ if __name__ == "__main__":
     print("'helpers.get_datestamp() returns '{}'."
         .format(date))
 
-    addr1 = "Alex Kleider\nPO Box 277\nBolinas, CA 94924"
-    addr2 = """Alex Kleider
-PO Box 277
-Bolians, CA 94924"""
-    addr3 = ["Alex Kleider", "PO Box 277", "Bolinas, CA 94924"]
-
-    for addr in (addr1, addr2, addr3):
-        print()
-        print(expand(addr, 7))
-
     print("'this_club_year()' returns '{}'."
         .format(this_club_year()))
+
+    addresses = ["Alex Kleider\nPO Box 277\nBolinas, CA 94924",
+           """Alex Kleider
+PO Box 277
+Bolinas, CA 94924""",
+    ["Alex Kleider", "PO Box 277", "Bolinas, CA 94924"]]
+
+    expanded = [expand(addr, 7) for addr in addresses]
+    indented = [indent(addr, 4) for addr in addresses]
+
+    for addr in expanded:
+        print("--")
+        print(addr)
+    print("--")
+    debugging_code = """
+    print("--")
+    for addr in indented:
+        print("--")
+        print(addr)
+        print(repr(addr))
+    print("--")
+    for n in range(len(indented)-1):
+        for i in range(len(indented[n])):
+            if indented[n][i] != indented[n+1][i]:
+                print("{} == {}".format(indented[n][i], indented[n+1][i]))
+            else:
+                print("{} == {}".format(indented[n][i], indented[n+1][i]))
+        if len(indented[n]) != len(indented[n+1]):
+            print("lengths are not equal")
+        if indented[n] != indented[n+1]:
+            print("The following are not equal:")
+            print(repr(indented[n]))
+            print("----")
+            print(repr(indented[n+1]))
+            print("----")
+    """
+    assert(indented[0] == indented[1])
+    assert(indented[1] == indented[2])
+
+
+
