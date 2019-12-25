@@ -75,9 +75,9 @@ def gather_membership_data(member_csv_file, club):
     club.m_by_name = dict()    #{ member emails keyed by (first, last)
                                #{ name
     club.m_by_email = dict()   # sets of member names keyed by email
+    club.without_email = []
     club.m_by_status = dict()  # sets of member names keyed by status 
     club.malformed = []
-    club.without_email = []
     club.fee_by_category = {}
     club.fee_by_name = {}
     err_code = member.traverse_records(member_csv_file,

@@ -47,7 +47,7 @@ Options:
                     can be written.  If not specified, errors are
                     generally reported to stdout.
   -i <infile>  Specify file used as input. Usually defaults to
-                the MEMBER_DB attribute of the Club class.
+                the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   -t <temp_file>  An option provided for when one does not want to risk
@@ -179,7 +179,7 @@ MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 2   #} Seconds between
 MAX_TIME_TO_SLEEP = 10  #} email postings.
 
-GMAIL_CONTACTS = os.path.expanduser('~/Downloads/contacts.csv')
+CONTACTS = os.path.expanduser('~/Downloads/contacts.csv')
 
 TEXT = ".txt"  #} Used by <extra_charges_cmd>
 CSV = ".csv"   #} command.
@@ -199,7 +199,7 @@ if lpr and lpr not in content.printers.keys():
     print("Invalid '--lpr' parameter!")
     sys.exit()
 if not args["<gmail_contacts>"]:
-    args["<gmail_contacts>"] = GMAIL_CONTACTS
+    args["<gmail_contacts>"] = CONTACTS
 
 def output(data, destination=args["-o"]):
     """
@@ -349,14 +349,14 @@ class Club(object):
     YEARLY_DUES = 100
 
     # Data bases used:
-    MEMBER_DB = 'Data/memlist.csv'          #}  Default
-    EXTRA_FEES_TXT = 'Data/extra_fees.txt'  #}  file
+    MEMBERSHIP_SPoT = 'Data/memlist.csv'          #}  Default
+    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'  #}  file
     CHECKS_RECEIVED = 'Data/receipts.txt'   #}  names.
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'
     EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
-    TEMP_MEMBER_DB = 'Data/new_memlist.csv'
+    TEMP_MEMBERSHIP_SPoT = 'Data/new_memlist.csv'
     OUTPUT2READ = 'Data/2read.txt'       #} generally goes to stdout.
     MAILING_DIR = 'Data/MailingDir'
     JSON_FILE_NAME4EMAILS = 'Data/emails.json'
@@ -370,7 +370,7 @@ class Club(object):
         envelopes as was done before. For the time being will simply
         use a "dummy".
         """
-        self.infile = Club.MEMBER_DB
+        self.infile = Club.MEMBERSHIP_SPoT
         self.name_tuples = []
         self.json_data = []
         self.previous_name = ''              # } Used to
@@ -1230,7 +1230,7 @@ def ck_fields_cmd():
     club.status_list = []
     infile = args["-i"]
     if not infile:
-        infile = Club.MEMBER_DB
+        infile = Club.MEMBERSHIP_SPoT
     print("Checking fields...")
     err_code = member.traverse_records(infile,
                 (member.add2malformed, member.add2status_list),
@@ -1265,9 +1265,9 @@ def compare_gmail_cmd():
     if verification and input(verification).lower()[0] == 'y':
         club = Club(Dummy)
         if not args["-i"]:
-            args["-i"] = Club.MEMBER_DB
+            args["-i"] = Club.MEMBERSHIP_SPoT
         if  not args['<gmail_contacts>']:
-            args['<gmail_contacts>'] = GMAIL_CONTACTS 
+            args['<gmail_contacts>'] = CONTACTS 
         print("File from google: '{}'"
             .format(args['<gmail_contacts>']))
         return club.compare_gmail(args['-i'],
@@ -1341,7 +1341,7 @@ def stati_cmd():
     club = Club(Dummy)
     infile = args["-i"]
     if not infile:
-        infile = Club.MEMBER_DB
+        infile = Club.MEMBERSHIP_SPoT
     print("Preparing listing of stati.")
     club.m_by_status = {}
     err_code = member.traverse_records(infile,
@@ -1488,7 +1488,7 @@ def usps_cmd():
     """
     infile = args['-i']
     if not infile:
-        infile = Club.MEMBER_DB
+        infile = Club.MEMBERSHIP_SPoT
     club = Club(Dummy)
     club.usps_only = []
     err_code = member.traverse_records(infile, member.get_usps, club)
@@ -1522,7 +1522,7 @@ def extra_charges_cmd():
     """
     infile = args["-i"]
     if not infile:
-        infile = Club.MEMBER_DB
+        infile = Club.MEMBERSHIP_SPoT
     suffix = infile[-4:]
     if suffix == ".txt":
         # use function vs method
@@ -1581,7 +1581,7 @@ def payables_cmd():
     """
     infile = args['-i']
     if not infile:
-        infile = Club.MEMBER_DB
+        infile = Club.MEMBERSHIP_SPoT
     club = Club(Dummy)
     club.still_owing = []
     club.advance_payments = []
@@ -1627,7 +1627,7 @@ def prepare_mailing_cmd():
                                         args["--lpr"])
 #   print("Preparing mailing: '{}'".format(club.which))
     if not args["-i"]:
-        args["-i"] = club.MEMBER_DB
+        args["-i"] = club.MEMBERSHIP_SPoT
     if not args["-j"]:
         args["-j"] = club.JSON_FILE_NAME4EMAILS
     club.json_file_name = args["-j"]
@@ -1769,7 +1769,7 @@ def emailing_cmd():
     """
     club = Club(Dummy)
     if not args["-i"]:
-        args["-i"] = club.MEMBER_DB
+        args["-i"] = club.MEMBERSHIP_SPoT
     with open(args["-c"], "r") as content_file:
         print('Reading content from "{}".'.format(content_file.name))
         club.content = content_file.read()
@@ -1789,11 +1789,11 @@ def restore_fees_cmd():
     """
     club = Club(Dummy)
     if not args['<membership_file>']:
-        args['<membership_file>'] = club.MEMBER_DB
+        args['<membership_file>'] = club.MEMBERSHIP_SPoT
     if not args['-j']:
         args['-j'] = club.EXTRA_FEES_JSON
     if not args['-t']:
-        args['-t'] = club.TEMP_MEMBER_DB
+        args['-t'] = club.TEMP_MEMBERSHIP_SPoT
     ret = club.restore_fees(
         args['<membership_file>'],
         club.YEARLY_DUES,

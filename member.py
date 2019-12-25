@@ -177,7 +177,6 @@ def get_usps(record, club=None):
             .format(**record))
 
 
-### ?? Not Used ?? ###
 def add2m_by_name(record, club):
     """
     Adds to already existing dict club.m_by_name which is
@@ -254,6 +253,8 @@ def add2malformed(record, club=None):
     club.previous_name = name
 
 
+### ?? Not Used ?? ###
+unused = """
 def add2mooring_w_fee(record, club):
     """
     Populates club.mooring_w_fee
@@ -265,6 +266,7 @@ def add2mooring_w_fee(record, club):
         return
     club.mooring_w_fee.append("{}  {}"
         .format(member_name(record), fee))
+"""
 
 def add2fee_sets(record, club):
     """
@@ -315,12 +317,8 @@ def get_owing(record, club):
             owing["key"] = 0
     club.owing = owing
 
-def append2Dr(record, club):
-    """
-    """
-    pass
 
-def get_payables(record, club=None):
+def get_payables(record, club):
     """
     Populates club.still_owing and club.advance_payments which
     must be set up by the client.
@@ -351,7 +349,7 @@ def get_payables(record, club=None):
                     + ', '.join(line_negative))
         club.advance_payments.append(line)
 
-def add2status_list(record, club=None):
+def add2status_list(record, club):
     """
     Redacted in favour of add2m_by_status.
     Populates club.status_list (which must be set up by client.)
@@ -445,7 +443,7 @@ def file_letter(record, club):
 #   print("lpr['indent'] is set to {}"
 #       .format(club.lpr['indent']))
     with open(path2write, 'w') as file_obj:
-        print('Writing to "{}".'.format(file_obj))
+        print('Writing to "{}".'.format(file_obj.name))
         file_obj.write(helpers.indent(entry,
         club.lpr["indent"]))
 
