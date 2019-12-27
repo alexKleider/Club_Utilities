@@ -2,55 +2,59 @@
 
 # File: pymail.py
 
-import smtplib
-import ssl
+import sys
 
 def getpw(service):
-    with open('pw.{}'.format(service), 'r') as f_obj:
+    with open('.pw.{}'.format(service), 'r') as f_obj:
         return f_obj.read().strip()
 
+def pseudo_recipient(plus_name, email):
+    parts = email.split('@')
+    return parts[0] + '+' + plus_name + '@' + parts[1]
+
 config = {
-    "easydns": {
+    "easy": {
         "host": "mailout.easydns.com",
-        "port": "465",
+        "tls_port": "587",
+        "ssl_port": "465",
 #       "port": "2025",
         "protocol": "smtp",
         "auth": "on",
         "tls_starttls": "on",
         "user": "kleider.ca",
         "from": "akleider@sonic.net",
-        "password": getpw("easydns"),
+        "password": getpw("easy"),
         "tls": "on",
     },
-    "akgmail": {
-        "host": "smtp.gmail.com"
-        "port": "587"
-        "user": "alexkleider@gmail.com"
-        "from": "alexkleider@gmail.com"
-        "password": getpw("akgmail")
+    "akg": {
+        "host": "smtp.gmail.com",
+        "tls_port": "587",
+        "ssl_port": "465",
+        "user": "alexkleider@gmail.com",
+        "from": "alexkleider@gmail.com",
+        "password": getpw("akg"),
 
     },
-    "clubgmail": {
-        "host": "smtp.gmail.com"
-        "port": "587"
-        "user": "rodandboatclub@gmail.com"
-        "from": "rodandboatclub@gmail.com"
-        "password": getpw("clubgmail")
+    "clubg": {
+        "host": "smtp.gmail.com",
+        "tls_port": "587",
+        "ssl_port": "465",
+        "user": "rodandboatclub@gmail.com",
+        "from": "rodandboatclub@gmail.com",
+        "password": getpw("clubg"),
 
     },
 }
 
 if __name__ == '__main__':
 
-    account = config["clubgmail"]
-    account = config["akgmail"]
-    account = config["easydns"]
+    print("Redacted for security reasons!!")
+    sys.exit()
 
-    pw = account["password"]
-    print("Password is '{}'.".format(pw))
-
-    context = ssl.create_default_context()
-    with smtplib.SMTP_SSL(account["host"], account["port"],
-                        context=context) as server:
-        server.login(account["user"], pw)
+    ### For testing only: 
+    pws = set()
+    for key in config:
+        pws.add(config[key]["password"])
+    print("Passwords are:")
+    print(repr(pws))
 

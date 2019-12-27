@@ -1,0 +1,88 @@
+https://realpython.com/python-send-email
+
+Gmail emulation of multiple addresses all pointing to same inbox:
+my+person1@gmail.com & my+person1@gmail.com both go to my@gmail.com
+
+Allow less secure apps ==> ON
+or: use the OAuth2 authorization framework:
+https://developers.google.com/gmail/api/quickstart/python
+
+May set up a local smtp server:
+$ sudo python -m smtpd -c DebuggingServer -n localhost:1025
+
+Starting a Secure SMTP Connection:
+SSL (Secure Sockets Layer)
+TLS (Transport Layer Security) 
+Two ways:
+1. use SMTP_SSL() secured from beginning; (gmail: port 465)
+2. begin unsecured SMTP connection that is
+then encrypted using .starttls(). (gmail: port 587)
+In both instances gmail will encrypt using TLS.
+Highly recommended to use ssl.create_default_context()
+which will:
+1. load the system's trusted CA certificates,
+2. enable host name checking and certificate validation, and
+3. try to choose reasonably secure protocol and cipher settings.
+"smtplib" is Python's module for sending emails to any SMTP or ESMP
+listener daemon.
+
+===============================================================
+## Option 1: Using SMTP_SSL()
+
+import smtplib
+import ssl
+
+port = 465  # Std port for SMTP over SSL
+password = input("Type your password followed by enter: ")
+
+# Create a secure SSL context
+context = ssl.create_default_context()
+
+with smtplib.SMTP_SSL("smtp.gmail.com", port,
+                        context=context) as server:
+    server.login("my@gmail.com", password)
+    # TODO: Send email here
+
+===============================================================
+## Option 2: Using .starttls()
+
+import smtplib
+import ssl
+
+smtp_server = "smtp.gmail.com"
+port = 587  # Std port for TLS
+sender_email = "my@gmail.com"
+password = input("Type your password followed by enter: ")
+
+# Create a secure SSL context
+context = ssl.create_default_context()
+
+# Try to log in to server and send email
+try:
+    server = smtplib.SMTP(smtp_server, port)
+    server.ehlo()  # Can be omitted  ?? .helo() (SMTP)
+    server.starttls(context=context)  # Secure the connection
+    server.ehlo()  # Can be omitted  ?? .ehlo() (ESMTP)
+    server.login(sender_email, password)
+    # TODO: Send email here
+except Exception as e:
+    # Print any error messages to stdout
+    print(e)
+finally:
+    server.quit()
+
+===============================================================
+===============================================================
+
+sender_email = "my@gmail.com"
+receiver_email = "your@gmail.com"
+message = """\
+Subject: Hi there
+
+This message is sent from Python."""
+
+# Send email here
+server.sendmail(sender_email, receiver_email, message)
+
+
+
