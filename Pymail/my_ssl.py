@@ -5,7 +5,6 @@
 ## Option 1: Using SMTP_SSL()
 import sys
 import smtplib
-print("Imported smtplib")
 import ssl
 import pymail
 
@@ -28,13 +27,12 @@ print("'password': '{}'.".format("redacted!"))
 print("'from_': '{}'.".format(from_))
 print("'to_': '{}'.".format(to_))
 print("'message': '{}'.".format(message))
-sys.exit()
 
+# sys.exit()
 
 # Create a secure SSL context
 context = ssl.create_default_context()
-with smtplib.SMTP_SSL(host, port,
-                        context=context) as server:
+with smtplib.SMTP_SSL(host=host, port=port, context=context) as server:
     server.login(user, password)
     # TODO: Send email here
     server.sendmail(from_, to_, message)

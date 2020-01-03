@@ -254,7 +254,7 @@ def add2malformed(record, club=None):
 
 
 ### ?? Not Used ?? ###
-unused = """
+unused = '''
 def add2mooring_w_fee(record, club):
     """
     Populates club.mooring_w_fee
@@ -266,7 +266,7 @@ def add2mooring_w_fee(record, club):
         return
     club.mooring_w_fee.append("{}  {}"
         .format(member_name(record), fee))
-"""
+'''
 
 def add2fee_sets(record, club):
     """
