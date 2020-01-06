@@ -120,7 +120,6 @@ def is_applicant(record, club=None):
     return False
 
 
-
 def is_member(record, club=None):
     """
     Tries to determine if record is that of a member (based on
@@ -137,9 +136,17 @@ def is_member(record, club=None):
     else:
         return False
 
+def increment_nmembers(record, club):
+    """
+    Client must initiate club.nmembers (=0) attribute.
+    If record is that of a member, nmembers is incrimented.
+    """
+    if is_member(record):
+        club.nmembers += 1
 
 def is_member_or_applicant(record, club=None):
     return is_member(record) or is_applicant(record)
+
 
 def has_valid_email(record, club=None):
     if (record["status"]
@@ -193,8 +200,10 @@ def add2m_by_name(record, club):
 def add2m_by_email(record, club):
     """
     Adds record's "name" to the set: club.m_by_email.
-    ... to see if the same email is used by more than one person.
-    If 'email' field is empty, appends name to club.without_email.
+    ... we use set of names vs single name to see if the same
+    email is used by more than one person.
+    If 'email' field is empty (and if club has the required)
+    appends name to club.without_email.
     """
     if record['email']:
         _ = club.m_by_email.setdefault(record['email'], set())
@@ -216,7 +225,12 @@ def add2m_by_status(record, club):
     stati = record["status"].split(SEPARATOR)
     for status in stati:
         _ = club.m_by_status.setdefault(status, set())
-        club.m_by_status[status].add(member_name(record))
+        if status=='be':
+            club.m_by_status[status].add(
+                "{} ({})".format(member_name(record),
+                                record['email']))
+        else:
+            club.m_by_status[status].add(member_name(record))
 
 
 def add2malformed(record, club=None):

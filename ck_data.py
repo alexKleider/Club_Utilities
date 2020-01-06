@@ -14,6 +14,7 @@ it then morphed into a way of collecting data for presentation:
 
 import os
 import csv
+import helpers
 import member
 
 MEMBERSHIP_SPoT = "Data/memlist.csv"
@@ -31,19 +32,6 @@ CATEGORY_KEY = "by_category"
 APPLICANT_GROUP = "applicant"  # } These are specific to
 MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
                                # } CONTACTS_SPoT
-
-def show_dict(d, underline_char=None):
-    ret = []
-    for key in sorted([key for key in d.keys()]):
-        if underline_char:
-            ret.append(key)
-            ret.append(underline_char * len(key))
-            for val in sorted([val for val in d[key]]):
-                ret.append(val)
-        else:
-            line = ", ".join([val for val in d[key]])
-            ret.append("{}: {}".format(key, line))
-    return ret
 
 class Club(object):
     """
@@ -372,17 +360,33 @@ def present_applicants(applicants_keyed_by_status, raw=False):
 
 
 
-def add2problems(problem_header, problem_list, problems,
-                underline_with="=",
-                raw=False, line_or_formfeed="\n",
-                preface_w_linefeed=True):
+def add2problems(problem_header, new_problems, problem_list,
+                separator=[""], underline_with=["="], raw=False):
+    """
+    Extends an existing <problem_list> with <new_problems>.
+    The added part is separated from the original by <separator> which
+    must be a (possibly empty) list of strings- it defaults to a
+    list of one empty string.
+    If <problem_header> is not an empty empty string it will be used
+    as a header separated from the ensuing list by what is defined by
+    <underline_with> which must be a list (possibly empty.) If not
+    empty, the first item of this list should be a single character,
+    typically "=" or "-" which will be expanded to the length of
+    <problem_header> (serving as an underline) and then followed by
+    the remaining part of the list (if there is any.)
+    """
     if problem_list:
-        if preface_w_linefeed:
-            problems.append(line_or_formfeed)
-        if not raw:
-            problems.append(problem_header)
-            problems.append(underline_with * len(problem_header))
-        problems.extend(problem_list)
+#       print("Extending '{}' with:".format(problem_header))
+#       print(repr(new_problems))
+        if separator:
+            problem_list.extend(separator)
+        if problem_header:
+            problem_list.append(problem_header)
+            if underline_with:
+                problem_list.append(underline_with[0] *
+                    len(problem_header))
+                problem_list.extend(underline_with[1:])
+        problem_list.extend(new_problems)
 
 
 def ck_applicants(club, # provides data from memlist and gmail
@@ -444,7 +448,7 @@ def ck_data(member_csv_file,
             applicants_txt_file,
             report_status=True,
             raw=False,
-            line_or_formfeed="\n"):
+            formfeed=False):
     """
     Check integrity/consistency of of the Club's data base(s.)
     (Meant to replace ck_fields and compare_gmail as well as 
@@ -458,10 +462,13 @@ def ck_data(member_csv_file,
         extra_fees.txt
         ...
     Applicant data is from 3 sources: gmail, memlist and applicant
-        g_applicants, m_applicants, a_applicants
+    (g_applicants, m_applicants, a_applicants) which must be checked
+    for consistency.
     """
     club = Club()
-    ret = ["Checking data integrity...\n"]
+    first_line = "Checking data integrity..."
+    print(first_line)
+    ret = ['\n{}\n'.format(first_line)]
 
     # Collect data from csv files ==> club attributes
     gather_membership_data(member_csv_file, club)
@@ -473,15 +480,13 @@ def ck_data(member_csv_file,
     a_applicants = gather_applicant_data(
                                     APPLICANT_SPoT)["applicants"]
 
-#   print('gather_applicant_data(APPLICANT_SPoT)["applicants"] gets:')
-#   print(a_applicants)
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
     if not club.malformed:
         ret.append("No malformed records found.")
     else:
-        add2problems("Malformed Records", club.malformed, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
+        print("Found Malformed Records.")
+        add2problems("Malformed Records", club.malformed, ret)
     
     # Catch problem cases & set ==> one name for each email.
     dangling_m_email = []
@@ -489,6 +494,7 @@ def ck_data(member_csv_file,
     for m_email in club.m_by_email:
         n_in_set = len(club.m_by_email[m_email])
         if n_in_set == 0:
+            print("Adding a dangling member email.")
             dangling_m_email.append(m_email)
         elif n_in_set ==1:
             club.m_by_email[m_email] = club.m_by_email[m_email].pop()
@@ -497,10 +503,12 @@ def ck_data(member_csv_file,
                 [name for name in club.m_by_email[m_email]]))
             shared_m_email.append("{} <== [{}]"
                 .format(m_email, names))
-    add2problems("Dangling Member Email(s)", dangling_m_email, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
-    add2problems("Shared Member Email(s)", shared_m_email, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
+    if dangling_m_email:
+        print("Found Dangling Member Emails")
+        add2problems("Dangling Member Email(s)", dangling_m_email, ret)
+    if shared_m_email:
+        print("Found Shared Member Emails")
+        add2problems("Shared Member Email(s)", shared_m_email, ret)
 
     # Deal with (gmail) CONTACTS data
     # Catch problem cases & set ==> one name for each email.
@@ -519,24 +527,28 @@ def ck_data(member_csv_file,
                 [name for name in club.g_by_email[g_email]]))
             shared_g_email.append("{} <== [{}]"
                 .format(g_email, names))
-    add2problems("Dangling Contact Email(s)", dangling_g_email, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
-    add2problems("Shared Contact Email(s)", shared_g_email, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
+    if dangling_g_email:
+        print("Found Dangling Contact Emails")
+        add2problems("Dangling Contact Email(s)", dangling_g_email, ret)
+    if shared_g_email:
+        print("Found Shared Contact Emails")
+        add2problems("Shared Contact Email(s)", shared_g_email, ret)
 
     # Provide listing of those with 'stati':
     if report_status:
-        ret.append(line_or_formfeed)
+        if formfeed:
+            ret.append('')
         if not raw:
             ret.extend(["Members /w 'status' Content",
                         '==========================='])
         stati_w_members = sorted(club.m_by_status.keys())
 #       print("Stati w members: {}".format(repr(stati_w_members)))
         for key in stati_w_members:
-            add2problems(("\n" + key), 
-                [member for member in club.m_by_status[key]], ret,
-            underline_with="-", raw=False, line_or_formfeed="\n",
-            preface_w_linefeed=False)
+#           print("Adding members by stati")
+            add2problems(key, 
+                [member for member in club.m_by_status[key]],
+                ret,
+                underline_with=["-"])
 
 
     # Compare gmail vs memlist emails and then memlist vs gmail
@@ -556,8 +568,7 @@ def ck_data(member_csv_file,
                 "{} ({})".format(m_email, m_name))
 
     add2problems("Emails Missing from Contacts",
-            emails_missing_from_contacts, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
+            emails_missing_from_contacts, ret)
 
     for g_email in club.g_by_email:
         g = club.g_by_email[g_email]  # contact name
@@ -569,10 +580,10 @@ def ck_data(member_csv_file,
      
     # Compare results gleened from  files:
     # 'extra_fees_info' and 'a_applicants
-    for key in a_applicants:
-        print(key)
-        for entry in a_applicants[key]:
-            print(repr(entry))
+#   for key in a_applicants:
+#       print(key)
+#       for entry in a_applicants[key]:
+#           print(repr(entry))
     
     # Check that gmail contacts' "groups" match membership data:
 ######  Following code could be refactored, perhaps /w Walrus!!#####
@@ -592,9 +603,15 @@ def ck_data(member_csv_file,
     else:
         ret.append("\nMismatch: Gmail groups vs Club data")
         ret.append(  "===================================")
-        ret.append(sorted(list(
+        ret.append('')
+        ret.append("Gmail groups")
+        ret.append("------------")
+        ret.extend(sorted(list(
             club.g_by_group_membership[APPLICANT_GROUP])))
-        ret.append(sorted(list(m_applicants)))
+        ret.append('')
+        ret.append("Club status")
+        ret.append("-----------")
+        ret.extend(sorted(list(m_applicants)))
 #       print(
 #       "The following two (sorted) sets should be the same- They're NOT!")
 #       print(sorted(list(m_applicants)))
@@ -615,16 +632,15 @@ def ck_data(member_csv_file,
     if a_applicants != club.m_by_status:
         ret.append("\nApplicant problem:")
         ret.append("The following-")
-        ret.extend(show_dict(a_applicants))
+        ret.extend(helpers.show_dict(a_applicants))
         ret.append("- is not the same as what follows-")
-        ret.extend(show_dict(club.m_by_status))
+        ret.extend(helpers.show_dict(club.m_by_status))
         ret.append("- End of comparison -")
     else:
         ret.append("\nNo applicant problem.")
 
     add2problems("Contacts that are Not Members",
-            non_member_contacts, ret,
-            underline_with="=", raw=False, line_or_formfeed="\n")
+            non_member_contacts, ret)
             
     if ((extra_fees_info[CATEGORY_KEY] != club.fee_by_category) or
                 (extra_fees_info[NAME_KEY] != club.fee_by_name)):
@@ -663,9 +679,9 @@ def compare(data1, data2, underline_char='=', inline=False):
     else:
         ret.append("Bad News: data1 != data2")
     ret.append("\nListing1...")
-    ret.append(data_listed(data1, underline_char, inline))
+    ret.extend(data_listed(data1, underline_char, inline))
     ret.append("\nListing2...")
-    ret.append(data_listed(data2, underline_char, inline))
+    ret.extend(data_listed(data2, underline_char, inline))
     ret.append("... end of listings")
     return ret
 

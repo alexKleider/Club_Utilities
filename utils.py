@@ -24,6 +24,7 @@ Usage:
   ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
   ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
+  ./utils.py report [-i <infile> -o <outfile> ]
   ./utils.py stati [-A | -B | -W] [-i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
@@ -94,6 +95,7 @@ Commands:
         differing emails. (After proof reading, use 'send_emails'.)
     show: Returns membership demographics. A copy is sent to the web
         master for display on the web site.
+    report: Prepares a 'Membership Report".
     stati: Returns a listing of stati.  Applicants plus ..
         Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
@@ -349,9 +351,10 @@ class Club(object):
     YEARLY_DUES = 100
 
     # Data bases used:
-    MEMBERSHIP_SPoT = 'Data/memlist.csv'          #}  Default
-    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'  #}  file
-    CHECKS_RECEIVED = 'Data/receipts.txt'   #}  names.
+    MEMBERSHIP_SPoT = 'Data/memlist.csv'     #}  Default
+    APPLICANT_SPoT = "Data/applicants.txt"   #}  file
+    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'  #}  names.
+    CHECKS_RECEIVED = 'Data/receipts.txt'    #}
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'
@@ -1337,6 +1340,43 @@ LOSS OF MEMBERSHIP IS THE PENALTY.
     output("\n".join(listing4web))
     print("...results sent to {}.".format(args['-o']))
 
+
+def report_cmd():
+    """
+    Prepare a "Membership Report"
+    Date
+    Number of members
+    Number of applicants and applicant role call
+    """
+    club = Club(Dummy)
+    club.m_by_status = {}
+    club.nmembers = 0
+    infile = args["-i"]
+    if not infile:
+        infile = Club.MEMBERSHIP_SPoT
+    print("Preparing Membership Report ...")
+    report = ["Membership Report {}".format(helpers.date), ]
+    report.append('=' * len(report[0]))
+    report.append('')
+
+    err_code = member.traverse_records(infile,
+            [member.add2m_by_status,
+            member.increment_nmembers,
+            ],
+            club)
+
+    report.append('Club membership currently stands at {}.'
+                    .format(club.nmembers))
+    report.append('')
+    next_line = "Applicants (and other's with special status)"
+    report.append(next_line)
+    report.append('=' * len(next_line))
+    report.extend(helpers.show_dict(club.m_by_status,
+                    underline_char='-',
+                    extra_line=True))
+    output('\n'.join(report))
+
+
 def stati_cmd():
     club = Club(Dummy)
     infile = args["-i"]
@@ -1930,6 +1970,9 @@ if __name__ == "__main__":
 
     elif args["show"]:
         show_cmd()
+
+    elif args["report"]:
+        report_cmd()
 
     elif args["stati"]:
         stati_cmd()

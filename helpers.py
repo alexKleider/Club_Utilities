@@ -91,6 +91,28 @@ def expand(text, nlines):
         return text
 
 
+def show_dict(d, underline_char=None, extra_line=True):
+    """
+    Returns a list of strings representing a human readable version
+    of a dictionary. If an underline_char is povided, each key is
+    an underlined header with corresponding values listed beneath;
+    if not- each key is followed by its values all on one line.
+    Keys and values are ordered/sorted.
+    """
+    ret = []
+    for key in sorted([key for key in d.keys()]):
+        if underline_char:
+            ret.append('')
+            ret.append(key)
+            ret.append(underline_char * len(key))
+            for val in sorted([val for val in d[key]]):
+                ret.append(val)
+        else:
+            line = ", ".join(sorted([val for val in d[key]]))
+            ret.append("{}: {}".format(key, line))
+    return ret
+
+
 def create_json_file(json_data, json_file, verbose=True):
     with open(json_file, "w") as json_file_obj:
         if verbose:
