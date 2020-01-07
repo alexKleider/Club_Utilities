@@ -388,6 +388,21 @@ def add2problems(problem_header, new_problems, problem_list,
                 problem_list.extend(underline_with[1:])
         problem_list.extend(new_problems)
 
+def remove_unwanted_items(dictionary, list_of_keys):
+    """
+    Rids the dictionary of listed keys.
+    Key errors are ignored.
+    """
+    for key in list_of_keys:
+#       try:
+#           _ = dictionary.pop(key)
+            del dictionary[key]
+#       except KeyError:
+            pass
+
+def first_parts_only(sequence):
+    return [item.split(' ')[0] for item in sequence]
+
 
 def ck_applicants(club, # provides data from memlist and gmail
            applicants): # gather_applicant_data(SPoT, "applicants")
@@ -469,6 +484,7 @@ def ck_data(member_csv_file,
     first_line = "Checking data integrity..."
     print(first_line)
     ret = ['\n{}\n'.format(first_line)]
+    ok = []
 
     # Collect data from csv files ==> club attributes
     gather_membership_data(member_csv_file, club)
@@ -483,63 +499,74 @@ def ck_data(member_csv_file,
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
     if not club.malformed:
-        ret.append("No malformed records found.")
+        ok.append("No malformed records found.")
     else:
         print("Found Malformed Records.")
         add2problems("Malformed Records", club.malformed, ret)
     
-    # Catch problem cases & set ==> one name for each email.
-    dangling_m_email = []
-    shared_m_email = []
+    # Catch problem cases & change from set to one name for each email.
+    dangling_m_emails = []   # email without a name
+                             # can't imagine how that could happen
+    shared_m_emails = []  # email owned by more than one person
     for m_email in club.m_by_email:
         n_in_set = len(club.m_by_email[m_email])
         if n_in_set == 0:
-            print("Adding a dangling member email.")
-            dangling_m_email.append(m_email)
+            print(
+            "Adding a dangling (no associated member name) email.")
+            dangling_m_emails.append(m_email)
         elif n_in_set ==1:
             club.m_by_email[m_email] = club.m_by_email[m_email].pop()
         else:
             names = ", ".join(sorted(
                 [name for name in club.m_by_email[m_email]]))
-            shared_m_email.append("{} <== [{}]"
+            shared_m_emails.append("{} <== [{}]"
                 .format(m_email, names))
-    if dangling_m_email:
+    if dangling_m_emails:
         print("Found Dangling Member Emails")
-        add2problems("Dangling Member Email(s)", dangling_m_email, ret)
-    if shared_m_email:
+        add2problems("Dangling Member Email(s)",
+                        dangling_m_emails, ret)
+        remove_unwanted_items(club.m_by_email, dangling_m_emails)
+    if shared_m_emails:
         print("Found Shared Member Emails")
-        add2problems("Shared Member Email(s)", shared_m_email, ret)
+        add2problems("Shared Member Email(s)", shared_m_emails, ret)
+        remove_unwanted_items(club.m_by_email,
+                    first_parts_only(shared_m_emails))
 
     # Deal with (gmail) CONTACTS data
     # Catch problem cases & set ==> one name for each email.
     #### NOTE: Seems to not be picking up contacts  ####
     #### entered twice with differing emails.       ####
-    dangling_g_email = []
-    shared_g_email = []
+    dangling_g_emails = []
+    shared_g_emails = []
     for g_email in club.g_by_email:
         n_in_set = len(club.g_by_email[g_email])
         if n_in_set == 0:
-            dangling_g_email.append(g_email)
+            dangling_g_emails.append(g_email)
         elif n_in_set ==1:
             club.g_by_email[g_email] = club.g_by_email[g_email].pop()
         else:
             names = ", ".join(sorted(
                 [name for name in club.g_by_email[g_email]]))
-            shared_g_email.append("{} <== [{}]"
+            shared_g_emails.append("{} <== [{}]"
                 .format(g_email, names))
-    if dangling_g_email:
+    if dangling_g_emails:
         print("Found Dangling Contact Emails")
-        add2problems("Dangling Contact Email(s)", dangling_g_email, ret)
-    if shared_g_email:
+        add2problems("Dangling Contact Email(s)",
+                        dangling_g_emails, ret)
+        remove_unwanted_items(club.g_by_email,dangling_g_emails)
+    if shared_g_emails:
         print("Found Shared Contact Emails")
-        add2problems("Shared Contact Email(s)", shared_g_email, ret)
+        add2problems("Shared Contact Email(s)", shared_g_emails, ret)
+        remove_unwanted_items(club.g_by_email, 
+                        first_parts_only(shared_g_emails))
 
     # Provide listing of those with 'stati':
     if report_status:
         if formfeed:
             ret.append('')
         if not raw:
-            ret.extend(["Members /w 'status' Content",
+            ret.extend(["",
+                        "Members /w 'status' Content",
                         '==========================='])
         stati_w_members = sorted(club.m_by_status.keys())
 #       print("Stati w members: {}".format(repr(stati_w_members)))
@@ -567,8 +594,11 @@ def ck_data(member_csv_file,
             emails_missing_from_contacts.append(
                 "{} ({})".format(m_email, m_name))
 
-    add2problems("Emails Missing from Contacts",
-            emails_missing_from_contacts, ret)
+    if emails_missing_from_contacts:
+        add2problems("Emails Missing from Google Contacts",
+                emails_missing_from_contacts, ret)
+    else:
+        ok.append("No emails missing from gmail contacts.")
 
     for g_email in club.g_by_email:
         g = club.g_by_email[g_email]  # contact name
@@ -599,7 +629,7 @@ def ck_data(member_csv_file,
 ### left here for time being until Data can be corrected.  ###
     if m_applicants == set(
             club.g_by_group_membership[APPLICANT_GROUP]):
-        ret.append("\nGmail groups match Club data")
+        ok.append("Gmail groups match Club data")
     else:
         ret.append("\nMismatch: Gmail groups vs Club data")
         ret.append(  "===================================")
@@ -621,14 +651,14 @@ def ck_data(member_csv_file,
     g_members = club.g_by_group_membership[MEMBER_GROUP]
     g_applicants = club.g_by_group_membership[APPLICANT_GROUP] 
     keys = [key for key in club.m_by_status.keys()]
-    temp_ret = []
+#   temp_ret = []
     for key in keys:
         if not 'a' in key:
             val = (club.m_by_status.pop(key))
-            temp_ret.append(key)
-    if temp_ret:
-        ret.append("\nNon Applicant Stati: {}"
-            .format(','.join(temp_ret)))
+#           temp_ret.append(key)
+#   if temp_ret:
+#       ret.append("\nNon Applicant Stati: {}"
+#           .format(','.join(temp_ret)))
     if a_applicants != club.m_by_status:
         ret.append("\nApplicant problem:")
         ret.append("The following-")
@@ -637,10 +667,13 @@ def ck_data(member_csv_file,
         ret.extend(helpers.show_dict(club.m_by_status))
         ret.append("- End of comparison -")
     else:
-        ret.append("\nNo applicant problem.")
+        ok.append("No applicant problem.")
 
-    add2problems("Contacts that are Not Members",
-            non_member_contacts, ret)
+    if non_member_contacts:
+        add2problems("Contacts that are Not Members",
+                non_member_contacts, ret)
+    else:
+        ok.append('No contacts that are not members.')
             
     if ((extra_fees_info[CATEGORY_KEY] != club.fee_by_category) or
                 (extra_fees_info[NAME_KEY] != club.fee_by_name)):
@@ -648,7 +681,10 @@ def ck_data(member_csv_file,
         ret.append(repr(extra_fees_info[CATEGORY_KEY]))
         ret.append(repr(club.fee_by_category))
     else:
-        ret.append("\nNo fees problem.")
+        ok.append("No fees problem.")
+
+    if ok:
+        add2problems("No Problems with the Following", ok, ret)
     return ret
 
 
