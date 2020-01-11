@@ -36,7 +36,7 @@ config = {
         "auth": "on",
         "tls_starttls": "on",
         "user": "kleider.ca",
-        "from": "akleider@sonic.net",
+#       "from": "akleider@sonic.net",
         "password": getpw("easy"),
         "tls": "on",
     },
