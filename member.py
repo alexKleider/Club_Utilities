@@ -27,6 +27,7 @@ status_key_values = {
     "m": "Member in good standing.",
     WAIVED: "Fees being waived.",
     "be": "Email on record doesn't work.",
+    's': "Secretary of the Club"
     }
 STATI = sorted([key for key in status_key_values.keys()])
 APPLICANT_STATI = STATI[:5]
@@ -84,7 +85,7 @@ def member_name(record, club=None):
     return "{last}, {first}".format(**record)
 
 
-def report_error(report, club=None):
+def report_error(report, club):
     try:
         club.errors.append(report)
     except AttributeError:
@@ -170,7 +171,7 @@ def is_fee_paying_member(record, club=None):
         return False
 
 
-def get_usps(record, club=None):
+def get_usps(record, club):
     """
     Selects members who get their copy of meeting minutes by US
     Postal Service. i.e. Their "email_only" field is blank.
@@ -180,6 +181,17 @@ def get_usps(record, club=None):
     """
     if not record['email_only']:
         club.usps_only.append(
+            "{first},{last},{address},{town},{state},{postal_code}"
+            .format(**record))
+
+
+def get_secretary(record, club):
+    """
+    If record is that of the club secretary,
+    assigns secretary's demographics to club.secretary
+    """
+    if 's' in record['status']:
+        club.secretary = (
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
@@ -409,6 +421,8 @@ def add2memlist4web(record, club=None):
     elif 'i' in record["status"]:
         club.inductees.append(line)
         club.ninductees += 1
+    elif 's' in record['status']:
+        pass # member is the secretary
     else:
         club.errors.append(line)
 

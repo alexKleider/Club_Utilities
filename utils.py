@@ -100,7 +100,7 @@ Commands:
         Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive their
-        Club minutes by post. 
+        Club minutes by post. Includes the secretary.
     extra_charges: Provides lists of members with special charges.
         Both a list of members each with the charge(s) they pay and
         separate lists for each category of charge. (Dues not
@@ -187,7 +187,7 @@ TEXT = ".txt"  #} Used by <extra_charges_cmd>
 CSV = ".csv"   #} command.
 
 TEMP_FILE = "2print.temp"
-SECRETARY = ("Peter", "Pyle")
+SECRETARY = ("Michael", "Rafferty")
 
 args = docopt(__doc__, version="1.1")
 
@@ -1531,7 +1531,9 @@ def usps_cmd():
         infile = Club.MEMBERSHIP_SPoT
     club = Club(Dummy)
     club.usps_only = []
-    err_code = member.traverse_records(infile, member.get_usps, club)
+    err_code = member.traverse_records(infile, 
+                [member.get_usps, member.get_secretary],
+                club)
     header = []
     for key in club.fieldnames:
         header.append(key)
@@ -1539,6 +1541,8 @@ def usps_cmd():
             break
     res = [",".join(header)]
     res.extend(club.usps_only)
+    if hasattr(club, 'secretary'):
+        res.append(club.secretary)
     return '\n'.join(res)
         
 

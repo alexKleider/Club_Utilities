@@ -1,3 +1,19 @@
+https://en.wikipedia.org/wiki/Transport_Layer_Security
+SSL (Secure Sockets Layer) is a deprecated predcessor to 
+TLS (Transport Layer Security)
+Two layers/protocols:
+TLS record & TLS handshake
+Client indicates desired setup of TLS to server:
+    Specific port number (eg 443 for HTTPS) or
+    Protocol specific request: eg STARTTLS request
+Client and Server negotiate a stateful connection (handshaking)
+    using an asymmetric cipher to establish:
+    1. cipher settings
+    2. session-specific shared key with which further communication
+    is encrypted using a symmetric cipher
+    Client presents a list of supported cipher suites (ciphers & hash
+    functions.)
+
 https://realpython.com/python-send-email
 
 Gmail emulation of multiple addresses all pointing to same inbox:
@@ -84,5 +100,19 @@ This message is sent from Python."""
 # Send email here
 server.sendmail(sender_email, receiver_email, message)
 
+
+================================================================
+
+https://www.freecodecamp.org/news/send-emails-using-code-4fcea9df63f/
+
+it’s not possible to send an email message using the email package
+alone. You need a combination of both email and smtplib.
+
+Four Basic Steps:
+1.  Set up the SMTP server and log into your account.
+2.  Create the MIMEMultipart message object and load it with
+  appropriate headers for From, To, and Subject fields.
+3.  Add your message body.
+4.  Send the message using the SMTP server object.
 
 

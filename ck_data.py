@@ -9,7 +9,8 @@ Bolinas Rod and Boat Club's data files:
 Motivated by the desire to have a way of checking for data integrity,
 it then morphed into a way of collecting data for presentation:
     eg list of applicants by number of meetings attended.
-    
+Current version checks for data consistency across the four
+files containing membership related data.
 """
 
 import os
@@ -363,7 +364,8 @@ def present_applicants(applicants_keyed_by_status, raw=False):
 def add2problems(problem_header, new_problems, problem_list,
                 separator=[""], underline_with=["="], raw=False):
     """
-    Extends an existing <problem_list> with <new_problems>.
+    Extends an existing <problem_list> with a sorted version of
+    <new_problems>.
     The added part is separated from the original by <separator> which
     must be a (possibly empty) list of strings- it defaults to a
     list of one empty string.
@@ -388,17 +390,22 @@ def add2problems(problem_header, new_problems, problem_list,
                 problem_list.extend(underline_with[1:])
         problem_list.extend(new_problems)
 
-def remove_unwanted_items(dictionary, list_of_keys):
+
+def remove_unwanted_items(dictionary, list_of_keys,
+                            ignore_keyerror=True):
     """
     Rids the dictionary of listed keys.
     Key errors are ignored.
     """
     for key in list_of_keys:
-#       try:
-#           _ = dictionary.pop(key)
+        if ignore_keyerror:
+            try:
+                del dictionary[key]
+            except KeyError:
+                pass
+        else:
             del dictionary[key]
-#       except KeyError:
-            pass
+
 
 def first_parts_only(sequence):
     return [item.split(' ')[0] for item in sequence]
@@ -525,12 +532,14 @@ def ck_data(member_csv_file,
         print("Found Dangling Member Emails")
         add2problems("Dangling Member Email(s)",
                         dangling_m_emails, ret)
-        remove_unwanted_items(club.m_by_email, dangling_m_emails)
+        remove_unwanted_items(club.m_by_email, dangling_m_emails,
+            ignore_keyerror=False)
     if shared_m_emails:
         print("Found Shared Member Emails")
         add2problems("Shared Member Email(s)", shared_m_emails, ret)
         remove_unwanted_items(club.m_by_email,
-                    first_parts_only(shared_m_emails))
+                    first_parts_only(shared_m_emails),
+                        ignore_keyerror=False)
 
     # Deal with (gmail) CONTACTS data
     # Catch problem cases & set ==> one name for each email.
@@ -553,12 +562,14 @@ def ck_data(member_csv_file,
         print("Found Dangling Contact Emails")
         add2problems("Dangling Contact Email(s)",
                         dangling_g_emails, ret)
-        remove_unwanted_items(club.g_by_email,dangling_g_emails)
+        remove_unwanted_items(club.g_by_email,dangling_g_emails,
+            ignore_keyerror=False)
     if shared_g_emails:
         print("Found Shared Contact Emails")
         add2problems("Shared Contact Email(s)", shared_g_emails, ret)
         remove_unwanted_items(club.g_by_email, 
-                        first_parts_only(shared_g_emails))
+                        first_parts_only(shared_g_emails),
+                            ignore_keyerror=False)
 
     # Provide listing of those with 'stati':
     if report_status:
@@ -568,12 +579,12 @@ def ck_data(member_csv_file,
             ret.extend(["",
                         "Members /w 'status' Content",
                         '==========================='])
-        stati_w_members = sorted(club.m_by_status.keys())
-#       print("Stati w members: {}".format(repr(stati_w_members)))
-        for key in stati_w_members:
+        members_w_status = sorted(club.m_by_status.keys())
+#       print("Members w status: {}".format(repr(members_w_status)))
+        for key in members_w_status:
 #           print("Adding members by stati")
             add2problems(key, 
-                [member for member in club.m_by_status[key]],
+                sorted([member for member in club.m_by_status[key]]),
                 ret,
                 underline_with=["-"])
 

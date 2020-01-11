@@ -1,0 +1,93 @@
+
+mutt 
+       -a file [...]
+              Attach  a file to your message using MIME.  When attaching
+              single or multiple files, separating filenames and recipi‐
+              ent  addresses  with  "--"  is  mandatory,  e.g.  mutt  -a
+              image.jpg -- addr1 or  mutt  -a  img.jpg  *.png  --  addr1
+              addr2.  The -a option must be placed at the end of command
+              line options.
+
+       -b address
+              Specify a blind-carbon-copy (BCC) recipient
+
+       -c address
+              Specify a carbon-copy (CC) recipient
+
+       -F muttrc
+              Specify an initialization file to read instead of  ~/.mut‐
+              trc
+
+       -h     Display help.
+
+       -H draft
+              Specify a draft file which contains header and body to use
+              to send a message.
+
+       -i include
+              Specify a file to include into the body of a message.
+
+       -n     Causes Mutt to bypass the system configuration file.
+
+       -s subject
+              Specify the subject of the message.
+
+       -v     Display the Mutt version number and  compile-time  defini‐
+              tions.
+
+       -vv    Display license and copyright information.
+
+       --     Treat remaining arguments as addr even if they start  with
+              a dash.  See also "-a" above.
+
+
+muttrc can include:
+
+       sendmail
+              Type: path
+              Default: “/usr/sbin/sendmail -oem -oi”
+
+              Specifies the program and arguments used to deliver mail sent by
+              Mutt.   Mutt expects that the specified program interprets addi‐
+              tional arguments  as  recipient  addresses.   Mutt  appends  all
+              recipients after adding a -- delimiter (if not already present).
+              Additional flags, such as for $use_8bitmime, $use_envelope_from,
+              $dsn_notify, or $dsn_return will be added before the delimiter.
+
+       smtp_url
+              Type: string
+              Default: “”
+
+              Defines  the  SMTP  smarthost where sent messages should relayed
+              for delivery. This should take the form of an SMTP URL, e.g.:
+
+              smtp[s]://[user[:pass]@]host[:port]
+
+              where “[...]” denotes an optional part.  Setting  this  variable
+              overrides the value of the $sendmail variable.
+
+
+msmtp.man:
+
+       Options specific to sendmail mode
+
+              -f, --from=address
+                     Set the envelope-from  address.  It  is  only  used  when
+                     auto_from is off.
+                     If  no account was chosen yet (with --account or --host),
+                     this option will choose the first account  that  has  the
+                     given  envelope-from address (set with the from command).
+                     If no such account is found, "default" is used.
+
+              -t, --read-recipients
+                     Read recipient addresses from the To, Cc, and Bcc headers
+                     of  the  mail  in addition to the recipients given on the
+                     command line.  If any Resent- headers are  present,  then
+                     the  addresses from any Resent-To, Resent-Cc, and Resent-
+                     Bcc headers in the first block  of  Resent-  headers  are
+                     used instead.
+
+              --read-envelope-from
+                     Read  the  envelope  from address from the From header of
+                     the mail.  Currently this header must be on a single line
+                     for this option to work correctly.
