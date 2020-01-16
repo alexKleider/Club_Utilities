@@ -1003,11 +1003,18 @@ class Club(object):
             .format(total))
 #       print("returning {}".format(res))
         return res
+
+redacted = '''
 ## Custom Functions:
+## I believe the following are all redacted.
+## The mailing related methods have been replaced by functions
+## in the member.py module, specifically q_mailing(record,club).
 
     def send_mailing(self, record, content, both=False):
         """
-        Sends emails to 'email_only' members and letters to others.
+        Sends email if there is content in record['email']
+        and a letter if there is not.  If both=True then a
+        letter is sent regardless of record['email'] content.
         """
         def send_letter():
             entry = (content["postal_header"]
@@ -1218,6 +1225,7 @@ class Club(object):
 #           print(for_printer)
 #           _ = input("Enter to continue.")
 
+'''
 ####  End of Club class declaration.
 
 

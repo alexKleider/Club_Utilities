@@ -11,19 +11,11 @@ import sys
 def getpw(service):
     """
     Passwords are in highly restricted dot files.
+    Each file contains only the password.
     """
     with open('.pw.{}'.format(service), 'r') as f_obj:
         return f_obj.read().strip()
 
-def pseudo_recipient(plus_name, email):
-    """
-    Gmail only: emulation of multiple addresses
-    all pointing to same inbox:
-    my+person1@gmail.com & my+person1@gmail.com
-    both go to my@gmail.com
-    """
-    parts = email.split('@')
-    return parts[0] + '+' + plus_name + '@' + parts[1]
 
 config = {
     "easy": {
