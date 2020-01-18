@@ -18,6 +18,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+# from email.mime.base import MIMEBase
+# from email import encoders
 import mimetypes
 import config
 import hashlib
@@ -181,6 +183,9 @@ def send(mailings, service='easy', report_progress=False):
             for key in mailing:
                 msg[key] = into_string(mailing[key])
             msg.attach(MIMEText(body, 'plain'))
+
+#           attach_many(attachments, msg)
+
             for attachment in attachments:
                 attach(attachment, msg)
 
@@ -231,7 +236,7 @@ if __name__ == "__main__":
                 pseudo_recipient('ak', 'alexkleider@gmail.com'),
                 ],
             'Subject': 'TEST Reply-To',
-            'attachments': ['notes',],
+            'attachments': ['/home/alex/Downloads/TheInterKnot.2019.03.pdf',],
             'body': test_body_1,
             },
         ]

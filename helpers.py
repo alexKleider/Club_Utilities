@@ -50,7 +50,7 @@ def indent(text, n_spaces):
     or one string ('lines' terminated by linefeeds.)
     In either case, returns a string.
     """
-    print("Entering function 'indent'.")
+#   print("Entering function 'indent'.")
     indentation = ' ' * n_spaces
     if isinstance(text, str):
         return (indentation + text.replace(

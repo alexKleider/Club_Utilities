@@ -12,11 +12,11 @@ with those names as keys and the methods as values.
 
 A number of 'dict's are being used:
     letter_bodies
-    authors: ak, club,
+    authors: ak, membership,
     content_types
         each provides: {
             "subject": 
-            "from": authors["club"],
+            "from": authors["membership"],
 #           'reply2': 'randolf@sonic.net'
             "body": letter_bodies["happyNY_and_0th_fees_request"],
             "post_script": a string,
@@ -77,6 +77,11 @@ by the custom function.
 Board members meet at 6pm.
 General meeting scheduled for 7:30pm.
 Come for the fun!
+""",
+
+    usps_minutes = """
+Enclosed, please find the latest Club minutes.
+Enjoy!
 """,
 
     happyNY_and_0th_fees_request = """
@@ -331,7 +336,7 @@ authors = dict(  # from
         reply2 = "akleider@sonic.net",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider",
         ),
-    club = dict(
+    membership = dict(
         first = "Bolinas",
         last = "Rod & Boat Club",
         address = "PO Box 248",
@@ -343,6 +348,21 @@ authors = dict(  # from
         email = "rodandboatclub@gmail.com",
         reply2 = "rodandboatclub@gmail.com",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider (Membership)",
+        ),
+    secretary = dict(
+        first = "Bolinas",
+        last = "Rod & Boat Club",
+        address = "PO Box 248",
+        town = "Bolinas",
+        state = "CA",
+        postal_code = "94924",
+        country = "USA",
+        email_signature = (
+            "\nSincerely,\nMichael Rafferty (Club Secretary)"),
+        email = "rodandboatclub@gmail.com",
+        reply2 = "rodandboatclub@gmail.com",
+        mail_signature = (
+            "\nSincerely,\n\n\nMichael Rafferty (Club Secretary)"),
         ),
     randy = dict(
         first = "Randy",
@@ -363,7 +383,6 @@ authors = dict(  # from
 # Membership instance attribute 'content_type'.
 
     # Each item in the following dict specifies:
-        # subject: re line in letter_bodies, subject line in emails
         # subject: re line in letter_bodies, subject line in emails
         # postal_header: to be assigned depending on which
         #     printer is to be used.
@@ -395,16 +414,25 @@ content_types = dict(  # which_letter
         },
     meeting_announcement = {
         "subject": "Meeting Tonight",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["meeting_announcement"],
         "post_scripts": (post_scripts["at_request_of_secretary"],),
         "funcs": (member.std_mailing,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "one_only",
         },
+    usps_minutes = {
+        "subject": "Rod & Boat Club Minutes",
+        "from": authors["secretary"],
+        "body": letter_bodies["usps_minutes"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing,),
+        "test": lambda record: False if record["email"] else True,
+        "e_and_or_p": "usps",
+        },
     happyNY_and_0th_fees_request = {
         "subject": "Happy New Year from the Bolinas R&B Club",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
@@ -413,7 +441,7 @@ content_types = dict(  # which_letter
         },
     February_meeting = {
         "subject": "Change regarding format and time of next meeting",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["February_meeting"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
@@ -422,7 +450,7 @@ content_types = dict(  # which_letter
         },
     thank_you_for_advanced_payment = {
         "subject": "Thanks for your payment",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["thank_you_for_advanced_payment"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
@@ -431,7 +459,7 @@ content_types = dict(  # which_letter
         },
     thank_you_for_timely_payment = {
         "subject": "Thanks for your payment",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["thank_you_for_timely_payment"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
@@ -440,7 +468,7 @@ content_types = dict(  # which_letter
         },
     yearly_fees_1st_request = {
         "subject": "Bolinas R&B Club fees coming due",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["yearly_fees_1st_request"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
@@ -450,7 +478,7 @@ content_types = dict(  # which_letter
         },
     yearly_fees_2nd_request = {
         "subject":"Second request for BR&BC dues",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["yearly_fees_2nd_request"],
         "signature": '',
         "post_scripts": (
@@ -466,7 +494,7 @@ content_types = dict(  # which_letter
         },
     yearly_fees_corrected_2nd_request = {
         "subject":"Second request for BR&BC dues",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["yearly_fees_corrected_2nd_request"],
         "signature": '',
         "post_scripts": (
@@ -482,7 +510,7 @@ content_types = dict(  # which_letter
         },
     final_warning = {
         "subject":"Membership soon to expire",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["final_warning"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
@@ -494,7 +522,7 @@ content_types = dict(  # which_letter
         },
     penalty_notice = {
         "subject":"BR&BC dues and penalty for late payment",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["penalty_notice"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
@@ -506,7 +534,7 @@ content_types = dict(  # which_letter
         },
     bad_email = {
         "subject": "non-working email",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["bad_email"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
@@ -516,7 +544,7 @@ content_types = dict(  # which_letter
         }, 
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["new_applicant_welcome"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
@@ -528,7 +556,7 @@ content_types = dict(  # which_letter
         },
     request_inductee_payment = {
         "subject": "Welcome to the Bolinas Rod & Boat Club",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["request_inductee_payment"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.request_inductee_payment,),
@@ -538,7 +566,7 @@ content_types = dict(  # which_letter
         },
     second_request_inductee_payment = {
         "subject": "Still awaiting Club dues",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["second_request_inductee_payment"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.request_inductee_payment,),
@@ -548,7 +576,7 @@ content_types = dict(  # which_letter
         },
     welcome2full_membership = {
         "subject": "You are a member!",
-        "from": authors["club"],
+        "from": authors["membership"],
         "body": letter_bodies["welcome2full_membership"],
         "post_scripts": (post_scripts["ref1"], ),
         "funcs": (member.std_mailing,),
@@ -625,6 +653,14 @@ printers = dict(
         re = 3,  # below windows => fold
         ),
     Janice = dict(
+        indent = 4,
+        top = 4,  # blank lines at top
+        frm = (5, 25),  # return window
+        date = 4,  # between windows
+        to = (7, 29),  # recipient window
+        re = 3,  # below windows => fold
+        ),
+    Michael = dict(
         indent = 4,
         top = 4,  # blank lines at top
         frm = (5, 25),  # return window
@@ -750,7 +786,7 @@ Just a lot of junk.""",
         fout.write(email.format(**rec))
 
 
-bad_email_template = """From: rodandboatclub@gmail.com
+duplicate_email_template = """From: rodandboatclub@gmail.com
 To: {}
 Subject: Which email is best?
 

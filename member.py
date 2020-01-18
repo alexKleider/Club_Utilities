@@ -471,7 +471,7 @@ def file_letter(record, club):
 #   print("lpr['indent'] is set to {}"
 #       .format(club.lpr['indent']))
     with open(path2write, 'w') as file_obj:
-        print('Writing to "{}".'.format(file_obj.name))
+#       print('Writing to "{}".'.format(file_obj.name))
         file_obj.write(helpers.indent(entry,
         club.lpr["indent"]))
 

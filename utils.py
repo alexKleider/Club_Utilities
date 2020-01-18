@@ -1528,11 +1528,9 @@ def extra_charges(infile, json_file=None):
 
 def usps_cmd():
     """
-    Generates a cvs file used by Peter to send out minutes.
+    Generates a cvs file used by the Secretary to send out minutes.
         first,last,address,town,state,postal_code
     (Members who are NOT in the 'email only' category.)
-    Note: Peter (secretary) is purposely NOT 'email_only' so that he
-    can get a copy of the printed minutes for inspection.
     """
     infile = args['-i']
     if not infile:
@@ -1549,8 +1547,10 @@ def usps_cmd():
             break
     res = [",".join(header)]
     res.extend(club.usps_only)
-    if hasattr(club, 'secretary'):
-        res.append(club.secretary)
+    # The following 2 lines are commented out because new secretary
+    # Michael Rafferty doesn't need/want to be on the list.
+#   if hasattr(club, 'secretary'):
+#       res.append(club.secretary)
     return '\n'.join(res)
         
 

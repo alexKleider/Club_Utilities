@@ -1,3 +1,0 @@
-
-Basically every function should either do display or logic. If its
-doing logic then return values that the caller can use/display.
