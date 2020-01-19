@@ -11,6 +11,7 @@
 complete -W "test_data do_nothing" ck_data.py
 
 complete -W "ck_fields \
+            ck_data \
             show \
             report \
             stati \

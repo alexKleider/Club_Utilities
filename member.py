@@ -19,14 +19,14 @@ import helpers
 SEPARATOR = '|'  
 WAIVED = "w"
 status_key_values = {
-    "a0": "Application received.",
-    "a1": "Attended one meeting.",
-    "a2": "Attended two meetings.",
-    "a3": "Attended three (or more) meetings.",
-    "ai": "Inducted, membership pending payment of fee.",
-    "m": "Member in good standing.",
-    WAIVED: "Fees being waived.",
-    "be": "Email on record doesn't work.",
+    "a0": "Application received",
+    "a1": "Attended one meeting",
+    "a2": "Attended two meetings",
+    "a3": "Attended three (or more) meetings",
+    "ai": "Inducted, membership pending payment of fee",
+    "m": "Member in good standing",
+    WAIVED: "Fees being waived",
+    "be": "Email on record being rejected",
     's': "Secretary of the Club"
     }
 STATI = sorted([key for key in status_key_values.keys()])

@@ -22,10 +22,10 @@ Consult the README file for further info.
 Usage:
   ./utils.py [ ? | --help | --version ]
   ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
-  ./utils.py compare_gmail [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
+  ./utils.py ck_data [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py report [-i <infile> -o <outfile> ]
-  ./utils.py stati [-A | -B | -W] [-i <infile> -o <outfile>]
+  ./utils.py stati [-A -i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
@@ -42,53 +42,51 @@ Usage:
 Options:
   -h --help  Print this docstring.
   --version  Print version.
+  -a <attachment>  The name of a file to use as an attachment.
+  -A  re 'stati' comand: show only applicants.
+  -c <content>  The name of a file containing the body of an email.
   --dir <dir4letters>  The directory to be created and/or read
                       containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
                     generally reported to stdout.
+  -F <muttrc>  The name of a muttrc file to be used.
+                        [default: muttrc_rbc]
+  <gmail_contacts>  [default: ~/Downloads/contacts.csv]
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
+  --lpr <printer>  The postal_header must be specific to the printer
+            used. This provides a method of specifying which to use
+            if content.which.["postal_header"] isn't already
+            specified.  [default: X6505]
+                  'content_types' dict in content.py.)
+  -o <outfile>  Specify destination. Choices are stdout, printer, or
+                the name of a file. [default: stdout]
+  -p <params>  If not specified, the default is
+              A5160 for labels & E000 for envelopes.
+  -r --raw  Supress headers (to make the output suitable as
+            input for creating tables.)
+  -s <separator>  Some commands may have more than one component to
+          their output.  Such componentes can be seprated by either
+          a line feed (LF) or a form feed (FF).  [default: LF]
+  -S  ck_fields command also provides listing of members having
+            content in their 'status' field.
+  --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
                   modified, thus providing an opportunity for proof
                   reading the 'modified' file before renaming it to
                   the original. (Typically named '2proof_read.txt'.)
   --which <letter>  Specifies type/subject of mailing. (See
-                  'content_types' dict in content.py.)
-  -o <outfile>  Specify destination. Choices are stdout, printer, or
-                the name of a file. [default: stdout]
-  -p <params>  If not specified, the default is
-              A5160 for labels & E000 for envelopes.
-  --lpr <printer>  The postal_header must be specific to the printer
-            used. This provides a method of specifying which to use
-            if content.which.["postal_header"] isn't already
-            specified.  [default: X6505]
-  -r --raw  Supress headers (to make the output suitable as
-            input for creating tables.)
-  -s <separator>  Some commands may have more than one component to
-          their output.  Such componentes can be seprated by either
-          a line feed (LF) or a form feed (FF).  [default: FF]
-  -S  ck_fields command also provides listing of members having
-            content in their 'status' field.
-  --subject <subject>  The subject line of an email.
-  -c <content>  The name of a file containing the body of an email.
-  -a <attachment>  The name of a file to use as an attachment.
-  -F <muttrc>  The name of a muttrc file to be used.
-                        [default: muttrc_rbc]
-  <gmail_contacts>  [default: ~/Downloads/contacts.csv]
-  -A  A 'stati' only option: show only applicants.
-  -B  A 'stati' only option: show only bad emails.
-  -W  A 'stati' only option: show only members whose fees are waived.
 
 Commands:
     When run without a command, suggests ways of getting help.
     ck_fields: Check for integrety of the data base- not fool proof!
         Sends results to -o <outfile> only if there are bad records.
         Use of -r --raw option supresses the header line.
-    compare_gmail: Checks the gmail contacts for incompatabilities
+    ck_data: Checks the gmail contacts for incompatabilities
         with the membership list. Assumes a fresh export of the
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
@@ -380,7 +378,7 @@ class Club(object):
         self.previous_name_tuple = ('', '')  # } check 
         self.first_letter = ''               # } ordering.
 
-    def compare_gmail(self, source_file, google_file, separator):
+    def ck_data(self, source_file, google_file, separator):
         """
         Checks for incompatibilities between the two files.
         Need to add examination of "Group Membership" field of Google
@@ -563,7 +561,7 @@ class Club(object):
 #           file_obj.write("Number found: {}".format(g_counter) +
 #               '\n' + "\n".join(g_collector))
         return separator.join(ret)
-    ### End of compare_gmail method.
+    ### End of ck_data method.
 
 
     @staticmethod
@@ -1231,6 +1229,7 @@ redacted = '''
 
 def ck_fields_cmd():
     """
+    REDACTED: Functionality will be part of ck_data function.
     Traverses the input file using
     Club method add2malformed
     to select malformed records.
@@ -1266,7 +1265,7 @@ def ck_fields_cmd():
 #       print("Output sent to {}.".format(args['-o']))
     print("...done checking fields.")
 
-def compare_gmail_cmd():
+def ck_data_cmd():
     """
     Reports inconsistencies between the clubs membership list
     and the google csv file (exported gmail contacts.)
@@ -1281,7 +1280,7 @@ def compare_gmail_cmd():
             args['<gmail_contacts>'] = CONTACTS 
         print("File from google: '{}'"
             .format(args['<gmail_contacts>']))
-        return club.compare_gmail(args['-i'],
+        return club.ck_data(args['-i'],
                                 args['<gmail_contacts>'],
                                 args['-s'])
     else:
@@ -1349,7 +1348,55 @@ LOSS OF MEMBERSHIP IS THE PENALTY.
     print("...results sent to {}.".format(args['-o']))
 
 
-def report_cmd():
+
+def stati():
+    """
+    Returns a list of strings (that can be '\n'.join(ed))
+    """
+    club = Club(Dummy)
+    infile = args["-i"]
+    if not infile:
+        infile = Club.MEMBERSHIP_SPoT
+    print("Preparing listing of stati.")
+    club.m_by_status = {}
+    err_code = member.traverse_records(infile,
+                                    member.add2m_by_status,
+                                    club)
+    if not club.m_by_status:
+        return ["Found No Entries with 'Status' Content." ]
+
+#   keys = [k for k in club.m_by_status.keys() if k]
+    keys = [k for k in club.m_by_status.keys()]
+    keys.sort()
+
+    ret = []
+#   if not args['-A']:
+#       header = (
+#           "Applicants (and other's with special status)")
+#       ret.append(header)
+#       ret.append('=' * len(header))
+#       ret.append('')
+    header = "Applicants"
+    ret.append(header)
+    ret.append('=' * len(header))
+#   ret.append('')
+    for key in keys:
+        sub_header = member.status_key_values[key]
+        values = sorted(club.m_by_status[key])
+        if key.startswith('a'):
+            ret.append('')
+            ret.append(sub_header)
+            ret.append('-' * len(sub_header))
+        elif not args['-A']:
+            ret.append('')
+            ret.append(sub_header)
+            ret.append('=' * len(sub_header))
+        for value in values:
+            ret.append("    {}".format(value))
+    return ret
+
+
+def report():
     """
     Prepare a "Membership Report"
     Date
@@ -1376,67 +1423,14 @@ def report_cmd():
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
     report.append('')
-    next_line = "Applicants (and other's with special status)"
-    report.append(next_line)
-    report.append('=' * len(next_line))
-    report.extend(helpers.show_dict(club.m_by_status,
-                    underline_char='-',
-                    extra_line=True))
-    output('\n'.join(report))
-
+    report.extend(stati())
+    return report
+ 
+def report_cmd():
+    output('\n'.join(report()))
 
 def stati_cmd():
-    club = Club(Dummy)
-    infile = args["-i"]
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    print("Preparing listing of stati.")
-    club.m_by_status = {}
-    err_code = member.traverse_records(infile,
-                                    member.add2m_by_status,
-                                    club)
-    res = ["No entries found.", ]
-    keys = [k for k in club.m_by_status.keys() if k]
-    keys.sort()
-    if args["-B"]:
-        if "be" in keys:
-            for value in club.m_by_status["be"]:
-                res.append("    {}".format(value))
-            if len(res) > 1:
-                res[0] = ("Those with bad emails:" +
-                        "\n======================")
-    elif args["-W"]:
-        if "w" in keys:
-            for value in club.m_by_status["w"]:
-                res.append("    {}".format(value))
-        if len(res) > 1:
-            res[0] = ("Those whose fees are being waived:" +
-                    "\n==================================")
-    elif args["-A"]:
-        for key in keys:
-            if key.startswith('a'):
-                res.append("  {}".format(member.status_key_values[key]))
-                for value in club.m_by_status[key]:
-                    res.append("    {}".format(value))
-        if len(res) > 1:
-            res[0] = "Applicants:\n==========="
-    else:
-        for key in keys:
-#           print("key is: {}".format(key))
-#           print("value is: {}".format(club.m_by_status[key]))
-            res.append("\n{}".format(
-                        member.status_key_values[key]
-                                    ))
-            for value in club.m_by_status[key]:
-                res.append("\t{}".format(value))
-            if len(res) > 1:
-                res[0] = "Stati:\n==========="
-    res = "\n".join(res)
-    output(res)
-#   outfile = args["-o"]
-#   with open(outfile, 'w') as file_obj:
-#       file_obj.write(res)
-    print("\n... listing sent to {}.".format(args["-o"]))
+    output('\n'.join(stati()))
 
 def extra_charges(infile, json_file=None):
     """
@@ -1941,26 +1935,6 @@ def mutt_send(recipient, subject, body, attachment=None):
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
-not_used = """
-cmds = dict(
-    ck_fields = ck_fields_cmd,
-    show = show_cmd,
-    compare_gmail = compare_gmail_cmd,
-    stati = stati_cmd,
-    extra_charges = extra_charges_cmd,
-    payables = payables_cmd,
-    usps = usps_cmd,
-    prepare_mailing = prepare_mailing_cmd,
-    send_emails = send_emails_cmd,
-    print_letters = print_letters_cmd,
-    restore_fees = restore_fees_cmd,
-    display_emails = display_emails_cmd,
-    fees_intake = fees_intake_cmd,
-    labels = labels_cmd,
-    envelopes = envelopes_cmd,
-    show_mailing_categories = show_mailing_categories_cmd,
-    )
-"""
 
 if __name__ == "__main__":
 #   print(args)
@@ -1976,9 +1950,9 @@ if __name__ == "__main__":
     elif args["ck_fields"]:
         ck_fields_cmd()
 
-    elif args["compare_gmail"]:
+    elif args["ck_data"]:
         print("Check the google list against the membership list.")
-        output(compare_gmail_cmd())
+        output(ck_data_cmd())
 
     elif args["show"]:
         show_cmd()

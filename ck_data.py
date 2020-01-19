@@ -32,7 +32,10 @@ CATEGORY_KEY = "by_category"
 
 APPLICANT_GROUP = "applicant"  # } These are specific to
 MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
-                               # } CONTACTS_SPoT
+OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
+DOCKUSERS = 'DockUsers'
+KAYAK = 'Kayak'
+MOORING = 'moorings'
 
 class Club(object):
     """
