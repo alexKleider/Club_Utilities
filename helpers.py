@@ -3,10 +3,12 @@
 # File: helpers.py
 
 """
-Some helper functions needed by both formats.content and by utils
+Some helper functions needed by content and utils
+and perhaps other modules in this folder.
 """
 
 import datetime
+import functools
 
 format = "%b %d, %Y"
 today = datetime.datetime.today()
@@ -119,6 +121,148 @@ def create_json_file(json_data, json_file, verbose=True):
             print('Dumping JSON to "{}".'
                 .format(json_file_obj.name))
         json.dump(json_data, json_file_obj)
+
+
+def longest(x, y):
+    if len(x) > len(y):
+        return x
+    else:
+        return y
+
+def tabulate(data,
+            display = None,  # a function
+            alignment = '>', # left (<), right (>) or centered (^)
+            down = False, #list by column (down) or by row (default)
+            max_width = 75,
+            max_columns = 0,
+            separator = ' ', # minimum separation between columns
+            force =0,
+            usage=False,
+            stats=False):
+    """Usage: tabulate( data,
+                        display = None,
+                        alignment = '<',
+                        down = False,
+                        max_width = 75,
+                        max_columns = 0,
+                        separator = ' ',
+                        force =0,
+                        usage=False,
+                        stats=False)
+
+    The single positional argument (<data>) must be an iterable, a
+    representation of which will be returned as a list of strings
+    which when '\n'.join(ed) can be printed as a table.
+    If <display> is provided it must be a function that, when
+    provided with an element of data, returns a string
+    representation.  If not provided, elements are assumed to have
+    their own __repr__ and/or __str__ method(s).
+    Possible values for <alignment> are '<', '^', and '>'
+    for left, center, and right.
+    <down> can be set to True if you want the elements to be listed
+    down the columns rather than across each line.
+    If <max_columns> is changed, it will be used as the upper limit
+    of columns used. It is only effective if you specify fewer
+    columns than would fit into <max_width> and any <force>
+    specifiction will take precedence. (See next item.)
+    <force> can be used to force groupings. If used, an attempt is
+    made to keep items in groups of <force>, either vertically (if
+    <down>) or horizontally (if not.)
+    If both are specified, and if <force> is possible, <force> takes
+    precedence over <max_columns>, otherwise <force> is ignored.
+    If <usage> is set to True, the <data> parmeter is ignored and
+    this document string is returned.
+    If <stats> is set to True, output will show table layout but no table.
+    """
+    orig_max_col = max_columns
+    if usage:
+        return tabulate.__doc__
+    # Assign <display>:
+    if not alignment in ('<', '^', '>'):
+        return "Alignmemt specifier not valid: choose from '<', '^', '>'"
+    if display: # Map to a representable format:
+        _data = [display(x) for x in data]
+    else:  # Eliminate side effects.
+        _data = [x for x in data]
+    # Establish length of longest element:
+    max_len = len(functools.reduce(lambda x, y:
+                            x if len(x)>len(y) else y, _data))
+    # Establish how many can fit on a line:
+    n_per_line = (
+            (max_width + len(separator)) // (max_len + len(separator)))
+    # Adjust for max_n_columns if necessary:
+    # If <down> then <force> becomes irrelevant but otherwise,
+    # force takes precedence over max_columns but within limits
+    # of n_per_line.
+#   print("max_columns ({}) < n_per_line ({})?"
+#           .format(max_columns, n_per_line))
+    if down:             # In down mode:
+        if (max_columns > 0   # <force> is irelevant to n_per_line.
+          and max_columns < n_per_line):
+            n_per_line = max_columns
+#           print("1. n_per_line is {}.".format(n_per_line))
+    else:
+        if max_columns < force and force <= n_per_line:
+            max_columns = 0
+        if force > 1 and n_per_line > force:
+            _, remainder = divmod(n_per_line, force)
+            n_per_line -= remainder
+            forced = True
+#           print("2. n_per_line is {}.".format(n_per_line))
+        else:
+            forced = False
+        if max_columns > 0 and n_per_line > max_columns:
+            if forced:
+                temp_n = n_per_line
+                while temp_n > max_columns:
+                    temp_n -= force
+                if temp_n > 0:
+                    n_per_line = temp_n
+            else:
+                n_per_line = max_columns
+#               print("3. n_per_line is {}.".format(n_per_line))
+    if down:  # Tabulating downwards.
+        column_data = []
+        n_per_column, remainder = divmod(len(_data),n_per_line)
+        if remainder:
+            n_per_column += 1
+        if force > 1:
+            _, remainder = divmod(n_per_column, force)
+            if remainder:
+                n_per_column += force -remainder
+        for j in range(n_per_column):
+            for i in range(0, len(_data), n_per_column):
+                try:
+                    appendee = _data[i+j]
+                except IndexError:
+                    appendee = ''
+                column_data.append(appendee)
+        _data = column_data
+    else:  # Tabulating accross so skip the above:
+        pass
+    if stats:
+        return("Alignment={}, down={}, force={}, maxCol={}, n={}"
+            .format(alignment, down, force, orig_max_col, n_per_line))
+
+    new_data = []
+    row = []
+    for i in range(len(_data)):
+        if not (i % n_per_line):
+            new_data.append(separator.join(row))
+            row = []
+        try:
+            appendee = ('{:{}{}}'
+                .format(_data[i], alignment, max_len))
+        except IndexError:
+            appendee = ('{:{}{}}'
+                .format('', alignment, max_len))
+        row.append(appendee)
+    if row:
+            new_data.append(separator.join(row))
+    while not new_data[0]:
+        new_data = new_data[1:]
+    new_data = [item.strip() for item in new_data]
+    return new_data
 
 
 if __name__ == "__main__":

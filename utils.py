@@ -556,7 +556,7 @@ class Club(object):
                 formatted_report = "\n".join(report_w_header)
                 ret.append(formatted_report)
             else:
-                ret.append("No entries for '{}'".format(report_name))
+                ret.append("\nNo entries for '{}'".format(report_name))
 #       with open("g_collector", 'w') as file_obj:
 #           file_obj.write("Number found: {}".format(g_counter) +
 #               '\n' + "\n".join(g_collector))

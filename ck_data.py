@@ -527,7 +527,7 @@ def ck_data(member_csv_file,
         elif n_in_set ==1:
             club.m_by_email[m_email] = club.m_by_email[m_email].pop()
         else:
-            names = ", ".join(sorted(
+            names = "; ".join(sorted(
                 [name for name in club.m_by_email[m_email]]))
             shared_m_emails.append("{} <== [{}]"
                 .format(m_email, names))
@@ -557,7 +557,7 @@ def ck_data(member_csv_file,
         elif n_in_set ==1:
             club.g_by_email[g_email] = club.g_by_email[g_email].pop()
         else:
-            names = ", ".join(sorted(
+            names = "; ".join(sorted(
                 [name for name in club.g_by_email[g_email]]))
             shared_g_emails.append("{} <== [{}]"
                 .format(g_email, names))
@@ -684,7 +684,7 @@ def ck_data(member_csv_file,
         ok.append("No applicant problem.")
 
     if non_member_contacts:
-        add2problems("Contacts that are Not Members",
+        add2problems("\nContacts that are Not Members",
                 non_member_contacts, ret)
     else:
         ok.append('No contacts that are not members.')

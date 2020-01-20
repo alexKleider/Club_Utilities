@@ -15,12 +15,12 @@ A number of 'dict's are being used:
     authors: ak, membership,
     content_types
         each provides: {
-            "subject": 
+            "subject":
             "from": authors["membership"],
 #           'reply2': 'randolf@sonic.net'
             "body": letter_bodies["happyNY_and_0th_fees_request"],
             "post_script": a string,
-            "funcs": [func_1, ..], 
+            "funcs": [func_1, ..],
             "test": lambda record: True,
             "e_and_or_p": "one_only",
             },
@@ -105,7 +105,7 @@ If the number is negative or zero, there'll be nothing due in June.
 
     February_meeting = """
 Things are to be somewhat different for the February meeting
-on Friday, the 1st. 
+on Friday, the 1st.
 The Board will meet at 5:30 and then there will be the general
 meeting at 6:00pm.  This meeting also includes a dinner which is
 to begin circa 6:30.  Those intending to remain for dinner should
@@ -185,7 +185,7 @@ human!  Otherwise, don't delay sending in your check rather than
 risk being removed from the Club's list of members.
 
 Details are as follows:
-{extra}""", 
+{extra}""",
 
     bad_email = """
 Emails sent to you at
@@ -297,7 +297,7 @@ Cheers and tight lines.
 """,
 
     payment = """
-Thank you for your services. 
+Thank you for your services.
 """
     )
 # ... end of letter_bodies.
@@ -379,7 +379,7 @@ authors = dict(  # from
         ),
     )  # ... end of authors.
 
-# Need to assign one of the following content_types to the 
+# Need to assign one of the following content_types to the
 # Membership instance attribute 'content_type'.
 
     # Each item in the following dict specifies:
@@ -395,7 +395,7 @@ authors = dict(  # from
         # test: a (usually 'lambda') function that determines
         # if the record is to be considered at all.
         # e_and_or_p: possibilities are:
-        #     'both' email and usps, 
+        #     'both' email and usps,
         #     'email' email only,
         #     'usps' mail only,
         #  or 'one_only' email if available, othewise usps.
@@ -541,7 +541,7 @@ content_types = dict(  # which_letter
         "test": (
         lambda record: True if 'be' in record["status"] else False),
         "e_and_or_p": "usps",
-        }, 
+        },
     new_applicant_welcome = {
         "subject": "Welcome to the Club",
         "from": authors["membership"],
@@ -593,7 +593,7 @@ content_types = dict(  # which_letter
         "test": (
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
-        }, 
+        },
     tpmg_social_security = {
         "subject": "Medicare Reimbursement",
         "from": authors["ak"],
@@ -758,7 +758,33 @@ def prepare_email(which_letter):
     ret.extend(get_postscripts(which_letter))
     return '\n'.join(ret)
 
-if __name__ == "__main__":
+def choices():
+    """
+    Provides a way of getting a quick glimps
+    of the various contents provided.
+    Typical usage:
+        print('\n'.join(choices()))
+    """
+    tuples = ( ('custom_lambdas', custom_lambdas),
+               ('letter_bodies', letter_bodies),
+               ('post_scripts', post_scripts),
+               ('authors', authors),
+               ('content_types', content_types),
+               ('printers', printers),
+                )
+    ret = []
+    for tup in tuples:
+        ret.append('')
+        ret.append(tup[0])
+        ret.append('=' * len(tup[0]))
+        r = []
+        for key in tup[1]:
+            r.append(key)
+        ret.extend(
+            helpers.tabulate(r, alignment='<', max_width=120))
+    return ret
+
+def main():
     print("content.py has no syntax errors")
     which = content_types["for_testing"]
     lpr = "X6505"
@@ -797,3 +823,7 @@ Club records have two differing emails for you:
 Please reply telling us which is the one you want the club to use.
 Thanks in advance,
 Membership"""
+
+
+if __name__ == "__main__":
+    print('\n'.join(choices()))
