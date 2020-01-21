@@ -17,26 +17,9 @@ import os
 import csv
 import helpers
 import member
+from utils import Club
 
-MEMBERSHIP_SPoT = "Data/memlist.csv"
-CONTACTS_SPoT = os.path.expanduser('~/Downloads/contacts.csv')
-EXTRA_FEES_SPoT = "Data/extra_fees.txt"
-APPLICANT_SPoT = "Data/applicants.txt"
-
-SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
-N_SEPARATORS = 3  #} specific format for it to be read
-                  #} correctly. Number of meetings is
-                  #} derived from N_SEPARATORS.
-NAME_KEY = "by_name"
-CATEGORY_KEY = "by_category"
-
-APPLICANT_GROUP = "applicant"  # } These are specific to
-MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
-OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
-DOCKUSERS = 'DockUsers'
-KAYAK = 'Kayak'
-MOORING = 'moorings'
-
+moved2utils = '''
 class Club(object):
     """
     Used to hold data for subsequent processing, display, ...
@@ -45,13 +28,34 @@ class Club(object):
         self.previous_name = ""  # Used to check that all entries in
                                  # data base csv file are ordered.
 
+    MEMBERSHIP_SPoT = "Data/memlist.csv"
+    CONTACTS_SPoT = os.path.expanduser('~/Downloads/contacts.csv')
+    EXTRA_FEES_SPoT = "Data/extra_fees.txt"
+    APPLICANT_SPoT = "Data/applicants.txt"
 
-def gather_membership_data(member_csv_file, club):
+    SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
+    N_SEPARATORS = 3  #} specific format for it to be read
+                      #} correctly. Number of meetings is
+                      #} derived from N_SEPARATORS.
+    NAME_KEY = "by_name"
+    CATEGORY_KEY = "by_category"
+
+    APPLICANT_GROUP = "applicant"  # } These are specific to
+    MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
+    OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
+    DOCK = 'DockUsers'
+    KAYAK = 'Kayak'
+    MOORING = 'moorings'
+'''
+
+
+def gather_membership_data(club):
     """
-    Gathers the info we want from the membership csv file.
+    Gathers the info we want from the membership csv file
+    which is defined by Club.MEMBERSHIP_SPoT.
     Sets up three dict and one list attributes of the Club
     instance specified by club and then populates them by
-    reading the member_csv_file:
+    reading the file:
         m_by_name is keyed by "name" /w another dict as its value
             one key is "email" with value as email
             the other " stati" with a list of stati as value.
@@ -72,7 +76,7 @@ def gather_membership_data(member_csv_file, club):
     club.malformed = []
     club.fee_by_category = {}
     club.fee_by_name = {}
-    err_code = member.traverse_records(member_csv_file,
+    err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
         (member.add2m_by_name, member.add2m_by_email,
         member.add2m_by_status, member.add2malformed,
         member.add2fee_sets),
@@ -88,7 +92,7 @@ def gather_membership_data(member_csv_file, club):
 #   print("... TEST OUTPUT")
 
 
-def gather_contacts_data(contacts, club):
+def gather_contacts_data(club):
     """
     Gathers up the info we want from a gmail contacts.csv file.
     Sets up three dict attributes of the Club instance specified
@@ -108,7 +112,7 @@ def gather_contacts_data(contacts, club):
     club.g_by_group_membership = dict()
 
     # Traverse contacts.csv => g_by_email and g_by_name
-    with open(contacts, 'r', encoding='utf-8') as file_obj:
+    with open(club.CONTACTS_SPoT, 'r', encoding='utf-8') as file_obj:
 #       google_reader = csv.DictReader(file_obj, restkey='status')
         google_reader = csv.DictReader(file_obj)
         print('DictReading Google contacts file "{}".'
@@ -159,13 +163,13 @@ def gather_applicant_data(in_file):
             if line:
 #               print("Processing: {}".format(line))
                 parts = [part.strip() for part in line.split(
-                                        SEPARATOR)]
+                                        Club.SEPARATOR)]
                 if not parts[-1]:       #} neutilizes empty field
                     parts = parts[:-1]  #} after trailing SEPARATOR
 #               print("parts: {}".format(repr(parts)))
                 length = len(parts)
                 if length > 2:  # to exclude non applicants (name|appl|fee)
-                    index = length - N_SEPARATORS
+                    index = length - Club.N_SEPARATORS
 #                   print(length)
                     try:
                         status = member.APPLICANT_STATI[index]
@@ -270,8 +274,8 @@ def gather_extra_fees_data(in_file, without_fees=False):
                 else:
                     by_name[name_key].add((category, fee))
                     by_category[category].add((name_key, fee))
-    return {NAME_KEY: by_name,
-           CATEGORY_KEY: by_category,
+    return {Club.NAME_KEY: by_name,
+           Club.CATEGORY_KEY: by_category,
             }
 
 
@@ -282,8 +286,8 @@ def present_fees_by_name(extra_fees, raw=False):
     or its NAME_KEY value.
     Returns a text listing with or (if raw=True) without a header.
     """
-    if NAME_KEY in extra_fees:
-        jv = extra_fees[NAME_KEY]
+    if Club.NAME_KEY in extra_fees:
+        jv = extra_fees[Club.NAME_KEY]
     else:
         jv = extra_fees
     ret = []
@@ -305,8 +309,8 @@ def present_fees_by_category(extra_fees, raw=False):
     or its CATEGORY_KEY value.
     Returns a text listing with or (if raw=True) without a header.
     """
-    if CATEGORY_KEY in extra_fees:
-        jv = extra_fees[CATEGORY_KEY]
+    if Club.CATEGORY_KEY in extra_fees:
+        jv = extra_fees[Club.CATEGORY_KEY]
     else:
         jv = extra_fees
     categories = sorted([key for key in jv])
@@ -435,12 +439,12 @@ def ck_applicants_cmd():
     Driver for ck_applicants function.
     """
     club = Club()
-    gather_contacts_data(CONTACTS_SPoT, club)
-    gather_membership_data(MEMBERSHIP_SPoT, club)
-    a_by_status = gather_applicant_data(APPLICANT_SPoT)['applicants']
-
+    gather_contacts_data(club)
+    gather_membership_data(club)
+    a_by_status = gather_applicant_data(
+            club.APPLICANT_SPoT)['applicants']
     ret = []
-    g_set = club.g_by_group_membership[APPLICANT_GROUP]
+    g_set = club.g_by_group_membership[club.APPLICANT_GROUP]
     m_set = set()  # applicants per the membership db
     a_set = set()  # applicants per the applicant SPoT
 
@@ -467,10 +471,7 @@ def ck_applicants_cmd():
 
 
 
-def ck_data(member_csv_file,
-            contacts_csv_file,
-            extra_fees_txt_file,
-            applicants_txt_file,
+def ck_data(club,
             report_status=True,
             raw=False,
             formfeed=False):
@@ -497,14 +498,14 @@ def ck_data(member_csv_file,
     ok = []
 
     # Collect data from csv files ==> club attributes
-    gather_membership_data(member_csv_file, club)
-    gather_contacts_data(contacts_csv_file, club)
+    gather_membership_data(club)
+    gather_contacts_data(club)
 
     # Collect data from custom files ==> local variables
-    extra_fees_info = gather_extra_fees_data(
-                    extra_fees_txt_file, without_fees=True)
+    extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
+                    without_fees=True)
     a_applicants = gather_applicant_data(
-                                    APPLICANT_SPoT)["applicants"]
+                                club.APPLICANT_SPoT)["applicants"]
 
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
@@ -642,7 +643,7 @@ def ck_data(member_csv_file,
 ### if different, they need to be reported in the output-  ###
 ### left here for time being until Data can be corrected.  ###
     if m_applicants == set(
-            club.g_by_group_membership[APPLICANT_GROUP]):
+            club.g_by_group_membership[club.APPLICANT_GROUP]):
         ok.append("Gmail groups match Club data")
     else:
         ret.append("\nMismatch: Gmail groups vs Club data")
@@ -651,7 +652,7 @@ def ck_data(member_csv_file,
         ret.append("Gmail groups")
         ret.append("------------")
         ret.extend(sorted(list(
-            club.g_by_group_membership[APPLICANT_GROUP])))
+            club.g_by_group_membership[club.APPLICANT_GROUP])))
         ret.append('')
         ret.append("Club status")
         ret.append("-----------")
@@ -662,8 +663,8 @@ def ck_data(member_csv_file,
 #       print(sorted(list(club.g_by_group_membership[APPLICANT_GROUP])))
 #       print()
 
-    g_members = club.g_by_group_membership[MEMBER_GROUP]
-    g_applicants = club.g_by_group_membership[APPLICANT_GROUP] 
+    g_members = club.g_by_group_membership[club.MEMBER_GROUP]
+    g_applicants = club.g_by_group_membership[club.APPLICANT_GROUP] 
     keys = [key for key in club.m_by_status.keys()]
 #   temp_ret = []
     for key in keys:
@@ -689,10 +690,10 @@ def ck_data(member_csv_file,
     else:
         ok.append('No contacts that are not members.')
             
-    if ((extra_fees_info[CATEGORY_KEY] != club.fee_by_category) or
-                (extra_fees_info[NAME_KEY] != club.fee_by_name)):
+    if ((extra_fees_info[club.CATEGORY_KEY] != club.fee_by_category)
+    or (extra_fees_info[club.NAME_KEY] != club.fee_by_name)):
         ret.append("\nFees problem:")
-        ret.append(repr(extra_fees_info[CATEGORY_KEY]))
+        ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
         ret.append(repr(club.fee_by_category))
     else:
         ok.append("No fees problem.")
@@ -745,7 +746,7 @@ def ret2file(ret, outfile):
 def test_extras():
     club = Club()
     ret = []
-    gather_membership_data(MEMBERSHIP_SPoT, club)
+    gather_membership_data(club)
     data = club.fee_by_category
 #   print("\n".join(data_listed(data)))
     return data_listed(data)
@@ -755,19 +756,15 @@ def test_extras():
         EXTRA_FEES_SPoT, without_fees=True)
     ret.append("\nmemlist compared to extra_fees file by Category:")
     ret.extend(compare(club.fee_by_category,
-            extra_fees_data[CATEGORY_KEY]))
+            extra_fees_data[Club.CATEGORY_KEY]))
     ret.append("\nmemlist compared to extra_fees file by Name:")
     ret.extend(compare(club.fee_by_name,
-            extra_fees_data[NAME_KEY], inline=True))
+            extra_fees_data[Club.NAME_KEY], inline=True))
 
 
-def test_ck_data(outfile):
-    ret2file(ck_data(
-                MEMBERSHIP_SPoT,
-                CONTACTS_SPoT,
-                EXTRA_FEES_SPoT,
-                APPLICANT_SPoT),
-            outfile)
+def test_ck_data():
+    club = Club
+    return ck_data(club)
 #   print("Call to ck_integrity has returned...")
 #   print(res)
 #   return res
@@ -776,25 +773,25 @@ def test_ck_data(outfile):
 def list_mooring_data(extra_fees_spot):
     extra_fees_data = gather_extra_fees_data(
         extra_fees_spot, without_fees=False)
-#   data = extra_fees_data[CATEGORY_KEY]
+#   data = extra_fees_data[Club.CATEGORY_KEY]
 #   print(repr(data["Mooring"]))
-    mooring_data = extra_fees_data[CATEGORY_KEY]["Mooring"]
+    mooring_data = extra_fees_data[Club.CATEGORY_KEY]["Mooring"]
     return sorted(
 #       ["{} - {}".format(datum[0], datum[1]) for datum in mooring_data])
         ["{0} - {1}".format(*datum) for datum in mooring_data])
 
     
 def test_list_mooring():
-    return list_mooring_data(EXTRA_FEES_SPoT )
+    return list_mooring_data(Club.EXTRA_FEES_SPoT )
 
 
 def test_fees_by():
     ret = []
-    data = gather_extra_fees_data(EXTRA_FEES_SPoT)
+    data = gather_extra_fees_data(Club.EXTRA_FEES_SPoT)
     by_name0= present_fees_by_name(data)
     by_category0= present_fees_by_category(data)
-    by_name1= present_fees_by_name(data[NAME_KEY])
-    by_category1= present_fees_by_category(data[CATEGORY_KEY])
+    by_name1= present_fees_by_name(data[Club.NAME_KEY])
+    by_category1= present_fees_by_category(data[Club.CATEGORY_KEY])
     ret.append("\nBy Name (0)...")
     ret.extend(by_name0)
     ret.append("\nBy Name (1)...")
@@ -808,7 +805,7 @@ def test_fees_by():
 
 def test_applicant_presentations():
     ret = []
-    data = gather_applicant_data(APPLICANT_SPoT)
+    data = gather_applicant_data(Club.APPLICANT_SPoT)
     ret.extend(present_applicants(data["applicants"]))
     ret.append("\n\n")
     ret.extend(present_expired(data["expired"]))
@@ -817,9 +814,9 @@ def test_applicant_presentations():
 
 def test_applicants_incl_expired():
     expired = present_expired(
-        gather_applicant_data(APPLICANT_SPoT)["expired"])
+        gather_applicant_data(Club.APPLICANT_SPoT)["expired"])
     applicants = present_applicants(
-        gather_applicant_data(APPLICANT_SPoT)["applicants"])
+        gather_applicant_data(Club.APPLICANT_SPoT)["applicants"])
     ret = ["\nExpired Applications..."]
     ret.extend(expired)
     ret.append("\nApplicants...")
@@ -851,17 +848,17 @@ def ck_all():
 
 if __name__ == "__main__":
 
-#   ck_all()
+    ck_all()
 #   club = Club()
     
 #   test_applicant_presentations()
 #   test_applicants_incl_expired()
 #   test_extras()
-    test_ck_data("2check")
 #   test_fees_by()
 #   test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
 
+#   test_ck_data("2check")
    
 

@@ -342,17 +342,40 @@ class Club(object):
     it pertains to the 'Bolinas Rod and Boat Club'.
     Might change name of this class to "Club".
     """
-    ## Google Contact Labels:
-    google_labels = { "applicant," "DockUsers", "Kayak",
-            "LIST", "member", "moorings", "Officers"}
+
     ## Constants and Defaults...
     YEARLY_DUES = 100
 
-    # Data bases used:
-    MEMBERSHIP_SPoT = 'Data/memlist.csv'     #}  Default
-    APPLICANT_SPoT = "Data/applicants.txt"   #}  file
-    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'  #}  names.
-    CHECKS_RECEIVED = 'Data/receipts.txt'    #}
+    # Data bases used with default file names.
+    MEMBERSHIP_SPoT = 'Data/memlist.csv'
+    APPLICANT_SPoT = "Data/applicants.txt"
+    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
+    CONTACTS_SPoT = os.path.expanduser(     #} File to which google
+                '~/Downloads/contacts.csv') #} exports the data.
+    CHECKS_RECEIVED = 'Data/receipts.txt'  # Zeroed out yearly
+        # and then stored in archives with date extension.
+
+    SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
+    N_SEPARATORS = 3  #} specific format for it to be read
+                      #} correctly. Number of meetings is
+                      #} derived from N_SEPARATORS.
+    NAME_KEY = "by_name"         #} Used in context of
+    CATEGORY_KEY = "by_category" #} the extra fees.
+
+    ## Google Contact Groups in use:
+    GOOGLE_GROUPS = { "applicant," "DockUsers", "Kayak",
+            "LIST", "moorings", "Officers", 'Secretary',
+            "member",   # 'member' is there but not used.
+            }
+    ### Should use the above to check data integrity!! ####
+    ### Yet to be implemented. ###
+    APPLICANT_GROUP = "applicant"  # } These are specific to
+    MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
+    OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
+    DOCK = 'DockUsers'
+    KAYAK = 'Kayak'
+    MOORING = 'moorings'
+    SECRETARY = 'Secretary'
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'
@@ -363,7 +386,7 @@ class Club(object):
     JSON_FILE_NAME4EMAILS = 'Data/emails.json'
     ## ...end of Constants and Defaults.
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         """
         Each instance must know the format
         of the media. i.e. the parameters.
