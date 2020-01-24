@@ -29,7 +29,7 @@ A number of 'dict's are being used:
 Other items:
     email_header
     def letter_format(which_letter, printer):
-    def prepare_email(which_letter):
+    def prepare_email_template(which_letter):
 """
 
 import helpers
@@ -58,8 +58,11 @@ Subject: {}
 
 Dear {{first}} {{last}},"""
 
+easy_email_header = """
+Dear {first} {last},"""
+
 letter_bodies = dict(
-    proto_content = """
+    for_testing = """
 Blah, Blah-
 more Blah blah
 
@@ -76,6 +79,22 @@ by the custom function.
     meeting_announcement = """
 Board members meet at 6pm.
 General meeting scheduled for 7:30pm.
+Come for the fun!
+""",
+
+    feb_meeting_announcement = """
+
+We have a special Bolinas Rod and Boat Club meeting coming up
+February 7th.
+
+Board members meet at 5pm.
+
+The general meeting is scheduled for 6:00pm.
+Election of Officers is the main agenda item.
+
+Those with reservations[1]  are invited to stay for the
+annual dinner to be held afterwards.
+
 Come for the fun!
 """,
 
@@ -306,12 +325,6 @@ Thank you for your services.
 post_scripts = dict(
     at_request_of_secretary = """ Sent at the request of Peter Pyle, Secretary""",
 
-    gmail_warning = """ If yours is a gmail account you'll get an alarming warning
-that this email may not have come from the Rod and Boat Club.
-It was sent through a different mail server, hence the automatic
-notice from Google.  All is well.
-""",
-
     remittance = """ Please send remittances to:
     The Bolinas Rod & Boat Club
     PO Box 248
@@ -319,7 +332,10 @@ notice from Google.  All is well.
 It's always a good idea to jot down 'club dues' on
 the check in order to prevent any confusion.""",
 
-    ref1 = """ [1] rodandboatclub@gmail.com or PO Box 748, 94924""",
+    ref1 = """[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
+
+    reservations = """[1] Reservations can be made through Anna Gade
+    (uc_anna@sbcglobal.net.)""",
     )
 
 authors = dict(  # from
@@ -406,20 +422,30 @@ content_types = dict(  # which_letter
     for_testing = {
         "subject": "This is a test.",
         "from": authors["ak"],
-        "body": letter_bodies["proto_content"],
-        "post_scripts": (post_scripts["gmail_warning"],),
-#       "funcs": [member.get_owing, member.append2Dr],
+        "body": letter_bodies["for_testing"],
+        "post_scripts": (),
+        "funcs": [member.get_owing, member.append2Dr],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
     meeting_announcement = {
-        "subject": "Meeting Tonight",
-        "from": authors["membership"],
+        "subject": "Meeting Friday",
+        "from": authors["secretary"],
         "body": letter_bodies["meeting_announcement"],
-        "post_scripts": (post_scripts["at_request_of_secretary"],),
+        "post_scripts": (),
         "funcs": (member.std_mailing,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "one_only",
+        },
+    feb_meeting_announcement = {
+        "subject": "Meeting first Friday of February",
+        "from": authors["membership"],
+        "body": letter_bodies["feb_meeting_announcement"],
+        "post_scripts": (post_scripts['reservations'],),
+        "funcs": (member.std_mailing,),
+#       "test": lambda record: True,
+        "test": lambda record: True if record["email"] else False,
+        "e_and_or_p": "email",
         },
     usps_minutes = {
         "subject": "Rod & Boat Club Minutes",
@@ -639,10 +665,10 @@ printers = dict(
     X6505 = dict(
         indent = 5,
         top = 2,  # blank lines at top
-        frm = (5, 25),  # return window
-        date = 3,  # lines between windows
-        to = (6, 30),  # recipient window
-        re = 3,  # lines below bottom window
+        frm = (4, 25),  # return window
+        date = 5,  # lines between windows
+        to = (5, 30),  # recipient window
+        re = 2,  # lines below bottom window
         ),
     HL2170 = dict(
         indent = 3,
@@ -703,7 +729,7 @@ def get_postscripts(which_letter):
     ret = []
     n = 0
     for post_script in which_letter["post_scripts"]:
-        ret.append("\n" + "P"*n + "PS" + post_script)
+        ret.append("\n" + "P"*n + "PS " + post_script)
         n += 1
     return ret
 
@@ -745,14 +771,18 @@ def letter_format(which_letter, printer):
     ret.extend(get_postscripts(which_letter))
     return '\n'.join(ret)
 
-def prepare_email(which_letter):
+def prepare_email_template(which_letter, easy=False):
     """
     Prepares the template for an email.
+    Used by utils.prepare_mailing_cmd,
     """
-    ret = [email_header.format(
-                which_letter["from"]["email"],
-                which_letter["from"]["reply2"],
-                which_letter["subject"]),]
+    if easy:
+        ret = [easy_email_header]
+    else:
+        ret = [email_header.format(
+                    which_letter["from"]["email"],
+                    which_letter["from"]["reply2"],
+                    which_letter["subject"]),]
     ret.append(which_letter["body"])
     ret.append(which_letter["from"]["email_signature"])
     ret.extend(get_postscripts(which_letter))
@@ -789,7 +819,7 @@ def main():
     which = content_types["for_testing"]
     lpr = "X6505"
     letter = letter_format(which, lpr)
-    email = prepare_email(which)
+    email = prepare_email_template(which)
     rec = dict(
         first = "First",
         last = "Last",

@@ -14,7 +14,6 @@ import os
 import csv
 import json
 import helpers
-# import content
 
 SEPARATOR = '|'  
 WAIVED = "w"
@@ -48,6 +47,16 @@ money_headers = {
     }
 
 n_fields_per_record = 15
+
+gmail_warning = """
+NOTE: If yours is a gmail account this email will be accompanied
+by an alarming warning which it is safe for you to ignore.
+Although sent on behalf of, it was not sent by, the
+rodandboatclub@gmail.com email account; rather it was sent
+via a different mail transfer agent (easydns.com) and hence gmail
+feels compelled to issue this warning.
+All is well.  "Trust me!"
+"""
 
 def traverse_records(infile, custom_funcs, club=None):
     """
@@ -196,6 +205,10 @@ def get_secretary(record, club):
             .format(**record))
 
 
+def append2Dr(record, club):
+    pass
+
+
 def add2m_by_name(record, club):
     """
     Adds to already existing dict club.m_by_name which is
@@ -278,21 +291,6 @@ def add2malformed(record, club=None):
             .format(name))
     club.previous_name = name
 
-
-### ?? Not Used ?? ###
-unused = '''
-def add2mooring_w_fee(record, club):
-    """
-    Populates club.mooring_w_fee
-    (which must be set up as an empty list by the client.)
-    """
-    try:
-        fee = int(record[mooring])
-    except ValueError:
-        return
-    club.mooring_w_fee.append("{}  {}"
-        .format(member_name(record), fee))
-'''
 
 def add2fee_sets(record, club):
     """
@@ -458,11 +456,27 @@ def get_extra_charges(record, club=None):
 #    email, letter, json_data, 
 
 def append_email(record, club):
-    entry = club.email.format(**record)
-#   if 'gmail' in record['email']:
-#       entry = '\n'.join([entry,
-#                   content.post_scripts["gmail_warning"]])
-    club.json_data.append([[record['email']],entry])
+    """
+    club.which has already been assigned to one of the values
+    of content.content_types
+    """
+    email = club.email.format(**record)
+    if club.easy:  # Using easydns.com as mail transfer agent.
+        if (('gmail.com' in record['email'])
+        and ('gmail.com' in club.which['from']['email'])):
+             email = gmail_warning + '\n' + email
+#            print("appending warning")
+        easy_email = {
+            'To': record['email'],
+            'From': club.which['from']['email'],
+            'Subject': club.which['subject'],
+            'attachments': [],
+            'body': email,
+            'repy_to': club.which['from']['reply2'],
+        }
+        club.json_data.append(easy_email)
+    else:  # Using gmail mta.
+        club.json_data.append([[record['email']], email])
 
 def file_letter(record, club):
     entry = club.letter.format(**record)
@@ -534,6 +548,8 @@ def prepare_mailing(mem_csv_file, club):
             file_obj.write(json.dumps(club.json_data))
     else:
         print("There are no emails to send.")
+
+# AttributeError: module 'member' has no attribute 'std_mailing'
 
 def std_mailing(record, club):
     """

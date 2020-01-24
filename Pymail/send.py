@@ -21,8 +21,12 @@ from email.mime.application import MIMEApplication
 # from email.mime.base import MIMEBase
 # from email import encoders
 import mimetypes
-import config
 import hashlib
+import json
+try:
+    import config
+except ModuleNotFoundError:
+    import Pymail.config as config
 
 rfc5322 = {
 #  Originator Fields

@@ -21,7 +21,6 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version ]
-  ./utils.py ck_fields [-r -S -i <infile> -o <outfile>]
   ./utils.py ck_data [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py report [-i <infile> -o <outfile> ]
@@ -30,9 +29,9 @@ Usage:
   ./utils.py extra_charges [--raw -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
-  ./utils.py display_emails -j <json_file> [-o <txt_file>]
-  ./utils.py send_emails [<content>] -j <json_file>
+  ./utils.py prepare_mailing --which <letter> [-E --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py display_emails -j <json_file> [-E -o <txt_file>]
+  ./utils.py send_emails [<content> -E] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
   ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
   ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
@@ -50,6 +49,7 @@ Options:
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
                     generally reported to stdout.
+  -E   Use easydns.com as mail transfer agent. gmail is the default.
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
   <gmail_contacts>  [default: ~/Downloads/contacts.csv]
@@ -71,8 +71,6 @@ Options:
   -s <separator>  Some commands may have more than one component to
           their output.  Such componentes can be seprated by either
           a line feed (LF) or a form feed (FF).  [default: LF]
-  -S  ck_fields command also provides listing of members having
-            content in their 'status' field.
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
@@ -83,11 +81,8 @@ Options:
 
 Commands:
     When run without a command, suggests ways of getting help.
-    ck_fields: Check for integrety of the data base- not fool proof!
-        Sends results to -o <outfile> only if there are bad records.
-        Use of -r --raw option supresses the header line.
-    ck_data: Checks the gmail contacts for incompatabilities
-        with the membership list. Assumes a fresh export of the
+    ck_data: Checks all the club's data bases for consistency.
+        Assumes (user must assertain) a fresh export of the
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
         differing emails. (After proof reading, use 'send_emails'.)
@@ -117,10 +112,13 @@ Commands:
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
     prepare_mailing: A general form of the billing command (above.)
-        This command demands a TYPE positional argument to specify the
+        This command demands a --which argument to specify the
         mailing: more specifically, it specifies the content and the
         custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
+    prepare4easy: A version of the prepare_mailing command (above)
+        modified to produce a json file that can be used to send
+        emails via easydns.com rather than the club gmail account.
     display_emails: Provides an opportunity to proof read the emails.
     send_emails: If <content> is NOT provided, the JSON file is expected
         to consist of an iterable of iterables: the first item of each
@@ -169,6 +167,7 @@ from docopt import docopt
 import member
 import helpers
 import content
+import Pymail.send
 
 # Constants required for correct rendering of "?" command:
 TOP_QUOTE_LINE_NUMBER = 11      #} These facilitate preparing
@@ -176,8 +175,8 @@ BLANK_LINE_ABOVE_USAGE = 21     #} response to the
 BLANK_LINE_ABOVE_OPTIONS = 40   #} 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
-MIN_TIME_TO_SLEEP = 2   #} Seconds between
-MAX_TIME_TO_SLEEP = 10  #} email postings.
+MIN_TIME_TO_SLEEP = 1   #} Seconds between
+MAX_TIME_TO_SLEEP = 5   #} email postings.
 
 CONTACTS = os.path.expanduser('~/Downloads/contacts.csv')
 
@@ -233,7 +232,8 @@ def output(data, destination=args["-o"]):
 # Clients typically refer to these as <params>.
 
 class Dummy(object):
-    """a Dummy class for use when templates are not required"""
+    """ REDACTED
+    a Dummy class for use when templates are not required"""
     formatter = ""
     @classmethod
     def self_check(cls):  # No need for the sanity check in this case
@@ -241,6 +241,7 @@ class Dummy(object):
 
 class E0000(object):
     """
+    REDACTED.
     Custom envelopes used by the Bolinas Rod & Boat Club
     to send out requests for dues.
     """
@@ -389,10 +390,9 @@ class Club(object):
     def __init__(self, params=None):
         """
         Each instance must know the format
-        of the media. i.e. the parameters.
+        of the media. i.e. the parameters (<params>.)
         This is being redacted since we are not using labels or
-        envelopes as was done before. For the time being will simply
-        use a "dummy".
+        envelopes as was done before.
         """
         self.infile = Club.MEMBERSHIP_SPoT
         self.name_tuples = []
@@ -1250,6 +1250,7 @@ redacted = '''
 ####  End of Club class declaration.
 
 
+redacted = '''
 def ck_fields_cmd():
     """
     REDACTED: Functionality will be part of ck_data function.
@@ -1310,9 +1311,10 @@ def ck_data_cmd():
         print(
             "Best do a Google Contacts export and then begin again.")
         sys.exit()
+'''
 
 def show_cmd():
-    club = Club(Dummy)
+    club = Club()
     club.members = []
     club.nmembers = 0
     club.inductees = []
@@ -1376,7 +1378,7 @@ def stati():
     """
     Returns a list of strings (that can be '\n'.join(ed))
     """
-    club = Club(Dummy)
+    club = Club()
     infile = args["-i"]
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
@@ -1426,7 +1428,7 @@ def report():
     Number of members
     Number of applicants and applicant role call
     """
-    club = Club(Dummy)
+    club = Club()
     club.m_by_status = {}
     club.nmembers = 0
     infile = args["-i"]
@@ -1552,7 +1554,7 @@ def usps_cmd():
     infile = args['-i']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
-    club = Club(Dummy)
+    club = Club()
     club.usps_only = []
     err_code = member.traverse_records(infile, 
                 [member.get_usps, member.get_secretary],
@@ -1603,7 +1605,7 @@ def extra_charges_cmd():
         # use methods: traversal with get_extra_fees
         print("Traversing {} to select mempbers owing extra_fees..."
             .format(infile))
-        club = Club(Dummy)
+        club = Club()
         club.extras_by_member = []
         club.extras_by_category = {}
         club.errors = []
@@ -1651,7 +1653,7 @@ def payables_cmd():
     infile = args['-i']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
-    club = Club(Dummy)
+    club = Club()
     club.still_owing = []
     club.advance_payments = []
     output = []
@@ -1673,25 +1675,33 @@ def show_mailing_categories_cmd():
     ret.extend((("\t" + key) for key in content.content_types.keys()))
     output('\n'.join(ret))
 
+
 def prepare_mailing_cmd():
     """
     Usage:
-  ./utils.py prepare_mailing --which <letter> [--lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py prepare4easy_cmd --which <letter> [--lpr <printer>\
+            -i <infile> -j <json_file> --dir <dir4letters> -E]
 
     "--which <letter>" must be set to one of the keys found in 
     content.content_types.
     Depending on the above, this command will also need to assign
     attributes to the Club instance to collect "extra_data".
 
+    '-E' changes the MTA to be easydns.com rather than gmail.
+
     Should be able to replace all the various billing routines as well
     as provide a general mechanism of sending out notices.
     Accompanying module 'content' provides support.
     """
-    import content
-    club = Club(Dummy)
+    club = Club()
+    if args['-E']:
+        club.easy = True
+    else:
+        club.easy = False
     club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["--lpr"]]
-    club.email = content.prepare_email(club.which)
+    club.email = content.prepare_email_template(
+                    club.which, args['-E'])
     club.letter = content.letter_format(club.which, 
                                         args["--lpr"])
 #   print("Preparing mailing: '{}'".format(club.which))
@@ -1722,6 +1732,7 @@ def prepare_mailing_cmd():
 #           json.dump(club.json_data, f_obj)
 #           print('JSON dumped to "{}".'.format(f_obj.name))
 
+
 def display_emails_cmd(json_file):
     with open(json_file, 'r') as f_obj:
         print('Reading JSON file "{}".'.format(f_obj.name))
@@ -1729,14 +1740,23 @@ def display_emails_cmd(json_file):
     all_emails = []
     for record in records:
         email = []
-        recipients = ', '.join(record[0])
-        email.append(">>: " + recipients)
-        email.append(record[1])
-        email.append('\n')
-        all_emails.append("\n".join(email))
+        if args['-E']:
+            for field in record:
+                email.append("{}: {}".format(field, record[field]))
+            email.append('')
+            all_emails.extend(email)
+        else:
+            recipients = ', '.join(record[0])
+            email.append(">>: " + recipients)
+            email.append(record[1])
+#           print(record[1])
+#           for mail in email: print(mail)
+            email.append('')
+            all_emails.extend(email)
     print("Processed {} emails..."
         .format(len(all_emails)))
     return "\n".join(all_emails)
+
 
 def send_emails_cmd():
     """
@@ -1773,21 +1793,23 @@ def send_emails_cmd():
         data = json.load(f_obj)
         print('Loading JSON from "{}"'.format(f_obj.name))
     counter = 0
-    for datum in data:
-        if message:
-            recipients = datum
-            content = message
-        else:
-            recipients = datum[0]
-            content = datum[1]
-        counter += 1
-        print("Sending email #{} to {}."
-            .format(counter, ", ".join(recipients)))
-        smtp_send(recipients, content)
-        # Using random number to decrease liklyhood that mailing
-        # entity (Gmail) will think it's a 'bot' sending the emails.
-        time.sleep(random.randint(MIN_TIME_TO_SLEEP,
-                                MAX_TIME_TO_SLEEP))
+    if args['-E']:
+        Pymail.send.send(data)
+    else:
+        for datum in data:
+            if message:
+                recipients = datum
+                content = message
+            else:
+                recipients = datum[0]
+                content = datum[1]
+            counter += 1
+            print("Sending email #{} to {}."
+                .format(counter, ", ".join(recipients)))
+            smtp_send(recipients, content)
+            # Using random waits so as not to look like a 'bot'.
+            time.sleep(random.randint(MIN_TIME_TO_SLEEP,
+                                    MAX_TIME_TO_SLEEP))
 
 def print_letters_cmd():
     successes = []
@@ -1836,7 +1858,7 @@ def emailing_cmd():
     the input file calling the send_attachment method
     on each record.
     """
-    club = Club(Dummy)
+    club = Club()
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     with open(args["-c"], "r") as content_file:
@@ -1856,7 +1878,7 @@ def restore_fees_cmd():
     membership file is not modified and output is to the new file,
     else the original file is changed.
     """
-    club = Club(Dummy)
+    club = Club()
     if not args['<membership_file>']:
         args['<membership_file>'] = club.MEMBERSHIP_SPoT
     if not args['-j']:
@@ -1880,7 +1902,7 @@ def fees_intake_cmd():
     infile = args['-i']
     outfile = args['-o']
     errorfile = args['-e']
-    club = Club(Dummy)
+    club = Club()
     if infile:
         fees_taken_in = club.fees_intake(infile)
     else:
@@ -1970,11 +1992,8 @@ if __name__ == "__main__":
             (BLANK_LINE_ABOVE_OPTIONS - TOP_QUOTE_LINE_NUMBER + 1)
             ]))
 
-    elif args["ck_fields"]:
-        ck_fields_cmd()
-
     elif args["ck_data"]:
-        print("Check the google list against the membership list.")
+        print("Check all data bases for consistency.")
         output(ck_data_cmd())
 
     elif args["show"]:

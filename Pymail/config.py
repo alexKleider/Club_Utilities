@@ -7,13 +7,15 @@ TLS (Transport Layer Security)
 """
 
 import sys
+import os
 
 def getpw(service):
     """
     Passwords are in highly restricted dot files.
     Each file contains only the password.
     """
-    with open('.pw.{}'.format(service), 'r') as f_obj:
+    with open(
+        os.path.expanduser('~/.pw.{}'.format(service)), 'r') as f_obj:
         return f_obj.read().strip()
 
 
