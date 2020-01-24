@@ -235,7 +235,7 @@ if __name__ == "__main__":
         test_mailings = [
             {
             'From': 'alex@kleider.ca',
-            'reply-to': 'alexkleider@gmail.com',
+            'Reply-To': 'alexkleider@gmail.com',
             'To': ['akleider@sonic.net',
                 pseudo_recipient('ak', 'alexkleider@gmail.com'),
                 ],

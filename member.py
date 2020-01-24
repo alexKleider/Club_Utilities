@@ -462,17 +462,22 @@ def append_email(record, club):
     """
     email = club.email.format(**record)
     if club.easy:  # Using easydns.com as mail transfer agent.
-        if (('gmail.com' in record['email'])
-        and ('gmail.com' in club.which['from']['email'])):
-             email = gmail_warning + '\n' + email
+        sender =  club.which['from']['email']
+        if (
+        ('gmail.com' in record['email'])
+        and
+        ('gmail.com' in sender)
+        ):
+#            email = gmail_warning + '\n' + email
+             sender = 'alex@kleider.ca' 
 #            print("appending warning")
         easy_email = {
             'To': record['email'],
-            'From': club.which['from']['email'],
+            'From': sender,
             'Subject': club.which['subject'],
             'attachments': [],
             'body': email,
-            'repy_to': club.which['from']['reply2'],
+            'Reply-To': club.which['from']['reply2'],
         }
         club.json_data.append(easy_email)
     else:  # Using gmail mta.
