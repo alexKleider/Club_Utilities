@@ -1,7 +1,0 @@
-set sendmail="/usr/bin/msmtp --read-recipients --read-envelope-from"
-# Default: “/usr/sbin/sendmail -oem -oi”
-set use_from=yes
-set realname="akleider"
-set from=alex@kleider.ca
-set envelope_from=yes
-
