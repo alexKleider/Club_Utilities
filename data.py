@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 
-# File: ck_data.py
+# File: data.py
 
 """
+# Originally called ck_data.py
+Renamed data.py because it deals with reading data files:
+    specifically the non csv (SPoT) files.
+To avoid cross import problem, the class Club requires 
+a module of its own.
+
 Provides automated access to the 
 Bolinas Rod and Boat Club's data files:
 ... those identified by the constants ending in "SPoT".
@@ -17,7 +23,7 @@ import os
 import csv
 import helpers
 import member
-from utils import Club
+from rbc import Club
 
 moved2utils = '''
 class Club(object):

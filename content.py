@@ -395,21 +395,21 @@ authors = dict(  # from
         ),
     )  # ... end of authors.
 
-# Need to assign one of the following content_types to the
-# Membership instance attribute 'content_type'.
+# One of the following content_types is assigned to the 'which'
+# attribute of an instance of utils.Club for mailing purposes.
 
     # Each item in the following dict specifies:
         # subject: re line in letter_bodies, subject line in emails
-        # postal_header: to be assigned depending on which
-        #     printer is to be used.
-        #     (Or if sender is not the Club.)
+        # from: expect a value from the 'authors' dict
+        #     each value is itself a dict specifying more info...
+        #     names, address, signatures, reply to, ..
         # body: text of the letter which may or may not have
         #     one or more 'extra' sections.
-        # signature: a 'yours truely' + name.
-        # post_scripts:  a list of optional ps
-        # funcs: a list of functions used on each record.
+        # post_scripts:  a list of optional postscripts
+        # funcs: a list of functions used on each record during
+        #     the data gathering traversal of the membership csv.
         # test: a (usually 'lambda') function that determines
-        # if the record is to be considered at all.
+        #     if the record is to be considered at all.
         # e_and_or_p: possibilities are:
         #     'both' email and usps,
         #     'email' email only,
@@ -687,40 +687,52 @@ printers = dict(
         re = 3,  # below windows => fold
         ),
     Michael = dict(
-        indent = 4,
-        top = 4,  # blank lines at top
-        frm = (5, 25),  # return window
-        date = 4,  # between windows
-        to = (7, 29),  # recipient window
+        indent = 0,
+        top = 0,  # blank lines at top
+        frm = (4, 30),  # return window
+        date = 3,  # between windows
+        to = (6, 38),  # recipient window
         re = 3,  # below windows => fold
         ),
     )
 ### ... end of printers (dict specifying printer being used.)
 
+def expand_array(content, n):
+    if len(content) > n:
+        print("ERROR: too many lines in <content>")
+        print("    parameter of content.expand()!")
+        assert False
+    a = [item for item in content]
+#   print('n=={} '.format(n), end='')
+    while n > len(a):
+        if n - len(a) >= 2:
+            a = [''] + a + ['']
+        else:
+            a.append('')
+#       print('n=={} '.format(n), end='')
+    return a
+
+
+def expand_string(content, n):
+    a = content.split('\n')
+    ret = expand_array(a, n)
+    return '\n'.join(ret)
+
+
 def expand(content, nlines):
     """
-    Takes <content> which can be a list of strings/lines
-    or all one string (with line feeds separating lines,)
-    and returns the same type (either string or list) but
-    containing nlines.
+    Takes <content> which can be a list of strings or
+    all one string with line feeds separating it into lines.
+    Returns the same type (either string or list) but of <nlines>
+    length, centered by blank strings/lines. If need an odd number
+    of blanks, the odd one is at end (rather than the beginning.
     Fails if <content> has more than nlines.
     """
-    isstring = False
     if isinstance(content, str):
-        isstring = True
-        content = content.split("\n")
-    if len(content) > nlines:
-        print("Error: too many lines in <content>!")
-        assert False
-    while nlines > len(content):
-        if nlines - len(content) >= 2:
-            content = [''] + content + ['']
-        else:
-            content.append('')
-    if isstring:
-        return '\n'.join(content)
+        return expand_string(content, nlines)
     else:
-        return content
+        return expand_array(content, nlines)
+
 
 def get_postscripts(which_letter):
     """
@@ -732,6 +744,7 @@ def get_postscripts(which_letter):
         ret.append("\n" + "P"*n + "PS " + post_script)
         n += 1
     return ret
+
 
 def letter_format(which_letter, printer):
     """
