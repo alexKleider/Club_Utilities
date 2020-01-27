@@ -21,7 +21,7 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version ]
-  ./utils.py ck_data [<gmail_contacts> -r -i <infile> -s <sep> -j <json> -o <outfile>]
+  ./utils.py ck_data [-r -P  -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py report [-i <infile> -o <outfile> ]
   ./utils.py stati [-A -i <infile> -o <outfile>]
@@ -58,7 +58,6 @@ Options:
         [default: table]
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
-  <gmail_contacts>  [default: ~/Downloads/contacts.csv]
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
@@ -74,9 +73,9 @@ Options:
               A5160 for labels & E000 for envelopes.
   -P    Some commands may have more than one component to
         their output.  This [P] option makes each componente appears
-        on a separate page. (The are separated by form feeds.)
-  -r --raw  Supress headers (to make the output suitable as
-            input for creating tables.)
+        on a separate page. (i.e. separated by form feeds.)
+  -r    Supress headers (to make the output suitable as
+        input for creating tables.)
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
@@ -194,18 +193,12 @@ TEMP_FILE = "2print.temp"
 SECRETARY = ("Michael", "Rafferty")
 
 args = docopt(__doc__, version="1.1")
-
-if args["-s"] == "LF":
-    args["-s"] = '\n'
-else:
-    args["-s"] = '\n\f'
+# for key in args: print(key, args[key])
 
 lpr = args["--lpr"]
 if lpr and lpr not in content.printers.keys():
     print("Invalid '--lpr' parameter!")
     sys.exit()
-if not args["<gmail_contacts>"]:
-    args["<gmail_contacts>"] = Club.CONTACTS_SPoT
 
 def output(data, destination=args["-o"]):
     """
@@ -342,73 +335,12 @@ media = dict(  # keep the classes in a dict
 ### Put them all into a separate 'record' module: record.py
 
 
-
-redacted = '''
-def ck_fields_cmd():
-    """
-    REDACTED: Functionality will be part of ck_data function.
-    Traverses the input file using
-    Club method add2malformed
-    to select malformed records.
-    """
-    club = Club(Dummy)
-    ret = []
-    club.malformed = []
-    club.status_list = []
-    infile = args["-i"]
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    print("Checking fields...")
-    err_code = member.traverse_records(infile,
-                (member.add2malformed, member.add2status_list),
-                club)
-    if err_code:
-        print("Error condition! #{}".format(err_code))
-    if not club.malformed:
-        ret.append("No malformed records found.")
-    else:
-        if not args['--raw']:
-            ret = [
-                'Malformed Records',
-                '================='] + club.malformed
-    if args["-S"]:
-        ret.extend(["", "Members /w 'status' Content",
-                       '---------------------------']
-                       + club.status_list)
-    output("\n".join(ret))
-##  'output' function reports file manipulation 
-##  making the following two lines redundant:
-#   if args['-o']:
-#       print("Output sent to {}.".format(args['-o']))
-    print("...done checking fields.")
-
 def ck_data_cmd():
-    """
-    Reports inconsistencies between the clubs membership list
-    and the google csv file (exported gmail contacts.)
-    """
+    print("Checking for data consistency...")
+    club = Club()
+    ret = data.ck_data(club, raw=args['-r'], formfeed=args['-P'])
+    output("\n".join(ret))
 
-    verification = "Is your google contacts cvs file up to date? "
-    if verification and input(verification).lower()[0] == 'y':
-        club = Club()
-        if not args["-i"]:
-            args["-i"] = Club.MEMBERSHIP_SPoT
-        if  not args['<gmail_contacts>']:
-            args['<gmail_contacts>'] = Club.CONTACTS.SPoT
-        print("File from google: '{}'"
-            .format(args['<gmail_contacts>']))
-        return rbc.ck_data(club)
-
-def ck_data(club,
-            report_status=True,
-            raw=False,
-            formfeed=False):
-
-    else:
-        print(
-            "Best do a Google Contacts export and then begin again.")
-        sys.exit()
-'''
 
 def show_cmd():
     club = Club()
@@ -1101,8 +1033,7 @@ if __name__ == "__main__":
             ]))
 
     elif args["ck_data"]:
-        print("Check all data bases for consistency.")
-        output(ck_data_cmd())
+        ck_data_cmd()
 
     elif args["show"]:
         show_cmd()

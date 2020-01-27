@@ -496,11 +496,15 @@ def ck_data(club,
     Applicant data is from 3 sources: gmail, memlist and applicant
     (g_applicants, m_applicants, a_applicants) which must be checked
     for consistency.
+    Returns a report in the form of an array of lines.
     """
     club = Club()
-    first_line = "Checking data integrity..."
-    print(first_line)
-    ret = ['\n{}\n'.format(first_line)]
+    ret = ['']
+    first_line = "Report Regarding Data Integrity"
+    if not (raw or formfeed):
+        ret.append(first_line)
+        ret.append("#" * len(first_line))
+        ret.append('')
     ok = []
 
     # Collect data from csv files ==> club attributes
