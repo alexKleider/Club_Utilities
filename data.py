@@ -301,10 +301,11 @@ def present_fees_by_name(extra_fees, raw=False):
         ret.append("Extra fees by member:")
         ret.append("=====================")
     for key in jv:
-        entry = key + ':'
+        charges = []
         for value in jv[key]:
-            entry = entry + " {} {}".format(value[0], value[1]) 
-        ret.append(entry)
+            charges.append("{} {}".format(value[0], value[1]))
+        charges = ', '.join(charges)
+        ret.append(key + ': ' + charges)
     return ret
 
 

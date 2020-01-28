@@ -515,176 +515,24 @@ def usps_cmd():
     return '\n'.join(res)
         
 
-def extra_charges(infile, json_file=None):
-    """
-    A helper function:
-    Used by extra_charges_cmd when infile is a txt file.
-    Returns a string: a table of charges.
-    Also writes data to a json file if a file name is specified.
-    """
-    by_charge = {}
-    by_name = {}
-    dock_usage = []
-    mooring = []
-    kayak_storage = []
-    uninterpretable = []
-    n_longest = 0
-    res = []
-
-    with open(infile, "r") as f_obj:
-        print('Reading from "{}".'.format(f_obj.name))
-        for line in f_obj:
-            line = line.strip()
-            if not line or line[0] == '#':
-                continue
-            if 'Mooring' in line:
-                current = mooring
-                key = "Mooring"
-            elif 'Dock' in line:
-                current = dock_usage
-                key = "Dock usage"
-            elif 'Kayak' in line:
-                current = kayak_storage
-                key = "Kayak storage"
-            else:
-                split_line = line.split()
-                if len(split_line) == 3:
-                    first = split_line[0]
-                    last = split_line[1][:-1] #delete colon
-                    name = '{}, {}'.format(last, first)
-                    amt = int(split_line[2])
-                    new_line = "{}, {}: ${}".format(last, first, amt)
-                    new_val = [last, first, amt]
-                    _ = by_name.setdefault(name, [])
-                    _ = by_charge.setdefault(key, [])
-                    by_name[name].append("{}: ${}".format(key, amt))
-#                   by_charge[key].append(new_val)
-                    by_charge[key].append(new_line)
-                    current.append(new_line)
-                else:
-                    uninterpretable.append(line)
-
-    if len(dock_usage) > n_longest:
-        n_longest = len(dock_usage)
-    if len(mooring) > n_longest:
-        n_longest = len(mooring)
-    if len(kayak_storage) > n_longest:
-        n_longest = len(kayak_storage)
-    final = (
-            ["Dock Usage", "----------"] + [""] * n_longest,
-            ["Mooring", "-------"] + [""] * n_longest,
-            ["Kayak Storage", "-------------"] + [""] * n_longest
-            )
-    for i in range(n_longest):
-        try:
-            final[0][i+2] = dock_usage[i]
-            final[1][i+2] = mooring[i]
-            final[2][i+2] = kayak_storage[i]
-        except IndexError:
-            pass
-
-    res = ['',
-           "Members Paying Fees For Extra Privileges",
-           "========================================",]
-    for i in range(n_longest + 1):
-        res.append("{:<25} {:<25} {:<25}"
-            .format(final[0][i], final[1][i], final[2][i]))
-    if json_file:
-        lines = ["{"]
-        keys = [key for key in by_charge.keys()]
-        keys.sort()
-        for key in keys:
-            lines.append('"{}": ['.format(key))
-            for item in by_charge[key]:
-                lines.append('    ["{}", "{}", {}],'
-                    .format(*item))
-            lines[-1] = lines[-1][:-1]
-            lines.append('    ],')
-        lines[-1] = lines[-1][:-1]
-        lines.append('}')
-        if json_file:
-            data = dict(
-                by_name= by_name,
-                by_charge= by_charge,
-                )
-            with open(json_file, 'w') as jfile:
-                json.dump(data, jfile)
-                print("Wrote JSON data to {}.".format(jfile.name))
-    return '\n'.join(res)
-
-
 def extra_charges_cmd():
     """
     Returns a report of members with extra charges.
-    Examines the infile and if it's a csv file, the membership file
-    is assumed and report will be from there.
-
-    If infile is a txt file: membership data is not consulted;
-    instead we assume the file is in the format of "extra_fees.txt"
-    which is the SPoT[1] identifying members who pay for extra
-    privileges (mooring, dock usage and kayak storage) along with
-    how much they pay.  Using it as input, this command creates a
-    table showing members who pay for these extra privileges.
 
     It also can create a json file: specified by the -j option.
     Such a json file is required by the restore_fees command.
-
-    [1] Single Point of Truth
     """
     infile = args["-i"]
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
-    suffix = infile[-4:]
-    if suffix == ".txt":
-        # use function vs method
-        res = extra_charges(infile, args["-j"])
-        print("Sending output to '{}'.".format(args["-o"]))
-        output(res)
-        sys.exit()
-    elif  suffix == ".csv":
-        # use methods: traversal with get_extra_fees
-        print("Traversing {} to select mempbers owing extra_fees..."
-            .format(infile))
-        club = Club()
-        club.extras_by_member = []
-        club.extras_by_category = {}
-        club.errors = []
-        for key in member.fees_keys:
-            club.extras_by_category[key] = []
-        err_code = member.traverse_records(infile,
-                member.get_extra_charges, club)
-    else:
-        print("Bad input file!")
-        assert False
-    res_by_category = []
-    if club.extras_by_category:
-        res_by_category.extend(["Extra Fees Charged by the Club",
-                                "=============================="])
-        for key in club.extras_by_category:
-            if club.extras_by_category[key]:
-                res_by_category.append("")
-                res_by_category.append("Members paying for {}"
-                    .format(key))
-                res_by_category.append("-" * len(
-                        res_by_category[-1]))
-                for val in club.extras_by_category[key]:
-                    res_by_category.append(val)
-        res_by_category = '\n'.join(res_by_category)
-    else:
-        res_by_category = ''
-    res_by_member = []
-    if club.extras_by_member:
-        res_by_member.extend(["Members Paying Extra Fees",
-                              "========================="])
-        for line in club.extras_by_member:
-            res_by_member.append(line)
-        res_by_member = '\n'.join(res_by_member)
-    else:
-        res_by_member = ''
-    output("\n\n".join((res_by_category, res_by_member)))
-    if club.errors:
-        print("Errors:")
-        print("\n".join(club.errors))
+    header =["Members Paying Extra Fees",
+             "========================="]
+    res = data.present_fees_by_name(
+            data.gather_extra_fees_data(
+                Club.EXTRA_FEES_SPoT), raw=True)
+    ret = helpers.tabulate(res, alignment='<')
+    output('\n'.join(header + ret))
+
 
 def payables_cmd():
     """
