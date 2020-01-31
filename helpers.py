@@ -93,25 +93,42 @@ def expand(text, nlines):
         return text
 
 
+def add_header2list(header, list_,
+        underline_char=None, extra_line=True):
+    """
+    Extends a list_ with a header preceded by an optional blank line
+    and followed by an optional 'underline' composed of a specified
+    character.
+    """
+    if extra_line: list_.append('')
+    list_.append(header)
+    if underline_char:
+        list_.append(underline_char * len(header))
+
+
 def show_dict(d, underline_char=None, extra_line=True):
     """
     Returns a list of strings representing a human readable version
-    of a dictionary. If an underline_char is povided, each key is
+    of a dictionary, the values of which are assumed to be lists
+    of strings. If <underline_char> is specified, each key is
     an underlined header with corresponding values listed beneath;
     if not- each key is followed by its values all on one line.
+    If <extra_line>, each key is preceded by an extra (blank) line.
     Keys and values are ordered/sorted.
+    Typically one would specify either an underline_char or
+    set extra_line to False.
     """
     ret = []
     for key in sorted([key for key in d.keys()]):
+        if extra_line: ret.append('')
         if underline_char:
-            ret.append('')
             ret.append(key)
             ret.append(underline_char * len(key))
             for val in sorted([val for val in d[key]]):
                 ret.append(val)
         else:
-            line = ", ".join(sorted([val for val in d[key]]))
-            ret.append("{}: {}".format(key, line))
+            values = ", ".join(sorted(d[key]))
+            ret.append("{}: {}".format(key, values))
     return ret
 
 

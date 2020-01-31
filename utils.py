@@ -330,10 +330,6 @@ media = dict(  # keep the classes in a dict
         a5160= A5160,
         )
 
-### Unable to easily initiate a Member object from a record, will
-### simply have functions that need only a record for a param.
-### Put them all into a separate 'record' module: record.py
-
 
 def ck_data_cmd():
     print("Checking for data consistency...")
@@ -344,24 +340,24 @@ def ck_data_cmd():
 
 def show_cmd():
     club = Club()
+    club.pattern = ("{first} {last}  [{phone}]  {address}," +
+                    "{town}, {state} {postal_code} [{email}]")
     club.members = []
     club.nmembers = 0
-    club.inductees = []
-    club.ninductees =0
-    club.applicants = []
     club.napplicants = 0
     club.errors = []
     club.by_n_meetings = {}
+    club.by_status = {}
     infile = args["-i"]
     if not infile:
         infile = club.infile
     print("Preparing membership listings...")
     err_code = member.traverse_records(infile,
-                                (member.add2memlist4web,
-                                member.is_applicant),
-                                club)
-    print("...done preparing membership listing...")
-    listing4web = ["""FOR MEMBER USE ONLY
+        (member.add2list4web, # increments club.nmembers
+         member.add2by_status, # increments club.napplicants
+                                 ), club)
+
+    ret = ["""FOR MEMBER USE ONLY
 
 THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS
 ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN IS NOT TO BE REPRODUCED
@@ -370,35 +366,18 @@ BOARD OF THE BRBC.
 LOSS OF MEMBERSHIP IS THE PENALTY.
     """]
     if club.members:
-        listing4web.extend(("Club Members ({} in number as of {})"
+        ret.extend(("Club Members ({} in number as of {})"
                 .format(club.nmembers, helpers.date),
                             "============"))
-        listing4web.extend(club.members)
-    if club.applicants:
-        listing4web.extend(("", "Applicants ({} in number)"
-                .format(club.napplicants),
-                                "=========="))
-        if club.by_n_meetings:
-            sorted_keys = sorted(
-                [key for key in club.by_n_meetings.keys()])
-            for key in sorted_keys:
-                listing4web.append("{}".format(key))
-                listing4web.append("--")
-                sorted_applicants = sorted(club.by_n_meetings[key])
-                listing4web.extend(sorted_applicants)
-        else:
-            listing4web.extend(club.applicants)
-        if club.ninductees:
-            listing4web.extend(("", "Inductees ({} in number)"
-                    .format(club.ninductees),
-                                    "========="))
-            listing4web.extend(club.inductees)
-    if club.errors:
-        listing4web.extend(("", "ERRORS",
-                                "======"))
-        listing4web.extend(club.errors)
+        ret.extend(club.members)
+    if club.by_n_meetings:
+        ret.append('')
+        header = "Applicants ({} in number)".format(club.napplicants)
+        ret.append(header)
+        ret.append('=' * len(header))
+        ret.extend(member.show_by_status(club.by_n_meetings))
 
-    output("\n".join(listing4web))
+    output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
 
 
@@ -412,15 +391,15 @@ def stati():
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     print("Preparing listing of stati.")
-    club.m_by_status = {}
+    club.by_status = {}
     err_code = member.traverse_records(infile,
-                                    member.add2m_by_status,
+                                    member.add2by_status,
                                     club)
-    if not club.m_by_status:
+    if not club.by_status:
         return ["Found No Entries with 'Status' Content." ]
 
-#   keys = [k for k in club.m_by_status.keys() if k]
-    keys = [k for k in club.m_by_status.keys()]
+#   keys = [k for k in club.by_status.keys() if k]
+    keys = [k for k in club.by_status.keys()]
     keys.sort()
 
     ret = []
@@ -436,7 +415,7 @@ def stati():
 #   ret.append('')
     for key in keys:
         sub_header = member.status_key_values[key]
-        values = sorted(club.m_by_status[key])
+        values = sorted(club.by_status[key])
         if key.startswith('a'):
             ret.append('')
             ret.append(sub_header)
@@ -458,7 +437,7 @@ def report():
     Number of applicants and applicant role call
     """
     club = Club()
-    club.m_by_status = {}
+    club.by_status = {}
     club.nmembers = 0
     infile = args["-i"]
     if not infile:
@@ -469,15 +448,24 @@ def report():
     report.append('')
 
     err_code = member.traverse_records(infile,
-            [member.add2m_by_status,
+            [member.add2by_status,
             member.increment_nmembers,
             ],
             club)
 
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
-    report.append('')
-    report.extend(stati())
+    report.extend(club.applicant_listing())
+    try:
+        with open("report.addendum", 'r') as fobj:
+            print('opening file')
+            addendum = fobj.read()
+            helpers.add_header2list("Addendum", report,
+                                    underline_char='=')
+            report.append(addendum)
+    except FileNotFoundError:
+        print('report.addendum not found')
+        pass
     return report
  
 def report_cmd():

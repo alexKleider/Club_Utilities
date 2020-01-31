@@ -2,7 +2,16 @@
 
 # File: rbc.py
 
+"""
+This module is specific to the Bolinas Rod and Boat Club
+data as maintained in the (4 or 5, depending how you count)
+SPoT (Single Point of Truth) files.
+It provides the <Club> class.
+"""
+
 import os
+import helpers
+import member
 
 # Specify input file and its data:
 class Club(object):
@@ -66,11 +75,44 @@ class Club(object):
         envelopes as was done before.
         """
         self.infile = Club.MEMBERSHIP_SPoT
-        self.name_tuples = []
+        self.pattern = '{last}, {first}'
+#       self.name_tuples = []
         self.json_data = []
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check 
         self.first_letter = ''               # } ordering.
+
+
+    def present_by_status(self, applicants_only=False):
+        """
+        Assumes presense of self.by_status dict
+        If <applicants_only>: clears and then assigns
+        self.napplicants
+        """
+        keys = sorted(self.by_status.keys())
+        if applicants_only:
+            self.napplicants=0
+            keys = [key for key in keys
+                        if key in member.APPLICANT_SET]
+        ret = []
+        for key in keys:
+            helpers.add_header2list(key, ret, underline_char='-')
+            for line in self.by_status[key]:
+                if applicants_only:
+                    self.napplicants += 1
+                ret.append(line)
+        return ret
+    
+    def applicant_listing(self):
+        ret = []
+        applicants = self.present_by_status(applicants_only=True)
+        if applicants:
+            applicant_header = ('Applicants are {} in number:'
+                                .format(self.napplicants))
+            helpers.add_header2list(applicant_header, ret,
+                                        underline_char='=')
+            ret.extend(applicants)
+        return ret
 
     def ck_data(self, source_file, google_file, separator):
         """

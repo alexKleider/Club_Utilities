@@ -3,6 +3,8 @@
 # File: member.py
 
 """
+Applies to records of members of 'the club' which
+is further defined in another module (rbc.py).
 Many methods of Membership class are essentially
 independant of Membership but pertain to each record.
 Hence makes sense to separate them out.
@@ -63,15 +65,13 @@ def traverse_records(infile, custom_funcs, club=None):
     Traverses <infile> and applies <custom_funcs> to each
     record.  <custom_funcs> can be a single function or a
     list of functions. These functions typically require a
-    named parameter "club" which will be an instance of the
-    'Membership' (this) class.
+    named <club> parameter, an instance of the "club" class
+    which for the Bolinas Rod and Boat Club is found in the
+    module rbc.py.
     Generally each <custom_func> will leave its results in
     one of the "club" attributes (similarly named.)  These
     custom funcs are mostly found in this ('member.py')
-    module although initially they were methods of the
-    Membership class in the 'utils.py' module (and some may
-    still be.) Their names often begin with 'get_'.
-    (Also used for mailings.)
+    module.
     """
     if callable(custom_funcs):
         custom_funcs = [custom_funcs]
@@ -87,11 +87,13 @@ def traverse_records(infile, custom_funcs, club=None):
                 custom_func(record, club)
 
 
-def member_name(record, club=None):
+def member_name(record, club):
     """
-    Returns a string.
+    Returns a string formated as defined by club.pattern.
+    Default <pattern> is "{last}, {first}"...
+    (see Club.__init__() in rbc.py)
     """
-    return "{last}, {first}".format(**record)
+    return club.pattern.format(**record)
 
 
 def report_error(report, club):
@@ -116,40 +118,34 @@ def ck_number_of_fields(record, club=None):
         report_error(possible_error, club)
 
 
-def is_applicant(record, club=None):
+def is_applicant(record):
+    """
+    Tests whether or not <record> is an applicant.
+    """
     stati = record['status'].split(SEPARATOR)
-    name = "{last}, {first}".format(**record)
     for status in stati:
         if status in APPLICANT_SET: 
-            if hasattr(club, "by_n_meetings"):
-#               print("Detected applicant '{}'.".format(name))
-                _ = club.by_n_meetings.setdefault(status, [])
-                club.by_n_meetings[status].append(
-                    member_entry(record))
             return True
     return False
 
 
-def is_member(record, club=None):
+def is_member(record):
     """
     Tries to determine if record is that of a member (based on
     status field.)
     If there is a problem, will either append notice to
     club.errors (if it exists) or print out a warning.
     """
-    if ((record['status']==None)
-    or (record['status'] == '')
-    or ("m" in {status for status in record['status'].split(
-        SEPARATOR)})
-    ):
-        return True
-    else:
-        return False
+    if not record['status']: return True
+    stati = set(record['status'].split(SEPARATOR))
+    if stati.intersection(set(APPLICANT_SET)): return False 
+    if 'm' in stati: return True
+    return True
 
 def increment_nmembers(record, club):
     """
     Client must initiate club.nmembers (=0) attribute.
-    If record is that of a member, nmembers is incrimented.
+    If record is that of a member, nmembers is incremented.
     """
     if is_member(record):
         club.nmembers += 1
@@ -205,10 +201,6 @@ def get_secretary(record, club):
             .format(**record))
 
 
-def append2Dr(record, club):
-    pass
-
-
 def add2m_by_name(record, club):
     """
     Adds to already existing dict club.m_by_name which is
@@ -238,25 +230,38 @@ def add2m_by_email(record, club):
             club.without_email.append(member_name(record))
 
 
-def add2m_by_status(record, club):
+def add2by_status(record, club):
     """
-    Prerequisite: club.m_by_status (must be set up by client.)
-    Populates club.m_by_status dict keyed by status with lists
-    of member names (last, first) as values.
+    Prerequisite: club.by_status (must be set up by client.)
+    Populates club.by_status dict keyed by status with lists
+    of lines formatted according to club.pattern.
     """
 #   print("record['status'] is '{}'".format(record['status']))
     if not record["status"]:
         return
+    if is_applicant(record) and hasattr(club, "napplicants"):
+        club.napplicants += 1
+    line = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
-        _ = club.m_by_status.setdefault(status, set())
-        if status=='be':
-            club.m_by_status[status].add(
-                "{} ({})".format(member_name(record),
-                                record['email']))
-        else:
-            club.m_by_status[status].add(member_name(record))
+        _ = club.by_status.setdefault(status, [])
+        club.by_status[status].append(line)
 
+def show_by_status(by_status, stati2show=STATI):
+    """
+    Returns a list of strings (which can be '\n'.join(ed))
+    Each 'status' is a header followed by the list of members.
+    """
+    ret = []
+    stati = by_status.keys()
+    for status in stati:
+        if status in stati2show:
+            ret.append('')
+            ret.append(status)
+            ret.append('-' * len(status))
+            for line in by_status[status]:
+                ret.append(line)
+    return ret
 
 def add2malformed(record, club=None):
     """
@@ -373,27 +378,16 @@ def get_payables(record, club):
                     + ', '.join(line_negative))
         club.advance_payments.append(line)
 
-def add2status_list(record, club):
-    """
-    Redacted in favour of add2m_by_status.
-    Populates club.status_list (which must be set up by client.)
-    """
-    if record["status"]:
-        club.status_list.append(("{last}, {first} - {status}"
-            .format(**record)))
-
-def member_entry(record, club=None):
-    """
-    Returns a string suitable for the membership (and applicant)
-    listing.
-    """
-    return (
-"{first} {last}  {phone}  {address}, {town}, {state} {postal_code}  {email}"
-            .format(**record))
 
 
-def add2memlist4web(record, club=None):
+def add2list4web(record, club):
     """
+    Client is expected to provide <club>, an instance of rbc.Club,
+    with the following attributes in place:
+        pattern
+        members = []    and  nmembers = 0
+        by_status = []  and  napplicants = 0
+        errors = []
     Populates club.members, club.stati, club.applicants,
     Club.inductees and club.errors (initially empty lists)
     and increments club.nmembers, club.napplicants
@@ -401,9 +395,11 @@ def add2memlist4web(record, club=None):
     All these attributes (of 'club', an instance of utils.membership
     class) must be set up by the client.
     """
-    line = member_entry(record)
+    if not record['email']: record['email'] = 'no email'
+    line = club.pattern.format(**record)
     if record["status"] and "be" in record["status"]:
         line = line + " (bad email!)"
+        club.errors.append(line)
     if is_member(record): 
         first_letter = record['last'][:1]
         if first_letter != club.first_letter:
@@ -413,16 +409,17 @@ def add2memlist4web(record, club=None):
             club.members.append("")
         club.nmembers += 1
         club.members.append(line)
-    elif 'a' in record["status"]:
-        club.applicants.append(line)
-        club.napplicants += 1
-    elif 'i' in record["status"]:
-        club.inductees.append(line)
-        club.ninductees += 1
-    elif 's' in record['status']:
-        pass # member is the secretary
     else:
-        club.errors.append(line)
+        stati = record['status'].split(SEPARATOR)
+        for status in stati:
+            if status in APPLICANT_SET: 
+#               print("Detected applicant '{}'.".format(line))
+                club.napplicants += 1
+                _ = club.by_n_meetings.setdefault(status, [])
+                club.by_n_meetings[status].append(line)
+#           else:
+#               club.errors.append(line)
+                
 
 
 def get_extra_charges(record, club=None):

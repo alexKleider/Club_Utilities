@@ -424,7 +424,7 @@ content_types = dict(  # which_letter
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
         "post_scripts": (),
-        "funcs": [member.get_owing, member.append2Dr],
+        "funcs": [member.get_owing, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
