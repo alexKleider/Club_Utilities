@@ -105,8 +105,10 @@ def gather_contacts_data(club):
         g_by_group: keyed by group membership /w values
         each a set of "names" of contacts sharing that group membership.
     """
-    club.g_by_name = dict()  # ea value is a dict --["email"] > email
-    club.g_by_email = dict() # >set of names  #   \ ['groups'] > set
+    club.gmail_by_name = dict()  # => string
+    club.groups_by_name = dict()  # => set 
+    
+    club.g_by_email = dict() # >set of names
     club.g_by_group = dict() # >set of names
 
     # Traverse contacts.csv => g_by_email and g_by_name
@@ -120,9 +122,9 @@ def gather_contacts_data(club):
 
             _ = club.g_by_email.setdefault(g_dict["g_email"], set())
             club.g_by_email[g_dict["g_email"]].add(g_dict["gname"])
-            club.g_by_name[g_dict["gname"]] = dict(
-                    email= g_dict["g_email"], 
-                    groups= g_dict["groups"])
+
+            club.gmail_by_name[g_dict['gname']] = g_dict['g_email']
+            club.groups_by_name[g_dict['gname']] = g_dict['groups']
 
             for key in g_dict["groups"]:
                 _ = club.g_by_group.setdefault(key, set())
@@ -170,16 +172,18 @@ def gather_applicant_data(in_file):
                         if last_segment == "Application expired.":
                             expired_applications.append(last_first)
                         else:
-                            _ = applicants.setdefault(status,set())
+                            _ = applicants.setdefault(status, [])
 #                           print("Adding '{}'.".format(last_first))
-                            applicants[status].add(last_first)
+                            applicants[status].append(last_first)
                     elif name:
                         print(
                         "Difficulty processing applicant '{}' in line:"
                                 .format(name))
 #                       print(raw_line)
+    for key in applicants:
+        applicants[key] = sorted(applicants[key])
     return {"expired": expired_applications,  # just a list
-            "applicants": applicants,  # sets keyed by status:
+            "applicants": applicants,  # lists keyed by status:
                         # client will want to sort the keys.
      # i.e. keys = sorted([key for key in data["applicants"]])
             }
@@ -215,9 +219,9 @@ def gather_extra_fees_data(in_file, without_fees=False):
     """
     by_name = {}
     by_category = dict(  # json version of input file
-        Kayak= set(),
-        Dock= set(),
-        Mooring= set(),
+        Kayak= [],
+        Dock= [],
+        Mooring= [],
         )
     categories = [key for key in by_category.keys()]
 
@@ -249,14 +253,14 @@ def gather_extra_fees_data(in_file, without_fees=False):
                 first_name = names[0]
                 last_name = names[1]
                 name_key = "{}, {}".format(last_name, first_name)
-                _ = by_name.setdefault(name_key, set())
-                _ = by_category.setdefault(category, set())
+                _ = by_name.setdefault(name_key, [])
+                _ = by_category.setdefault(category, [])
                 if without_fees:
-                    by_name[name_key].add(category)
-                    by_category[category].add(name_key)
+                    by_name[name_key].append(category)
+                    by_category[category].append(name_key)
                 else:
-                    by_name[name_key].add((category, fee))
-                    by_category[category].add((name_key, fee))
+                    by_name[name_key].append((category, fee))
+                    by_category[category].append((name_key, fee))
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }
@@ -483,7 +487,9 @@ def ck_data(club,
 
     # Collect data from csv files ==> club attributes
     gather_membership_data(club)
-    gather_contacts_data(club)
+    gather_contacts_data(club) # Sets up and populates:
+        # club.gmail_by_name (string)   # club.g_by_email (set)
+        # club.groups_by_name (set)     # club.g_by_group (set)
 
     # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
