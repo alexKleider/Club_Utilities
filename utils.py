@@ -437,18 +437,19 @@ def report():
     Number of applicants and applicant role call
     """
     club = Club()
-    club.by_status = {}
+    club.ms_by_status = {}
     club.nmembers = 0
     infile = args["-i"]
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     print("Preparing Membership Report ...")
-    report = ["Membership Report {}".format(helpers.date), ]
+    report = [
+       "Membership Report (prepared {})".format(helpers.date), ]
     report.append('=' * len(report[0]))
     report.append('')
 
     err_code = member.traverse_records(infile,
-            [member.add2by_status,
+            [member.add2status_data,
             member.increment_nmembers,
             ],
             club)
@@ -460,12 +461,17 @@ def report():
         with open("report.addendum", 'r') as fobj:
             print('opening file')
             addendum = fobj.read()
-            helpers.add_header2list("Addendum", report,
-                                    underline_char='=')
             report.append(addendum)
     except FileNotFoundError:
         print('report.addendum not found')
         pass
+    report.extend(['','',])
+    report.extend([
+        "Respectfully submitted by",
+        "Alex Kleider, Membership Chair,",
+        "for presention at the {} meeting."
+            .format(helpers.next_first_friday()),
+        ])
     return report
  
 def report_cmd():

@@ -203,65 +203,81 @@ def get_secretary(record, club):
 
 def add2m_by_name(record, club):
     """
+    REDACT! use add2email_by_m
+            and add2stati_by_m
     Adds to already existing dict club.m_by_name which is
     keyed by "name" with value also a dict with keys:
     ["email"] => email as a string
     ["stati"] => stati as a set
     """
-    club.m_by_name[member_name(record)] = dict(
+    club.m_by_name[member_name(record, club)] = dict(
         email= record['email'],
         stati= {status for status in record["status"].split(
         SEPARATOR)})
 
+## Beginning of 'add2' functions:
 
-def add2m_by_email(record, club):
+
+def add2email_data(record, club):
     """
-    Adds record's "name" to the set: club.m_by_email.
-    ... we use set of names vs single name to see if the same
-    email is used by more than one person.
-    If 'email' field is empty (and if club has the required)
-    appends name to club.without_email.
+    Populates club.email_by_m  and (if it
+    exists)   club.ms_by_email.
     """
-    if record['email']:
-        _ = club.m_by_email.setdefault(record['email'], set())
-        club.m_by_email[record['email']].add(member_name(record))
+    name = member_name(record, club)
+    email = record['email']
+    if email:
+        club.email_by_m[name] = email
+        if hasattr(club, 'ms_by_email'):
+            _ = club.ms_by_email.setdefault(email, [])
+            club.ms_by_email[email].append(name)
     else:
         if hasattr(club, "without_email"):
-            club.without_email.append(member_name(record))
+            club.without_email.append(name)
+    pass
 
 
-def add2by_status(record, club):
+def add2status_data(record, club):
     """
-    Prerequisite: club.by_status (must be set up by client.)
-    Populates club.by_status dict keyed by status with lists
-    of lines formatted according to club.pattern.
+    Also increments club.napplicants if attribute exists.
     """
-#   print("record['status'] is '{}'".format(record['status']))
     if not record["status"]:
         return
     if is_applicant(record) and hasattr(club, "napplicants"):
         club.napplicants += 1
-    line = club.pattern.format(**record)
+    member = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
-        _ = club.by_status.setdefault(status, [])
-        club.by_status[status].append(line)
+        _ = club.ms_by_status.setdefault(status, [])
+        club.ms_by_status[status].append(member)
+        if hasattr(club, 'stati_by_m'):
+            _ = club.stati_by_m.setdefault(member, set())
+            club.stati_by_m[member].add(status)
 
-def show_by_status(by_status, stati2show=STATI):
+
+
+def add2fee_data(record, club):
     """
-    Returns a list of strings (which can be '\n'.join(ed))
-    Each 'status' is a header followed by the list of members.
+    Populates club.fee_category_by_m  and
+    club.ms_by_fee_category if these attributes exist.
     """
-    ret = []
-    stati = by_status.keys()
-    for status in stati:
-        if status in stati2show:
-            ret.append('')
-            ret.append(status)
-            ret.append('-' * len(status))
-            for line in by_status[status]:
-                ret.append(line)
-    return ret
+    name = member_name(record, club)
+#   print(repr(fees_keys))
+    for key in fees_keys:
+#       print("Checking key '{}' for {}".format(key, name))
+        try:
+            fee = int(record[key])
+        except ValueError:
+#           print("'{}' => ValueError".format(record[key]))
+            continue
+        capped = key.capitalize()
+#       print("'{}' <=> {}".format(name, capped))
+        if hasattr(club, 'ms_by_fee_category'):
+            _ = club.ms_by_fee_category.setdefault(capped, [])
+            club.ms_by_fee_category[capped].append(name)
+        if hasattr(club, 'fee_category_by_m'):
+            _ = club.fee_category_by_m.setdefault(name, [])
+            club.fee_category_by_m[name].append(capped)
+
 
 def add2malformed(record, club=None):
     """
@@ -274,7 +290,7 @@ def add2malformed(record, club=None):
     (... used for comparison re correct ordering.)
     Client must set up a club.malformed[] empty list to be populated.
     """
-    name = member_name(record)
+    name = member_name(record, club)
     if len(record) != n_fields:
         club.malformed.append("{}: Wrong # of fields."
             .format(name))
@@ -296,31 +312,24 @@ def add2malformed(record, club=None):
             .format(name))
     club.previous_name = name
 
+# End of 'add2...' functions
 
-def add2fee_sets(record, club):
-    """
-    Client must provide 'club' with the
-    necessary two (list) attributes.
-    Populates club.fee_by_category
-    and club.fee_by_name.
-    This is the one used by ck_integrity.
-    """
-    name = member_name(record)
-#   print(repr(fees_keys))
-    for key in fees_keys:
-#       print("Checking key '{}' for {}".format(key, name))
-        try:
-            fee = int(record[key])
-        except ValueError:
-#           print("'{}' => ValueError".format(record[key]))
-            continue
-        capped = key.capitalize()
-#       print("'{}' <=> {}".format(name, capped))
-        _ = club.fee_by_category.setdefault(capped, set())
-        club.fee_by_category[capped].add(name)
-        _ = club.fee_by_name.setdefault(name, set())
-        club.fee_by_name[name].add(capped)
 
+def show_by_status(by_status, stati2show=STATI):
+    """
+    Returns a list of strings (which can be '\n'.join(ed))
+    Each 'status' is a header followed by the list of members.
+    """
+    ret = []
+    stati = by_status.keys()
+    for status in stati:
+        if status in stati2show:
+            ret.append('')
+            ret.append(status)
+            ret.append('-' * len(status))
+            for line in by_status[status]:
+                ret.append(line)
+    return ret
 
 def not_paid_up(record, club=None):
     """
@@ -429,7 +438,7 @@ def get_extra_charges(record, club=None):
     Both these attributes must be initialized by the client.
     Used by utils.extra_charges_cmd()
     """
-    name = member_name(record)
+    name = member_name(record, club)
     _list = []
     for key in fees_keys:
         value = record[key]

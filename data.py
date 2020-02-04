@@ -25,77 +25,69 @@ import helpers
 import member
 from rbc import Club
 
-moved2utils = '''
-class Club(object):
-    """
-    Used to hold data for subsequent processing, display, ...
-    """
-    def __init__(self):
-        self.previous_name = ""  # Used to check that all entries in
-                                 # data base csv file are ordered.
-
-    MEMBERSHIP_SPoT = "Data/memlist.csv"
-    CONTACTS_SPoT = os.path.expanduser('~/Downloads/contacts.csv')
-    EXTRA_FEES_SPoT = "Data/extra_fees.txt"
-    APPLICANT_SPoT = "Data/applicants.txt"
-
-    SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
-    N_SEPARATORS = 3  #} specific format for it to be read
-                      #} correctly. Number of meetings is
-                      #} derived from N_SEPARATORS.
-    NAME_KEY = "by_name"
-    CATEGORY_KEY = "by_category"
-
-    APPLICANT_GROUP = "applicant"  # } These are specific to
-    MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
-    OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
-    DOCK = 'DockUsers'
-    KAYAK = 'Kayak'
-    MOORING = 'moorings'
-'''
-
 
 def gather_membership_data(club):
     """
     Gathers the info we want from the membership csv file
-    which is defined by Club.MEMBERSHIP_SPoT.
-    Sets up three dict and one list attributes of the Club
-    instance specified by club and then populates them by
-    reading the file:
-        m_by_name is keyed by "name" /w another dict as its value
-            one key is "email" with value as email
-            the other " stati" with a list of stati as value.
-        m_by_email is keyed by email /w set of "name"s as value.
-        m_by_status is keyed by status /w a set of (last, first)
-        strings as values.
-        malformed is a list of (last, first) strings identifying
-        members whose record seems to be malformed (or out of order.)
-        fee_by_category { keyed by category or name, values are a
-        fee_by_name     { set of names or categories
+    which is defined by club.MEMBERSHIP_SPoT.
+
+    Sets up a number of collectors as attributes of <club>
+    and then calls member.traverse_records to populate them.
+    See member.add2... functions corresponding to each[1] of the
+    following <club> attributes.
+    [1] except both 'fee_category' collectors are populated by
+    member.add2fee_data function and
+    both 'email' collectors.
     """
-    club.members = set()
-    club.m_by_name = dict()    #{ member emails keyed by (first, last)
-                               #{ name
-    club.m_by_email = dict()   # sets of member names keyed by email
-    club.without_email = []
-    club.m_by_status = dict()  # sets of member names keyed by status 
-    club.malformed = []
-    club.fee_by_category = {}
-    club.fee_by_name = {}
+    club.email_by_m = {} # m => str (email)
+    club.stati_by_m = {} # m => set (stati)
+    # lists (no need to sort since members and fees are ordered):
+    club.fee_category_by_m = {}  # m => list (fee_categories /w fee)
+    club.ms_by_email = {}  # email => list (members)
+    club.ms_by_status = {}  # status => list (members)
+    club.ms_by_fee_category = {}  # fee_category => list (members)
+
+    club.malformed = []  # populated by member.add2malformed
+    club.without_email = []  # populated by member.add2email_data
+    club.napplicants = 0  # incremented prn by member.add2ms_by_status
+
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-        (member.add2m_by_name, member.add2m_by_email,
-        member.add2m_by_status, member.add2malformed,
-        member.add2fee_sets),
+        (member.add2email_data,
+        member.add2fee_data,
+        member.add2status_data,
+        member.add2malformed,  ),
         club)
     if err_code:
         print("Error condition! #{}".format(err_code))
-#   print("TEST OUTPUT ...")  # all is in order
-#   stati = club.m_by_status
-#   for status in stati:
-#       print(status)
-#       for item in club.m_by_status[status]:
-#           print(item)
-#   print("... TEST OUTPUT")
+
+
+def get_gmail_record_info(g_rec):
+    """
+    <g_rec> is a record from the gmail contacts file.
+    Returns a dict with only the info we need.
+    """
+    g_email = g_rec["E-mail 1 - Value"]
+    group_membership = (
+        g_rec["Group Membership"].split(" ::: "))
+    if (group_membership
+    and group_membership[-1] =='* myContacts'):
+        group_membership = group_membership[:-1]
+    group_membership = set(group_membership)
+    first_name = " ".join((
+        g_rec["Given Name"],
+        g_rec["Additional Name"],
+        )).strip()
+    last_name = " ".join((
+        g_rec["Family Name"],
+        g_rec["Name Suffix"],
+        )).strip()
+    gname = "{}, {}".format(last_name, first_name)
+    return dict(
+        gname= gname,
+        g_email= g_email,
+        groups= group_membership,
+        )
+    
 
 
 def gather_contacts_data(club):
@@ -108,14 +100,14 @@ def gather_contacts_data(club):
     The attributes are :
         g_by_name: keyed by "name" /w values indexed as follows:
           ["email"] => email
-          ["groups] => set of group memberships
+          ["groups"] => set of group memberships
         g_by_email: keyed by email /w values each a set of "names".
-        g_by_group_membership: keyed by group membership /w values
+        g_by_group: keyed by group membership /w values
         each a set of "names" of contacts sharing that group membership.
     """
-    club.g_by_name = dict()
-    club.g_by_email = dict()
-    club.g_by_group_membership = dict()
+    club.g_by_name = dict()  # ea value is a dict --["email"] > email
+    club.g_by_email = dict() # >set of names  #   \ ['groups'] > set
+    club.g_by_group = dict() # >set of names
 
     # Traverse contacts.csv => g_by_email and g_by_name
     with open(club.CONTACTS_SPoT, 'r', encoding='utf-8') as file_obj:
@@ -124,32 +116,17 @@ def gather_contacts_data(club):
         print('DictReading Google contacts file "{}".'
             .format(file_obj.name))
         for g_rec in google_reader:
-            contact_email = g_rec["E-mail 1 - Value"]
-            group_membership = (
-                g_rec["Group Membership"].split(" ::: "))
-            if (group_membership
-            and group_membership[-1] =='* myContacts'):
-                group_membership = group_membership[:-1]
-            group_membership = {group for group in group_membership}
-            first_name = " ".join((
-                g_rec["Given Name"],
-                g_rec["Additional Name"],
-                )).strip()
-            last_name = " ".join((
-                g_rec["Family Name"],
-                g_rec["Name Suffix"],
-                )).strip()
-            gname = "{}, {}".format(last_name, first_name)
+            g_dict = get_gmail_record_info(g_rec)
 
-            _ = club.g_by_email.setdefault(contact_email, set())
-            club.g_by_email[contact_email].add(gname)
-            club.g_by_name[gname] = dict(
-                    email= contact_email, 
-                    groups= group_membership)
+            _ = club.g_by_email.setdefault(g_dict["g_email"], set())
+            club.g_by_email[g_dict["g_email"]].add(g_dict["gname"])
+            club.g_by_name[g_dict["gname"]] = dict(
+                    email= g_dict["g_email"], 
+                    groups= g_dict["groups"])
 
-            for key in group_membership:
-                _ = club.g_by_group_membership.setdefault(key, set())
-                club.g_by_group_membership[key].add(gname)
+            for key in g_dict["groups"]:
+                _ = club.g_by_group.setdefault(key, set())
+                club.g_by_group[key].add(g_dict["gname"])
 
 
 def gather_applicant_data(in_file):
@@ -431,14 +408,14 @@ def ck_applicants(club, # provides data from memlist and gmail
     The 'club' parameter assumes gather_membership_data
     and gather_contacts_data functions have been run in order to
     populate the following club attributes:
-        club.m_by_status
-        club.m_by_group_membership
+        club.ms_by_status
+        club.m_by_group
     and also that the client has run the gather_applicant_data
     function to provide the 'applicants' parameter.
     """
-    m_applicants = club.m_by_status
+    m_applicants = club.ms_by_status
     a_applicants = applicants
-    g_applicants = club.m_by_group_membership["applicant"]
+    g_applicants = club.m_by_group["applicant"]
 
 
 def ck_applicants_cmd():
@@ -451,16 +428,16 @@ def ck_applicants_cmd():
     a_by_status = gather_applicant_data(
             club.APPLICANT_SPoT)['applicants']
     ret = []
-    g_set = club.g_by_group_membership[club.APPLICANT_GROUP]
+    g_set = club.g_by_group[club.APPLICANT_GROUP]
     m_set = set()  # applicants per the membership db
     a_set = set()  # applicants per the applicant SPoT
 
-    if club.m_by_status == a_by_status:
+    if club.ms_by_status == a_by_status:
         ret.append("\n Club records match applicant SPoT")
 
-    for key in club.m_by_status:
+    for key in club.ms_by_status:
         if 'a' in key:
-            m_set = m_set.union(club.m_by_status[key])
+            m_set = m_set.union(club.ms_by_status[key])
     for key in a_by_status:
         if 'a' in key:
             a_set = a_set.union(a_by_status[key])
@@ -483,20 +460,16 @@ def ck_data(club,
             raw=False,
             formfeed=False):
     """
-    Check integrity/consistency of of the Club's data base(s.)
-    (Meant to replace ck_fields and compare_gmail as well as 
-    dealing with 'extra_fees'/'extra_charges', applicant 'stati',
-    and perhaps other things.
-    We collect data from the membership data base (memlist.csv)
-    and compare it with data collected from other sources,
-    specifically:
-        gmail contacts
-        applicants.txt
-        extra_fees.txt
+    Check integrity/consistency of of the Club's data bases:
+        MEMBERSHIP_SPoT  # the main club data base
+        CONTACTS_SPoT    # csv downloaded from gmail
+        APPLICANT_SPoT   #
+        EXTRA_FEES_SPoT  #
         ...
-    Applicant data is from 3 sources: gmail, memlist and applicant
-    (g_applicants, m_applicants, a_applicants) which must be checked
-    for consistency.
+    The first 3 of the above all contain applicant data
+    and must be checked for consistency.
+    Data in each of the 2nd and 4th are compared with
+    the first and checked.
     Returns a report in the form of an array of lines.
     """
     club = Club()
@@ -530,29 +503,29 @@ def ck_data(club,
     dangling_m_emails = []   # email without a name
                              # can't imagine how that could happen
     shared_m_emails = []  # email owned by more than one person
-    for m_email in club.m_by_email:
-        n_in_set = len(club.m_by_email[m_email])
-        if n_in_set == 0:
+    for m_email in club.ms_by_email:
+        n_emails = len(club.ms_by_email[m_email])
+        if n_emails == 0:
             print(
             "Adding a dangling (no associated member name) email.")
             dangling_m_emails.append(m_email)
-        elif n_in_set ==1:
-            club.m_by_email[m_email] = club.m_by_email[m_email].pop()
+        elif n_emails ==1:
+            club.ms_by_email[m_email] = club.ms_by_email[m_email].pop()
         else:
             names = "; ".join(sorted(
-                [name for name in club.m_by_email[m_email]]))
+                [name for name in club.ms_by_email[m_email]]))
             shared_m_emails.append("{} <== [{}]"
                 .format(m_email, names))
     if dangling_m_emails:
         print("Found Dangling Member Emails")
         add2problems("Dangling Member Email(s)",
                         dangling_m_emails, ret)
-        remove_unwanted_items(club.m_by_email, dangling_m_emails,
+        remove_unwanted_items(club.ms_by_email, dangling_m_emails,
             ignore_keyerror=False)
     if shared_m_emails:
         print("Found Shared Member Emails")
         add2problems("Shared Member Email(s)", shared_m_emails, ret)
-        remove_unwanted_items(club.m_by_email,
+        remove_unwanted_items(club.ms_by_email,
                     first_parts_only(shared_m_emails),
                         ignore_keyerror=False)
 
@@ -563,10 +536,10 @@ def ck_data(club,
     dangling_g_emails = []
     shared_g_emails = []
     for g_email in club.g_by_email:
-        n_in_set = len(club.g_by_email[g_email])
-        if n_in_set == 0:
+        n_emails = len(club.g_by_email[g_email])
+        if n_emails == 0:
             dangling_g_emails.append(g_email)
-        elif n_in_set ==1:
+        elif n_emails ==1:
             club.g_by_email[g_email] = club.g_by_email[g_email].pop()
         else:
             names = "; ".join(sorted(
@@ -594,12 +567,12 @@ def ck_data(club,
             ret.extend(["",
                         "Members /w 'status' Content",
                         '==========================='])
-        members_w_status = sorted(club.m_by_status.keys())
+        members_w_status = sorted(club.ms_by_status.keys())
 #       print("Members w status: {}".format(repr(members_w_status)))
         for key in members_w_status:
 #           print("Adding members by stati")
             add2problems(key, 
-                sorted([member for member in club.m_by_status[key]]),
+                sorted([member for member in club.ms_by_status[key]]),
                 ret,
                 underline_with=["-"])
 
@@ -612,8 +585,8 @@ def ck_data(club,
     emails_missing_from_contacts = []
     common_emails = []
 
-    for m_email in club.m_by_email:
-        m_name = club.m_by_email[m_email]  # member name
+    for m_email in club.ms_by_email:
+        m_name = club.ms_by_email[m_email]  # member name
         try:
             g = club.g_by_email[m_email]  # contact name
         except KeyError:
@@ -629,7 +602,7 @@ def ck_data(club,
     for g_email in club.g_by_email:
         g = club.g_by_email[g_email]  # contact name
         try:
-            m = club.m_by_email[g_email]  # member name
+            m = club.ms_by_email[g_email]  # member name
         except KeyError:
             non_member_contacts.append("{} ({})"
                     .format(g_email, g))
@@ -644,17 +617,17 @@ def ck_data(club,
     # Check that gmail contacts' "groups" match membership data:
 ######  Following code could be refactored, perhaps /w Walrus!!#####
     m_applicants = set()
-    for key in club.m_by_status:
+    for key in club.ms_by_status:
 #       print(key)
         if 'a' in key:
 #           print("key chosen")
-            for member in club.m_by_status[key]:
+            for member in club.ms_by_status[key]:
                 m_applicants.add(member)
 ### The following should be checked for equivalence and    ###
 ### if different, they need to be reported in the output-  ###
 ### left here for time being until Data can be corrected.  ###
     if m_applicants == set(
-            club.g_by_group_membership[club.APPLICANT_GROUP]):
+            club.g_by_group[club.APPLICANT_GROUP]):
         ok.append("Gmail groups match Club data")
     else:
         ret.append("\nMismatch: Gmail groups vs Club data")
@@ -663,7 +636,7 @@ def ck_data(club,
         ret.append("Gmail groups")
         ret.append("------------")
         ret.extend(sorted(list(
-            club.g_by_group_membership[club.APPLICANT_GROUP])))
+            club.g_by_group[club.APPLICANT_GROUP])))
         ret.append('')
         ret.append("Club status")
         ret.append("-----------")
@@ -671,26 +644,26 @@ def ck_data(club,
 #       print(
 #       "The following two (sorted) sets should be the same- They're NOT!")
 #       print(sorted(list(m_applicants)))
-#       print(sorted(list(club.g_by_group_membership[APPLICANT_GROUP])))
+#       print(sorted(list(club.g_by_group[APPLICANT_GROUP])))
 #       print()
 
-    g_members = club.g_by_group_membership[club.MEMBER_GROUP]
-    g_applicants = club.g_by_group_membership[club.APPLICANT_GROUP] 
-    keys = [key for key in club.m_by_status.keys()]
+    g_members = club.g_by_group[club.MEMBER_GROUP]
+    g_applicants = club.g_by_group[club.APPLICANT_GROUP] 
+    keys = [key for key in club.ms_by_status.keys()]
 #   temp_ret = []
     for key in keys:
         if not 'a' in key:
-            val = (club.m_by_status.pop(key))
+            val = (club.ms_by_status.pop(key))
 #           temp_ret.append(key)
 #   if temp_ret:
 #       ret.append("\nNon Applicant Stati: {}"
 #           .format(','.join(temp_ret)))
-    if a_applicants != club.m_by_status:
+    if a_applicants != club.ms_by_status:
         ret.append("\nApplicant problem:")
         ret.append("The following-")
         ret.extend(helpers.show_dict(a_applicants))
         ret.append("- is not the same as what follows-")
-        ret.extend(helpers.show_dict(club.m_by_status))
+        ret.extend(helpers.show_dict(club.ms_by_status))
         ret.append("- End of comparison -")
     else:
         ok.append("No applicant problem.")
@@ -701,11 +674,13 @@ def ck_data(club,
     else:
         ok.append('No contacts that are not members.')
             
-    if ((extra_fees_info[club.CATEGORY_KEY] != club.fee_by_category)
-    or (extra_fees_info[club.NAME_KEY] != club.fee_by_name)):
+    if ((extra_fees_info[club.CATEGORY_KEY] !=
+            club.ms_by_fee_category)
+    or (extra_fees_info[club.NAME_KEY] !=
+            club.fee_category_by_m)):
         ret.append("\nFees problem:")
         ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
-        ret.append(repr(club.fee_by_category))
+        ret.append(repr(club.ms_by_fee_category))
     else:
         ok.append("No fees problem.")
 

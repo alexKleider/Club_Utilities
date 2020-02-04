@@ -10,13 +10,50 @@ and perhaps other modules in this folder.
 import datetime
 import functools
 
-format = "%b %d, %Y"
+date_template = "%b %d, %Y"
+date_w_wk_day_template = "%a, %b %d, %Y"
 today = datetime.datetime.today()
 month = today.month
 this_year = today.year
-s = today.strftime(format)
-d = datetime.datetime.strptime(s, format)
-date = d.strftime(format)
+s = today.strftime(date_template)
+d = datetime.datetime.strptime(s, date_template)
+date = d.strftime(date_template)
+n_friday = 4
+
+def get_first_friday_of_month(date):
+    year = date.year
+    month = date.month
+    for d in range(1, 8):  # range => 1..7 covering first week
+#       print("checking day {}".format(d))
+        first_friday =  datetime.date(year, month, d)
+#       print("first_friday.weekday() => {}"
+#               .format(first_friday.weekday()))
+        if first_friday.weekday() == n_friday:
+            return first_friday
+    
+
+def next_first_friday(today= datetime.date.today()):
+    n_friday = 4
+    year = today.year
+    month = today.month
+    date = get_first_friday_of_month(today)
+    if not (date < today):
+        return date.strftime(date_w_wk_day_template)
+        # date.strftime(format)
+    else:
+#       print("Already had a friday this month")
+        pass
+    if month == 12:
+        month = 1
+        year = year + 1
+#       print("Moved into next year")
+    else:
+        month = month + 1
+    date = get_first_friday_of_month(datetime.date(year, month, 1))
+    return date.strftime(date_w_wk_day_template)
+    # date.strftime(format)
+    print("ended with no return")
+
 
 # print("Setting the date to '{}'.".format(date))
 
@@ -282,7 +319,7 @@ def tabulate(data,
     return new_data
 
 
-if __name__ == "__main__":
+def main():
     print("The month is '{}'.".format(month))
     print("'helpers.get_datestamp() returns '{}'."
         .format(date))
@@ -328,5 +365,12 @@ Bolinas, CA 94924""",
     assert(indented[0] == indented[1])
     assert(indented[1] == indented[2])
 
+def test_first_friday():
+    print(next_first_friday())
+    in_future = datetime.date(2010, 2, 20)
+    print(next_first_friday(today= datetime.date(2010, 2, 20)))
+
+if __name__ == "__main__":
+    test_first_friday()
 
 
