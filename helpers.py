@@ -193,20 +193,10 @@ def tabulate(data,
             force =0,
             usage=False,
             stats=False):
-    """Usage: tabulate( data,
-                        display = None,
-                        alignment = '<',
-                        down = False,
-                        max_width = 75,
-                        max_columns = 0,
-                        separator = ' ',
-                        force =0,
-                        usage=False,
-                        stats=False)
-
+    """
     The single positional argument (<data>) must be an iterable, a
     representation of which will be returned as a list of strings
-    which when '\n'.join(ed) can be printed as a table.
+    which when '\\n'.join(ed) can be printed as a table.
     If <display> is provided it must be a function that, when
     provided with an element of data, returns a string
     representation.  If not provided, elements are assumed to have
@@ -230,7 +220,8 @@ def tabulate(data,
     """
     orig_max_col = max_columns
     if usage:
-        return tabulate.__doc__
+        print(tabulate.__doc__)
+        return
     # Assign <display>:
     if not alignment in ('<', '^', '>'):
         return "Alignmemt specifier not valid: choose from '<', '^', '>'"

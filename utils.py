@@ -21,7 +21,7 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version ]
-  ./utils.py ck_data [-r -P  -o <outfile>]
+  ./utils.py ck_data [-s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
   ./utils.py report [-i <infile> -o <outfile> ]
   ./utils.py stati [-A -i <infile> -o <outfile>]
@@ -44,6 +44,7 @@ Options:
   -a <attachment>  The name of a file to use as an attachment.
   -A  re 'stati' comand: show only applicants.
   -c <content>  The name of a file containing the body of an email.
+  -C <contacts_spot>  Contacts data file.
   --dir <dir4letters>  The directory to be created and/or read
                       containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
@@ -67,6 +68,7 @@ Options:
             if content.which.["postal_header"] isn't already
             specified.  [default: X6505]
                   'content_types' dict in content.py.)
+  -N <app_spot>  Applicant data file.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   -p <params>  If not specified, the default is
@@ -76,13 +78,15 @@ Options:
         on a separate page. (i.e. separated by form feeds.)
   -r    Supress headers (to make the output suitable as
         input for creating tables.)
+  -s    Report status
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
                   modified, thus providing an opportunity for proof
                   reading the 'modified' file before renaming it to
                   the original. (Typically named '2proof_read.txt'.)
-  --which <letter>  Specifies type/subject of mailing. (See
+  --which <letter>  Specifies type/subject of mailing.
+  -X <fees_spot>  Extra Fees data file. 
 
 Commands:
     When run without a command, suggests ways of getting help.
@@ -99,18 +103,17 @@ Commands:
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive their
         Club minutes by post. Includes the secretary.
-    extra_charges: Provides lists of members with special charges.
-        Both a list of members each with the charge(s) they pay and
-        separate lists for each category of charge. (Dues not
-        included.)
+    extra_charges: Reports on members paying extra charges (for
+        kayak storage, mooring &/or dock usage.)
+        Output format can be specified by the -f <format> option.
         If the <infile> name ends in '.csv' then the/membership main
         data base file is assumed and output will be charges
         outstanding (i.e. owed but still not payed.) If it ends in
         '.txt' then it is assumed to be in the format of the
         "extras.txt" file and output will include all who are paying
-        for one or more of the Club's three special privileges. There
-        is also the option of creating a json file needed by the
-        restore_fees_cmd. (See the README file re SPoL.)
+        for one or more of the Club's three special privileges.
+        There is also the option of creating a json file needed by
+        the restore_fees_cmd. (See the README file re SPoL.)
     payables: reports on content of the member data money fields
         providing a listing of those who owe and those who have paid
         in advance.
@@ -334,7 +337,15 @@ media = dict(  # keep the classes in a dict
 def ck_data_cmd():
     print("Checking for data consistency...")
     club = Club()
-    ret = data.ck_data(club, raw=args['-r'], formfeed=args['-P'])
+    if args['-i']:
+        club.MEMBERSHIP_SPoT = args['-i']
+    if args['-N']:
+        club.APPLICANT_SPoT = args['-N']
+    if args['-X']:
+        club.EXTRA_FEES_SPoT = args['-X']
+    if args['-C']:
+        club.CONTACTS_SPoT = args['-C']
+    ret = data.ck_data(club, report_status=args['-s'])
     output("\n".join(ret))
 
 
@@ -516,16 +527,27 @@ def extra_charges_cmd():
     It also can create a json file: specified by the -j option.
     Such a json file is required by the restore_fees command.
     """
+    if args["-j"]:
+        print('Not set up to provide json file yet.')
     infile = args["-i"]
     if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    header =["Members Paying Extra Fees",
-             "========================="]
-    res = data.present_fees_by_name(
-            data.gather_extra_fees_data(
-                Club.EXTRA_FEES_SPoT), raw=True)
-    ret = helpers.tabulate(res, alignment='<')
-    output('\n'.join(header + ret))
+        infile = Club.EXTRA_FEES_SPoT
+    print('<infile> set to "{}"'.format(infile))
+    if infile.endswith(TEXT):
+        print('<infile> ends in "{}"'.format(TEXT))
+        header =["Members Paying Extra Fees",
+                 "========================="]
+        res = data.present_fees_by_name(
+                data.gather_extra_fees_data(
+                    infile), raw=True)
+        ret = helpers.tabulate(res, alignment='<', down=True)
+        output('\n'.join(header + ret))
+    elif infile.endswith(CSV):
+        print('Not set up to deal with csv file yet.')
+        return
+    else:
+        print('<infile> must end in ".txt" or ".csv"')
+        assert(False)
 
 
 def payables_cmd():

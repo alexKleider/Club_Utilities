@@ -349,10 +349,10 @@ def get_owing(record, club):
     """
     owing = dict()
     for key in money_keys:
-        if record["key"]:
-            owing["key"] = int(record["key"])
+        if record[key]:
+            owing[key] = int(record[key])
         else:
-            owing["key"] = 0
+            owing[key] = 0
     club.owing = owing
 
 
@@ -508,8 +508,9 @@ def q_mailing(record, club):
     record["subject"] = club.which["subject"]
     if (record['status']
     and 'be' in record['status']
-    and not club.which["e_and_or_p"] == "email"): # If only sending emails...
-        # don't want to send a letter in spite of a known bad email.
+    and not club.which["e_and_or_p"] == "email"):
+    # If only sending emails...
+    # don't want to send a letter in spite of a known bad email.
         file_letter(record, club)
     elif club.which["e_and_or_p"] == "email":
         append_email(record, club)
@@ -548,7 +549,7 @@ def prepare_mailing(mem_csv_file, club):
 #   print(
 #       "Begin member.prepare_mailing which calls traverse_records.")
     traverse_records(mem_csv_file, 
-        club.which["funcs"], club)
+        club.which["funcs"], club)  # 'which' comes from content
 #   print("Still within 'prepare_mailing':")
 #   print("    checking if there are emails...")
     # No point in creating a json file if no content:
@@ -564,7 +565,7 @@ def prepare_mailing(mem_csv_file, club):
 
 def std_mailing(record, club):
     """
-    For mailings which require no special processing.
+    For ailings which require no special processing.
     Mailing is sent if the "test" lambda => True.
     Otherwise the record is ignored.
     """

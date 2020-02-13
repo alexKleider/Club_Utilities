@@ -28,6 +28,8 @@ try:
 except ModuleNotFoundError:
     import Pymail.config as config
 
+# Note: neither rfc5322 dict or get_py_header function are used.
+
 rfc5322 = {
 #  Originator Fields
    "from": "From: ", # mailbox-list CRLF
@@ -81,6 +83,8 @@ def pseudo_recipient(plus_name, email):
 def attach(attachment, msg):
     """
     This code has been tested and works for a text file.
+    <attachment> is the name of a file to be the attachment.
+    <msg> is an instance of MIMEMultipart() to which to attach.
     """
     basename = os.path.basename(attachment)
     with open(attachment, "rb") as f_obj:
@@ -155,15 +159,15 @@ def into_string(string_or_list):
         assert(False)
 
 
-def send(mailings, service='easy', report_progress=False):
+def send(mailings, service='easy', report_progress=True):
     """
     Sends emails.
-    <mailings> is a list of dicts each representing an email to be
-    send. Each dict can have the following keys, some optional:
+    <mailings> is a list of dicts each representing an email to
+    be sent. Each dict can have the following keys, some optional:
     'body': a (possibly empty) string.
     'attachments': a list (possible empty) of file names.
     The commonly used fields defined by rfc5322. Values are either
-    strings or lists of strings; in the latter case they value is
+    strings or lists of strings; in the latter case the values are
     converted into a single comma separated string.
     """
     server = config.config[service]
@@ -187,9 +191,7 @@ def send(mailings, service='easy', report_progress=False):
             for key in mailing:
                 msg[key] = into_string(mailing[key])
             msg.attach(MIMEText(body, 'plain'))
-
-#           attach_many(attachments, msg)
-
+#           attach_many(attachments, msg)  ## Fails, 2b trouble sh.
             for attachment in attachments:
                 attach(attachment, msg)
 
@@ -201,6 +203,9 @@ def send(mailings, service='easy', report_progress=False):
             del msg
     except:
         s.quit()
+        if report_progress:
+            print("Pymail.send.send() failed sending to {}."
+                .format(mailing['To']))
         raise
     s.quit()
 

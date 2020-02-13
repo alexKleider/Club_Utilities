@@ -61,7 +61,7 @@ def gather_membership_data(club):
         print("Error condition! #{}".format(err_code))
 
 
-def get_gmail_record_info(g_rec):
+def get_gmail_record(g_rec):
     """
     <g_rec> is a record from the gmail contacts file.
     Returns a dict with only the info we need.
@@ -118,7 +118,7 @@ def gather_contacts_data(club):
         print('DictReading Google contacts file "{}".'
             .format(file_obj.name))
         for g_rec in google_reader:
-            g_dict = get_gmail_record_info(g_rec)
+            g_dict = get_gmail_record(g_rec)
 
             _ = club.g_by_email.setdefault(g_dict["g_email"], set())
             club.g_by_email[g_dict["g_email"]].add(g_dict["gname"])
@@ -459,10 +459,7 @@ def ck_applicants_cmd():
 
 
 
-def ck_data(club,
-            report_status=True,
-            raw=False,
-            formfeed=False):
+def ck_data(club, report_status=True):
     """
     Check integrity/consistency of of the Club's data bases:
         MEMBERSHIP_SPoT  # the main club data base
@@ -476,13 +473,11 @@ def ck_data(club,
     the first and checked.
     Returns a report in the form of an array of lines.
     """
-    club = Club()
-    ret = ['']
+    ret = []
     first_line = "Report Regarding Data Integrity"
     if not (raw or formfeed):
         ret.append(first_line)
-        ret.append("#" * len(first_line))
-        ret.append('')
+        ret.append("#" * len(first_line) )
     ok = []
 
     # Collect data from csv files ==> club attributes
@@ -528,12 +523,8 @@ def ck_data(club,
                         dangling_m_emails, ret)
         remove_unwanted_items(club.ms_by_email, dangling_m_emails,
             ignore_keyerror=False)
-    if shared_m_emails:
-        print("Found Shared Member Emails")
-        add2problems("Shared Member Email(s)", shared_m_emails, ret)
-        remove_unwanted_items(club.ms_by_email,
-                    first_parts_only(shared_m_emails),
-                        ignore_keyerror=False)
+
+    # Deal with <shared_m_emails> (with <shared_g_emails>) later.
 
     # Deal with (gmail) CONTACTS data
     # Catch problem cases & set ==> one name for each email.
@@ -558,12 +549,29 @@ def ck_data(club,
                         dangling_g_emails, ret)
         remove_unwanted_items(club.g_by_email,dangling_g_emails,
             ignore_keyerror=False)
-    if shared_g_emails:
-        print("Found Shared Contact Emails")
-        add2problems("Shared Contact Email(s)", shared_g_emails, ret)
-        remove_unwanted_items(club.g_by_email, 
-                        first_parts_only(shared_g_emails),
+
+    # Now deal with both <shared_m_emails> and <shared_g_emails>:
+    if shared_m_emails or shared_g_emails:
+        if shared_m_emails == shared_g_emails:
+            add2problems(
+                "Shared Emails (in both Membership Data & Gmail)",
+                shared_m_emails, ret)
+        elif shared_m_emails:
+            print("Found Shared Member Emails")
+            add2problems(
+                "Shared Member Email(s)", shared_m_emails, ret)
+            remove_unwanted_items(club.ms_by_email,
+                        first_parts_only(shared_m_emails),
                             ignore_keyerror=False)
+        elif shared_g_emails:
+            print("Found Shared Contact Emails")
+            add2problems(
+                "Shared Contact Email(s)", shared_g_emails, ret)
+            remove_unwanted_items(club.g_by_email, 
+                            first_parts_only(shared_g_emails),
+                                ignore_keyerror=False)
+        else:
+            assert(False)
 
     # Provide listing of those with 'stati':
     if report_status:
@@ -675,7 +683,7 @@ def ck_data(club,
         ok.append("No applicant problem.")
 
     if non_member_contacts:
-        add2problems("\nContacts that are Not Members",
+        add2problems("Contacts that are Not Members",
                 non_member_contacts, ret)
     else:
         ok.append('No contacts that are not members.')

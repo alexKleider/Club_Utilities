@@ -69,7 +69,7 @@ more Blah blah
 etc
 
 First extra content is
-{extra}
+{{extra}}
 
 May have as many 'extra's as required as long as each one
 has a corresponding entry in the record dict (typically arranged
@@ -279,6 +279,15 @@ site: "Rules and Forms" and under that "Club Rentals".
 Most important of all, come to meetings and other functions to enjoy
 the comraderie!""",
 
+    expired_application = """
+It's been more than six months since your membership application has
+been received which makes it now expired.  If you still wish to be a
+member of the Bolinas Rod and Boat Club the application process must
+begin again.""",
+
+    cover_letter = """
+Enclosed you'll find minutes of the Bolinas Rod and Boat Club.""",
+
     personal = """
 Enclosed please find the payment.
 
@@ -389,7 +398,8 @@ authors = dict(  # from
         postal_code = "94924",
         country = "USA",
         email_signature = "\nSincerely,\nRandy Rush",
-        email = "rodandboatclub@gmail.com",
+        email = 'rodandboatclub@gmail.com',
+#       email = "alex@kleider.ca",
         reply2 = 'randolph@sonic.net',
         mail_signature = "\nSincerely,\n\n\nRandy Rush",
         ),
@@ -424,7 +434,7 @@ content_types = dict(  # which_letter
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
         "post_scripts": (),
-        "funcs": [member.get_owing, ],
+        "funcs": [member.std_mailing, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -610,6 +620,30 @@ content_types = dict(  # which_letter
         lambda record: True if 'm' in record["status"] else False),
         "e_and_or_p": "one_only",
         },
+
+    expired_application = {
+        "subject": "Application Expired",
+        "from": authors["membership"],
+        "body": letter_bodies["expired_application"],
+        "post_scripts": ( ),
+        "funcs": (member.std_mailing,),
+        "test": (
+        lambda record: True if record["first"] == 'Joseph'
+                and record['last'] == 'Nowicki' else False),
+        "e_and_or_p": "one_only",
+        },
+
+    cover_letter ={
+        "subject": "Recent Minutes",
+        "from": authors["secretary"],
+        "body": letter_bodies["cover_letter"],
+        "post_scripts": ( ),
+        "funcs": (member.std_mailing,),
+        "test": (
+        lambda record: False if record['email'] else True),
+        "e_and_or_p": "one_only",
+        },
+
     personal = {
         "subject": "Old Boys Dinner Reimbursement",
         "from": authors["ak"],
@@ -664,10 +698,10 @@ printers = dict(
     # tuples in the case of windows.
     X6505 = dict(
         indent = 5,
-        top = 2,  # blank lines at top
-        frm = (4, 25),  # return window
-        date = 5,  # lines between windows
-        to = (5, 30),  # recipient window
+        top = 2,  # blank lines at top  1 ..2
+        frm = (4, 25),  # return window 3..6
+        date = 5,  # lines between windows 7..11
+        to = (5, 30),  # recipient window 12..16
         re = 2,  # lines below bottom window
         ),
     HL2170 = dict(

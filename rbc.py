@@ -10,6 +10,7 @@ It provides the <Club> class.
 """
 
 import os
+import shutil
 import helpers
 import member
 
