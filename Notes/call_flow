@@ -1,0 +1,18 @@
+report => report_cmd => report
+    club.by_status
+        nmembers
+        present_by_status
+    member.traverse_records
+        add2by_status
+        increment_nmembers
+    helpers.add_header2list
+
+
+prepare_mailing => prepare_mailing_command => 
+    member.prepare_mailing(club)
+        traverse_records applying 'funcs' specified in content.py
+            std_mailing, 
+            set_owing, ???
+            request_inductee_payment,
+
+

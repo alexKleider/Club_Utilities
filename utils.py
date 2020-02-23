@@ -29,7 +29,7 @@ Usage:
   ./utils.py extra_charges [-f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-E --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py prepare_mailing --which <letter> [-E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
   ./utils.py display_emails -j <json_file> [-E -o <txt_file>]
   ./utils.py send_emails [<content> -E] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
@@ -71,6 +71,7 @@ Options:
   -N <app_spot>  Applicant data file.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
+  --oo   Owing_Only: Only send notices if fees are outstanding.
   -p <params>  If not specified, the default is
               A5160 for labels & E000 for envelopes.
   -P    Some commands may have more than one component to
@@ -120,10 +121,18 @@ Commands:
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
     prepare_mailing: A general form of the billing command (above.)
-        This command demands a --which argument to specify the
+        This command demands a <--which> argument to specify the
         mailing: more specifically, it specifies the content and the
         custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
+        Other parameters have defaults set:
+        '-E'  use easydns.com as mta (vs gmail account.)
+        '--oo'  Only send request for fee payment to those with an
+        outstanding balance.
+        '--lpr' <printer> specifies printer to be used for letters.
+        '-i <infile>' membership data csv file.
+        '-j <json_file>' where to dump prepared emails.
+        '---dir <dir4letters>' where to put letters.
     prepare4easy: A version of the prepare_mailing command (above)
         modified to produce a json file that can be used to send
         emails via easydns.com rather than the club gmail account.
@@ -365,7 +374,7 @@ def show_cmd():
     print("Preparing membership listings...")
     err_code = member.traverse_records(infile,
         (member.add2list4web, # increments club.nmembers
-         member.add2by_status, # increments club.napplicants
+#        member.add2status_data, # increments club.napplicants
                                  ), club)
 
     ret = ["""FOR MEMBER USE ONLY
@@ -448,7 +457,7 @@ def report():
     Number of applicants and applicant role call
     """
     club = Club()
-    club.ms_by_status = {}
+    club.by_status = {}
     club.nmembers = 0
     infile = args["-i"]
     if not infile:
@@ -582,26 +591,22 @@ def show_mailing_categories_cmd():
 
 def prepare_mailing_cmd():
     """
-    Usage:
-  ./utils.py prepare4easy_cmd --which <letter> [--lpr <printer>\
-            -i <infile> -j <json_file> --dir <dir4letters> -E]
-
-    "--which <letter>" must be set to one of the keys found in 
-    content.content_types.
-    Depending on the above, this command will also need to assign
-    attributes to the Club instance to collect "extra_data".
-
     '-E' changes the MTA to be easydns.com rather than gmail.
-
-    Should be able to replace all the various billing routines as well
-    as provide a general mechanism of sending out notices.
-    Accompanying module 'content' provides support.
+    Does initial set up of a Club instance then
+    calls member.prepare_mailing(
+    '--oo' Owing Only: applies only to requests for payment:
+    if set, those with zero (or negative) balance do not get
+    a message.
     """
     club = Club()
     if args['-E']:
         club.easy = True
     else:
         club.easy = False
+    if args['--oo']:
+        club.owing_only = True
+    else:
+        club.owing_only = False
     club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["--lpr"]]
     club.email = content.prepare_email_template(
@@ -611,6 +616,7 @@ def prepare_mailing_cmd():
 #   print("Preparing mailing: '{}'".format(club.which))
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
+    club.input_file_name = args['-i']
     if not args["-j"]:
         args["-j"] = club.JSON_FILE_NAME4EMAILS
     club.json_file_name = args["-j"]
@@ -629,7 +635,7 @@ def prepare_mailing_cmd():
         club.check_json_file(club.json_file_name)
         club.json_data = []
     # *****...
-    member.prepare_mailing(args["-i"], club)
+    member.prepare_mailing(club)
     # need to move the json_data to the file
 #   if club.json_data:
 #       with open(club.json_file_name, 'w') as f_obj:
@@ -650,7 +656,11 @@ def display_emails_cmd(json_file):
             email.append('')
             all_emails.extend(email)
         else:
-            recipients = ', '.join(record[0])
+            try:
+                recipients = ', '.join(record[0])
+            except KeyError:
+                print("Perhaps you've forgotten the '-E' option?")
+                sys.exit()
             email.append(">>: " + recipients)
             email.append(record[1])
 #           print(record[1])
@@ -705,7 +715,12 @@ def send_emails_cmd():
                 recipients = datum
                 content = message
             else:
-                recipients = datum[0]
+                try:
+                    recipients = datum[0]
+                    recipients = ', '.join(record[0])
+                except KeyError:
+                    print("Perhaps you've forgotten the '-E' option?")
+                    sys.exit()
                 content = datum[1]
             counter += 1
             print("Sending email #{} to {}."

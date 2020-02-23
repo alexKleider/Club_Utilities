@@ -90,7 +90,7 @@ class Club(object):
         If <applicants_only>: clears and then assigns
         self.napplicants
         """
-        keys = sorted(self.ms_by_status.keys())
+        keys = sorted(self.by_status.keys())
         if applicants_only:
             self.napplicants=0
             keys = [key for key in keys
@@ -98,7 +98,7 @@ class Club(object):
         ret = []
         for key in keys:
             helpers.add_header2list(key, ret, underline_char='-')
-            for line in self.ms_by_status[key]:
+            for line in self.by_status[key]:
                 if applicants_only:
                     self.napplicants += 1
                 ret.append(line)

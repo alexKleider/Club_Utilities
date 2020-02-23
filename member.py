@@ -247,8 +247,8 @@ def add2status_data(record, club):
     member = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
-        _ = club.ms_by_status.setdefault(status, [])
-        club.ms_by_status[status].append(member)
+        _ = club.by_status.setdefault(status, [])
+        club.by_status[status].append(member)
         if hasattr(club, 'stati_by_m'):
             _ = club.stati_by_m.setdefault(member, set())
             club.stati_by_m[member].add(status)
@@ -405,6 +405,7 @@ def add2list4web(record, club):
     class) must be set up by the client.
     """
     if not record['email']: record['email'] = 'no email'
+    if not record['phone']: record['phone'] = 'no phone'
     line = club.pattern.format(**record)
     if record["status"] and "be" in record["status"]:
         line = line + " (bad email!)"
@@ -529,7 +530,7 @@ def q_mailing(record, club):
             .format("{last}, {first}".format(**record)))
         assert False
 
-def prepare_mailing(mem_csv_file, club):
+def prepare_mailing(club):
     """
     Only client of this method is the prepare_mailing_cmd
     which must assign a number of instance attributes:
@@ -541,14 +542,14 @@ def prepare_mailing(mem_csv_file, club):
                 func to be used on each record
                 test a boolean lambda- consider record or not
                 e_and_or_p: both, usps or one_only
-        club.date (passed on to record.date)
+        club.input_file_name
         club.json_file_name
         club.json_data = []
         club.dir4letters
     """
 #   print(
 #       "Begin member.prepare_mailing which calls traverse_records.")
-    traverse_records(mem_csv_file, 
+    traverse_records(club.input_file_name, 
         club.which["funcs"], club)  # 'which' comes from content
 #   print("Still within 'prepare_mailing':")
 #   print("    checking if there are emails...")
@@ -565,7 +566,7 @@ def prepare_mailing(mem_csv_file, club):
 
 def std_mailing(record, club):
     """
-    For ailings which require no special processing.
+    For mailings which require no special processing.
     Mailing is sent if the "test" lambda => True.
     Otherwise the record is ignored.
     """
@@ -596,19 +597,14 @@ def set_owing(record, club):
     extra = []
     for key in money_keys:
         if record[key] and 'w' in record[key]:
-            extra.append("{}.: waived."
-            .format(money_headers[key]))
-            continue
-        if not record[key]:
+            name = '{first}, {last}'.format(**record)
+            extra.append("{}: {} fee waived."
+                .format(name, money_headers[key]))
             continue
         try:
             money = int(record[key])
-#           except TypeError:
-#               print("TypeError re '{}'.".format(record[key]))
-#               continue
         except ValueError:
-            print("ValueError re '{}'.".format(record[key]))
-            continue
+            money = 0
         if money:
             extra.append("{}.: ${}"
                 .format(money_headers[key], money))

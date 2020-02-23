@@ -82,10 +82,10 @@ General meeting scheduled for 7:30pm.
 Come for the fun!
 """,
 
-    feb_meeting_announcement = """
+    feb_meeting = """
 
 We have a special Bolinas Rod and Boat Club meeting coming up
-February 7th.
+{}.
 
 Board members meet at 5pm.
 
@@ -93,10 +93,10 @@ The general meeting is scheduled for 6:00pm.
 Election of Officers is the main agenda item.
 
 Those with reservations[1]  are invited to stay for the
-annual dinner to be held afterwards.
+annual dinner to follow.
 
 Come for the fun!
-""",
+""".format(helpers.next_first_friday()),
 
     usps_minutes = """
 Enclosed, please find the latest Club minutes.
@@ -122,18 +122,6 @@ behind you.{extra}
 If the number is negative or zero, there'll be nothing due in June.
 """,
 
-    February_meeting = """
-Things are to be somewhat different for the February meeting
-on Friday, the 1st.
-The Board will meet at 5:30 and then there will be the general
-meeting at 6:00pm.  This meeting also includes a dinner which is
-to begin circa 6:30.  Those intending to remain for dinner should
-make a reservation- check with Anna Gade (uc_anna@sbcglobal.net.)
-Applicants are invited but we ask members not to bring guests,
-for the simple reason that seating is limited (hence the importance
-of making a reservation.)
-""",
-
     thank_you_for_advanced_payment = """
 Your advance payment of dues for the next ({}) Club year
 has been received.  Thank you.
@@ -148,54 +136,42 @@ has been received.  Thank you.
 All the best!
 """.format(helpers.next_club_year()),
 
+# Send with May minutes:
     yearly_fees_1st_request = """
 The current Club membership year ends in June and ideally we'd
 like to have all dues and fees for the upcoming ({})
 membership year in by then.  If you are already paid up,
 the Club thanks you.
 
-Remember that you can find out all about yourself and fellow
-club members by going to the Club web site (rodandboatclub.com,
-password is 'fish',) click on 'Membership.'  Let us know if any
-corrections should be made
-
-A statement of your current standing appears bellow;
+A statement of your current standing appears bellow.
 If there are any dues or fees outstanding, please don't delay.
-If the total is zero (or negative) you're all paid up (or more than
-paid up) and we thank you.
+If the total is zero (or negative) you're all paid up (or more
+than paid up) and we thank you.
 {{extra}}""".format(helpers.next_club_year()),
 
+# Send with June minutes:
     yearly_fees_2nd_request = """
 This is a second request being sent out to Club members whose
-dues (and/or fees where applicable) for the current (began
-July 1st) Club year have not yet been payed. You should also
-note that this is the last notice you can expect to receive
-before the late penalty (of $25) is imposed on those who's
-remittance has not been received postmarked on or before August 1st.
+dues (and/or fees where applicable) for the ({}) Club
+year have not yet been payed.  (If you've any
+reason to believe that our accounting might be in error, please
+let us know[1].) 
 
 Details are as follows:
-{extra}""",
+{{extra}}""".format(helpers.next_club_year()),
 
-    yearly_fees_corrected_2nd_request = """
-Your membership secretary neglected in the last request for
-dues (and fees where applicable) to mention where to send
-your check.  Please forgive the oversight. It's:
-    Bolinas Rod and Boat Club
-    PO Box 248
-    Bolinas, CA 94924
-Details as to what you still owe follow:
-{extra}""",
-
+# Send with July minutes:
     final_warning = """
-Club records indicate that your dues (+/- other fees) have as
-yet not been paid.  Please be aware that according to Club bylaws,
-membership lapses if fees are not paid by Sept 1st.
+Club records indicate that your dues (+/- other fees) have
+as yet not been paid.  Please be aware that according to
+Club bylaws, membership lapses if fees are not paid by Sept 1st.
 
 Please pay promptly; we'd hate to loose you as a member.
 
 Details follow.
 {extra}""",
 
+# Penalties are not levied! Don't send!
     penalty_notice = """
 The deadline for Club Dues payment has passed and records indicate
 that you are in arrears so a late fee of $25 has been applied.
@@ -220,7 +196,9 @@ Thanks,""",
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
 
-Please come and enjoy the meetings (first Fiday of each month.)
+Please come and enjoy the meetings held on the first Fiday of
+each month. Meetings are scheduled to begin at 7:30 pm (except
+for the February special dinner meeting which begins at 6pm.)
 
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
@@ -257,7 +235,7 @@ It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
 You will be receiving meeting minutes (via email) as prepared by
-our Club Secretary Peter Pyle.
+our Club Secretary Michael Rafferty.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
@@ -289,17 +267,16 @@ begin again.""",
 Enclosed you'll find minutes of the Bolinas Rod and Boat Club.""",
 
     personal = """
-Enclosed please find the payment.
+The enclosed came to the Club PO Box along with an application.
+Obviously it is in error. Since your name is on it I thought
+best to send it on to you rather than to Herbert.
 
-It was a good dinner and an enjoyable evening.
-
-Sincerely,
-Alex Kleider
+I hope this finds you well.
 """,
 
-    fromPeter = """
+    fromSecretary = """
 Enjoy the minutes!
-Peter Pyle, Secretary
+Michael Rafferty, Secretary
 """,
 
     tpmg_social_security = """
@@ -341,9 +318,9 @@ post_scripts = dict(
 It's always a good idea to jot down 'club dues' on
 the check in order to prevent any confusion.""",
 
-    ref1 = """[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
+    ref1_email_or_PO = """[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
 
-    reservations = """[1] Reservations can be made through Anna Gade
+    ref1_reservations = """[1] Reservations can be made through Anna Gade
     (uc_anna@sbcglobal.net.)""",
     )
 
@@ -447,13 +424,12 @@ content_types = dict(  # which_letter
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "one_only",
         },
-    feb_meeting_announcement = {
+    feb_meeting = {
         "subject": "Meeting first Friday of February",
         "from": authors["membership"],
-        "body": letter_bodies["feb_meeting_announcement"],
-        "post_scripts": (post_scripts['reservations'],),
+        "body": letter_bodies["feb_meeting"],
+        "post_scripts": (post_scripts['ref1_reservations'],),
         "funcs": (member.std_mailing,),
-#       "test": lambda record: True,
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "email",
         },
@@ -472,15 +448,6 @@ content_types = dict(  # which_letter
         "body": letter_bodies["happyNY_and_0th_fees_request"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
-        "test": lambda record: True,
-        "e_and_or_p": "one_only",
-        },
-    February_meeting = {
-        "subject": "Change regarding format and time of next meeting",
-        "from": authors["membership"],
-        "body": letter_bodies["February_meeting"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -519,23 +486,7 @@ content_types = dict(  # which_letter
         "signature": '',
         "post_scripts": (
             post_scripts["remittance"],
-            post_scripts["ref1"],
-            ),
-        "funcs": (member.set_owing,),
-        "test": lambda record: True if ((
-            member.is_member(record) and
-            member.not_paid_up(record))
-            ) else False,
-        "e_and_or_p": "one_only",
-        },
-    yearly_fees_corrected_2nd_request = {
-        "subject":"Second request for BR&BC dues",
-        "from": authors["membership"],
-        "body": letter_bodies["yearly_fees_corrected_2nd_request"],
-        "signature": '',
-        "post_scripts": (
-#           post_scripts["remittance"],
-#           post_scripts["ref1"],
+            post_scripts["ref1_email_or_PO"],
             ),
         "funcs": (member.set_owing,),
         "test": lambda record: True if ((
@@ -586,7 +537,7 @@ content_types = dict(  # which_letter
         "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if
-            (record["status"] and 'a' in record["status"].split("|"))
+            (record["status"] and 'a0' in record["status"].split("|"))
             else False),
         "e_and_or_p": "one_only",
         },
@@ -614,7 +565,7 @@ content_types = dict(  # which_letter
         "subject": "You are a member!",
         "from": authors["membership"],
         "body": letter_bodies["welcome2full_membership"],
-        "post_scripts": (post_scripts["ref1"], ),
+        "post_scripts": (post_scripts["ref1_email_or_PO"], ),
         "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'm' in record["status"] else False),
@@ -645,7 +596,7 @@ content_types = dict(  # which_letter
         },
 
     personal = {
-        "subject": "Old Boys Dinner Reimbursement",
+        "subject": "Papers mistakenly included with application",
         "from": authors["ak"],
         "body": letter_bodies["personal"],
         "post_scripts": (),
