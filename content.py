@@ -62,6 +62,10 @@ easy_email_header = """
 Dear {first} {last},"""
 
 letter_bodies = dict(
+    bill_payment = """
+Please find enclosed payment.
+""",
+
     for_testing = """
 Blah, Blah-
 more Blah blah
@@ -325,6 +329,19 @@ the check in order to prevent any confusion.""",
     )
 
 authors = dict(  # from
+    bc = dict(
+        first = "Alex",
+        last = "Kleider",
+        address = "3727 Cavin Rd.",
+        town = "Duncan",
+        state = "BC",
+        postal_code = "V9L 6T2",
+        country = "Canada",
+        email_signature = "\nSincerely,\nAlex Kleider",
+        email = "akleider@sonic.net",
+        reply2 = "akleider@sonic.net",
+        mail_signature = "\nSincerely,\n\n\nAlex Kleider",
+        ),
     ak = dict(
         first = "Alex",
         last = "Kleider",
@@ -414,6 +431,15 @@ content_types = dict(  # which_letter
         "funcs": [member.std_mailing, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
+        },
+    bill_payment = {
+        "subject": "Payment of Invoice.",
+        "from": authors["bc"],
+        "body": letter_bodies["bill_payment"],
+        "post_scripts": (),
+        "funcs": [member.std_mailing, ],
+        "test": lambda record: True,
+        "e_and_or_p": "usps",
         },
     meeting_announcement = {
         "subject": "Meeting Friday",

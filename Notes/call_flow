@@ -1,3 +1,37 @@
+ck_data => ck_data_cmd =>
+    sets up club = Club() with SPoT file names
+    and then calls data.ck_data(club, report_status=args['-s'])
+  data.ck_data =>
+    gather_membership_data(club)
+        sets up 1. club.email_by_m (dict of sets)
+                2. club.stati_by_m (dict of sets)
+                3. club.fee_category_by_m (dict of lists)
+                4. club.ms_by_email (dict of lists)
+                5. club.ms_by_status (dict of lists)
+                6. club.ms_by_fee_category (dict of lists)
+                7. club.malformed (list)
+                8. club.without_email (list)
+                9. club.napplicants (counter set to 0)
+        member:
+            traverse_records:
+                add2email_data => 1, 4, 8
+                add2fee_data => 3, 6
+#!#             add2status_data => 9, 2, by_status vs 5    #!#
+                add2malformed => 7
+    gather_contacts.data(club)
+        sets up club.gmail_by_name (dict of strings)
+                club.groups_by_name (dict of sets)
+                club.g_by_email (dict of sets of names)
+                club.g_by_group (dict of sets of names)
+        reads contacts.csv calling get_gmail_record(g_rec) for each
+        get_gmail_record extracts data: gname, g_email, groups
+        populates the 4 club attributes
+    extra_fees_info = gather_extra_fees_data(f, without_fees=True)
+    a_applicants = gather_applicant_data(f)['applicants']
+        add2problems(...)
+    sets up dangling_m_emails
+            shared_m_emails
+
 report => report_cmd => report
     club.by_status
         nmembers

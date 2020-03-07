@@ -23,7 +23,7 @@ Usage:
   ./utils.py [ ? | --help | --version ]
   ./utils.py ck_data [-s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py report [-i <infile> -o <outfile> ]
+  ./utils.py report [-i <infile> -S <applicant_spot> -o <outfile> ]
   ./utils.py stati [-A -i <infile> -o <outfile>]
   ./utils.py usps [-i <infile> -o <outfile>]
   ./utils.py extra_charges [-f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -80,6 +80,7 @@ Options:
   -r    Supress headers (to make the output suitable as
         input for creating tables.)
   -s    Report status
+  -S <applicant_spot>  re 'report' comand: appicant SPoT file.
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
@@ -360,7 +361,7 @@ def ck_data_cmd():
 
 def show_cmd():
     club = Club()
-    club.pattern = ("{first} {last}  [{phone}]  {address}," +
+    club.pattern = ("{first} {last}  [{phone}]  {address}, " +
                     "{town}, {state} {postal_code} [{email}]")
     club.members = []
     club.nmembers = 0
@@ -383,7 +384,6 @@ THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS
 ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN IS NOT TO BE REPRODUCED
 OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
 BOARD OF THE BRBC.
-LOSS OF MEMBERSHIP IS THE PENALTY.
     """]
     if club.members:
         ret.extend(("Club Members ({} in number as of {})"
@@ -455,13 +455,17 @@ def report():
     Date
     Number of members
     Number of applicants and applicant role call
+    Wish to add each applicants date of application.
     """
     club = Club()
     club.by_status = {}
     club.nmembers = 0
     infile = args["-i"]
+    applicant_spot = args['-S']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
+    if not applicant_spot:
+        applicant_spot = Club.APPLICANT_SPoT
     print("Preparing Membership Report ...")
     report = [
        "Membership Report (prepared {})".format(helpers.date), ]
@@ -473,12 +477,22 @@ def report():
             member.increment_nmembers,
             ],
             club)
-
+    ap_set_w_dates_by_status = data.gather_applicant_data(applicant_spot,
+                                    include_dates=True)["applicants"]
+    
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
-    report.extend(club.applicant_listing())
+    ap_listing = club.by_status
+
+    for key in ap_listing:
+      if 'a' in key:
+        if len(ap_listing[key]) != len(ap_set_w_dates_by_status[key]):
+            print("!!! {} != {} !!!"
+                .format(ap_listing[key], ap_set_w_dates_by_status[key]))
+    report.extend(helpers.show_dict(ap_set_w_dates_by_status,
+                                underline_char='-'))
     try:
-        with open("report.addendum", 'r') as fobj:
+        with open("Info/addendum2report.txt", 'r') as fobj:
             print('opening file')
             addendum = fobj.read()
             report.append(addendum)
@@ -489,7 +503,7 @@ def report():
     report.extend([
         "Respectfully submitted by",
         "Alex Kleider, Membership Chair,",
-        "for presention at the {} meeting."
+        "for presentation at the {} meeting."
             .format(helpers.next_first_friday()),
         ])
     return report

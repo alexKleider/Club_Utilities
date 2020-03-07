@@ -14,6 +14,8 @@ This 'README' pertains to utils.py and associated modules:
 
 -   ck_data.py
 
+-   rbc.py
+
 This project can be found at
 https://github.com/alexKleider/Club_Utilities
 (It's dependencies are discussed at the end of this document.)
@@ -63,9 +65,8 @@ contains the following files:
 
 - google.csv (imported from the clubs gmail account)
 
-    This (contacts.csv) file can be imported from the Cub's Gmail account
-    and used to compare with the Club data base (Data/memlist.csv) using the
-    'compare_gmail' sub-command.
+    This (contacts.csv) file can be imported from the Cub's Gmail account.
+    It is used to check for data integrity by the 'ck_data' sub-command. 
 
 - receipts<year>.txt
 

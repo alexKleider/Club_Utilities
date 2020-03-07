@@ -233,12 +233,13 @@ def add2email_data(record, club):
     else:
         if hasattr(club, "without_email"):
             club.without_email.append(name)
-    pass
 
 
 def add2status_data(record, club):
     """
-    Also increments club.napplicants if attribute exists.
+    Populates club.by_status: list of members keyed by status.
+    Also populates club.stati_my_m if attribute exists...
+    and increments club.napplicants if attribute exists.
     """
     if not record["status"]:
         return
@@ -247,12 +248,12 @@ def add2status_data(record, club):
     member = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
+        # change to club.ms_by_status!!??!!:vv
         _ = club.by_status.setdefault(status, [])
         club.by_status[status].append(member)
         if hasattr(club, 'stati_by_m'):
             _ = club.stati_by_m.setdefault(member, set())
             club.stati_by_m[member].add(status)
-
 
 
 def add2fee_data(record, club):
@@ -322,7 +323,7 @@ def show_by_status(by_status, stati2show=STATI):
     """
     ret = []
     stati = by_status.keys()
-    for status in stati:
+    for status in sorted(stati):
         if status in stati2show:
             ret.append('')
             ret.append(status)

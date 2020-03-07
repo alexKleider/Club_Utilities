@@ -82,13 +82,41 @@ def get_gmail_record(g_rec):
         g_rec["Name Suffix"],
         )).strip()
     gname = "{}, {}".format(last_name, first_name)
+    alias = "{}{}".format(first_name, last_name)
+    muttname = '{} {}'.format(first_name, last_name)
     return dict(
         gname= gname,
+        alias= alias,
+        muttname= muttname,
         g_email= g_email,
         groups= group_membership,
         )
     
 
+def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
+                            muttalias='~/.muttalias'):
+    """
+    <g_contacts_file> is a google contacts.csv file.
+    Selects needed information and creates a muttalias file.
+    This file can then be specified in ~/.muttrc as follows:
+    set alias_file="~/.muttalias"
+    """
+    ret = []
+    line = "alias {alias} {muttname} <{g_email}>"
+    in_file = os.path.expanduser(g_contacts_file)
+    out_file = os.path.expanduser(muttalias)
+    with open(in_file, 'r', encoding='utf-8') as file_obj:
+        reader = csv.DictReader(file_obj)
+        for rec in reader:
+            new_rec = get_gmail_record(rec)
+            entry = line.format(**new_rec)
+            if entry.count('<') > 1:
+                print(entry)
+            if new_rec['g_email']:
+                ret.append(entry)
+    with open(out_file, 'w') as file_obj:
+        file_obj.write('\n'.join(ret))
+    
 
 def gather_contacts_data(club):
     """
@@ -131,12 +159,12 @@ def gather_contacts_data(club):
                 club.g_by_group[key].add(g_dict["gname"])
 
 
-def gather_applicant_data(in_file):
+def gather_applicant_data(in_file, include_dates=False):
     """
     Reads the in_file (APPLICANT_SPoT) and returns a dict With keys:
         "expired": list of applicants who've let applications expire.
-        "applicants": a dict- set of applicants keyed by status.
-            (Client will want to sort keys for presentation.)
+        "applicants": a dict- set of applicants (+/- meeting dates)
+    keyed by status. (Client will want to sort keys for presentation.)
     """
     expired_applications = []
     applicants = {}
@@ -174,7 +202,15 @@ def gather_applicant_data(in_file):
                         else:
                             _ = applicants.setdefault(status, [])
 #                           print("Adding '{}'.".format(last_first))
-                            applicants[status].append(last_first)
+                            if include_dates:
+                                dates = parts[Club.N_SEPARATORS:]
+                                applicants[status].append("{}: {}"
+                                    .format(last_first, dates))
+                            else:
+                                applicants[status].append(last_first)
+#                       print("Line with dates:")
+#                       print("{} {}".format(last_first,
+#                               ', '.join(dates)))
                     elif name:
                         print(
                         "Difficulty processing applicant '{}' in line:"
