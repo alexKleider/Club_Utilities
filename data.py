@@ -225,33 +225,19 @@ def gather_applicant_data(in_file, include_dates=False):
             }
 
 
-def gather_extra_fees_data(in_file, without_fees=False):
+def gather_extra_fees_data(in_file):
     """
     Reads in_file and returns a dict with keys:
-        CATEGORY_KEY: a dict keyed by category with
-            each a set of (last_first, amount) tuples.
-        NAME_KEY: a dict keyed by name with
+        Club.NAME_KEY: a dict keyed by name with
             each a set of (category, amount) tuples.
-    If without_fees is True: then sets are not of tuples
-    but rather just strings: last_first or category.
+        Club.CATEGORY_KEY: a dict keyed by category with
+            each a set of (last_first, amount) tuples.
 
-    Input file must have the following (that of
-    Data/extra_fees.txt) format:
-
-    Members paying for a Mooring:
-    Michael Cook:  114
-    ...
-
-    Members paying for Dock privileges:
-    Rick Butler:  75
-    Jeff McPhearson:  75
-    ...
-
-    Members paying for Kayak storage:
-    Doug Birch:  70
-    Kathryn Cook:  70
-    Jeff McPhearson:  70
-    ...
+    Input file must have three header lines each containing
+    one of the following words: Mooring, Dock, Kayak,
+    and ending with ':'.
+    Other lines must contain 'First Last: amt'.
+    ...as can be seen in Data/extra_fees.txt.
     """
     by_name = {}
     by_category = dict(  # json version of input file
@@ -291,12 +277,8 @@ def gather_extra_fees_data(in_file, without_fees=False):
                 name_key = "{}, {}".format(last_name, first_name)
                 _ = by_name.setdefault(name_key, [])
                 _ = by_category.setdefault(category, [])
-                if without_fees:
-                    by_name[name_key].append(category)
-                    by_category[category].append(name_key)
-                else:
-                    by_name[name_key].append((category, fee))
-                    by_category[category].append((name_key, fee))
+                by_name[name_key].append((category, fee))
+                by_category[category].append((name_key, fee))
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }
@@ -314,19 +296,22 @@ def present_fees_by_name(extra_fees, raw=False):
     else:
         jv = extra_fees
     ret = []
+    header_lines = []
     if not raw:
-        ret.append("Extra fees by member:")
-        ret.append("=====================")
+        header_lines.append("Extra fees by member:")
+        header_lines.append("=====================")
     for key in jv:
         charges = []
         for value in jv[key]:
             charges.append("{} {}".format(value[0], value[1]))
         charges = ', '.join(charges)
         ret.append(key + ': ' + charges)
-    return ret
+    ret.sort()
+    return header_lines + ret
 
 
-def present_fees_by_category(extra_fees, raw=False):
+def present_fees_by_category(extra_fees,
+                            raw=False, always_incl_fees=False):
     """
     Param would typically be the returned value of
     gather_extra_fees_data(infile)
@@ -338,15 +323,45 @@ def present_fees_by_category(extra_fees, raw=False):
     else:
         jv = extra_fees
     categories = sorted([key for key in jv])
-    ret = []
-    if not raw:
-        ret.append("Extra fees by category:")
-        ret.append("=======================")
-    for key in categories:
-        ret.append('\n' + key)
-        ret.append("-" * len(key))
-        for value in jv[key]:
-            ret.append("{0}: ${1}".format(*value))
+    ret = {}
+    max_width = {}
+    for category in categories:
+        ret[category] = []
+        max_width[category] = 0
+    if raw:
+        header = []
+    else:
+        header = ["Extra fees by category:",
+                  "======================="]
+    for category in categories:
+        if category == 'Kayak':
+            ret[category].append(category + ': {}'.format(
+                        Club.KAYAK_FEE))
+        elif category == 'Dock':
+            ret[category].append(category + ': {}'.format(
+                        Club.DOCK_FEE))
+        elif category == 'Mooring':
+            ret[category].append(category)
+        ret[category].append('-' * len(ret[category][0]))
+        max_width[category] = len(ret[category][0])
+        for value in jv[category]:
+            if category == 'Mooring':
+                ret[category].append("{0}: ${1}".format(*value))
+            else:
+                ret[category].append("{}".format(value[0]))
+            if len(ret[category][-1]) > max_width[category]:
+                max_width[category] = len(ret[category][-1])
+    max_n = 0
+    for category in categories:
+        if len(ret[category]) > max_n:
+            max_n = len(ret[category])
+    for category in categories:
+        ret[category].extend([''] * (max_n -len(ret[category])))
+    zipped = zip(*[value for value in d.values()])
+    res = []
+    form = '{}  {}  {}'
+    for triplet in zipped:
+        res
     return ret
 
 

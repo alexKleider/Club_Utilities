@@ -140,6 +140,20 @@ has been received.  Thank you.
 All the best!
 """.format(helpers.next_club_year()),
 
+# Send with March minutes:
+    March_request = """
+This is a reminder that annual Club dues will be due in June.
+That is still a ways out but some might like to know in advance
+in order to be able to budget appropriately.  Advance warning
+also benefits those that might be planning to be away for the
+summer.
+
+A statement of your current standing appears bellow.
+If there are any dues or fees outstanding, please don't delay.
+If the total is zero (or negative) you're all paid up (or more
+than paid up) and we thank you.
+{extra}""",
+
 # Send with May minutes:
     yearly_fees_1st_request = """
 The current Club membership year ends in June and ideally we'd
@@ -499,6 +513,16 @@ content_types = dict(  # which_letter
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["membership"],
         "body": letter_bodies["yearly_fees_1st_request"],
+        "post_scripts": (post_scripts["remittance"],),
+        "funcs": (member.set_owing,),
+        "test": lambda record: False if (('a' in record["status"]) or
+                ('w' in record["status"])) else True,
+        "e_and_or_p": "one_only",
+        },
+    march_request = {
+        "subject": "Bolinas R&B Club fees coming due",
+        "from": authors["membership"],
+        "body": letter_bodies["March_request"],
         "post_scripts": (post_scripts["remittance"],),
         "funcs": (member.set_owing,),
         "test": lambda record: False if (('a' in record["status"]) or

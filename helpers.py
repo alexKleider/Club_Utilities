@@ -185,8 +185,8 @@ def longest(x, y):
 
 def tabulate(data,
             display = None,  # a function
-            alignment = '>', # left (<), right (>) or centered (^)
-            down = False, #list by column (down) or by row (default)
+            alignment = '<', # left (<), right (>) or centered (^)
+            down = True, #list by column (down) or by row (default)
             max_width = 75,
             max_columns = 0,
             separator = ' ', # minimum separation between columns

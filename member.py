@@ -395,8 +395,8 @@ def add2list4web(record, club):
     Client is expected to provide <club>, an instance of rbc.Club,
     with the following attributes in place:
         pattern
-        members = []    and  nmembers = 0
-        by_status = []  and  napplicants = 0
+        members = []        &  nmembers = 0
+        by_n_meetings = []  &  napplicants = 0
         errors = []
     Populates club.members, club.stati, club.applicants,
     Club.inductees and club.errors (initially empty lists)
@@ -424,12 +424,9 @@ def add2list4web(record, club):
         stati = record['status'].split(SEPARATOR)
         for status in stati:
             if status in APPLICANT_SET: 
-#               print("Detected applicant '{}'.".format(line))
                 club.napplicants += 1
                 _ = club.by_n_meetings.setdefault(status, [])
                 club.by_n_meetings[status].append(line)
-#           else:
-#               club.errors.append(line)
                 
 
 

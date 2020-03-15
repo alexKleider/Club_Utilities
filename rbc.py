@@ -10,6 +10,7 @@ It provides the <Club> class.
 """
 
 import os
+import sys
 import shutil
 import helpers
 import member
@@ -54,9 +55,11 @@ class Club(object):
     APPLICANT_GROUP = "applicant"  # } These are specific to
     MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
     OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
-    DOCK = 'DockUsers'
-    KAYAK = 'Kayak'
-    MOORING = 'moorings'
+    DOCK_FEE = 75
+    KAYAK_FEE = 70
+    DOCK = 'DockUsers'     #} These are the 'groups'
+    KAYAK = 'Kayak'        #} as defined in the club's
+    MOORING = 'moorings'   #} gmail contacts.
     SECRETARY = 'Secretary'
 
     # Intermediate &/or temporary files used:

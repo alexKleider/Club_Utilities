@@ -20,23 +20,23 @@ letters (which can be prepared using the 'prepare_mailing' command.)
 Consult the README file for further info.
 
 Usage:
-  ./utils.py [ ? | --help | --version ]
-  ./utils.py ck_data [-s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
-  ./utils.py show [-r -i <infile> -o <outfile> ]
-  ./utils.py report [-i <infile> -S <applicant_spot> -o <outfile> ]
-  ./utils.py stati [-A -i <infile> -o <outfile>]
-  ./utils.py usps [-i <infile> -o <outfile>]
-  ./utils.py extra_charges [-f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-i <infile>] -o <outfile>
-  ./utils.py show_mailing_categories [-o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
-  ./utils.py display_emails -j <json_file> [-E -o <txt_file>]
-  ./utils.py send_emails [<content> -E] -j <json_file>
-  ./utils.py print_letters --dir <dir4letters> [-s <sep> -e error_file]
-  ./utils.py emailing [-i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
-  ./utils.py restore_fees [<membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
-  ./utils.py fees_intake [-i <infile> -o <outfile> -e <error_file>]
-  ./utils.py (labels | envelopes) [-i <infile> -p <params> -o <outfile> -x <file>]
+  ./utils.py [ ? | --help | --version]
+  ./utils.py ck_data [-O -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py show [-O -r -i <infile> -o <outfile> ]
+  ./utils.py report [-O -i <infile> -S <applicant_spot> -o <outfile> ]
+  ./utils.py stati [-O -A -i <infile> -o <outfile>]
+  ./utils.py usps [-O -i <infile> -o <outfile>]
+  ./utils.py extra_charges [-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py payables [-O -i <infile>] -o <outfile>
+  ./utils.py show_mailing_categories [-O -o <outfile>]
+  ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
+  ./utils.py send_emails [-O <content> -E] -j <json_file>
+  ./utils.py print_letters --dir <dir4letters> [-O -s <sep> -e error_file]
+  ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
+  ./utils.py restore_fees [-O <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
+  ./utils.py fees_intake [-O -i <infile> -o <outfile> -e <error_file>]
+  ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
 
 Options:
   -h --help  Print this docstring.
@@ -53,9 +53,9 @@ Options:
   -E   Use easydns.com as mail transfer agent. gmail is the default.
   -f <format>  Format to be used for output of the extra_charges
         command; possibilities are:
-            'table'
-            'listing'
-            'listings' 
+            'table' listing of names /w fees tabulated (=> 2 columns.)
+            'listing' same format as Data/extra_fees.txt
+            'listings' side by side lists (best use landscape mode.)
         [default: table]
   -F <muttrc>  The name of a muttrc file to be used.
                         [default: muttrc_rbc]
@@ -69,6 +69,7 @@ Options:
             specified.  [default: X6505]
                   'content_types' dict in content.py.)
   -N <app_spot>  Applicant data file.
+  -O  Show arguments/Options.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only send notices if fees are outstanding.
@@ -112,8 +113,8 @@ Commands:
         data base file is assumed and output will be charges
         outstanding (i.e. owed but still not payed.) If it ends in
         '.txt' then it is assumed to be in the format of the
-        "extras.txt" file and output will include all who are paying
-        for one or more of the Club's three special privileges.
+        "extra_feess.txt" file and output will include all who are
+        paying for one or more of the Club's three special privileges.
         There is also the option of creating a json file needed by
         the restore_fees_cmd. (See the README file re SPoL.)
     payables: reports on content of the member data money fields
@@ -130,7 +131,7 @@ Commands:
         '-E'  use easydns.com as mta (vs gmail account.)
         '--oo'  Only send request for fee payment to those with an
         outstanding balance.
-        '--lpr' <printer> specifies printer to be used for letters.
+        '--lpr <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
         '---dir <dir4letters>' where to put letters.
@@ -206,11 +207,17 @@ TEMP_FILE = "2print.temp"
 SECRETARY = ("Michael", "Rafferty")
 
 args = docopt(__doc__, version="1.1")
-# for key in args: print(key, args[key])
+if args['-O']:
+    print("Arguments are...")
+    res = sorted(["{}: {}".format(key, args[key]) for key in args])
+    ret = helpers.tabulate(res, max_width=140, separator='   ')
+    print('\n'.join(ret))
+    print("...end of arguments.")
 
 lpr = args["--lpr"]
 if lpr and lpr not in content.printers.keys():
-    print("Invalid '--lpr' parameter!")
+    print("Invalid '--lpr' parameter! '{}'".
+        format(lpr))
     sys.exit()
 
 def output(data, destination=args["-o"]):
@@ -368,15 +375,12 @@ def show_cmd():
     club.napplicants = 0
     club.errors = []
     club.by_n_meetings = {}
-    club.by_status = {}
     infile = args["-i"]
     if not infile:
         infile = club.infile
     print("Preparing membership listings...")
     err_code = member.traverse_records(infile,
-        (member.add2list4web, # increments club.nmembers
-#        member.add2status_data, # increments club.napplicants
-                                 ), club)
+        (member.add2list4web), club)
 
     ret = ["""FOR MEMBER USE ONLY
 
@@ -452,10 +456,9 @@ def stati():
 def report():
     """
     Prepare a "Membership Report"
-    Date
-    Number of members
-    Number of applicants and applicant role call
-    Wish to add each applicants date of application.
+    Automatically Dateed, repors:
+    Number of members & Number of applicants and provides an
+    applicant role call (/w dates of meetings attended.)
     """
     club = Club()
     club.by_status = {}
@@ -482,13 +485,15 @@ def report():
     
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
-    ap_listing = club.by_status
 
-    for key in ap_listing:
-      if 'a' in key:
+    ap_listing = club.by_status # } This segment is for
+    for key in ap_listing:      # } error checking only;
+      if 'a' in key:            # } not required if data match.
+        # Only deal with applicants.
         if len(ap_listing[key]) != len(ap_set_w_dates_by_status[key]):
             print("!!! {} != {} !!!"
                 .format(ap_listing[key], ap_set_w_dates_by_status[key]))
+
     report.extend(helpers.show_dict(ap_set_w_dates_by_status,
                                 underline_char='-'))
     try:
@@ -499,8 +504,7 @@ def report():
     except FileNotFoundError:
         print('report.addendum not found')
         pass
-    report.extend(['','',])
-    report.extend([
+    report.extend(['','',
         "Respectfully submitted by",
         "Alex Kleider, Membership Chair,",
         "for presentation at the {} meeting."
@@ -550,27 +554,33 @@ def extra_charges_cmd():
     It also can create a json file: specified by the -j option.
     Such a json file is required by the restore_fees command.
     """
-    if args["-j"]:
-        print('Not set up to provide json file yet.')
     infile = args["-i"]
     if not infile:
         infile = Club.EXTRA_FEES_SPoT
     print('<infile> set to "{}"'.format(infile))
     if infile.endswith(TEXT):
         print('<infile> ends in "{}"'.format(TEXT))
-        header =["Members Paying Extra Fees",
-                 "========================="]
-        res = data.present_fees_by_name(
-                data.gather_extra_fees_data(
-                    infile), raw=True)
-        ret = helpers.tabulate(res, alignment='<', down=True)
-        output('\n'.join(header + ret))
+        extra_fees = data.gather_extra_fees_data(infile)
+        by_name = extra_fees[Club.by_name]
+        by_category = extra_fees[Club.by_category]
+        if args['-f'] == 'listing':
+            with open(infile, 'r') as f_object:
+                output(f_object(read))
+        elif args['-f'] == 'table':
+            res = data.present_fees_by_name(by_name, raw=args['-r'])
+            ret = helpers.tabulate(res, alignment='<', down=True)
+            output('\n'.join(ret))
+        elif args['-f'] == 'listings':
+            output('\n'.join(data.show_fee_listings(extra_fees,
+                                                        args['-r'])))
     elif infile.endswith(CSV):
         print('Not set up to deal with csv file yet.')
         return
     else:
         print('<infile> must end in ".txt" or ".csv"')
         assert(False)
+    if args["-j"]:
+        print('Not set up to provide json file yet.')
 
 
 def payables_cmd():
@@ -655,6 +665,10 @@ def prepare_mailing_cmd():
 #       with open(club.json_file_name, 'w') as f_obj:
 #           json.dump(club.json_data, f_obj)
 #           print('JSON dumped to "{}".'.format(f_obj.name))
+    print("""prepare_mailing completed..
+... nest step might be the following:
+    $ zip zip -r 4Michael.zip {}"""
+        .format(args["--dir"]))
 
 
 def display_emails_cmd(json_file):

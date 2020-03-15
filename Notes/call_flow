@@ -32,21 +32,74 @@ ck_data => ck_data_cmd =>
     sets up dangling_m_emails
             shared_m_emails
 
+show => show_cmd
+    assign club attributes: 
+        pattern, infile,
+        errors,
+        members, nmembers,
+        by_n_meetings, napplicants,
+    member:
+        traverse_records:
+            add2list4web ==> errors,
+                members, nmembers,
+                by_n_meetings, napplicants
+        show_by_status
+    output
+
 report => report_cmd => report
-    club.by_status
+    instantiate club & assign attributes:
+        by_status
         nmembers
-        present_by_status
-    member.traverse_records
-        add2by_status
+    assign infile & applicant_spot
+    member:
+      traverse_records
+        add2status_data => by_status
         increment_nmembers
-    helpers.add_header2list
+    data.gather_applicant_data(spot, include_dates=True)
+    helpers.show_dict
+    helpers.next_first_friday
+
+stati => stati_cmd => stati
 
 
-prepare_mailing => prepare_mailing_command => 
+
+usps =>
+
+extra_charges =>
+[-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+<format>: table (the default,) listing (SPoT,) listings.
+
+payables =>
+
+show_mailing_categories =>
+
+prepare_mailing => prepare_mailing_cmd => 
+    assign club attributes:
+        easy, owing_only, which, lpr, email(_template), letter,
+        input_file_name, json_file_name, dir4letters, json_data
+    & call club methods:
+        check_dir4letters, check_json_file
     member.prepare_mailing(club)
         traverse_records applying 'funcs' specified in content.py
             std_mailing, 
             set_owing, ???
             request_inductee_payment,
 
+
+
+display_emails =>
+
+send_emails =>
+
+print_letters =>
+
+emailing =>
+
+restore_fees =>
+
+fees_intake =>
+
+labels =>
+
+envelopes =>
 
