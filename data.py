@@ -20,7 +20,9 @@ files containing membership related data.
 """
 
 import os
+import sys
 import csv
+import json
 import helpers
 import member
 from rbc import Club
@@ -45,7 +47,8 @@ def gather_membership_data(club):
     club.fee_category_by_m = {}  # m => list (fee_categories /w fee)
     club.ms_by_email = {}  # email => list (members)
     club.ms_by_status = {}  # status => list (members)
-    club.ms_by_fee_category = {}  # fee_category => list (members)
+    club.ms_by_fee_category = {}  # fee_category =>
+                                # list (members or (name, amt))
 
     club.malformed = []  # populated by member.add2malformed
     club.without_email = []  # populated by member.add2email_data
@@ -225,11 +228,11 @@ def gather_applicant_data(in_file, include_dates=False):
             }
 
 
-def gather_extra_fees_data(in_file):
+def gather_extra_fees_data(in_file, json_file=None):
     """
     Reads in_file and returns a dict with keys:
         Club.NAME_KEY: a dict keyed by name with
-            each a set of (category, amount) tuples.
+            each a set of (category, amount) tuples[1].
         Club.CATEGORY_KEY: a dict keyed by category with
             each a set of (last_first, amount) tuples.
 
@@ -238,6 +241,11 @@ def gather_extra_fees_data(in_file):
     and ending with ':'.
     Other lines must contain 'First Last: amt'.
     ...as can be seen in Data/extra_fees.txt.
+    If <json_file> is specified (name of a file) the
+    'by_name' dict is dumped into a json file of that name.
+    [1] The 'by_name' component can be converted so that its
+    values are all a single string using the json_fees_by_name
+    function.
     """
     by_name = {}
     by_category = dict(  # json version of input file
@@ -279,9 +287,42 @@ def gather_extra_fees_data(in_file):
                 _ = by_category.setdefault(category, [])
                 by_name[name_key].append((category, fee))
                 by_category[category].append((name_key, fee))
+    if json_file:
+        helpers.create_json_file(by_name, json_file)
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }
+
+
+def json_fees_by_name(extra_fees):
+    """
+    Param would typically be the returned value of
+    gather_extra_fees_data(infile)
+    or its NAME_KEY value.
+    Returns a dict (by name) of fees as list of strings
+    (rather than tuples.)
+    """
+    if Club.NAME_KEY in extra_fees:
+        jv = extra_fees[Club.NAME_KEY]
+    else:
+        jv = extra_fees
+    ret = {}
+    for key in jv:
+        charges = []
+#       print("Key/Listing is '{}/{}'."
+#           .format(key, jv[key]), end="> ")
+        for value in jv[key]:
+            string_value = "{} {}".format(value[0], value[1])
+#           print(string_value, end=' ')
+            charges.append(string_value)
+#       print(" >> ", end="")
+#       print(charges, end=" >>> ")
+        extras = ', '.join(charges)
+#       print(extras, end=">>>>")
+#       ret[key] = ': ' + extras
+        ret[key] = charges
+#       print(ret[key])
+    return ret
 
 
 def present_fees_by_name(extra_fees, raw=False):
@@ -510,7 +551,10 @@ def ck_applicants_cmd():
 
 
 
-def ck_data(club, report_status=True):
+def ck_data(club,
+            report_status=True,
+            raw=True,
+            formfeed=False):
     """
     Check integrity/consistency of of the Club's data bases:
         MEMBERSHIP_SPoT  # the main club data base
@@ -523,13 +567,16 @@ def ck_data(club, report_status=True):
     Data in each of the 2nd and 4th are compared with
     the first and checked.
     Returns a report in the form of an array of lines.
+    <report_status> parameter, if set to False, abreviates
+    the output by not including the listing of members who
+    have 'status' entries.
     """
     ret = []
+    ok = []
     first_line = "Report Regarding Data Integrity"
     if not (raw or formfeed):
         ret.append(first_line)
         ret.append("#" * len(first_line) )
-    ok = []
 
     # Collect data from csv files ==> club attributes
     gather_membership_data(club)
@@ -538,8 +585,7 @@ def ck_data(club, report_status=True):
         # club.groups_by_name (set)     # club.g_by_group (set)
 
     # Collect data from custom files ==> local variables
-    extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
-                    without_fees=True)
+    extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT)
     a_applicants = gather_applicant_data(
                                 club.APPLICANT_SPoT)["applicants"]
 
@@ -693,7 +739,7 @@ def ck_data(club, report_status=True):
 ### left here for time being until Data can be corrected.  ###
     if m_applicants == set(
             club.g_by_group[club.APPLICANT_GROUP]):
-        ok.append("Gmail groups match Club data")
+        ok.append("Gmail groups match Club data.")
     else:
         ret.append("\nMismatch: Gmail groups vs Club data")
         ret.append(  "===================================")
@@ -739,18 +785,75 @@ def ck_data(club, report_status=True):
     else:
         ok.append('No contacts that are not members.')
             
-    if ((extra_fees_info[club.CATEGORY_KEY] !=
-            club.ms_by_fee_category)
-    or (extra_fees_info[club.NAME_KEY] !=
-            club.fee_category_by_m)):
-        ret.append("\nFees problem:")
-        ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
-        ret.append(repr(club.ms_by_fee_category))
+    ## Now check fees: mem list vs extra fees SPoT
+    # Keep in mind that after payment amounts won't match
+    not_matching_notice = ''
+    if (extra_fees_info[club.CATEGORY_KEY] !=
+            club.ms_by_fee_category):
+        club_keys = set(extra_fees_info[club.CATEGORY_KEY].keys())
+        file_keys = set(club.ms_by_fee_category.keys())
+        if club_keys == file_keys:
+            not_matching_notice = (
+            "Fee amounts don't match")
+            ## traverse keys and specify which amounts don't match
+        else:
+            ret.append("\nFees problem (by fee category):")
+            ret.append("extra_fees_info[club.CATEGORY_KEY]:")
+            ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
+            ret.append("###  !=  ###")
+            ret.append("club.ms_by_fee_category:")
+            ret.append(repr(club.ms_by_fee_category))
     else:
-        ok.append("No fees problem.")
+        ok.append("No fees by category problem.")
+        
+
+    if (extra_fees_info[club.NAME_KEY] !=
+            club.fee_category_by_m):
+        club_keys = set(extra_fees_info[club.NAME_KEY].keys())
+        file_keys = set(club.fee_category_by_m.keys())
+        if club_keys == file_keys:
+            not_matching_notice = (
+            "Fee amounts don't match")
+            ## traverse keys and specify which amounts don't match
+            club_keys = sorted([key for key in club_keys])
+            varying_amounts = []
+            for key in club_keys:
+                if (extra_fees_info[club.NAME_KEY][key] !=
+                        club.fee_category_by_m[key]):
+                    varying_amounts.append('{} != {}'
+                        .format(extra_fees_info[club.NAME_KEY][key],
+                                club.fee_category_by_m[key]
+                                ))
+        else:
+            ret.append("\nFees problem (by name):")
+            ret.append("extra_fees_info[club.NAME_KEY]:")
+            ret.append(repr(extra_fees_info[club.NAME_KEY]))
+            ret.append("###  !=  ###")
+            ret.append("club.fee_category_by_m:")
+            ret.append(repr(club.fee_category_by_m))
+    else:
+        ok.append("No fees by name problem.")
 
     if ok:
         add2problems("No Problems with the Following", ok, ret)
+    if not_matching_notice:
+        helpers.add_header2list("Acceptable Inconsistency",
+                                ret, underline_char='=')
+        ret.append(not_matching_notice)
+#   if True:
+    if False:
+        ret.append("\nFees problem (by fee category):")
+        ret.append("extra_fees_info[club.CATEGORY_KEY]:")
+        ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
+        ret.append("###  !=  ###")
+        ret.append("club.ms_by_fee_category:")
+        ret.append(repr(club.ms_by_fee_category))
+        ret.append("\nFees problem (by name):")
+        ret.append("extra_fees_info[club.NAME_KEY]:")
+        ret.append(repr(extra_fees_info[club.NAME_KEY]))
+        ret.append("###  !=  ###")
+        ret.append("club.fee_category_by_m:")
+        ret.append(repr(club.fee_category_by_m))
     return ret
 
 
@@ -803,8 +906,7 @@ def test_extras():
     return data_listed(data)
 
 #   return
-    extra_fees_data = gather_extra_fees_data(
-        EXTRA_FEES_SPoT, without_fees=True)
+    extra_fees_data = gather_extra_fees_data(EXTRA_FEES_SPoT)
     ret.append("\nmemlist compared to extra_fees file by Category:")
     ret.extend(compare(club.fee_by_category,
             extra_fees_data[Club.CATEGORY_KEY]))
@@ -822,8 +924,7 @@ def test_ck_data():
 
 
 def list_mooring_data(extra_fees_spot):
-    extra_fees_data = gather_extra_fees_data(
-        extra_fees_spot, without_fees=False)
+    extra_fees_data = gather_extra_fees_data(extra_fees_spot)
 #   data = extra_fees_data[Club.CATEGORY_KEY]
 #   print(repr(data["Mooring"]))
     mooring_data = extra_fees_data[Club.CATEGORY_KEY]["Mooring"]
@@ -896,10 +997,37 @@ def ck_all():
             f_obj.write("=" * len(header) + "\n")
             f_obj.write(res)
 
+def readable_json_fee_data(json_data_file):
+    with open(json_data_file, 'r') as jfo:
+        records = json.load(jfo)
+    to_examine = json_fees_by_name(records)
+    data = '\n'.join(helpers.show_dict(to_examine, extra_line=False))
+    return data
+
+
+def ck_json_dump_of_extra_fees():
+    jf = 'extras.json'
+    readable_json = 'json2check'
+    _ = gather_extra_fees_data(Club.EXTRA_FEES_SPoT,
+                            json_file=jf)
+    data = readable_json_fee_data(jf)
+    with open(readable_json, 'w') as jfo:
+        jfo.write(data)
+    print("'{}' now contains readable data."
+            .format(readable_json))
+    
 
 if __name__ == "__main__":
 
-    ck_all()
+    if len(sys.argv) == 2:
+        if sys.argv[1] == 'ck_json':
+            ck_json_dump_of_extra_fees()
+        else:
+            print("Invalid argument:'{}'."
+                .format(sys.argv[1]))
+    else:
+        print("Need one and only one argument.")
+#   ck_all()
 #   club = Club()
     
 #   test_applicant_presentations()

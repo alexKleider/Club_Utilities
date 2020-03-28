@@ -60,7 +60,8 @@ class Club(object):
     DOCK = 'DockUsers'     #} These are the 'groups'
     KAYAK = 'Kayak'        #} as defined in the club's
     MOORING = 'moorings'   #} gmail contacts.
-    SECRETARY = 'Secretary'
+
+    SECRETARY = "Michael Rafferty"
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'
@@ -726,8 +727,6 @@ class Club(object):
                 if (line[24:27] == "---") and subtotal:
                     res.append("    SubTotal            --- ${}"
                         .format(subtotal))
-        #           res.append("{}\n    SubTotal            --- ${}"
-        #               .format(date, subtotal))
                     subtotal = 0
                 try:
                     amount = int(line[23:28])
@@ -737,6 +736,8 @@ class Club(object):
         #       res.append("Adding ${}.".format(amount))
                 total += amount
                 subtotal += amount
+                print(" adding {}, running total is {}"
+                    .format(amount, total))
         res.append("\nGrand Total to Date:    --- ---- ${}"
             .format(total))
 #       print("returning {}".format(res))

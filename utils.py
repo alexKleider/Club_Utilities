@@ -21,9 +21,9 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -r -P -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -r -i <infile> -o <outfile> ]
-  ./utils.py report [-O -i <infile> -S <applicant_spot> -o <outfile> ]
+  ./utils.py report [-O -i <infile> -N <applicant_spot> -o <outfile> ]
   ./utils.py stati [-O -A -i <infile> -o <outfile>]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -67,7 +67,6 @@ Options:
             used. This provides a method of specifying which to use
             if content.which.["postal_header"] isn't already
             specified.  [default: X6505]
-                  'content_types' dict in content.py.)
   -N <app_spot>  Applicant data file.
   -O  Show arguments/Options.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
@@ -76,12 +75,11 @@ Options:
   -p <params>  If not specified, the default is
               A5160 for labels & E000 for envelopes.
   -P    Some commands may have more than one component to
-        their output.  This [P] option makes each componente appears
-        on a separate page. (i.e. separated by form feeds.)
-  -r    Supress headers (to make the output suitable as
+        their output.  This ('-P') option makes each component appear
+        on a separate page. (i.e. Separated by form feeds.)
+  -r    ...for 'raw': Supress headers (to make the output suitable as
         input for creating tables.)
   -s    Report status
-  -S <applicant_spot>  re 'report' comand: appicant SPoT file.
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to risk
                   corruption of an important input file which is to be
@@ -122,6 +120,7 @@ Commands:
         in advance.
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
+        See the 'content_types' dict in content.py.)
     prepare_mailing: A general form of the billing command (above.)
         This command demands a <--which> argument to specify the
         mailing: more specifically, it specifies the content and the
@@ -203,8 +202,8 @@ MAX_TIME_TO_SLEEP = 5   #} email postings.
 TEXT = ".txt"  #} Used by <extra_charges_cmd>
 CSV = ".csv"   #} command.
 
-TEMP_FILE = "2print.temp"
-SECRETARY = ("Michael", "Rafferty")
+TEMP_FILE = "2print.temp"  # see <output> function
+DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
 
 args = docopt(__doc__, version="1.1")
 if args['-O']:
@@ -362,7 +361,10 @@ def ck_data_cmd():
         club.EXTRA_FEES_SPoT = args['-X']
     if args['-C']:
         club.CONTACTS_SPoT = args['-C']
-    ret = data.ck_data(club, report_status=args['-s'])
+    ret = data.ck_data(club,
+                    report_status=args['-s'],
+                    raw=args['-r'],
+                    formfeed=args['-P'])
     output("\n".join(ret))
 
 
@@ -417,7 +419,7 @@ def stati():
     print("Preparing listing of stati.")
     club.by_status = {}
     err_code = member.traverse_records(infile,
-                                    member.add2by_status,
+                                    member.add2status_data,
                                     club)
     if not club.by_status:
         return ["Found No Entries with 'Status' Content." ]
@@ -464,7 +466,7 @@ def report():
     club.by_status = {}
     club.nmembers = 0
     infile = args["-i"]
-    applicant_spot = args['-S']
+    applicant_spot = args['-N']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     if not applicant_spot:
@@ -480,8 +482,9 @@ def report():
             member.increment_nmembers,
             ],
             club)
-    ap_set_w_dates_by_status = data.gather_applicant_data(applicant_spot,
-                                    include_dates=True)["applicants"]
+    ap_set_w_dates_by_status = (
+        data.gather_applicant_data(
+                applicant_spot, include_dates=True)["applicants"])
     
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
@@ -496,8 +499,18 @@ def report():
 
     report.extend(helpers.show_dict(ap_set_w_dates_by_status,
                                 underline_char='-'))
+    if 'r' in club.by_status:
+        header = (
+            'Members ({} in number) retiring from the Club:'
+                .format(len(club.by_status['r'])))
+        report.append('')
+        report.append(header)
+        report.append("=" * len(header))
+        for name in club.by_status['r']:
+            report.append(name)
+
     try:
-        with open("Info/addendum2report.txt", 'r') as fobj:
+        with open(DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
             print('opening file')
             addendum = fobj.read()
             report.append(addendum)
@@ -513,6 +526,8 @@ def report():
     return report
  
 def report_cmd():
+    print("Test 'member' recognition: {}"
+        .format(member.status_key_values['r']))
     output('\n'.join(report()))
 
 def stati_cmd():
@@ -666,7 +681,7 @@ def prepare_mailing_cmd():
 #           json.dump(club.json_data, f_obj)
 #           print('JSON dumped to "{}".'.format(f_obj.name))
     print("""prepare_mailing completed..
-... nest step might be the following:
+    ..nest step might be the following:
     $ zip zip -r 4Michael.zip {}"""
         .format(args["--dir"]))
 
@@ -676,6 +691,8 @@ def display_emails_cmd(json_file):
         print('Reading JSON file "{}".'.format(f_obj.name))
         records = json.load(f_obj)
     all_emails = []
+    n_emails = 0
+    print("...initializing 'all_emails' to empty list")
     for record in records:
         email = []
         if args['-E']:
@@ -683,6 +700,7 @@ def display_emails_cmd(json_file):
                 email.append("{}: {}".format(field, record[field]))
             email.append('')
             all_emails.extend(email)
+            n_emails += 1
         else:
             try:
                 recipients = ', '.join(record[0])
@@ -695,8 +713,9 @@ def display_emails_cmd(json_file):
 #           for mail in email: print(mail)
             email.append('')
             all_emails.extend(email)
+            n_emails += 1
     print("Processed {} emails..."
-        .format(len(all_emails)))
+        .format(len(n_emails)))
     return "\n".join(all_emails)
 
 
@@ -817,14 +836,14 @@ def emailing_cmd():
 def restore_fees_cmd():
     """
     Assumes the dues paying season is over and all dues and fees
-    fields have been zeroed out (either because members have paid or
-    been dropped from the club roster.)
+    fields have been zeroed out or contain a credit (over payment.)
     Repopulates the club's master list with the ANNUAL_DUES constant
     and information from args['<extra_fees.json>'].
     If '-t <new_membership_file>' is specified, the original
     membership file is not modified and output is to the new file,
     else the original file is changed.
     """
+    ### Take into consideration the possibility of credit values. ###
     club = Club()
     if not args['<membership_file>']:
         args['<membership_file>'] = club.MEMBERSHIP_SPoT
@@ -833,11 +852,11 @@ def restore_fees_cmd():
     if not args['-t']:
         args['-t'] = club.TEMP_MEMBERSHIP_SPoT
     ret = club.restore_fees(
-        args['<membership_file>'],
-        club.YEARLY_DUES,
-        args['-j'],
-        args['-t']
-        )
+                args['<membership_file>'],
+                club.YEARLY_DUES,
+                args['-j'],
+                args['-t']
+            )
     if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
             file_obj.write(club.errors)
@@ -866,7 +885,7 @@ def fees_intake_cmd():
     ## End of refactoring
     if club.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
-            print('Writing to "{}".'.format(file_obj))
+            print('Writing to "{}".'.format(file_obj.name))
             file_obj.write('\n'.join(club.invalid_lines))
 
 def labels_cmd():

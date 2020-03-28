@@ -34,6 +34,7 @@ Other items:
 
 import helpers
 import member
+import rbc
 
 address_format = """{first} {last}
 {address}
@@ -140,40 +141,27 @@ has been received.  Thank you.
 All the best!
 """.format(helpers.next_club_year()),
 
-# Send with March minutes:
-    March_request = """
+# Send with March, April, and May minutes:
+    early_request = """
 This is a reminder that annual Club dues will be due in June.
 That is still a ways out but some might like to know in advance
 in order to be able to budget appropriately.  Advance warning
 also benefits those that might be planning to be away for the
 summer.
 
-A statement of your current standing appears bellow.
-If there are any dues or fees outstanding, please don't delay.
-If the total is zero (or negative) you're all paid up (or more
-than paid up) and we thank you.
-{extra}""",
-
-# Send with May minutes:
-    yearly_fees_1st_request = """
-The current Club membership year ends in June and ideally we'd
-like to have all dues and fees for the upcoming ({})
-membership year in by then.  If you are already paid up,
-the Club thanks you.
-
-A statement of your current standing appears bellow.
-If there are any dues or fees outstanding, please don't delay.
+A statement of your dues (+/- fees) for the upcoming ({} Club
+year) appears bellow.  (If you've any reason to believe that
+our accounting might be in error, please let us know[1].) 
 If the total is zero (or negative) you're all paid up (or more
 than paid up) and we thank you.
 {{extra}}""".format(helpers.next_club_year()),
 
 # Send with June minutes:
-    yearly_fees_2nd_request = """
-This is a second request being sent out to Club members whose
-dues (and/or fees where applicable) for the ({}) Club
-year have not yet been payed.  (If you've any
-reason to believe that our accounting might be in error, please
-let us know[1].) 
+    June_request = """
+This is yet another request being sent out to Club members whose
+dues (and/or fees where applicable) for the ({}) Club year
+have not yet been payed.  (If you've any reason to believe that
+our accounting might be in error, please let us know[1].) 
 
 Details are as follows:
 {{extra}}""".format(helpers.next_club_year()),
@@ -183,6 +171,8 @@ Details are as follows:
 Club records indicate that your dues (+/- other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
+(If you've any reason to believe that our accounting might be in
+error, please let us know[1].) 
 
 Please pay promptly; we'd hate to loose you as a member.
 
@@ -327,7 +317,9 @@ Thank you for your services.
 
 
 post_scripts = dict(
-    at_request_of_secretary = """ Sent at the request of Peter Pyle, Secretary""",
+    at_request_of_secretary = (
+    """ Sent at the request of {}, Secretary"""
+        .format(rbc.Club.SECRETARY)),
 
     remittance = """ Please send remittances to:
     The Bolinas Rod & Boat Club
@@ -343,7 +335,7 @@ the check in order to prevent any confusion.""",
     )
 
 authors = dict(  # from
-    bc = dict(
+    bc = dict(  # AK in British Columbia
         first = "Alex",
         last = "Kleider",
         address = "3727 Cavin Rd.",
@@ -356,7 +348,7 @@ authors = dict(  # from
         reply2 = "akleider@sonic.net",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider",
         ),
-    ak = dict(
+    ak = dict(  # AK in Bolinas
         first = "Alex",
         last = "Kleider",
         address = "PO Box 277",
@@ -369,7 +361,7 @@ authors = dict(  # from
         reply2 = "akleider@sonic.net",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider",
         ),
-    membership = dict(
+    membership = dict(  # Membership Chair
         first = "Bolinas",
         last = "Rod & Boat Club",
         address = "PO Box 248",
@@ -382,7 +374,7 @@ authors = dict(  # from
         reply2 = "rodandboatclub@gmail.com",
         mail_signature = "\nSincerely,\n\n\nAlex Kleider (Membership)",
         ),
-    secretary = dict(
+    secretary = dict(   # Club Secretary
         first = "Bolinas",
         last = "Rod & Boat Club",
         address = "PO Box 248",
@@ -397,7 +389,7 @@ authors = dict(  # from
         mail_signature = (
             "\nSincerely,\n\n\nMichael Rafferty (Club Secretary)"),
         ),
-    randy = dict(
+    randy = dict(  # Randy Rush in Bolinas Home
         first = "Randy",
         last = "Rush",
         address = "15 Rafael Ave.",
@@ -468,7 +460,9 @@ content_types = dict(  # which_letter
         "subject": "Meeting first Friday of February",
         "from": authors["membership"],
         "body": letter_bodies["feb_meeting"],
-        "post_scripts": (post_scripts['ref1_reservations'],),
+        "post_scripts": (
+            post_scripts['ref1_reservations'],
+            ),
         "funcs": (member.std_mailing,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "email",
@@ -486,7 +480,9 @@ content_types = dict(  # which_letter
         "subject": "Happy New Year from the Bolinas R&B Club",
         "from": authors["membership"],
         "body": letter_bodies["happyNY_and_0th_fees_request"],
-        "post_scripts": (post_scripts["remittance"],),
+        "post_scripts": (
+            post_scripts["remittance"],
+            ),
         "funcs": (member.set_owing,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
@@ -509,39 +505,36 @@ content_types = dict(  # which_letter
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
-    yearly_fees_1st_request = {
+    early_request = {
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["membership"],
-        "body": letter_bodies["yearly_fees_1st_request"],
-        "post_scripts": (post_scripts["remittance"],),
+        "body": letter_bodies["early_request"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
         "funcs": (member.set_owing,),
-        "test": lambda record: False if (('a' in record["status"]) or
-                ('w' in record["status"])) else True,
+        "test": lambda record: True if (
+            member.is_member(record) and
+            member.not_paid_up(record)and
+            not ('w' in record["status"])
+            ) else False,
         "e_and_or_p": "one_only",
         },
-    march_request = {
-        "subject": "Bolinas R&B Club fees coming due",
+    June_request = {
+        "subject":"Bolinas R&B Club dues",
         "from": authors["membership"],
-        "body": letter_bodies["March_request"],
-        "post_scripts": (post_scripts["remittance"],),
-        "funcs": (member.set_owing,),
-        "test": lambda record: False if (('a' in record["status"]) or
-                ('w' in record["status"])) else True,
-        "e_and_or_p": "one_only",
-        },
-    yearly_fees_2nd_request = {
-        "subject":"Second request for BR&BC dues",
-        "from": authors["membership"],
-        "body": letter_bodies["yearly_fees_2nd_request"],
+        "body": letter_bodies["June_request"],
         "signature": '',
         "post_scripts": (
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
         "funcs": (member.set_owing,),
-        "test": lambda record: True if ((
+        "test": lambda record: True if (
             member.is_member(record) and
-            member.not_paid_up(record))
+            member.not_paid_up(record)and
+            not ('w' in record["status"])
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -549,23 +542,31 @@ content_types = dict(  # which_letter
         "subject":"Membership soon to expire",
         "from": authors["membership"],
         "body": letter_bodies["final_warning"],
-        "post_scripts": (post_scripts["remittance"],),
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
         "funcs": (member.set_owing,),
-        "test": lambda record: True if ((
+        "test": lambda record: True if (
             member.is_member(record) and
-            member.not_paid_up(record))
+            member.not_paid_up(record)and
+            not ('w' in record["status"])
             ) else False,
         "e_and_or_p": "both",
         },
-    penalty_notice = {
+    penalty_notice = {      # Penalties are not levied! Don't send!
         "subject":"BR&BC dues and penalty for late payment",
         "from": authors["membership"],
         "body": letter_bodies["penalty_notice"],
-        "post_scripts": (post_scripts["remittance"],),
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
         "funcs": (member.set_owing,),
-        "test": lambda record: True if ((
+        "test": lambda record: True if (
             member.is_member(record) and
-            member.not_paid_up(record))
+            member.not_paid_up(record)and
+            not ('w' in record["status"])
             ) else False,
         "e_and_or_p": "both",
         },
@@ -595,7 +596,9 @@ content_types = dict(  # which_letter
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["membership"],
         "body": letter_bodies["request_inductee_payment"],
-        "post_scripts": (post_scripts["remittance"],),
+        "post_scripts": (
+            post_scripts["remittance"],
+            ),
         "funcs": (member.request_inductee_payment,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
@@ -605,7 +608,9 @@ content_types = dict(  # which_letter
         "subject": "Still awaiting Club dues",
         "from": authors["membership"],
         "body": letter_bodies["second_request_inductee_payment"],
-        "post_scripts": (post_scripts["remittance"],),
+        "post_scripts": (
+            post_scripts["remittance"],
+            ),
         "funcs": (member.request_inductee_payment,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
@@ -615,7 +620,9 @@ content_types = dict(  # which_letter
         "subject": "You are a member!",
         "from": authors["membership"],
         "body": letter_bodies["welcome2full_membership"],
-        "post_scripts": (post_scripts["ref1_email_or_PO"], ),
+        "post_scripts": (
+            post_scripts["ref1_email_or_PO"],
+            ),
         "funcs": (member.std_mailing,),
         "test": (
         lambda record: True if 'm' in record["status"] else False),
@@ -849,7 +856,7 @@ def choices():
                ('authors', authors),
                ('content_types', content_types),
                ('printers', printers),
-                )
+            )
     ret = []
     for tup in tuples:
         ret.append('')
@@ -859,7 +866,11 @@ def choices():
         for key in tup[1]:
             r.append(key)
         ret.extend(
-            helpers.tabulate(r, alignment='<', max_width=120))
+            helpers.tabulate(r,
+                    alignment='<',
+                    max_width=140,
+                    separator=' | ')
+            )
     return ret
 
 def main():

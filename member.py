@@ -28,6 +28,7 @@ status_key_values = {
     "m": "Member in good standing",
     WAIVED: "Fees being waived",
     "be": "Email on record being rejected",
+    'r': "Giving up Club Membership",
     's': "Secretary of the Club"
     }
 STATI = sorted([key for key in status_key_values.keys()])
@@ -248,7 +249,6 @@ def add2status_data(record, club):
     member = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
-        # change to club.ms_by_status!!??!!:vv
         _ = club.by_status.setdefault(status, [])
         club.by_status[status].append(member)
         if hasattr(club, 'stati_by_m'):
@@ -274,10 +274,10 @@ def add2fee_data(record, club):
 #       print("'{}' <=> {}".format(name, capped))
         if hasattr(club, 'ms_by_fee_category'):
             _ = club.ms_by_fee_category.setdefault(capped, [])
-            club.ms_by_fee_category[capped].append(name)
+            club.ms_by_fee_category[capped].append((name,fee))
         if hasattr(club, 'fee_category_by_m'):
             _ = club.fee_category_by_m.setdefault(name, [])
-            club.fee_category_by_m[name].append(capped)
+            club.fee_category_by_m[name].append((capped, fee))
 
 
 def add2malformed(record, club=None):

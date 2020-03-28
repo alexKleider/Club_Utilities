@@ -7,6 +7,7 @@ Some helper functions needed by content and utils
 and perhaps other modules in this folder.
 """
 
+import json
 import datetime
 import functools
 
@@ -156,15 +157,19 @@ def show_dict(d, underline_char=None, extra_line=True):
     set extra_line to False.
     """
     ret = []
-    for key in sorted([key for key in d.keys()]):
+    sorted_keys = sorted([key for key in d.keys()])
+    for key in sorted_keys:
+#       print(d[key])
+        sorted_values = sorted([val for val in d[key]])
+#       print(sorted_values)
         if extra_line: ret.append('')
         if underline_char:
             ret.append(key)
             ret.append(underline_char * len(key))
-            for val in sorted([val for val in d[key]]):
+            for val in sorted_values:
                 ret.append(val)
         else:
-            values = ", ".join(sorted(d[key]))
+            values = ", ".join(sorted_values)
             ret.append("{}: {}".format(key, values))
     return ret
 
@@ -189,7 +194,7 @@ def tabulate(data,
             down = True, #list by column (down) or by row (default)
             max_width = 75,
             max_columns = 0,
-            separator = ' ', # minimum separation between columns
+            separator = ' | ', # minimum separation between columns
             force =0,
             usage=False,
             stats=False):
