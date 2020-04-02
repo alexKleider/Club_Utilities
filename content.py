@@ -153,7 +153,7 @@ A statement of your dues (+/- fees) for the upcoming ({} Club
 year) appears bellow.  (If you've any reason to believe that
 our accounting might be in error, please let us know[1].) 
 If the total is zero (or negative) you're all paid up (or more
-than paid up) and we thank you.
+than paid up) for the upcoming year and we thank you.
 {{extra}}""".format(helpers.next_club_year()),
 
 # Send with June minutes:

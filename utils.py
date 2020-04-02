@@ -29,11 +29,11 @@ Usage:
   ./utils.py extra_charges [-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-O -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
   ./utils.py send_emails [-O <content> -E] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -s <sep> -e error_file]
-  ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [-a <attachment>]
+  ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py fees_intake [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
@@ -41,7 +41,6 @@ Usage:
 Options:
   -h --help  Print this docstring.
   --version  Print version.
-  -a <attachment>  The name of a file to use as an attachment.
   -A  re 'stati' comand: show only applicants.
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
@@ -128,6 +127,8 @@ Commands:
         'show_mailing_categories' command for a list of choices.
         Other parameters have defaults set:
         '-E'  use easydns.com as mta (vs gmail account.)
+        'ATTACHMENTS...'  Applies only when -E is set to specify
+        using easydns.  Must be a list of file names.
         '--oo'  Only send request for fee payment to those with an
         outstanding balance.
         '--lpr <printer>' specifies printer to be used for letters.
@@ -495,9 +496,12 @@ def report():
         # Only deal with applicants.
         if len(ap_listing[key]) != len(ap_set_w_dates_by_status[key]):
             print("!!! {} != {} !!!"
-                .format(ap_listing[key], ap_set_w_dates_by_status[key]))
+              .format(ap_listing[key], ap_set_w_dates_by_status[key]))
 
-    report.extend(helpers.show_dict(ap_set_w_dates_by_status,
+    if ap_set_w_dates_by_status:
+        report.extend(["\nApplicants",
+                         "=========="])
+        report.extend(helpers.show_dict(ap_set_w_dates_by_status,
                                 underline_char='-'))
     if 'r' in club.by_status:
         header = (
@@ -518,10 +522,11 @@ def report():
         print('report.addendum not found')
         pass
     report.extend(['','',
-        "Respectfully submitted by",
+        "Respectfully submitted by...\n\n",
         "Alex Kleider, Membership Chair,",
-        "for presentation at the {} meeting."
-            .format(helpers.next_first_friday()),
+        "for presentation to the Executive Committee",
+        "at the time of their next meeting to be held",
+         "{}.".format(helpers.next_first_friday()),
         ])
     return report
  
@@ -662,6 +667,7 @@ def prepare_mailing_cmd():
     if not args["--dir"]:
         args["--dir"] = club.MAILING_DIR
     club.dir4letters = args["--dir"]
+    club.attachment = args['ATTACHMENTS']
     # *****...
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'."
@@ -739,7 +745,8 @@ def send_emails_cmd():
 
     Note: The send_emails functionality depends on the
     presence of a ~/.msmtprc configuration file
-    and lowering the gmail account security setting:
+    and (unless the -E option is selected for easydns.com rather
+    than using gmail) lowering the gmail account security setting:
     https://myaccount.google.com/lesssecureapps
     """
     content = args["<content>"]
@@ -828,10 +835,10 @@ def emailing_cmd():
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     with open(args["-c"], "r") as content_file:
-        print('Reading content from "{}".'.format(content_file.name))
         club.content = content_file.read()
     err_code = member.traverse_records(args["-i"],
-        club.send_attachment)
+        member.send_attachment,
+        club=club)
 
 def restore_fees_cmd():
     """
@@ -928,18 +935,19 @@ def smtp_send(recipients, message):
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
-def mutt_send(recipient, subject, body, attachment=None):
+def mutt_send(recipient, subject, body, attachments=None):
     """
     Does the mass e-mailings with attachment
     if one is provided.
     """
     cmd_args = [ "mutt", "-F", args["-F"], ]
-    if attachment:
-        cmd_args.extend([ "-a", attachment])
-    cmd_args.extend([
-        "-s", "{}".format(subject),
-        "--", recipient
-        ])
+    cmd_args.extend(["-s", "{}".format(subject)])
+    if attachments:
+        list2attach = ['-a']
+        for path2attach in attachments:
+            list2attach.append(path2attach)
+        cmd_args.extend(list2attach)
+    cmd_args.extend([ "--", recipient])
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
         input=body, encoding='utf-8')
     if p.returncode:

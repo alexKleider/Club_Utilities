@@ -37,6 +37,9 @@ cp -al ${BACKUP}/${LAST}/. $DEST
 #rsync -a --exclude='Utils' --delete $SRC $DEST   #***
 rsync -av --exclude='Utils' --delete $SRC $DEST  #***
 # The excluded 'Utils' directory is backed up by git.
+# Within 'Utils' there are files/directories excluded from git:
+# These are archived by the archive_data.sh script which should
+# be run before this script.
 
 echo $STAMP > ${BACKUP}/last
 echo "All done."

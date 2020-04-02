@@ -733,11 +733,14 @@ class Club(object):
                 except (ValueError, IndexError):
                     self.invalid_lines.append(line)
                     continue
-        #       res.append("Adding ${}.".format(amount))
+#               res.append("Adding ${}.".format(amount))
                 total += amount
                 subtotal += amount
-                print(" adding {}, running total is {}"
-                    .format(amount, total))
+#               print(" adding {}, running total is {}"
+#                   .format(amount, total))
+        if subtotal:
+            res.append("    SubTotal            --- ${}"
+                .format(subtotal))
         res.append("\nGrand Total to Date:    --- ---- ${}"
             .format(total))
 #       print("returning {}".format(res))
