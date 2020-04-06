@@ -24,7 +24,8 @@ status_key_values = {
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
     "a3": "Attended three (or more) meetings",
-    "ai": "Inducted, membership pending payment of fee",
+    "ai": "Inducted, membership pending payment of dues",
+    "aw": "Inducted, awaiting vacancy and then payment",
     "m": "Member in good standing",
     WAIVED: "Fees being waived",
     "be": "Email on record being rejected",
@@ -201,6 +202,23 @@ def get_secretary(record, club):
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
+def get_zeros_and_nulls(record, club):
+    """
+    Populates club.zeros and club.nulls lists.
+    """
+    dues = record['dues']
+    try:
+        value = int(dues)
+    except ValueError:
+        club.nulls.append("{last}, {first}: {dues}".format(**record))
+    else:
+        if value == 0:
+            club.zeros.append("{last}, {first}: {dues}"
+                                                .format(**record))
+
+
+## Beginning of 'add2' functions:
+
 
 def add2m_by_name(record, club):
     """
@@ -215,8 +233,6 @@ def add2m_by_name(record, club):
         email= record['email'],
         stati= {status for status in record["status"].split(
         SEPARATOR)})
-
-## Beginning of 'add2' functions:
 
 
 def add2email_data(record, club):
@@ -238,7 +254,7 @@ def add2email_data(record, club):
 
 def add2status_data(record, club):
     """
-    Populates club.by_status: list of members keyed by status.
+    Populates club.ms_by_status: list of members keyed by status.
     Also populates club.stati_my_m if attribute exists...
     and increments club.napplicants if attribute exists.
     """
@@ -249,8 +265,8 @@ def add2status_data(record, club):
     member = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
     for status in stati:
-        _ = club.by_status.setdefault(status, [])
-        club.by_status[status].append(member)
+        _ = club.ms_by_status.setdefault(status, [])
+        club.ms_by_status[status].append(member)
         if hasattr(club, 'stati_by_m'):
             _ = club.stati_by_m.setdefault(member, set())
             club.stati_by_m[member].add(status)

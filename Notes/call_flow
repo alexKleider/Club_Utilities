@@ -18,7 +18,7 @@ ck_data => ck_data_cmd =>
                 add2fee_data => 3, 6
 #!#             add2status_data => 9, 2, by_status vs 5    #!#
                 add2malformed => 7
-    gather_contacts.data(club)
+    gather_contacts_data(club)
         sets up club.gmail_by_name (dict of strings)
                 club.groups_by_name (dict of sets)
                 club.g_by_email (dict of sets of names)

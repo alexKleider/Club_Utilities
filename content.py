@@ -141,6 +141,21 @@ has been received.  Thank you.
 All the best!
 """.format(helpers.next_club_year()),
 
+# Correction!!!
+    correction = """
+You recently received a statement of dues for the upcoming
+({}) Club year. I believe the total was in error and the
+corrected amount is indicated below.  You can pay it any 
+time although it isn't due until June.
+
+If you have reason to believe this is in error, please let
+me know[1].
+
+My apologies for the confusion (caused by my ineptitude!)
+{{extra}}""".format(helpers.next_club_year()),
+
+
+
 # Send with March, April, and May minutes:
     early_request = """
 This is a reminder that annual Club dues will be due in June.
@@ -149,8 +164,8 @@ in order to be able to budget appropriately.  Advance warning
 also benefits those that might be planning to be away for the
 summer.
 
-A statement of your dues (+/- fees) for the upcoming ({} Club
-year) appears bellow.  (If you've any reason to believe that
+A statement of your dues (+/- fees) for the upcoming ({}) Club
+year appears bellow.  (If you've any reason to believe that
 our accounting might be in error, please let us know[1].) 
 If the total is zero (or negative) you're all paid up (or more
 than paid up) for the upcoming year and we thank you.
@@ -211,6 +226,20 @@ for the February special dinner meeting which begins at 6pm.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
 month period beginning the date your application was received.""",
+
+    awaiting_vacancy = """
+The Club Executive Committee has, at its last meeting,
+approved your application for Club membership.
+
+Unfortunately there is not currently a vacancy (since club
+bylaws specify that membership must not be over 200.)
+
+But don't dispair!  You are certainly welcome to enjoy most
+if not all of the privileges of membership until a vacancy
+occurs at which time I will send you a request for payment of
+dues and once paid you will become a full fledged member!
+
+You're almost there; as good as for all intense and purposes!""",
 
     request_inductee_payment = """
 The Club Executive Committee has, at its last meeting,
@@ -505,6 +534,22 @@ content_types = dict(  # which_letter
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
+    correction = {
+        "subject": "Corrected fees statement",
+        "from": authors["membership"],
+        "body": letter_bodies["correction"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
+        "funcs": (member.set_owing,),
+        "test": lambda record: True if (
+            member.is_member(record) and
+            member.not_paid_up(record)and
+            not ('w' in record["status"])
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
     early_request = {
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["membership"],
@@ -589,6 +634,18 @@ content_types = dict(  # which_letter
         "test": (
         lambda record: True if
             (record["status"] and 'a0' in record["status"].split("|"))
+            else False),
+        "e_and_or_p": "one_only",
+        },
+    awaiting_vacancy = {
+        "subject": "Membership pending vacancy",
+        "from": authors["membership"],
+        "body": letter_bodies["awaiting_vacancy"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing,),
+        "test": (
+        lambda record: True if
+            (record["status"] and 'aw' in record["status"].split("|"))
             else False),
         "e_and_or_p": "one_only",
         },

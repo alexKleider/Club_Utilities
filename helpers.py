@@ -13,6 +13,7 @@ import functools
 
 date_template = "%b %d, %Y"
 date_w_wk_day_template = "%a, %b %d, %Y"
+date_year_template = "%y"
 today = datetime.datetime.today()
 month = today.month
 this_year = today.year
@@ -192,7 +193,7 @@ def tabulate(data,
             display = None,  # a function
             alignment = '<', # left (<), right (>) or centered (^)
             down = True, #list by column (down) or by row (default)
-            max_width = 75,
+            max_width = 145,
             max_columns = 0,
             separator = ' | ', # minimum separation between columns
             force =0,
@@ -367,6 +368,7 @@ def test_first_friday():
     print(next_first_friday(today= datetime.date(2010, 2, 20)))
 
 if __name__ == "__main__":
-    test_first_friday()
+#   test_first_friday()
+    print("This year is {}.".format(this_year))
 
 

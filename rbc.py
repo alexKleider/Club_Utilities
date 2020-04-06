@@ -35,7 +35,8 @@ class Club(object):
     EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
     CONTACTS_SPoT = os.path.expanduser(     #} File to which google
                 '~/Downloads/contacts.csv') #} exports the data.
-    CHECKS_RECEIVED = 'Data/receipts.txt'  # Zeroed out yearly
+    RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
+        # Zeroed out yearly
         # and then stored in archives with date extension.
 
     SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
@@ -700,7 +701,7 @@ class Club(object):
             for error in errors:
                 print(error)
 
-    def fees_intake(self, infile=CHECKS_RECEIVED):
+    def fee_totals(self, infile=RECEIPTS_FILE):
         """
         Returns a list of strings: subtotals and grand total.
         Sets up and populates self.invalid_lines ....

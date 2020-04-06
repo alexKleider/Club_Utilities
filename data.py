@@ -553,6 +553,7 @@ def ck_applicants_cmd():
 
 def ck_data(club,
             report_status=True,
+            fee_details=False,
             raw=True,
             formfeed=False):
     """
@@ -573,6 +574,7 @@ def ck_data(club,
     """
     ret = []
     ok = []
+    varying_amounts = []
     first_line = "Report Regarding Data Integrity"
     if not (raw or formfeed):
         ret.append(first_line)
@@ -794,8 +796,8 @@ def ck_data(club,
         file_keys = set(club.ms_by_fee_category.keys())
         if club_keys == file_keys:
             not_matching_notice = (
-            "Fee amounts don't match")
-            ## traverse keys and specify which amounts don't match
+            "Fee amounts (by category) don't match")
+            ## traverse keys and report by name later
         else:
             ret.append("\nFees problem (by fee category):")
             ret.append("extra_fees_info[club.CATEGORY_KEY]:")
@@ -812,18 +814,21 @@ def ck_data(club,
         club_keys = set(extra_fees_info[club.NAME_KEY].keys())
         file_keys = set(club.fee_category_by_m.keys())
         if club_keys == file_keys:
-            not_matching_notice = (
-            "Fee amounts don't match")
-            ## traverse keys and specify which amounts don't match
-            club_keys = sorted([key for key in club_keys])
-            varying_amounts = []
-            for key in club_keys:
-                if (extra_fees_info[club.NAME_KEY][key] !=
-                        club.fee_category_by_m[key]):
-                    varying_amounts.append('{} != {}'
-                        .format(extra_fees_info[club.NAME_KEY][key],
-                                club.fee_category_by_m[key]
-                                ))
+            if fee_details:
+                not_matching_notice = "Fee amounts don't match"
+                ## traverse keys and specify which amounts don't match
+                club_keys = sorted([key for key in club_keys])
+                for key in club_keys:
+                    if (extra_fees_info[club.NAME_KEY][key] !=
+                            club.fee_category_by_m[key]):
+                        varying_amounts.append('{}: {} != {}'
+                            .format(key,
+                                    extra_fees_info[club.NAME_KEY][key],
+                                    club.fee_category_by_m[key]
+                                    ))
+            else:
+                not_matching_notice = (
+                "Fee amounts don't match (try -d option for details)")
         else:
             ret.append("\nFees problem (by name):")
             ret.append("extra_fees_info[club.NAME_KEY]:")
@@ -836,10 +841,16 @@ def ck_data(club,
 
     if ok:
         add2problems("No Problems with the Following", ok, ret)
+    ai_notice = "Acceptable Inconsistency"
     if not_matching_notice:
-        helpers.add_header2list("Acceptable Inconsistency",
+        helpers.add_header2list(ai_notice,
                                 ret, underline_char='=')
         ret.append(not_matching_notice)
+    if varying_amounts:
+        helpers.add_header2list(
+            "Fee Disparities: probably some have paid",
+            ret, underline_char='-', extra_line=True)
+        ret.extend(varying_amounts)
 #   if True:
     if False:
         ret.append("\nFees problem (by fee category):")

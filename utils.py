@@ -21,13 +21,14 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -r -P -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -d -r -P -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -r -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -N <applicant_spot> -o <outfile> ]
   ./utils.py stati [-O -A -i <infile> -o <outfile>]
+  ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-O -i <infile>] -o <outfile>
+  ./utils.py payables [-O -T <table_width> -i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
@@ -35,7 +36,7 @@ Usage:
   ./utils.py print_letters --dir <dir4letters> [-O -s <sep> -e error_file]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
-  ./utils.py fees_intake [-O -i <infile> -o <outfile> -e <error_file>]
+  ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
 
 Options:
@@ -44,6 +45,7 @@ Options:
   -A  re 'stati' comand: show only applicants.
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
+  -d   Include details: fee inconsistency for ck_data.
   --dir <dir4letters>  The directory to be created and/or read
                       containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
@@ -80,11 +82,13 @@ Options:
         input for creating tables.)
   -s    Report status
   --subject <subject>  The subject line of an email.
-  -t <temp_file>  An option provided for when one does not want to risk
-                  corruption of an important input file which is to be
-                  modified, thus providing an opportunity for proof
-                  reading the 'modified' file before renaming it to
-                  the original. (Typically named '2proof_read.txt'.)
+  -t <temp_file>  An option provided for when one does not want to
+        risk corruption of an important input file which is to be
+        modified, thus providing an opportunity for proof reading
+        the 'modified' file before renaming it to the original.
+        (Typically named '2proof_read.txt'.)
+  -T <table_width>  Present data in columns rather than a long list.
+        If used, number specifies maximum line length.
   --which <letter>  Specifies type/subject of mailing.
   -X <fees_spot>  Extra Fees data file. 
 
@@ -163,11 +167,13 @@ Commands:
         results into a file named as a concatination of "new_" and the
         specified membership csv file. One can then mannually check
         the new file and move it if all is well.
+        NOTE: check out 'rewrite_db.py'.
     emailing: provides ability to send emails with attachments.
         Uses a different mechanism than the prepare_mailing and
         send_emails commands. Sends the same to all in the input file.
-    fees_intake: Input file should be a 'receipts' file (which has a
-        specific format,) output yields subtotals and the grand total.
+    fee_intake_totals: Input file should be a 'receipts' file with a
+        specific format. It defaults to 'Data/receipts-YYYY.txt'.
+        Output yields subtotals and the grand total.
         This simply automates totaling the numbers.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
@@ -193,7 +199,7 @@ from rbc import Club
 # Constants required for correct rendering of "?" command:
 TOP_QUOTE_LINE_NUMBER = 11      #} These facilitate preparing
 BLANK_LINE_ABOVE_USAGE = 21     #} response to the
-BLANK_LINE_ABOVE_OPTIONS = 40   #} 'utils.py ?' command.
+BLANK_LINE_ABOVE_OPTIONS = 41   #} 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   #} Seconds between
@@ -364,6 +370,7 @@ def ck_data_cmd():
         club.CONTACTS_SPoT = args['-C']
     ret = data.ck_data(club,
                     report_status=args['-s'],
+                    fee_details=args['-d'],
                     raw=args['-r'],
                     formfeed=args['-P'])
     output("\n".join(ret))
@@ -418,15 +425,15 @@ def stati():
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     print("Preparing listing of stati.")
-    club.by_status = {}
+    club.ms_by_status = {}
     err_code = member.traverse_records(infile,
                                     member.add2status_data,
                                     club)
-    if not club.by_status:
+    if not club.ms_by_status:
         return ["Found No Entries with 'Status' Content." ]
 
-#   keys = [k for k in club.by_status.keys() if k]
-    keys = [k for k in club.by_status.keys()]
+#   keys = [k for k in club.ms_by_status.keys() if k]
+    keys = [k for k in club.ms_by_status.keys()]
     keys.sort()
 
     ret = []
@@ -442,7 +449,7 @@ def stati():
 #   ret.append('')
     for key in keys:
         sub_header = member.status_key_values[key]
-        values = sorted(club.by_status[key])
+        values = sorted(club.ms_by_status[key])
         if key.startswith('a'):
             ret.append('')
             ret.append(sub_header)
@@ -464,7 +471,7 @@ def report():
     applicant role call (/w dates of meetings attended.)
     """
     club = Club()
-    club.by_status = {}
+    club.ms_by_status = {}
     club.nmembers = 0
     infile = args["-i"]
     applicant_spot = args['-N']
@@ -490,7 +497,7 @@ def report():
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
 
-    ap_listing = club.by_status # } This segment is for
+    ap_listing = club.ms_by_status # } This segment is for
     for key in ap_listing:      # } error checking only;
       if 'a' in key:            # } not required if data match.
         # Only deal with applicants.
@@ -503,14 +510,14 @@ def report():
                          "=========="])
         report.extend(helpers.show_dict(ap_set_w_dates_by_status,
                                 underline_char='-'))
-    if 'r' in club.by_status:
+    if 'r' in club.ms_by_status:
         header = (
             'Members ({} in number) retiring from the Club:'
-                .format(len(club.by_status['r'])))
+                .format(len(club.ms_by_status['r'])))
         report.append('')
         report.append(header)
         report.append("=" * len(header))
-        for name in club.by_status['r']:
+        for name in club.ms_by_status['r']:
             report.append(name)
 
     try:
@@ -537,6 +544,28 @@ def report_cmd():
 
 def stati_cmd():
     output('\n'.join(stati()))
+
+
+def zeros_cmd():
+    """
+    Reports those with zero vs NIL in fees field.
+    """
+    infile = args['-i']
+    if not infile:
+        infile = Club.MEMBERSHIP_SPoT
+    club = Club()
+    club.zeros = []
+    club.nulls = []
+    err_code = member.traverse_records(infile, 
+                [member.get_zeros_and_nulls,],
+                club)
+    res = ["Nulls:",
+           "======",]
+    res.extend(club.nulls)
+    res.extend(["\nZeros:",
+                  "======",])
+    res.extend(club.zeros)
+    output('\n'.join(res))
 
 
 def usps_cmd():
@@ -608,6 +637,7 @@ def payables_cmd():
     Traverses the db populating 
     """
     infile = args['-i']
+    max_width = args['-T']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     club = Club()
@@ -619,7 +649,16 @@ def payables_cmd():
     if club.still_owing:
         output.extend(["Members owing",
                        "-------------"])
-        output.extend(club.still_owing)
+        if max_width:
+            if max_width[0] == '=':
+                max_width = max_width[1:]
+            max_width = int(max_width)
+            tabulated = helpers.tabulate(club.still_owing,
+                                    max_width=max_width,
+                                    separator = '')
+            output.extend(tabulated)
+        else:
+            output.extend(club.still_owing)
     if club.advance_payments:
         output.append("\n")
         output.extend(["Members Payed in Advance",
@@ -721,7 +760,7 @@ def display_emails_cmd(json_file):
             all_emails.extend(email)
             n_emails += 1
     print("Processed {} emails..."
-        .format(len(n_emails)))
+        .format(n_emails))
     return "\n".join(all_emails)
 
 
@@ -871,25 +910,18 @@ def restore_fees_cmd():
     if ret:
         sys.exit(ret)
 
-def fees_intake_cmd():
+def fee_intake_totals_cmd():
     infile = args['-i']
     outfile = args['-o']
     errorfile = args['-e']
     club = Club()
     if infile:
-        fees_taken_in = club.fees_intake(infile)
+        fees_taken_in = club.fee_totals(infile)
     else:
-        fees_taken_in = club.fees_intake()
-    fees_taken_in.append("\n")
+        fees_taken_in = club.fee_totals()
+    fees_taken_in.append("")
     res = '\n'.join(fees_taken_in)
-    ## REFACTOR: The following can be replaced by output(res)
-    if not outfile or outfile == 'stdout':
-        print(res)
-    else:
-        with open(outfile, 'w') as file_obj:
-            print('Writing to "{}".'.format(file_obj.name))
-            file_obj.write(res)
-    ## End of refactoring
+    output(res)
     if club.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
             print('Writing to "{}".'.format(file_obj.name))
@@ -978,6 +1010,9 @@ if __name__ == "__main__":
     elif args["stati"]:
         stati_cmd()
 
+    elif args["zeros"]:
+        zeros_cmd()
+
     elif args["usps"]:
         print("Preparing a csv file listing showing members who")
         print("receive meeting minutes by mail. i.e. don't have (or")
@@ -1020,8 +1055,8 @@ if __name__ == "__main__":
     elif args['restore_fees']:
         restore_fees_cmd()
 
-    elif args['fees_intake']:
-        fees_intake_cmd()
+    elif args['fee_intake_totals']:
+        fee_intake_totals_cmd()
 
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
