@@ -27,14 +27,14 @@ status_key_values = {
     "ai": "Inducted, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment",
     "m": "Member in good standing",
-    WAIVED: "Fees being waived",
+    "w": "Fees being waived",
     "be": "Email on record being rejected",
-    'r': "Giving up Club Membership",
+    'r': "Retiring/Giving up Club Membership",
     's': "Secretary of the Club"
     }
 STATI = sorted([key for key in status_key_values.keys()])
-APPLICANT_STATI = STATI[:5]
-APPLICANT_SET = set(STATI[:5])
+APPLICANT_STATI = STATI[:6]
+APPLICANT_SET = set(STATI[:6])
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
 n_fields = 15  # Plan to redact in favour of N_FIELDS
@@ -262,14 +262,16 @@ def add2status_data(record, club):
         return
     if is_applicant(record) and hasattr(club, "napplicants"):
         club.napplicants += 1
-    member = club.pattern.format(**record)
+    name = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
+#   if stati:
+#       print(stati)
     for status in stati:
         _ = club.ms_by_status.setdefault(status, [])
-        club.ms_by_status[status].append(member)
+        club.ms_by_status[status].append(name)
         if hasattr(club, 'stati_by_m'):
-            _ = club.stati_by_m.setdefault(member, set())
-            club.stati_by_m[member].add(status)
+            _ = club.stati_by_m.setdefault(name, set())
+            club.stati_by_m[name].add(status)
 
 
 def add2fee_data(record, club):
@@ -341,9 +343,8 @@ def show_by_status(by_status, stati2show=STATI):
     stati = by_status.keys()
     for status in sorted(stati):
         if status in stati2show:
-            ret.append('')
-            ret.append(status)
-            ret.append('-' * len(status))
+            helpers.add_header2list(status_key_values[status],
+                                        ret, underline_char='-')
             for line in by_status[status]:
                 ret.append(line)
     return ret

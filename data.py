@@ -164,67 +164,75 @@ def gather_contacts_data(club):
 
 def gather_applicant_data(in_file, include_dates=False):
     """
-    Reads the in_file (APPLICANT_SPoT) and returns a dict With keys:
+    Reads the in_file (APPLIANT_SPoT) and returns a dict With keys:
         "expired": list of applicants who've let applications expire.
-        "applicants": a dict- set of applicants (+/- meeting dates)
-    keyed by status. (Client will want to sort keys for presentation.)
+        "applicants": a dict keyed by status =>
+                lists of applicants (+/- meeting dates)
+        "bad_lines": lines not interpretable (for error checking.)
     """
+    bad_lines = []
     expired_applications = []
     applicants = {}
     with open(in_file, 'r') as f_obj:
         print('Reading file "{}".'
             .format(f_obj.name))
-        for raw_line in f_obj:
-            line = raw_line.strip()
-            if line:
-#               print("Processing: {}".format(line))
-                parts = [part.strip() for part in line.split(
-                                        Club.SEPARATOR)]
-                if not parts[-1]:       #} neutilizes empty field
-                    parts = parts[:-1]  #} after trailing SEPARATOR
-#               print("parts: {}".format(repr(parts)))
-                length = len(parts)
-                if length > 2:  # to exclude non applicants (name|appl|fee)
-                    index = length - Club.N_SEPARATORS
-#                   print(length)
-                    try:
-                        status = member.APPLICANT_STATI[index]
-                    except IndexError:
-#                       print("IndexError: {}".format(line))  # got none
-                        continue
-                    name = parts[0]
-                    names = name.split()
-                    if len(names) == 2:
-                        last_first = ", ".join((names[1], names[0]))
-#                       print("Processing '{}'.".format(last_first))
-                        last_segment = parts[-1]
-#                       print("last_segment is '{}'"
-#                           .format(last_segment))
-                        if last_segment == "Application expired.":
-                            expired_applications.append(last_first)
-                        else:
-                            _ = applicants.setdefault(status, [])
-#                           print("Adding '{}'.".format(last_first))
-                            if include_dates:
-                                dates = parts[Club.N_SEPARATORS:]
-                                applicants[status].append("{}: {}"
-                                    .format(last_first, dates))
-                            else:
-                                applicants[status].append(last_first)
-#                       print("Line with dates:")
-#                       print("{} {}".format(last_first,
-#                               ', '.join(dates)))
-                    elif name:
-                        print(
-                        "Difficulty processing applicant '{}' in line:"
-                                .format(name))
-#                       print(raw_line)
+        for line in f_obj:
+            parts = [part.strip() for part in line.split(
+                                    Club.SEPARATOR)]
+            if not parts:
+                bad_lines.append(line)
+                continue
+            names = parts[0].split()
+            if len(names) == 2:
+                name = ", ".join((names[1], names[0]))
+#               print("Dealing with {}".format(name))
+                parts = parts[1:]
+            else:
+                bad_lines.append(line)
+                continue
+            if not parts[-1]:       #} neutilizes empty field
+                parts = parts[:-1]  #} after trailing SEPARATOR
+            if parts[-1].startswith("Application"):
+                expired_applications.append(name)
+                continue
+            if len(parts) < 2:  # application received; fee paid
+                bad_lines.append(line)
+#               print("len(parts) is < 2 (before deleting first 2)")
+                continue
+            else:
+                parts = parts[2:]
+                l = len(parts)
+#               print("len(parts): {}".format(l))
+            status = ''
+            if l == 5:
+                if parts[l-1] == 'aw':
+                    status = 'aw'
+#                   print("status is aw")
+                    parts = parts[:-1]
+                else:
+                    continue  # no longer an appliant
+            if not status:
+                try:
+                    status = member.APPLICANT_STATI[l]
+                except IndexError:
+                    bad_lines.append(
+                        "IndexError: {}".format(line))  # got none
+                    continue
+            _ = applicants.setdefault(status, [])
+#           print("appending '{}' to status '{}'"
+#                       .format(name, status))
+            if include_dates:
+                applicants[status].append("{}: {}"
+                    .format(name, parts))
+            else:
+                applicants[status].append(name)
     for key in applicants:
         applicants[key] = sorted(applicants[key])
     return {"expired": expired_applications,  # just a list
             "applicants": applicants,  # lists keyed by status:
                         # client will want to sort the keys.
      # i.e. keys = sorted([key for key in data["applicants"]])
+            "bad_lines": bad_lines,  # for error checking
             }
 
 
@@ -1033,6 +1041,26 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         if sys.argv[1] == 'ck_json':
             ck_json_dump_of_extra_fees()
+        elif sys.argv[1] == 'ck_applicant_spot':
+            res = gather_applicant_data("Data/applicants.txt")
+            bad_lines = res["bad_lines"]
+            expired_applicants = res["expired"]
+            applicants = res['applicants']
+            print("Bad Lines:")
+            print("==========")
+            for line in bad_lines:
+                print(line)
+            print("\nExpired_applications")
+            print(  "==================")
+            for line in expired_applicants:
+                print(line)
+            print("\nBy Status")
+            print(  "=========")
+            for key in applicants.keys():
+                print("\n{}".format(key))
+                print('-' * len(key))
+                for val in applicants[key]:
+                    print(val)
         else:
             print("Invalid argument:'{}'."
                 .format(sys.argv[1]))

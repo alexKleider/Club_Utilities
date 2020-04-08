@@ -69,7 +69,7 @@ Options:
             if content.which.["postal_header"] isn't already
             specified.  [default: X6505]
   -N <app_spot>  Applicant data file.
-  -O  Show arguments/Options.
+  -O  Show Options/commands/arguments.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only send notices if fees are outstanding.
@@ -90,6 +90,7 @@ Options:
   -T <table_width>  Present data in columns rather than a long list.
         If used, number specifies maximum line length.
   --which <letter>  Specifies type/subject of mailing.
+  -x <file>  Used by commands not in use. (Expect redaction)
   -X <fees_spot>  Extra Fees data file. 
 
 Commands:
@@ -405,12 +406,9 @@ BOARD OF THE BRBC.
                             "============"))
         ret.extend(club.members)
     if club.by_n_meetings:
-        ret.append('')
         header = "Applicants ({} in number)".format(club.napplicants)
-        ret.append(header)
-        ret.append('=' * len(header))
+        helpers.add_header2list(header, ret, underline_char='=')
         ret.extend(member.show_by_status(club.by_n_meetings))
-
     output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
 
@@ -435,31 +433,33 @@ def stati():
 #   keys = [k for k in club.ms_by_status.keys() if k]
     keys = [k for k in club.ms_by_status.keys()]
     keys.sort()
+    print(keys)
 
     ret = []
+    other = []
 #   if not args['-A']:
 #       header = (
 #           "Applicants (and other's with special status)")
 #       ret.append(header)
 #       ret.append('=' * len(header))
 #       ret.append('')
-    header = "Applicants"
-    ret.append(header)
-    ret.append('=' * len(header))
+    helpers.add_header2list("Applicants",ret, underline_char='*')
 #   ret.append('')
     for key in keys:
         sub_header = member.status_key_values[key]
         values = sorted(club.ms_by_status[key])
         if key.startswith('a'):
-            ret.append('')
-            ret.append(sub_header)
-            ret.append('-' * len(sub_header))
+            helpers.add_header2list(sub_header,ret,
+                                    underline_char='-')
+            for value in values:
+                ret.append("    {}".format(value))
         elif not args['-A']:
-            ret.append('')
-            ret.append(sub_header)
-            ret.append('=' * len(sub_header))
-        for value in values:
-            ret.append("    {}".format(value))
+            helpers.add_header2list(sub_header,other,
+                                    underline_char='=')
+            for value in values:
+                other.append("    {}".format(value))
+    if len(other) > 2:
+        ret.extend(other)
     return ret
 
 
@@ -508,8 +508,9 @@ def report():
     if ap_set_w_dates_by_status:
         report.extend(["\nApplicants",
                          "=========="])
-        report.extend(helpers.show_dict(ap_set_w_dates_by_status,
-                                underline_char='-'))
+        report.extend(member.show_by_status(ap_set_w_dates_by_status))
+#       report.extend(helpers.show_dict(ap_set_w_dates_by_status,
+#                               underline_char='-'))
     if 'r' in club.ms_by_status:
         header = (
             'Members ({} in number) retiring from the Club:'
@@ -522,7 +523,7 @@ def report():
 
     try:
         with open(DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
-            print('opening file')
+            print('Opening file: {}'.format(fobj.name))
             addendum = fobj.read()
             report.append(addendum)
     except FileNotFoundError:
@@ -538,8 +539,8 @@ def report():
     return report
  
 def report_cmd():
-    print("Test 'member' recognition: {}"
-        .format(member.status_key_values['r']))
+#   print("Test 'member' recognition: {}"
+#       .format(member.status_key_values['r']))
     output('\n'.join(report()))
 
 def stati_cmd():
@@ -997,72 +998,53 @@ if __name__ == "__main__":
             :
             (BLANK_LINE_ABOVE_OPTIONS - TOP_QUOTE_LINE_NUMBER + 1)
             ]))
-
     elif args["ck_data"]:
         ck_data_cmd()
-
     elif args["show"]:
         show_cmd()
-
     elif args["report"]:
         report_cmd()
-
     elif args["stati"]:
         stati_cmd()
-
     elif args["zeros"]:
         zeros_cmd()
-
     elif args["usps"]:
         print("Preparing a csv file listing showing members who")
         print("receive meeting minutes by mail. i.e. don't have (or")
         print("haven't provided) an email address (to the Club.)")
         output(usps_cmd())
-
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
-#       print("...being sent to {}.".format(args['-o']))
         extra_charges_cmd()
-
     elif args["payables"]:
         print("Preparing listing of payables...")
         output(payables_cmd())
-
     elif args['show_mailing_categories']:
         show_mailing_categories_cmd()
-
     elif args["prepare_mailing"]:
         print("Preparing emails and letters...")
         prepare_mailing_cmd()
         print("...finished preparing emails and letters.")
-
     elif args['display_emails']:
         output(display_emails_cmd(args['-j']))
-
     elif args["send_emails"]:
         print("Sending emails...")
         send_emails_cmd()
         print("Done sending emails.")
-
     elif args["print_letters"]:
         print("Printing letters ...")
         print_letters_cmd()
         print("Done printing letters.")
-
     elif args['emailing']:
         emailing_cmd()
-    
     elif args['restore_fees']:
         restore_fees_cmd()
-
     elif args['fee_intake_totals']:
         fee_intake_totals_cmd()
-
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
             .format(args['-i'], args['-o']))
         output(labels_cmd())
-
     elif args["envelopes"]:
         # destination is specified within Club 
         # method print_custom_envelopes() which is called 
@@ -1072,7 +1054,6 @@ if __name__ == "__main__":
     with output sent to '{}'"""
             .format(args['-i'], args['-o']))
         envelopes_cmd()
-
     else:
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
