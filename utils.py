@@ -27,8 +27,8 @@ Usage:
   ./utils.py stati [-O -A -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -r -f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-O -T <table_width> -i <infile>] -o <outfile>
+  ./utils.py extra_charges [-O -r -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py payables [-O -T -w <width> -i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
@@ -87,8 +87,9 @@ Options:
         modified, thus providing an opportunity for proof reading
         the 'modified' file before renaming it to the original.
         (Typically named '2proof_read.txt'.)
-  -T <table_width>  Present data in columns rather than a long list.
-        If used, number specifies maximum line length.
+  -T  Present data in columns rather than a long list.
+  -w <width>  Maximum number of characters per line in output.
+                                    [default: 95]
   --which <letter>  Specifies type/subject of mailing.
   -x <file>  Used by commands not in use. (Expect redaction)
   -X <fees_spot>  Extra Fees data file. 
@@ -214,10 +215,18 @@ TEMP_FILE = "2print.temp"  # see <output> function
 DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
 
 args = docopt(__doc__, version="1.1")
+if args['-w'][0] == '=':
+    args['-w'] = args['-w'][1:]
+try:
+    max_width = int(args['-w'])
+except ValueError:
+    print(
+"Value of '-w' command line argument must be an integer.")
+    sys.exit()
 if args['-O']:
     print("Arguments are...")
     res = sorted(["{}: {}".format(key, args[key]) for key in args])
-    ret = helpers.tabulate(res, max_width=140, separator='   ')
+    ret = helpers.tabulate(res, max_width=max_width, separator='   ')
     print('\n'.join(ret))
     print("...end of arguments.")
 
@@ -608,29 +617,51 @@ def extra_charges_cmd():
     if not infile:
         infile = Club.EXTRA_FEES_SPoT
     print('<infile> set to "{}"'.format(infile))
+    if not args['-f']:
+        args['-f'] = 'table'
     if infile.endswith(TEXT):
-        print('<infile> ends in "{}"'.format(TEXT))
-        extra_fees = data.gather_extra_fees_data(infile)
-        by_name = extra_fees[Club.by_name]
-        by_category = extra_fees[Club.by_category]
-        if args['-f'] == 'listing':
+        print('<infile> ends in "{}"; reading from SPoL'.
+                                        format(TEXT))
+        if args['-f'] == 'listing':  # No processing needed..
+            # Just return file content:
             with open(infile, 'r') as f_object:
-                output(f_object(read))
-        elif args['-f'] == 'table':
-            res = data.present_fees_by_name(by_name, raw=args['-r'])
-            ret = helpers.tabulate(res, alignment='<', down=True)
-            output('\n'.join(ret))
-        elif args['-f'] == 'listings':
-            output('\n'.join(data.show_fee_listings(extra_fees,
-                                                        args['-r'])))
+                output(f_object.read())
+        else:
+            if args['-j']:
+                json_file = args['-j']
+            else:
+                json_file = False
+            extra_fees = data.gather_extra_fees_data(infile,
+                                                json_file=json_file)
+            by_name = extra_fees[Club.NAME_KEY]
+            by_category = extra_fees[Club.CATEGORY_KEY]
+            if args['-f'] == 'table':  # Names /w fees in columns:
+                res = data.present_fees_by_name(by_name, raw=True)
+                ret = helpers.tabulate(res, down=True,
+                            max_width=max_width, separator=' ')
+                if not args['-r']:
+                    header = ["Extra fees by member:",
+                              "=====================",  ]
+                    ret = header + ret
+                output('\n'.join(ret))
+            elif args['-f'] == 'listings':
+                output('\n'.join(data.present_fees_by_category(
+                                        extra_fees, raw=args['-r'])))
+#               output('\n'.join(data.show_fee_listings(extra_fees,
+#                                                           args['-r'])))
+            else:
+                print("""Bad argument for '-f' option...
+        Choose one of the following:        [default: table]
+                'table' listing of names /w fees tabulated (=> 2 columns.)
+                'listing' same format as Data/extra_fees.txt
+                'listings' side by side lists (best use landscape mode.)
+    """)
     elif infile.endswith(CSV):
         print('Not set up to deal with csv file yet.')
-        return
+        assert(False)
     else:
         print('<infile> must end in ".txt" or ".csv"')
         assert(False)
-    if args["-j"]:
-        print('Not set up to provide json file yet.')
 
 
 def payables_cmd():
@@ -638,7 +669,6 @@ def payables_cmd():
     Traverses the db populating 
     """
     infile = args['-i']
-    max_width = args['-T']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     club = Club()
@@ -650,10 +680,7 @@ def payables_cmd():
     if club.still_owing:
         output.extend(["Members owing",
                        "-------------"])
-        if max_width:
-            if max_width[0] == '=':
-                max_width = max_width[1:]
-            max_width = int(max_width)
+        if args['-T']:
             tabulated = helpers.tabulate(club.still_owing,
                                     max_width=max_width,
                                     separator = '')
@@ -886,7 +913,7 @@ def restore_fees_cmd():
     fields have been zeroed out or contain a credit (over payment.)
     Repopulates the club's master list with the ANNUAL_DUES constant
     and information from args['<extra_fees.json>'].
-    If '-t <new_membership_file>' is specified, the original
+    If '-t <temp_membership_file>' is specified, the original
     membership file is not modified and output is to the new file,
     else the original file is changed.
     """

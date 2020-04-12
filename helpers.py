@@ -145,6 +145,21 @@ def add_header2list(header, list_,
         list_.append(underline_char * len(header))
 
 
+def display_json(data, res):
+    for datum in data:
+        if isinstance(datum, dict):
+            for key in datum:
+                add_header2list(key, res, underline_char='-')
+                for val in datum[key]:
+                    display_json(val, res)
+        elif isintance(datum, list):
+            for item in datum:
+                display_json(item, res)
+        elif isinstance(datum, str):
+                res.append(item)
+
+
+
 def show_dict(d, underline_char=None, extra_line=True):
     """
     Returns a list of strings representing a human readable version
@@ -175,12 +190,12 @@ def show_dict(d, underline_char=None, extra_line=True):
     return ret
 
 
-def create_json_file(json_data, json_file, verbose=True):
+def dump2json_file(data, json_file, verbose=True):
     with open(json_file, "w") as json_file_obj:
         if verbose:
-            print('Dumping JSON to "{}".'
+            print('Dumping (json) data to "{}".'
                 .format(json_file_obj.name))
-        json.dump(json_data, json_file_obj)
+        json.dump(data, json_file_obj)
 
 
 def longest(x, y):

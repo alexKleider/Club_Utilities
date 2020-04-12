@@ -296,7 +296,7 @@ def gather_extra_fees_data(in_file, json_file=None):
                 by_name[name_key].append((category, fee))
                 by_category[category].append((name_key, fee))
     if json_file:
-        helpers.create_json_file(by_name, json_file)
+        helpers.dump2json_file(by_name, json_file, verbose=True)
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }
@@ -360,12 +360,17 @@ def present_fees_by_name(extra_fees, raw=False):
 
 
 def present_fees_by_category(extra_fees,
-                            raw=False, always_incl_fees=False):
+                            raw=False,
+                            always_incl_fees=False, #not implemented
+                            ):
     """
     Param would typically be the returned value of
     gather_extra_fees_data(infile)
     or its CATEGORY_KEY value.
     Returns a text listing with or (if raw=True) without a header.
+    Last parameter (not yet implemented) changes the default of
+    showing individuals' fees only for mooring since fees for dock
+    use and kayak storage are the same for everyone .
     """
     if Club.CATEGORY_KEY in extra_fees:
         jv = extra_fees[Club.CATEGORY_KEY]
@@ -384,13 +389,15 @@ def present_fees_by_category(extra_fees,
                   "======================="]
     for category in categories:
         if category == 'Kayak':
-            ret[category].append(category + ': {}'.format(
+            ret[category].append(category + ': ${}'.format(
                         Club.KAYAK_FEE))
         elif category == 'Dock':
-            ret[category].append(category + ': {}'.format(
+            ret[category].append(category + ': ${}'.format(
                         Club.DOCK_FEE))
         elif category == 'Mooring':
             ret[category].append(category)
+        else:
+            assert False
         ret[category].append('-' * len(ret[category][0]))
         max_width[category] = len(ret[category][0])
         for value in jv[category]:
@@ -401,17 +408,22 @@ def present_fees_by_category(extra_fees,
             if len(ret[category][-1]) > max_width[category]:
                 max_width[category] = len(ret[category][-1])
     max_n = 0
+    new_ret = {}
     for category in categories:
+        new_ret[category] = []
         if len(ret[category]) > max_n:
             max_n = len(ret[category])
+        for line in ret[category]:
+            line = line + ' ' * (max_width[category] - len(line))
+            new_ret[category].append(line)
     for category in categories:
-        ret[category].extend([''] * (max_n -len(ret[category])))
-    zipped = zip(*[value for value in d.values()])
+        new_ret[category].extend([' ' * max_width[category],]
+                            * (max_n -len(new_ret[category])))
+    zipped = zip(*[value for value in new_ret.values()])
     res = []
-    form = '{}  {}  {}'
-    for triplet in zipped:
-        res
-    return ret
+    for item in zipped:
+        res.append('{} {} {}'.format(*item))
+    return res
 
 
 def present_expired(list_of_expired_applications, raw=False):

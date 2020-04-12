@@ -127,8 +127,8 @@ behind you.{extra}
 If the number is negative or zero, there'll be nothing due in June.
 """,
 
-    thank_you_for_advanced_payment = """
-Your advance payment of dues for the next ({}) Club year
+    thank_you_for_payment = """
+Your payment of dues for the next ({}) Club year
 has been received.  Thank you.
 
 All the best!
@@ -241,6 +241,19 @@ dues and once paid you will become a full fledged member!
 
 You're almost there; as good as for all intense and purposes!""",
 
+    request_delayed_inductee_payment = """
+It's my pleasure to report that a vacancy has come up and so
+you can now become a member.
+
+"Welcome aboard!"
+
+All that remains for your membership to take effect is payment
+of dues.  Please send a check for ${current_dues} to the Club
+(address provided below.)
+
+Upon receipt of your membership dues, I'll send you more information
+about the Club and your privileges as a member there of.""",
+
     request_inductee_payment = """
 The Club Executive Committee has, at its last meeting,
 approved your application for Club membership.
@@ -299,6 +312,12 @@ It's been more than six months since your membership application has
 been received which makes it now expired.  If you still wish to be a
 member of the Bolinas Rod and Boat Club the application process must
 begin again.""",
+
+    retirement_from_club = """
+Your wish to retire from Club membership has been noted.
+
+I know I speak for all members in saying we're sorry to see you go
+and wish you all the best in the future.""",
 
     cover_letter = """
 Enclosed you'll find minutes of the Bolinas Rod and Boat Club.""",
@@ -516,10 +535,10 @@ content_types = dict(  # which_letter
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
-    thank_you_for_advanced_payment = {
+    thank_you_for_payment = {
         "subject": "Thanks for your payment",
         "from": authors["membership"],
-        "body": letter_bodies["thank_you_for_advanced_payment"],
+        "body": letter_bodies["thank_you_for_payment"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
         "test": lambda record: True,
@@ -661,6 +680,18 @@ content_types = dict(  # which_letter
         lambda record: True if 'ai' in record["status"] else False),
         "e_and_or_p": "one_only",
         },
+    request_delayed_inductee_payment = {
+        "subject": "Welcome to the Bolinas Rod & Boat Club",
+        "from": authors["membership"],
+        "body": letter_bodies["request_delayed_inductee_payment"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            ),
+        "funcs": (member.request_inductee_payment,),
+        "test": (
+        lambda record: True if 'aw' in record["status"] else False),
+        "e_and_or_p": "one_only",
+        },
     second_request_inductee_payment = {
         "subject": "Still awaiting Club dues",
         "from": authors["membership"],
@@ -692,9 +723,17 @@ content_types = dict(  # which_letter
         "body": letter_bodies["expired_application"],
         "post_scripts": ( ),
         "funcs": (member.std_mailing,),
-        "test": (
-        lambda record: True if record["first"] == 'Joseph'
-                and record['last'] == 'Nowicki' else False),
+        "test": (lambda record: True),
+        "e_and_or_p": "one_only",
+        },
+
+    retirement_from_club = {
+        "subject": "Sorry you're leaving us.",
+        "from": authors["membership"],
+        "body": letter_bodies["retirement_from_club"],
+        "post_scripts": ( ),
+        "funcs": (member.std_mailing,),
+        "test": (lambda record: True),
         "e_and_or_p": "one_only",
         },
 
