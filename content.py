@@ -640,8 +640,9 @@ content_types = dict(  # which_letter
         "body": letter_bodies["bad_email"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
-        "test": (
-        lambda record: True if 'be' in record["status"] else False),
+        "test": (lambda record: True if
+            'be' in record["status"].split(member.SEPARATOR)
+            else False),
         "e_and_or_p": "usps",
         },
     new_applicant_welcome = {
@@ -650,8 +651,7 @@ content_types = dict(  # which_letter
         "body": letter_bodies["new_applicant_welcome"],
         "post_scripts": (),
         "funcs": (member.std_mailing,),
-        "test": (
-        lambda record: True if
+        "test": (lambda record: True if
             (record["status"] and 'a0' in record["status"].split("|"))
             else False),
         "e_and_or_p": "one_only",

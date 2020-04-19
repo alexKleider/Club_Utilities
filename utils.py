@@ -947,7 +947,7 @@ def fee_intake_totals_cmd():
         fees_taken_in = club.fee_totals(infile)
     else:
         fees_taken_in = club.fee_totals()
-    fees_taken_in.append("")
+    fees_taken_in.append(" ")
     res = '\n'.join(fees_taken_in)
     output(res)
     if club.invalid_lines and errorfile:
