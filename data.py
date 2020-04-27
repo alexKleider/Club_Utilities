@@ -467,7 +467,6 @@ def present_applicants(applicants_keyed_by_status, raw=False):
     return ret
 
 
-
 def add2problems(problem_header, new_problems, problem_list,
                 separator=[""], underline_with=["="], raw=False):
     """

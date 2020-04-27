@@ -43,6 +43,8 @@ class Club(object):
     N_SEPARATORS = 3  #} specific format for it to be read
                       #} correctly. Number of meetings is
                       #} derived from N_SEPARATORS.
+    ### NOTE: this SEPARATOR although having the same value is NOT
+    ### the same as the one defined in member.py module.
     NAME_KEY = "by_name"         #} Used in context of
     CATEGORY_KEY = "by_category" #} the extra fees.
 

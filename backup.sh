@@ -12,12 +12,14 @@
 # are the destination device/directory assigned in the
 # next line and the rsync command at the end of the script.
 
-BACKUP="/media/alex/_EAGLE/Brbc"  #***
+BACKUP="/home/alex/MntPoint/Brbc"  #***
+# BACKUP="/media/alex/_EAGLE/Brbc"  #***
 
 STAMP=`date +%y-%m-%d`
 DEST=${BACKUP}/$STAMP
 LAST=`cat ${BACKUP}/last`
-SRC="/home/alex/Club/Mshp/"
+#SRC="/home/alex/Club/Mshp/"  #***
+SRC="/home/alex/Git/Club/"  #***
 
 if [ -d ${DEST} ]; then  # This segment provides idempotency.
   echo Backup already done today. No backup until tomorrow.
@@ -29,6 +31,9 @@ else
 fi
 
 mkdir $DEST
+
+# Make sure we save a copy of .git/info/exclude
+cp .git/info/exclude ../
 
 # Copy what was previously backed up using hard links...
 cp -al ${BACKUP}/${LAST}/. $DEST

@@ -17,8 +17,8 @@ import csv
 import json
 import helpers
 
-SEPARATOR = '|'  
-WAIVED = "w"
+SEPARATOR = '|'  ### Note: NOT the same as rvc.SEPARATOR
+WAIVED = "w"     #   \ although its value happens to be the same.
 status_key_values = {
     "a0": "Application received",
     "a1": "Attended one meeting",
@@ -35,6 +35,7 @@ status_key_values = {
 STATI = sorted([key for key in status_key_values.keys()])
 APPLICANT_STATI = STATI[:6]
 APPLICANT_SET = set(STATI[:6])
+MISCELANEOUS_STATI = "m|w|be"
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
 n_fields = 15  # Plan to redact in favour of N_FIELDS
@@ -264,11 +265,13 @@ def add2status_data(record, club):
         club.napplicants += 1
     name = club.pattern.format(**record)
     stati = record["status"].split(SEPARATOR)
-#   if stati:
-#       print(stati)
     for status in stati:
         _ = club.ms_by_status.setdefault(status, [])
-        club.ms_by_status[status].append(name)
+        if status == 'be':
+            club.ms_by_status[status].append(name + 
+                " ({})".format(record['email']))
+        else:
+            club.ms_by_status[status].append(name)
         if hasattr(club, 'stati_by_m'):
             _ = club.stati_by_m.setdefault(name, set())
             club.stati_by_m[name].add(status)
@@ -332,6 +335,66 @@ def add2malformed(record, club=None):
     club.previous_name = name
 
 # End of 'add2...' functions
+
+
+def show_stati(mode="all"):
+    """
+    Returns a list of strings (that can be '\n'.join(ed))
+    The default is to include every status found.
+    <mode> parameter must be one of the following:
+        'all'                   }  both self
+        'applicants_only'       } explanatory
+        a SEPARATOR separated listing of all stati to be included
+    """
+    print("Debug: mode is set to '{}'.".format(mode))
+    club = Club()
+    infile = args["-i"]
+    if not infile:
+        infile = Club.MEMBERSHIP_SPoT
+    print("Preparing listing of stati.")
+    club.ms_by_status = {}
+    err_code = traverse_records(infile,
+                                    add2status_data,
+                                    club)
+    if not club.ms_by_status:
+        return ["Found No Entries with 'Status' Content." ]
+    ret = []
+    if mode == 'all':
+        stati2show = STATI
+    elif mode == 'applicants_only':
+        stati2show = APPLICANT_STATI
+    else:
+        try:
+            stati2sshow = mode.split(SEPARATOR)
+        except AttributeError:
+            print(
+            'Bad "mode" parameter ({}) provided to stati function.'
+                .format(mode))
+            print('Must exit!')
+            raise
+            sys.exit()
+    keys = [k for k in club.ms_by_status.keys()]
+    keys.sort()
+#   print(keys)
+
+    do_it_once = True
+    for key in keys:
+        if key in stati2show:
+            sub_header = status_key_values[key]
+            values = sorted(club.ms_by_status[key])
+            if key.startswith('a'):
+                if do_it_once:
+                    helpers.add_header2list("Applicants", ret,
+                                        underline_char='=')
+                    do_it_once = False
+                helpers.add_header2list(sub_header, ret,
+                                        underline_char='-')
+            else:
+                helpers.add_header2list(sub_header, ret,
+                                        underline_char='=')
+            for value in values:
+                ret.append("    {}".format(value))
+    return ret
 
 
 def show_by_status(by_status, stati2show=STATI):

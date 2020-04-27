@@ -423,61 +423,13 @@ BOARD OF THE BRBC.
 
 
 
-def stati():
-    """
-    Returns a list of strings (that can be '\n'.join(ed))
-    """
-    club = Club()
-    infile = args["-i"]
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    print("Preparing listing of stati.")
-    club.ms_by_status = {}
-    err_code = member.traverse_records(infile,
-                                    member.add2status_data,
-                                    club)
-    if not club.ms_by_status:
-        return ["Found No Entries with 'Status' Content." ]
-
-#   keys = [k for k in club.ms_by_status.keys() if k]
-    keys = [k for k in club.ms_by_status.keys()]
-    keys.sort()
-    print(keys)
-
-    ret = []
-    other = []
-#   if not args['-A']:
-#       header = (
-#           "Applicants (and other's with special status)")
-#       ret.append(header)
-#       ret.append('=' * len(header))
-#       ret.append('')
-    helpers.add_header2list("Applicants",ret, underline_char='*')
-#   ret.append('')
-    for key in keys:
-        sub_header = member.status_key_values[key]
-        values = sorted(club.ms_by_status[key])
-        if key.startswith('a'):
-            helpers.add_header2list(sub_header,ret,
-                                    underline_char='-')
-            for value in values:
-                ret.append("    {}".format(value))
-        elif not args['-A']:
-            helpers.add_header2list(sub_header,other,
-                                    underline_char='=')
-            for value in values:
-                other.append("    {}".format(value))
-    if len(other) > 2:
-        ret.extend(other)
-    return ret
-
-
 def report():
     """
     Prepare a "Membership Report"
-    Automatically Dateed, repors:
+    Automatically Dateed, reports:
     Number of members & Number of applicants and provides an
     applicant role call (/w dates of meetings attended.)
+    Checks both the applicant SPoT and the main data base.
     """
     club = Club()
     club.ms_by_status = {}
@@ -489,22 +441,14 @@ def report():
     if not applicant_spot:
         applicant_spot = Club.APPLICANT_SPoT
     print("Preparing Membership Report ...")
-    report = [
-       "Membership Report (prepared {})".format(helpers.date), ]
-    report.append('=' * len(report[0]))
-    report.append('')
 
     err_code = member.traverse_records(infile,
             [member.add2status_data,
             member.increment_nmembers,
-            ],
-            club)
+            ], club)
     ap_set_w_dates_by_status = (
         data.gather_applicant_data(
                 applicant_spot, include_dates=True)["applicants"])
-    
-    report.append('Club membership currently stands at {}.'
-                    .format(club.nmembers))
 
     ap_listing = club.ms_by_status # } This segment is for
     for key in ap_listing:      # } error checking only;
@@ -514,21 +458,32 @@ def report():
             print("!!! {} != {} !!!"
               .format(ap_listing[key], ap_set_w_dates_by_status[key]))
 
+    report = []
+    helpers.add_header2list("Membership Report (prepared {})"
+                                    .format(helpers.date),
+                    report, underline_char='=')
+    report.append('')
+    report.append('Club membership currently stands at {}.'
+                    .format(club.nmembers))
+
     if ap_set_w_dates_by_status:
         report.extend(["\nApplicants",
                          "=========="])
         report.extend(member.show_by_status(ap_set_w_dates_by_status))
-#       report.extend(helpers.show_dict(ap_set_w_dates_by_status,
-#                               underline_char='-'))
     if 'r' in club.ms_by_status:
-        header = (
-            'Members ({} in number) retiring from the Club:'
+        header = ('Members ({} in number) retiring from the Club:'
                 .format(len(club.ms_by_status['r'])))
         report.append('')
-        report.append(header)
-        report.append("=" * len(header))
+        helpers.add_header2list(header, report, underline_char='=')
         for name in club.ms_by_status['r']:
             report.append(name)
+
+    misc_stati = member.show_by_status(club.ms_by_status,
+                                        stati2show="m|w|be".split('|'))
+    if misc_stati:
+        header = "Miscelaneous Info"
+        helpers.add_header2list(header, report, underline_char='=')
+        report.extend(misc_stati)
 
     try:
         with open(DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
@@ -548,12 +503,14 @@ def report():
     return report
  
 def report_cmd():
-#   print("Test 'member' recognition: {}"
-#       .format(member.status_key_values['r']))
     output('\n'.join(report()))
 
 def stati_cmd():
-    output('\n'.join(stati()))
+    if args['-A']:
+        mode = 'applicants_only'
+    else:
+        mode = 'all'
+    output('\n'.join(show_stati("all")))
 
 
 def zeros_cmd():
