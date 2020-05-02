@@ -134,13 +134,6 @@ has been received.  Thank you.
 All the best!
 """.format(helpers.next_club_year()),
 
-    thank_you_for_timely_payment = """
-Your timely payment of dues for the next ({}) Club year
-has been received.  Thank you.
-
-All the best!
-""".format(helpers.next_club_year()),
-
 # Correction!!!
     correction = """
 You recently received a statement of dues for the upcoming
@@ -380,6 +373,9 @@ the check in order to prevent any confusion.""",
 
     ref1_reservations = """[1] Reservations can be made through Anna Gade
     (uc_anna@sbcglobal.net.)""",
+    covid19 = """Because of the current pandemic, the Club is closed
+    and meetings are suspended. Let's hope for an early
+    return to 'buisness as usual.' Stay safe; Stay well."""
     )
 
 authors = dict(  # from
@@ -544,15 +540,6 @@ content_types = dict(  # which_letter
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
-    thank_you_for_timely_payment = {
-        "subject": "Thanks for your payment",
-        "from": authors["membership"],
-        "body": letter_bodies["thank_you_for_timely_payment"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing,),
-        "test": lambda record: True,
-        "e_and_or_p": "one_only",
-        },
     correction = {
         "subject": "Corrected fees statement",
         "from": authors["membership"],
@@ -710,6 +697,7 @@ content_types = dict(  # which_letter
         "body": letter_bodies["welcome2full_membership"],
         "post_scripts": (
             post_scripts["ref1_email_or_PO"],
+            post_scripts["covid19"],
             ),
         "funcs": (member.std_mailing,),
         "test": (
