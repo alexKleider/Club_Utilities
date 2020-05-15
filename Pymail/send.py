@@ -4,12 +4,19 @@
 
 """
 Used to send an email.
-Provides send.
 
-Expect command line parameters when run directly:
-    smtp server for its configuration
-    optiionally- a python file list of 
-    ...
+Usage:  (when used from the command line)
+  ./send.py smtp_server [JSON_FILE_NAME]
+
+Options:
+  server  can be any of the keys defined in the
+        Pymail.config.config dict.
+
+Provides send.  (when imported as a module)
+
+Have not yet implemented ability to use
+a second command line argument to specify
+a json file from which to load emails.
 """
 
 import sys
@@ -23,14 +30,28 @@ from email.mime.application import MIMEApplication
 import mimetypes
 import hashlib
 import json
+import time
+import random
+
 try:
     import config
 except ModuleNotFoundError:
     import Pymail.config as config
 
-# Note: neither rfc5322 dict or get_py_header function are used.
+MIN_TIME_TO_SLEEP = 1   #} Seconds between
+MAX_TIME_TO_SLEEP = 5   #} email postings.
 
-rfc5322 = {
+def pause():
+    """
+    Provides a random interval between emails so that
+    the MTA is less likely to think the process is automated.
+    Only used in the case of gmail.
+    """
+    time.sleep(random.randint(MIN_TIME_TO_SLEEP,
+                              MAX_TIME_TO_SLEEP))
+
+
+rfc5322 = {    # Here for reference, not used by the code.
 #  Originator Fields
    "from": "From: ", # mailbox-list CRLF
    "sender": "Sender: ", # mailbox CRLF
@@ -56,15 +77,28 @@ rfc5322 = {
    "keywords": "Keywords: ", # phrase *("," phrase) CRLF
     }
 
+
 def get_py_header(header):
+    """
+    Not used.
+    """
     return rfc5322[header.replace('-', '_')]
 
+
 def get_mailings(json_file_name):
-    pass
+    """
+    Reads 'jason_file_name' to...
+    Return a dict suitable for use as the 'mailings' parameter
+    of the send function (defined below.)
+    The json file must be of a format described in the 
+    'send' function's docstring.
+    """
+    with open (json_file_name, 'r') as f_obj:
+        return json.load(f_obj)
+
 
 def get_bytes(text):
     return hashlib.sha224(bytes(text, 'utf-8')).hexdigest()
-
 
 
 def pseudo_recipient(plus_name, email):
@@ -82,9 +116,12 @@ def pseudo_recipient(plus_name, email):
 
 def attach(attachment, msg):
     """
-    This code has been tested and works for a text file.
-    <attachment> is the name of a file to be the attachment.
-    <msg> is an instance of MIMEMultipart() to which to attach.
+    <msg>: an instance of MIMEMultipart() to which to add
+    the attachment.
+    <attachment> is the name of a file to become an attachment.
+    This code has been successfully tested to work for the
+    following types of files: text, .docx, .pdf, ..
+    so is expected to work for all files.
     """
     basename = os.path.basename(attachment)
     with open(attachment, "rb") as f_obj:
@@ -127,11 +164,12 @@ def attach_many(attachments, msg):
                             filename=os.path.basename(attachment))
         msg.attach(attachment)
 
-def attach1(attachment,msg):
+def attach1(attachment, msg):
     # Open PDF file in binary mode
     with open(filename, "rb") as attachment:
         # Add file as application/octet-stream
-        # Email client can usually download this automatically as attachment
+        # Email client can usually download this automatically
+        # as attachment
         part = MIMEBase("application", "octet-stream")
         part.set_payload(attachment.read())
 
@@ -159,16 +197,19 @@ def into_string(string_or_list):
         assert(False)
 
 
-def send(mailings, service='easy', report_progress=True):
+def send(mailings, service='easy', report_progress=True,
+                            include_wait=True):
     """
     Sends emails.
     <mailings> is a list of dicts each representing an email to
     be sent. Each dict can have the following keys, some optional:
     'body': a (possibly empty) string.
     'attachments': a list (possible empty) of file names.
-    The commonly used fields defined by rfc5322. Values are either
-    strings or lists of strings; in the latter case the values are
-    converted into a single comma separated string.
+    'From', 'Reply-To', 'To', 'Subject', ...
+    ...and possibly other commonly used fields defined by rfc5322.
+    ...Values are either strings or lists of strings;
+    in the latter case the values are converted into a single
+    comma separated string.
     """
     server = config.config[service]
     if report_progress:
@@ -178,7 +219,7 @@ def send(mailings, service='easy', report_progress=True):
     s.ehlo
     s.login(server['user'], server['password'])
     if report_progress:
-        print("Logged in as {user} with password redacted."
+        print("Logged in as {user} with password REDACTED."
             .format(**server))
 
     try:
@@ -201,6 +242,8 @@ def send(mailings, service='easy', report_progress=True):
 
             s.send_message(msg)
             del msg
+            if include_wait:
+                pause()
     except:
         s.quit()
         if report_progress:
@@ -235,6 +278,8 @@ if __name__ == "__main__":
     server = config.config[arg1]
 
     if argv_length == 3:
+        print("Second argument not yet implemented")
+        sys.exit()
         test_mailings = get_mailings(sys.argv[2])
     else:
         test_mailings = [
@@ -245,7 +290,8 @@ if __name__ == "__main__":
                 pseudo_recipient('ak', 'alexkleider@gmail.com'),
                 ],
             'Subject': 'TEST Reply-To',
-            'attachments': ['/home/alex/Downloads/TheInterKnot.2019.03.pdf',],
+            'attachments': [
+            '/home/alex/Downloads/book_club_2020-2021_listing.docx',],
             'body': test_body_1,
             },
         ]

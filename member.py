@@ -16,6 +16,7 @@ import os
 import csv
 import json
 import helpers
+from rbc import Club
 
 SEPARATOR = '|'  ### Note: NOT the same as rvc.SEPARATOR
 WAIVED = "w"     #   \ although its value happens to be the same.
@@ -53,6 +54,9 @@ money_headers = {
 
 n_fields_per_record = 15
 
+# The following is no longer used...
+# we get around the problem in a different way..
+# see "To avoid gmails nasty warning ..." in append_email.
 gmail_warning = """
 NOTE: If yours is a gmail account this email will be accompanied
 by an alarming warning which it is safe for you to ignore.
@@ -62,6 +66,8 @@ via a different mail transfer agent (easydns.com) and hence gmail
 feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
+
+EASY_ACCOUNT = 'alex@kleider.ca'
 
 def traverse_records(infile, custom_funcs, club=None):
     """
@@ -76,8 +82,8 @@ def traverse_records(infile, custom_funcs, club=None):
     custom funcs are mostly found in this ('member.py')
     module.
     """
-    if callable(custom_funcs):
-        custom_funcs = [custom_funcs]
+    if callable(custom_funcs): # If only one function provided
+        custom_funcs = [custom_funcs] # place it into a list.
     with open(infile, 'r', newline='') as file_object:
         print("DictReading {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
@@ -147,7 +153,7 @@ def is_member(record):
 
 def increment_nmembers(record, club):
     """
-    Client must initiate club.nmembers (=0) attribute.
+    Client must initiate club.nmembers(=0) attribute.
     If record is that of a member, nmembers is incremented.
     """
     if is_member(record):
@@ -170,8 +176,7 @@ def has_valid_email(record, club=None):
 def is_fee_paying_member(record, club=None):
     """
     """
-    if WAIVED in {status for status in
-    record['status'].split(SEPARATOR)}:
+    if WAIVED in record['status'].split(SEPARATOR):
         return False
     if is_member(record):
         return True
@@ -255,7 +260,7 @@ def add2email_data(record, club):
 
 def add2status_data(record, club):
     """
-    Populates club.ms_by_status: list of members keyed by status.
+    Populates club.ms_by_status: lists of members keyed by status.
     Also populates club.stati_my_m if attribute exists...
     and increments club.napplicants if attribute exists.
     """
@@ -337,7 +342,7 @@ def add2malformed(record, club=None):
 # End of 'add2...' functions
 
 
-def show_stati(mode="all"):
+def show_stati(club):
     """
     Returns a list of strings (that can be '\n'.join(ed))
     The default is to include every status found.
@@ -345,27 +350,24 @@ def show_stati(mode="all"):
         'all'                   }  both self
         'applicants_only'       } explanatory
         a SEPARATOR separated listing of all stati to be included
+    See client: utils.stati_cmd().
     """
-    print("Debug: mode is set to '{}'.".format(mode))
-    club = Club()
-    infile = args["-i"]
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
+    print("Debug: mode is set to '{}'.".format(club.mode))
     print("Preparing listing of stati.")
     club.ms_by_status = {}
-    err_code = traverse_records(infile,
+    err_code = traverse_records(club.infile,
                                     add2status_data,
                                     club)
     if not club.ms_by_status:
         return ["Found No Entries with 'Status' Content." ]
     ret = []
-    if mode == 'all':
+    if club.mode == 'all':
         stati2show = STATI
-    elif mode == 'applicants_only':
+    elif club.mode == 'applicants_only':
         stati2show = APPLICANT_STATI
     else:
         try:
-            stati2sshow = mode.split(SEPARATOR)
+            stati2sshow = club.mode.split(SEPARATOR)
         except AttributeError:
             print(
             'Bad "mode" parameter ({}) provided to stati function.'
@@ -544,18 +546,28 @@ def append_email(record, club):
     """
     club.which has already been assigned to one of the values
     of content.content_types
+
+    Format of the json data varied depending on mta:
+     <gmail> (no -E option) the format is a list of 2 tuples:
+    The first item in each 'tuple' is a list of recipient email
+    addresses; the second is the email itself presented in a very
+    specific format with "From:", "To:" & "Subject:" lines (no
+    leading spaces!), and then a blank line followed by the text of
+    the email.  The "From:" line should read as follows:
+    "From: rodandboatclub@gmail.com"
+     < easydns> A list of dicts each with following keys:
+            To, From, Subject, attachments, body, Reply-To
     """
     email = club.email.format(**record)
     if club.easy:  # Using easydns.com as mail transfer agent.
         sender =  club.which['from']['email']
+        # To avoid gmails nasty warning ...
         if (
         ('gmail.com' in record['email'])
         and
         ('gmail.com' in sender)
         ):
-#            email = gmail_warning + '\n' + email
-             sender = 'alex@kleider.ca' 
-#            print("appending warning")
+             sender = EASY_ACCOUNT
         easy_email = {
             'To': record['email'],
             'From': sender,
@@ -565,17 +577,14 @@ def append_email(record, club):
             'Reply-To': club.which['from']['reply2'],
         }
         club.json_data.append(easy_email)
-    else:  # Using gmail mta.
+    else:  # Using gmail as mta.
         club.json_data.append([[record['email']], email])
 
 def file_letter(record, club):
     entry = club.letter.format(**record)
     path2write = os.path.join(club.dir4letters,
         "_".join((record["last"], record["first"])))
-#   print("lpr['indent'] is set to {}"
-#       .format(club.lpr['indent']))
     with open(path2write, 'w') as file_obj:
-#       print('Writing to "{}".'.format(file_obj.name))
         file_obj.write(helpers.indent(entry,
         club.lpr["indent"]))
 
@@ -589,7 +598,7 @@ def q_mailing(record, club):
     and 'be' in record['status']
     and not club.which["e_and_or_p"] == "email"):
     # If only sending emails...
-    # don't want to send a letter in spite of a known bad email.
+    # don't want to send a letter (even if known bad email.)
         file_letter(record, club)
     elif club.which["e_and_or_p"] == "email":
         append_email(record, club)
@@ -610,28 +619,28 @@ def q_mailing(record, club):
 
 def prepare_mailing(club):
     """
-    Only client of this method is the prepare_mailing_cmd
-    which must assign a number of instance attributes:
+    Only client of this method is the utils.prepare_mailing_cmd
+    which must assign a number of instance attributes to the
+    <club> parameter.  These attributes are either defaults
+    or come from command line arguments (except for one [*]):
         club.which: one of the content.content_types which
             in turn provides values for the following keys:
                 subject
                 email_header
                 body of letter
-                func to be used on each record
-                test a boolean lambda- consider record or not
+                func(s) to be used on each record
+                test: a boolean lambda- consider record or not
                 e_and_or_p: both, usps or one_only
         club.input_file_name
         club.json_file_name
-        club.json_data = []
         club.dir4letters
+        club.json_data = [] # [*] used to collect the emails
+    to be subsequently sent to club.json_file_name.
     """
-#   print(
-#       "Begin member.prepare_mailing which calls traverse_records.")
     traverse_records(club.input_file_name, 
         club.which["funcs"], club)  # 'which' comes from content
-#   print("Still within 'prepare_mailing':")
-#   print("    checking if there are emails...")
-    # No point in creating a json file if no content:
+
+    # No point in creating a json file if no emails:
     if club.json_data:
         print("There is email to send.")
         with open(club.json_file_name, 'w') as file_obj:
@@ -640,9 +649,8 @@ def prepare_mailing(club):
     else:
         print("There are no emails to send.")
 
-# AttributeError: module 'member' has no attribute 'std_mailing'
 
-def std_mailing(record, club):
+def std_mailing_func(record, club):
     """
     For mailings which require no special processing.
     Mailing is sent if the "test" lambda => True.
@@ -657,7 +665,7 @@ def std_mailing(record, club):
 ## 'record' parameter in order to add custom content (to a
 ## letter.
 
-def set_owing(record, club):
+def set_owing_mailing_func(record, club):
     """
     Sets up record["extra"] for dues and fees notice,
     Client has option of setting club.owing_only => True
@@ -719,7 +727,7 @@ def set_inductee_dues(record, club=None):
         record["current_dues"] = 100
 
 
-def request_inductee_payment(record, club):
+def request_inductee_payment_mailing_func(record, club):
     """
     Contingent on the club.which["test"] lambda:
     (If the record's status field contains 'i' for 'inducted'.)
@@ -731,15 +739,6 @@ def request_inductee_payment(record, club):
         record["subject"] = club.which["subject"]
         q_mailing(record, club)
 
-func_dict = {
-    """
-    After refactoring, don't think this is necessary.
-    """
-#       "some_func": some_func,
-    "std_mailing": std_mailing,
-    "set_owing": set_owing,
-    "request_inductee_payment": request_inductee_payment,
-    }
 
 def send_attachment(record, club):
     """
@@ -755,7 +754,7 @@ def send_attachment(record, club):
     email = record["email"]
     bad_email = "be" in record["status"]
     if email and not bad_email:
-        mutt_send(email,
+        club.mutt_send(email,
             args["--subject"],
             body,
             args["-a"],

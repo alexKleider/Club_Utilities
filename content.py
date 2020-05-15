@@ -373,9 +373,14 @@ the check in order to prevent any confusion.""",
 
     ref1_reservations = """[1] Reservations can be made through Anna Gade
     (uc_anna@sbcglobal.net.)""",
+
     covid19 = """Because of the current pandemic, the Club is closed
     and meetings are suspended. Let's hope for an early
-    return to 'buisness as usual.' Stay safe; Stay well."""
+    return to 'buisness as usual.' Stay safe; Stay well.""",
+
+    forgive_duplicate = """This may be a duplication of an email
+    already sent in which case please forgive.""",
+
     )
 
 authors = dict(  # from
@@ -478,7 +483,7 @@ content_types = dict(  # which_letter
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
         "post_scripts": (),
-        "funcs": [member.std_mailing, ],
+        "funcs": [member.std_mailing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -487,7 +492,7 @@ content_types = dict(  # which_letter
         "from": authors["bc"],
         "body": letter_bodies["bill_payment"],
         "post_scripts": (),
-        "funcs": [member.std_mailing, ],
+        "funcs": [member.std_mailing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "usps",
         },
@@ -496,7 +501,7 @@ content_types = dict(  # which_letter
         "from": authors["secretary"],
         "body": letter_bodies["meeting_announcement"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "one_only",
         },
@@ -507,7 +512,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts['ref1_reservations'],
             ),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "email",
         },
@@ -516,7 +521,7 @@ content_types = dict(  # which_letter
         "from": authors["secretary"],
         "body": letter_bodies["usps_minutes"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": lambda record: False if record["email"] else True,
         "e_and_or_p": "usps",
         },
@@ -527,7 +532,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -536,7 +541,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["thank_you_for_payment"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -548,7 +553,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -564,7 +569,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -581,7 +586,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -597,7 +602,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -613,7 +618,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing,),
+        "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -626,7 +631,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["bad_email"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if
             'be' in record["status"].split(member.SEPARATOR)
             else False),
@@ -637,7 +642,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["new_applicant_welcome"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if
             (record["status"] and 'a0' in record["status"].split("|"))
             else False),
@@ -648,7 +653,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["awaiting_vacancy"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
         lambda record: True if
             (record["status"] and 'aw' in record["status"].split("|"))
@@ -662,7 +667,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment,),
+        "funcs": (member.request_inductee_payment_mailing_func,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
         "e_and_or_p": "one_only",
@@ -674,7 +679,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment,),
+        "funcs": (member.request_inductee_payment_mailing_func,),
         "test": (
         lambda record: True if 'aw' in record["status"] else False),
         "e_and_or_p": "one_only",
@@ -686,7 +691,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment,),
+        "funcs": (member.request_inductee_payment_mailing_func,),
         "test": (
         lambda record: True if 'ai' in record["status"] else False),
         "e_and_or_p": "one_only",
@@ -698,8 +703,9 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["ref1_email_or_PO"],
             post_scripts["covid19"],
+            post_scripts["forgive_duplicate"],
             ),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
         lambda record: True if 'm' in record["status"] else False),
         "e_and_or_p": "one_only",
@@ -710,7 +716,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["expired_application"],
         "post_scripts": ( ),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (lambda record: True),
         "e_and_or_p": "one_only",
         },
@@ -720,7 +726,7 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["retirement_from_club"],
         "post_scripts": ( ),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (lambda record: True),
         "e_and_or_p": "one_only",
         },
@@ -730,7 +736,7 @@ content_types = dict(  # which_letter
         "from": authors["secretary"],
         "body": letter_bodies["cover_letter"],
         "post_scripts": ( ),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
         lambda record: False if record['email'] else True),
         "e_and_or_p": "one_only",
@@ -741,7 +747,7 @@ content_types = dict(  # which_letter
         "from": authors["ak"],
         "body": letter_bodies["personal"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
@@ -752,7 +758,7 @@ content_types = dict(  # which_letter
         "salutation": "Dear Sir or Madame,",
         "body": letter_bodies["tpmg_social_security"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
         lambda record: True if 'TPMG' in record["first"] else False),
         "e_and_or_p": "usps",
@@ -763,7 +769,7 @@ content_types = dict(  # which_letter
 #       "salutation": "Dear Sir or Madame,",
         "body": letter_bodies["fromRandy"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": (
             lambda record:
             True if (member.is_member_or_applicant(record)
@@ -777,7 +783,7 @@ content_types = dict(  # which_letter
 #       "salutation": "Dear Sir or Madame,",
         "body": letter_bodies["payment"],
         "post_scripts": (),
-        "funcs": (member.std_mailing,),
+        "funcs": (member.std_mailing_func,),
         "test": custom_lambdas['MarinMechanical'],
 #       "test": custom_lambdas['QuattroSolar'],
         "e_and_or_p": "usps",

@@ -297,6 +297,8 @@ def gather_extra_fees_data(in_file, json_file=None):
                 by_category[category].append((name_key, fee))
     if json_file:
         helpers.dump2json_file(by_name, json_file, verbose=True)
+#   else:
+#       print("No json file specified.")
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }

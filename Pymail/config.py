@@ -37,6 +37,7 @@ config = {
     "akg": {
         "host": "smtp.gmail.com",
         "tls_port": "587",
+        "port": "587",
         "ssl_port": "465",
         "user": "alexkleider@gmail.com",
         "from": "alexkleider@gmail.com",

@@ -21,8 +21,8 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -d -r -P -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
-  ./utils.py show [-O -r -i <infile> -o <outfile> ]
+  ./utils.py ck_data [-O -d -P -r -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py show [-O -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -N <applicant_spot> -o <outfile> ]
   ./utils.py stati [-O -A -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
@@ -32,10 +32,10 @@ Usage:
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
-  ./utils.py send_emails [-O <content> -E] -j <json_file>
-  ./utils.py print_letters --dir <dir4letters> [-O -s <sep> -e error_file]
+  ./utils.py send_emails [-O -E] -j <json_file>
+  ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
-  ./utils.py restore_fees [-O <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
+  ./utils.py restore_fees [-O -i <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
 
@@ -69,7 +69,7 @@ Options:
             if content.which.["postal_header"] isn't already
             specified.  [default: X6505]
   -N <app_spot>  Applicant data file.
-  -O  Show Options/commands/arguments.
+  -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only send notices if fees are outstanding.
@@ -80,7 +80,8 @@ Options:
         on a separate page. (i.e. Separated by form feeds.)
   -r    ...for 'raw': Supress headers (to make the output suitable as
         input for creating tables.)
-  -s    Report status
+  -s    Report status in ck_data command.
+  -S <separator>   ?? not sure that this is used.
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to
         risk corruption of an important input file which is to be
@@ -126,41 +127,39 @@ Commands:
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
         See the 'content_types' dict in content.py.)
-    prepare_mailing: A general form of the billing command (above.)
-        This command demands a <--which> argument to specify the
-        mailing: more specifically, it specifies the content and the
-        custom function(s) to be used.  Try the
+    prepare_mailing:  Demands a <--which> argument to specify the
+        content and the custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
         Other parameters have defaults set:
-        '-E'  use easydns.com as mta (vs gmail account.)
-        'ATTACHMENTS...'  Applies only when -E is set to specify
-        using easydns.  Must be a list of file names.
-        '--oo'  Only send request for fee payment to those with an
-        outstanding balance.
+        '-E'  use easydns.com as mta (vs the default gmail account.)
+        The format of the <json_file> content differs depending on
+        whether using gmail or easydns.com.
+        'ATTACHMENTS...'  Must be a list of file names.  Applies
+        only when -E is set to specify using easydns since gmail
+        doesn't support this functionality (to my knowledge.)
+        '--oo'  Send request for fee payment only to those with an
+        outstanding balance.  This is relevant only to letters
+        relating to dues and fees.
         '--lpr <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
         '---dir <dir4letters>' where to put letters.
-    prepare4easy: A version of the prepare_mailing command (above)
-        modified to produce a json file that can be used to send
-        emails via easydns.com rather than the club gmail account.
     display_emails: Provides an opportunity to proof read the emails.
-    send_emails: If <content> is NOT provided, the JSON file is expected
-        to consist of an iterable of iterables: the first item of each
-        second level iterable consists of an iterable of one or more
-        recipient(s) and and the second item is the email message to
-        be sent to the recipients.  If <content> is provided, the
-        content of the so specified file will form the body of the
-        email and the JSON file must again be an iterable of iterables
-        but in this case the lower level iterable is simply an
-        iterable of recipients (email addresses) to which the content
-        is to be send.  Note: the content of each email regardless of
-        how it is provided, must be in proper format with "From:",
-        "To:" & "Subject:" lines (no leading spaces!) followed by a
-        blank line and then the body of the email. The "From:" line
-        should read as follows: "From: rodandboatclub@gmail.com"
-        Note: Must first lower br&bc's account security at:
+        If the -E option was used to prepare the emails, it must
+        also be provided to this command.
+    send_emails: Sends out the emails found in the -j <json_file>.
+        If the latter is prepared using the -E option, this option
+        must also be provided to this command since the json formats
+        are different.
+        If not using -E, then gmail is used and account security
+        must first be lowered:
         https://myaccount.google.com/lesssecureapps
+        Also the content of each email must be in proper format
+        (as provided by the prepare_mailing_command)
+        with "From:", "To:" & "Subject:" lines (no leading spaces!)
+        followed by a blank line and then the body of the email.
+        The "From:" line should read as follows:
+        "From: rodandboatclub@gmail.com"
     print_letters: Sends the files contained in the directory
         specified by the --dir parameter.  Depricated in favour of
         simply using the lpr utility: $ lpr ./Data/MailDir/*
@@ -235,6 +234,31 @@ if lpr and lpr not in content.printers.keys():
     print("Invalid '--lpr' parameter! '{}'".
         format(lpr))
     sys.exit()
+
+
+def confirm_file_present(file_name):
+    """
+    Aborts the program if file_name doesn't exist.
+    """
+    if not os.path.exists(file_name):
+        print("File '{}' expected but not found."
+                    .format(file_name))
+        sys.exit()
+
+
+def confirm_file_up_to_date(file_name):
+    """
+    Asks user to confirm that the file is current.
+    Used for the gmail contacts.csv file.
+    """
+    response = input("Is file '{}' current? "
+                .format(file_name))
+    if response and response[0] in "Yy":
+        return True
+    else:
+        print("Update the file before rerunning utility.")
+        sys.exit()
+
 
 def output(data, destination=args["-o"]):
     """
@@ -378,6 +402,8 @@ def ck_data_cmd():
         club.EXTRA_FEES_SPoT = args['-X']
     if args['-C']:
         club.CONTACTS_SPoT = args['-C']
+    confirm_file_present(club.CONTACTS_SPoT)
+    confirm_file_up_to_date(club.CONTACTS_SPoT)
     ret = data.ck_data(club,
                     report_status=args['-s'],
                     fee_details=args['-d'],
@@ -506,11 +532,15 @@ def report_cmd():
     output('\n'.join(report()))
 
 def stati_cmd():
+    club = Club()
+    club.infile = args["-i"]
+    if not club.infile:
+        club.infile = Club.MEMBERSHIP_SPoT
     if args['-A']:
-        mode = 'applicants_only'
+        club.mode = 'applicants_only'
     else:
-        mode = 'all'
-    output('\n'.join(show_stati("all")))
+        club.mode = 'all'
+    output('\n'.join(member.show_stati(club)))
 
 
 def zeros_cmd():
@@ -659,12 +689,9 @@ def show_mailing_categories_cmd():
 
 def prepare_mailing_cmd():
     """
-    '-E' changes the MTA to be easydns.com rather than gmail.
-    Does initial set up of a Club instance then
-    calls member.prepare_mailing(
-    '--oo' Owing Only: applies only to requests for payment:
-    if set, those with zero (or negative) balance do not get
-    a message.
+    See description under 'Commands' heading in the docstring.
+    Sets up an instance of rbc.Club with necessary attributes and
+    then calls member.prepare_mailing() method.
     """
     club = Club()
     if args['-E']:
@@ -681,7 +708,6 @@ def prepare_mailing_cmd():
                     club.which, args['-E'])
     club.letter = content.letter_format(club.which, 
                                         args["--lpr"])
-#   print("Preparing mailing: '{}'".format(club.which))
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     club.input_file_name = args['-i']
@@ -692,7 +718,7 @@ def prepare_mailing_cmd():
         args["--dir"] = club.MAILING_DIR
     club.dir4letters = args["--dir"]
     club.attachment = args['ATTACHMENTS']
-    # *****...
+    # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'."
             .format(args["--dir"]))
@@ -706,12 +732,8 @@ def prepare_mailing_cmd():
     # *****...
     member.prepare_mailing(club)
     # need to move the json_data to the file
-#   if club.json_data:
-#       with open(club.json_file_name, 'w') as f_obj:
-#           json.dump(club.json_data, f_obj)
-#           print('JSON dumped to "{}".'.format(f_obj.name))
     print("""prepare_mailing completed..
-    ..nest step might be the following:
+    ..next step might be the following:
     $ zip zip -r 4Michael.zip {}"""
         .format(args["--dir"]))
 
@@ -751,55 +773,41 @@ def display_emails_cmd(json_file):
 
 def send_emails_cmd():
     """
-    If command line args supply a <content> parameter it is assumed
-    to be the name of a file which will serve as the content of the
-    email(s) to be sent. In this case, the json_file ("-i") parameter
-    specifies a file that when dumped, results in an iterable of
-    iterables; the lower level iterable will consist of one or more
-    strings- each representing a recipient email address.
-    If <content> is not specified, then the json_file is expected
-    to dump into an array of tuples, each consisting of an iterable
-    containing recipients as the first item and the email content
-    as the second item.
-    Note: Regardless of how content is provided, it must be in proper
-    format with "From:", "To:" & "Subject:" lines (no leading
-    spaces!), and then a blank line followed by the text of the email.
-    The "From:" line should read as follows:
-    "From: rodandboatclub@gmail.com"
+    Package msmtp is a dependency: # apt install msmtp
+    There must be a ~/.msmtprc configuration file. See an example
+    within the ./Notes directory (./Notes/msmtprc.)
+    (I think this applies only if using gmail.)
+    (With easydns I believe Pymail.send.send does everything.)
 
-    Note: The send_emails functionality depends on the
-    presence of a ~/.msmtprc configuration file
-    and (unless the -E option is selected for easydns.com rather
-    than using gmail) lowering the gmail account security setting:
+    The format of the <json_file> ("-j" parameter) varies depending
+    on whether or not easydns.com is used (as specified by the -E
+    option.) See docstring for member.append_email.
+
+    If using gmail the gmail account security setting must be lowered:
     https://myaccount.google.com/lesssecureapps
     """
-    content = args["<content>"]
     j_file = args["-j"]
     message = None
-    if content:
-        with open(content, 'r') as f_obj:
-            message = f_obj.read()
-            print('Reading content from "{}".'
-                .format(f_obj))
     with open(j_file, 'r') as f_obj:
         data = json.load(f_obj)
         print('Loading JSON from "{}"'.format(f_obj.name))
     counter = 0
-    if args['-E']:
-        Pymail.send.send(data)
-    else:
+    if args['-E']:  # using easydns
+        Pymail.send.send(data, service='easy', include_wait=False)
+    else:  # using gmail
+        response = input( # Check lesssecureapps setting:
+'Has "https://myaccount.google.com/lesssecureapps" been set?')
+        if ((not response) or
+        not (response[0] in 'Yy')):
+            print("Please do that then begin again.")
+            sys(exit)
         for datum in data:
-            if message:
-                recipients = datum
-                content = message
-            else:
-                try:
-                    recipients = datum[0]
-                    recipients = ', '.join(record[0])
-                except KeyError:
-                    print("Perhaps you've forgotten the '-E' option?")
-                    sys.exit()
-                content = datum[1]
+            try:
+                recipients = datum[0]
+            except KeyError:
+                print("Perhaps you've forgotten the '-E' option?")
+                sys.exit()
+            content = datum[1]
             counter += 1
             print("Sending email #{} to {}."
                 .format(counter, ", ".join(recipients)))
@@ -807,6 +815,7 @@ def send_emails_cmd():
             # Using random waits so as not to look like a 'bot'.
             time.sleep(random.randint(MIN_TIME_TO_SLEEP,
                                     MAX_TIME_TO_SLEEP))
+
 
 def print_letters_cmd():
     successes = []
@@ -850,12 +859,14 @@ def display_emails_cmd1(json_file, output_file=None):
 
 def emailing_cmd():
     """
+    Uses mutt (in member.send_attachment.)
     Sends emails with an attachment.
     Sets up an instance of Club and traverses
-    the input file calling the send_attachment method
+    the input file calling member.send_attachment
     on each record.
     """
     club = Club()
+    club.mutt_send = mutt_send
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     with open(args["-c"], "r") as content_file:
@@ -954,8 +965,8 @@ def smtp_send(recipients, message):
 
 def mutt_send(recipient, subject, body, attachments=None):
     """
-    Does the mass e-mailings with attachment
-    if one is provided.
+    Does the mass e-mailings with attachment(s) which, if
+    provided, must be in the form of a list of files.
     """
     cmd_args = [ "mutt", "-F", args["-F"], ]
     cmd_args.extend(["-s", "{}".format(subject)])

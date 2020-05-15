@@ -3,8 +3,8 @@
 # File: mailings.py
 
 """
-Provides dictionary 'mailings' to serve in testing
-and as a template for real use.
+Provides a list of one dictionary ('mailings') to serve in
+testing and as a template for real use.
 """
 
 body_0 = """
