@@ -603,48 +603,50 @@ def extra_charges_cmd():
     infile = args["-i"]
     if not infile:
         infile = Club.EXTRA_FEES_SPoT
-    print('<infile> set to "{}"'.format(infile))
+    print('Retrieving input data from "{}"'.format(infile))
     if not args['-f']:
         args['-f'] = 'table'
+    extra_fees = None
+    if args['-j']:
+        json_file = args['-j']
+        extra_fees = data.gather_extra_fees_data(infile,
+                                        json_file=json_file)
+    else:
+        json_file = False
     if infile.endswith(TEXT):
         print('<infile> ends in "{}"; reading from SPoL'.
                                         format(TEXT))
-        if args['-f'] == 'listing':  # No processing needed..
+        if args['-f'] == 'listing':  # No further processing needed..
             # Just return file content:
             with open(infile, 'r') as f_object:
                 output(f_object.read())
-        else:
-            if args['-j']:
-                json_file = args['-j']
-            else:
-                json_file = False
+            return
+        if not extra_fees:
             extra_fees = data.gather_extra_fees_data(infile,
-                                                json_file=json_file)
-            by_name = extra_fees[Club.NAME_KEY]
-            by_category = extra_fees[Club.CATEGORY_KEY]
-            if args['-f'] == 'table':  # Names /w fees in columns:
-                res = data.present_fees_by_name(by_name, raw=True)
-                ret = helpers.tabulate(res, down=True,
-                            max_width=max_width, separator=' ')
-                if not args['-r']:
-                    header = ["Extra fees by member:",
-                              "=====================",  ]
-                    ret = header + ret
-                output('\n'.join(ret))
-            elif args['-f'] == 'listings':
-                output('\n'.join(data.present_fees_by_category(
-                                        extra_fees, raw=args['-r'])))
-#               output('\n'.join(data.show_fee_listings(extra_fees,
-#                                                           args['-r'])))
-            else:
-                print("""Bad argument for '-f' option...
-        Choose one of the following:        [default: table]
-                'table' listing of names /w fees tabulated (=> 2 columns.)
-                'listing' same format as Data/extra_fees.txt
-                'listings' side by side lists (best use landscape mode.)
+                                            json_file=json_file)
+        by_name = extra_fees[Club.NAME_KEY]
+        by_category = extra_fees[Club.CATEGORY_KEY]
+        if args['-f'] == 'table':  # Names /w fees in columns:
+            res = data.present_fees_by_name(by_name, raw=True)
+            ret = helpers.tabulate(res, down=True,
+                        max_width=max_width, separator=' ')
+            if not args['-r']:
+                header = ["Extra fees by member:",
+                          "=====================",  ]
+                ret = header + ret
+            output('\n'.join(ret))
+        elif args['-f'] == 'listings':
+            output('\n'.join(data.present_fees_by_category(
+                                    extra_fees, raw=args['-r'])))
+        else:
+            print("""Bad argument for '-f' option...
+    Choose one of the following:        [default: table]
+            'table' listing of names /w fees tabulated (=> 2 columns.)
+            'listing' same format as Data/extra_fees.txt
+            'listings' side by side lists (best use landscape mode.)
     """)
-    elif infile.endswith(CSV):
-        print('Not set up to deal with csv file yet.')
+    elif infile.endswith(CSV):  # Getting data from membership db.
+        print('Not set up to deal with membership db (csv) file yet.')
         assert(False)
     else:
         print('<infile> must end in ".txt" or ".csv"')
