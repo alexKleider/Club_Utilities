@@ -441,8 +441,8 @@ def get_owing(record, club):
 
 def get_payables(record, club):
     """
-    Populates club.still_owing and club.advance_payments which
-    must be set up by the client.
+    Populates club.still_owing and club.advance_payments
+    which are lists that must be set up by the client.
 
     Checks record for dues &/or fees. If found,
     positives are added to club.still_owing,
@@ -592,6 +592,9 @@ def q_mailing(record, club):
     """
     Checks on desired type of mailing and
     deals with mailing as appropriate.
+    Bottom line: decides wich (if any) of the following to call:
+    file_letter   or
+    append_email
     """
     record["subject"] = club.which["subject"]
     if (record['status']
@@ -650,6 +653,8 @@ def prepare_mailing(club):
         print("There are no emails to send.")
 
 
+### The following are functions used for mailing. ###
+
 def std_mailing_func(record, club):
     """
     For mailings which require no special processing.
@@ -663,7 +668,7 @@ def std_mailing_func(record, club):
 ## Following are special functions that need to be in the
 ## <func_dict> : they provide necessary attributes to their
 ## 'record' parameter in order to add custom content (to a
-## letter.
+## letter &/or email.)
 
 def set_owing_mailing_func(record, club):
     """
@@ -719,6 +724,7 @@ def set_owing_mailing_func(record, club):
 def set_inductee_dues(record, club=None):
     """
     Provides processing regarding what fee to charge
+    (depends on the time of year: $100 vs $50)
     and sets record["current_dues"].
     """
     if helpers.month in (1, 2, 3, 4):
@@ -740,6 +746,16 @@ def request_inductee_payment_mailing_func(record, club):
         q_mailing(record, club)
 
 
+def test_func(record, club=None):
+    """
+    Can be used as a prototype or can be used for testing.
+    Populates record["extra"]
+    """
+    pass
+
+### ... end of mailing functions.  ###
+
+
 def send_attachment(record, club):
     """
     Uses 'mutt' (which in turns uses 'msmtp') to send emails
@@ -749,6 +765,8 @@ def send_attachment(record, club):
         "-a": file name of the attachment
         "-c": name of file containing content of the email
         "-s": subject of the email
+    This is being redacted since we've learned to use python
+    to send emails.
     """
     body = club.content.format(**record)
     email = record["email"]
@@ -759,13 +777,6 @@ def send_attachment(record, club):
             body,
             args["-a"],
             )
-
-def test_func(record, club=None):
-    """
-    Can be used as a prototype or can be used for testing.
-    Populates record["extra"]
-    """
-    pass
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ This module is specific to the Bolinas Rod and Boat Club
 data as maintained in the (4 or 5, depending how you count)
 SPoT (Single Point of Truth) files.
 It provides the <Club> class.
+Most of class Club (all of its methods) is/are being redacted,
+its/their functionality having been moved elsewhere.
 """
 
 import os
@@ -77,10 +79,10 @@ class Club(object):
 
     def __init__(self, params=None):
         """
-        Each instance must know the format
-        of the media. i.e. the parameters (<params>.)
-        This is being redacted since we are not using labels or
-        envelopes as was done before.
+        <params> was necessary in the past when using labels or
+        envelopes but is expected to be redacted since these are
+        no longer used. Each instance needed to know the format
+        of the media.
         """
         self.infile = Club.MEMBERSHIP_SPoT
         self.pattern = '{last}, {first}'
@@ -90,6 +92,7 @@ class Club(object):
         self.previous_name_tuple = ('', '')  # } check 
         self.first_letter = ''               # } ordering.
 
+### I believe the remaining methods can all be redacted. ###
 
     def present_by_status(self, applicants_only=False):
         """

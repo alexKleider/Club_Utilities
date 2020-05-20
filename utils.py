@@ -68,6 +68,7 @@ Options:
             used. This provides a method of specifying which to use
             if content.which.["postal_header"] isn't already
             specified.  [default: X6505]
+  -M  Use msmtp (+/-) mutt to send email (vs the python module(s).)
   -N <app_spot>  Applicant data file.
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
@@ -88,7 +89,7 @@ Options:
         modified, thus providing an opportunity for proof reading
         the 'modified' file before renaming it to the original.
         (Typically named '2proof_read.txt'.)
-  -T  Present data in columns rather than a long list.
+  -T  Present data in columns (a Table) rather than a long list.
   -w <width>  Maximum number of characters per line in output.
                                     [default: 95]
   --which <letter>  Specifies type/subject of mailing.
@@ -151,11 +152,11 @@ Commands:
         If the latter is prepared using the -E option, this option
         must also be provided to this command since the json formats
         are different.
-        If not using -E, then gmail is used and account security
+        Without the -E option, gmail is used and account security
         must first be lowered:
         https://myaccount.google.com/lesssecureapps
-        Also the content of each email must be in proper format
-        (as provided by the prepare_mailing_command)
+        Also (if using gmail) the content of each email must be in
+        proper format (as provided by the prepare_mailing_command)
         with "From:", "To:" & "Subject:" lines (no leading spaces!)
         followed by a blank line and then the body of the email.
         The "From:" line should read as follows:
@@ -655,7 +656,9 @@ def extra_charges_cmd():
 
 def payables_cmd():
     """
-    Traverses the db populating 
+    Sets up club attributes still_owing and advance_payments (both
+    of which are lists) and then calls member.get_payables which
+    traverses the db populating them.
     """
     infile = args['-i']
     if not infile:
@@ -727,13 +730,11 @@ def prepare_mailing_cmd():
         club.check_dir4letters(club.dir4letters)
     if club.which["e_and_or_p"] in ("both", "email", "one_only"):
         print("Checking for file '{}'."
-            .format(args["-j"]))
-        club.json_file_name = args["-j"]
+            .format(club.json_file_name))
         club.check_json_file(club.json_file_name)
         club.json_data = []
     # *****...
-    member.prepare_mailing(club)
-    # need to move the json_data to the file
+    member.prepare_mailing(club)  # moves json_data to file
     print("""prepare_mailing completed..
     ..next step might be the following:
     $ zip zip -r 4Michael.zip {}"""
@@ -775,18 +776,18 @@ def display_emails_cmd(json_file):
 
 def send_emails_cmd():
     """
-    Package msmtp is a dependency: # apt install msmtp
-    There must be a ~/.msmtprc configuration file. See an example
-    within the ./Notes directory (./Notes/msmtprc.)
-    (I think this applies only if using gmail.)
-    (With easydns I believe Pymail.send.send does everything.)
-
     The format of the <json_file> ("-j" parameter) varies depending
     on whether or not easydns.com is used (as specified by the -E
     option.) See docstring for member.append_email.
 
     If using gmail the gmail account security setting must be lowered:
     https://myaccount.google.com/lesssecureapps
+    ... and note that (for the time begin at least..)
+    Package msmtp is a dependency: # apt install msmtp
+    There must be a ~/.msmtprc configuration file. See an example
+    within the ./Notes directory (./Notes/msmtprc.)
+    (With easydns Pymail.send.send does everything and it is planned
+    to have this become true for gmail as well.)
     """
     j_file = args["-j"]
     message = None
@@ -803,6 +804,9 @@ def send_emails_cmd():
         not (response[0] in 'Yy')):
             print("Please do that then begin again.")
             sys(exit)
+#       Pymail.send.send(data, service='gmail', include_wait=True)
+###  When the above line is proven to work, the rest will be redacted.
+#       return
         for datum in data:
             try:
                 recipients = datum[0]
@@ -942,6 +946,12 @@ def envelopes_cmd():
     club = Club(medium)
     source_file = args["-i"]
     club.print_custom_envelopes(source_file)
+
+## Plan to redact the next two functions in favour of using
+## the Python mailing modules instead of msmtp and mutt.
+## For the time being the Python modules are being used
+## when sending via Easydns.com but msmtp is still being 
+## used when gmail is the MTA.
 
 def smtp_send(recipients, message):
     """
