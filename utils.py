@@ -30,9 +30,9 @@ Usage:
   ./utils.py extra_charges [-O -r -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-O -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O -E --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
-  ./utils.py display_emails -j <json_file> [-O -E -o <txt_file>]
-  ./utils.py send_emails [-O -E] -j <json_file>
+  ./utils.py prepare_mailing --which <letter> [-O --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
+  ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
+  ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
@@ -47,35 +47,37 @@ Options:
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data.
   --dir <dir4letters>  The directory to be created and/or read
-                      containing letters for batch printing.
+                    containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
                     generally reported to stdout.
-  -E   Use easydns.com as mail transfer agent. gmail is the default.
-  -f <format>  Format to be used for output of the extra_charges
-        command; possibilities are:
+  --emailer <emailer>  Use bash (via smtp or mutt) or python to send
+                    emails.  [default: python]
+  -f <format>  Specify output format of extra_charges command.
+        Possible choices are:
             'table' listing of names /w fees tabulated (=> 2 columns.)
             'listing' same format as Data/extra_fees.txt
             'listings' side by side lists (best use landscape mode.)
         [default: table]
-  -F <muttrc>  The name of a muttrc file to be used.
-                        [default: muttrc_rbc]
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
-  --lpr <printer>  The postal_header must be specific to the printer
-            used. This provides a method of specifying which to use
-            if content.which.["postal_header"] isn't already
-            specified.  [default: X6505]
-  -M  Use msmtp (+/-) mutt to send email (vs the python module(s).)
+  --lpr <printer>  Deals with printer variablility; ensures correct
+            alignment of text when printing letters. [default: X6505]
+  --mta <mta>  Specify mail transfer agent to use. Choices are:
+                clubg     club's gmail account
+                akg       my gmail account
+                easy      my easydns account  [default: easy]
   -N <app_spot>  Applicant data file.
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only send notices if fees are outstanding.
-  -p <params>  If not specified, the default is
-              A5160 for labels & E000 for envelopes.
+            (Sets owing_only attribute of instance of Club.)
+  -p <params>  This option will probably be redacted since old
+            methods of mailing are no longer used.
+            Defaults are A5160 for labels & E000 for envelopes.
   -P    Some commands may have more than one component to
         their output.  This ('-P') option makes each component appear
         on a separate page. (i.e. Separated by form feeds.)
@@ -228,7 +230,7 @@ if args['-O']:
     res = sorted(["{}: {}".format(key, args[key]) for key in args])
     ret = helpers.tabulate(res, max_width=max_width, separator='   ')
     print('\n'.join(ret))
-    print("...end of arguments.")
+    _ = input("...end of arguments. Continue? ")
 
 lpr = args["--lpr"]
 if lpr and lpr not in content.printers.keys():
@@ -698,19 +700,14 @@ def prepare_mailing_cmd():
     Sets up an instance of rbc.Club with necessary attributes and
     then calls member.prepare_mailing() method.
     """
+    # ***** Set up configuration in an instance of # Club:
     club = Club()
-    if args['-E']:
-        club.easy = True
-    else:
-        club.easy = False
+    club.owing_only = False
     if args['--oo']:
         club.owing_only = True
-    else:
-        club.owing_only = False
     club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["--lpr"]]
-    club.email = content.prepare_email_template(
-                    club.which, args['-E'])
+    club.email = content.prepare_email_template(club.which)
     club.letter = content.letter_format(club.which, 
                                         args["--lpr"])
     if not args["-i"]:
@@ -733,11 +730,12 @@ def prepare_mailing_cmd():
             .format(club.json_file_name))
         club.check_json_file(club.json_file_name)
         club.json_data = []
-    # *****...
-    member.prepare_mailing(club)  # moves json_data to file
+    # ***** Done with configuration & checks ...
+    member.prepare_mailing(club)  # Populates club.dir4letters
+                                # and moves json_data to file.
     print("""prepare_mailing completed..
     ..next step might be the following:
-    $ zip zip -r 4Michael.zip {}"""
+    $ zip -r 4Michael {}"""
         .format(args["--dir"]))
 
 
@@ -747,34 +745,19 @@ def display_emails_cmd(json_file):
         records = json.load(f_obj)
     all_emails = []
     n_emails = 0
-    print("...initializing 'all_emails' to empty list")
     for record in records:
         email = []
-        if args['-E']:
-            for field in record:
-                email.append("{}: {}".format(field, record[field]))
-            email.append('')
-            all_emails.extend(email)
-            n_emails += 1
-        else:
-            try:
-                recipients = ', '.join(record[0])
-            except KeyError:
-                print("Perhaps you've forgotten the '-E' option?")
-                sys.exit()
-            email.append(">>: " + recipients)
-            email.append(record[1])
-#           print(record[1])
-#           for mail in email: print(mail)
-            email.append('')
-            all_emails.extend(email)
-            n_emails += 1
+        for field in record:
+            email.append("{}: {}".format(field, record[field]))
+        email.append('')
+        all_emails.extend(email)
+        n_emails += 1
     print("Processed {} emails..."
         .format(n_emails))
     return "\n".join(all_emails)
 
 
-def send_emails_cmd():
+def old_send_emails_cmd():
     """
     The format of the <json_file> ("-j" parameter) varies depending
     on whether or not easydns.com is used (as specified by the -E
@@ -821,6 +804,49 @@ def send_emails_cmd():
             # Using random waits so as not to look like a 'bot'.
             time.sleep(random.randint(MIN_TIME_TO_SLEEP,
                                     MAX_TIME_TO_SLEEP))
+
+def ck_lesssecureapps_setting():
+    """
+    Does nothing is not using a gmail account. (--mta ending in 'g')
+    If using gmail the gmail account security setting must be lowered:
+    https://myaccount.google.com/lesssecureapps
+    ... and note that (for the time begin at least..)
+    Package msmtp is a dependency: # apt install msmtp
+    There must be a ~/.msmtprc configuration file. See an example
+    within the ./Notes directory (./Notes/msmtprc.)
+    """
+    if args['--mta'].endswith('g'):
+        response = input(             # Check lesssecureapps setting:
+        'Has "https://myaccount.google.com/lesssecureapps" been set?')
+        if ((not response) or
+        not (response[0] in 'Yy')):
+            print("Please do that then begin again.")
+            sys.exit()
+
+
+def send_emails_cmd():
+    """
+    Sends emails prepared by prepare_mailing_cmd.
+    See also content.authors_DOCSTRING.
+    """
+    ck_lesssecureapps_setting()
+    wait = args["--mta"].endswith('g')
+    j_file = args["-j"]
+    message = None
+    with open(j_file, 'r') as f_obj:
+        data = json.load(f_obj)
+        print('Loading JSON from "{}"'.format(f_obj.name))
+    counter = 0
+    if args['--emailer']=='python':
+        print("Using Python modules to dispatch emails.")
+        Pymail.send.send(data, args['--mta'], include_wait=wait)
+    elif args['--emailer']=='bash':
+        print("Using Bash to dispatch emails.")
+        Bashmail.send.send(data, args['--mta'], include_wait=wait)
+    else:
+        print('"{}" is an unrecognized "--emailer" option.'
+            .format(args['--emailer']))
+        sys.exit()
 
 
 def print_letters_cmd():

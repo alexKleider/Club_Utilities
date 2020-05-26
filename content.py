@@ -52,17 +52,17 @@ custom_lambdas = dict(
             else False),
     )
 
-email_header = """From: {}
-Reply-To: {}
-To: {{email}}
-Subject: {}
 
-Dear {{first}} {{last}},"""
+letter_bodies_docstring = """
+Some of these 'bodies' are subject to the format method
+and those must have {{double}} parens for the format fields
+that must be subsequently filled in by the '..._funcs'.
+"""
 
-easy_email_header = """
-Dear {first} {last},"""
-
+## single braces are for fields populated by the content_type data.
+## double braces fields are populated by the record data.
 letter_bodies = dict(
+
     bill_payment = """
 Please find enclosed payment.
 """,
@@ -74,7 +74,7 @@ more Blah blah
 etc
 
 First extra content is
-{{extra}}
+{extra}
 
 May have as many 'extra's as required as long as each one
 has a corresponding entry in the record dict (typically arranged
@@ -383,6 +383,12 @@ the check in order to prevent any confusion.""",
 
     )
 
+authors_DOCSTRING = """   ## NOTE ## 
+A "Sender:" field, determined by the --mta is added to each email at
+the time it is sent.  The value of the 'email' field is entered into
+the 'From: ' header of the email. A "reply2" field is also available.
+"""
+
 authors = dict(  # from
     bc = dict(  # AK in British Columbia
         first = "Alex",
@@ -478,12 +484,17 @@ authors = dict(  # from
     # of a Membership instance.
 
 content_types = dict(  # which_letter
+    ### If a 'salutation' key/value is provied for any of the
+    ### following, the value will be used as the salutation 
+    ### instead of a 'Dear {first} {last},' line.
+    ### The first 4 listed values for each are used for first
+    ### stage formatting. 
     for_testing = {
         "subject": "This is a test.",
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
         "post_scripts": (),
-        "funcs": [member.std_mailing_func, ],
+        "funcs": [member.testing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
@@ -885,7 +896,8 @@ def letter_format(which_letter, printer):
     <printer>: one of the keys to the <printers> dict
     specifying which printer is to be used (passed as the
     "--lpr" command line parameter.)
-    Returns a 'letter' with formatting fields of <record>:
+    Returns a 'letter' with formatting fields to be filled
+    in by expanding <record>:
     typically {first}, {last}, {address}, {town}, {state},
     {postal_code}, {country}, and possibly (one or more)
     {extra}(s) &/or 'PS's.
@@ -916,18 +928,13 @@ def letter_format(which_letter, printer):
     ret.extend(get_postscripts(which_letter))
     return '\n'.join(ret)
 
-def prepare_email_template(which_letter, easy=False):
+def prepare_email_template(which_letter):
     """
     Prepares the template for an email.
     Used by utils.prepare_mailing_cmd,
+    Format fields are subsequently filled by **record.
     """
-    if easy:
-        ret = [easy_email_header]
-    else:
-        ret = [email_header.format(
-                    which_letter["from"]["email"],
-                    which_letter["from"]["reply2"],
-                    which_letter["subject"]),]
+    ret =  ["Dear {first} {last},"]
     ret.append(which_letter["body"])
     ret.append(which_letter["from"]["email_signature"])
     ret.extend(get_postscripts(which_letter))
@@ -970,23 +977,25 @@ def main():
     letter = letter_format(which, lpr)
     email = prepare_email_template(which)
     rec = dict(
-        first = "First",
-        last = "Last",
+        first = "Jane",
+        last = "Doe",
         address = "nnn An Ave.",
         town = "Any Town",
         postal_code = "CODE",
         state = "CA",
         country = "USA",
+        email = "myemail@provider.com",
         extra = """A lot more junk:
 Certainly nothing very serious!
 Just a lot of junk.""",
-        email = "myemail@provider.com",
         )
+    print("Letter follows...")
     print(letter.format(**rec))
     with open("letter2print", 'w') as fout:
         fout.write(helpers.indent(letter.format(**rec),
-            ' ' * printers[lpr]['indent']))
-    print(email)
+            printers[lpr]['indent']))
+    print("Email follows...")
+    print(email.format(**rec))
     with open("email2print", 'w') as fout:
         fout.write(email.format(**rec))
 
@@ -1005,4 +1014,5 @@ Membership"""
 
 
 if __name__ == "__main__":
-    print('\n'.join(choices()))
+    main()
+#   print('\n'.join(choices()))

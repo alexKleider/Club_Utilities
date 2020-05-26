@@ -92,6 +92,7 @@ def indent(text, n_spaces):
     In either case, returns a string.
     """
 #   print("Entering function 'indent'.")
+    assert type(n_spaces)==int
     indentation = ' ' * n_spaces
     if isinstance(text, str):
         return (indentation + text.replace(

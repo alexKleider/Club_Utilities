@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
-# File: send.py
+# File: Pymail/send.py
 
 """
-Used to send an email.
+Used to send an email using Python modules only.
+
+(Utils/utils.py client knows to use this module's send
+function for sending emails when it's command line
+parameter --emailer is set to "python".)
 
 Usage:  (when used from the command line)
   ./send.py smtp_server [JSON_FILE_NAME]
@@ -85,10 +89,10 @@ def get_py_header(header):
     return rfc5322[header.replace('-', '_')]
 
 
-def get_mailings(json_file_name):
+def get_emails(json_file_name):
     """
     Reads 'jason_file_name' to...
-    Return a dict suitable for use as the 'mailings' parameter
+    Return a dict suitable for use as the 'emails' parameter
     of the send function (defined below.)
     The json file must be of a format described in the 
     'send' function's docstring.
@@ -185,23 +189,25 @@ def attach1(attachment, msg):
 
 def into_string(string_or_list):
     """
-    Returns a string.
+    Returns a string (possibly empty.)
     If given a list it must be of strings and a comma/space
     separated concatination is returned.
     """
+#   print("<string_or_list> '{}' is of type {}."
+#       .format(string_or_list, type(string_or_list)))
     if isinstance(string_or_list, str):
         return string_or_list
     elif isinstance(string_or_list, list):
         return ', '.join(string_or_list)
     else:
-        assert(False)
+        return ''
 
 
-def send(mailings, service='easy', report_progress=True,
+def send(emails, mta, report_progress=True,
                             include_wait=True):
     """
-    Sends emails.
-    <mailings> is a list of dicts each representing an email to
+    Sends emails using Python modules.
+    <emails> is a list of dicts each representing an email to
     be sent. Each dict can have the following keys, some optional:
     'body': a (possibly empty) string.
     'attachments': a list (possible empty) of file names.
@@ -211,34 +217,40 @@ def send(mailings, service='easy', report_progress=True,
     in the latter case the values are converted into a single
     comma separated string.
     """
-    server = config.config[service]
+    print("Using {} as MTA...".format(mta))
+    server = config.config[mta]
+    sender = server["from"]
     if report_progress:
         print("Initiating SMTP: {host} {port}".format(**server))
     s = smtplib.SMTP(host=server['host'], port=server['port'])
     s.starttls()
     s.ehlo
-    s.login(server['user'], server['password'])
     if report_progress:
-        print("Logged in as {user} with password REDACTED."
+        if mta.endswith('g'):
+            print("Attempt at login as {user} with password '{password}' ..."
+        else:
+#           print("Attempt at login as {user} with password REDACTED ..."
             .format(**server))
+    s.login(server['user'], server['password'])
+    print("... successful.")
 
     try:
-        for mailing in mailings:
+        for email in emails:
+            email["Sender"] = sender
             msg = MIMEMultipart()
-            body = mailing['body']
-            attachments = mailing['attachments']
-            del mailing['body']
-            del mailing['attachments']
-            for key in mailing:
-                msg[key] = into_string(mailing[key])
+            body = email['body']
+            attachments = email['attachments']
+            del email['body']
+            del email['attachments']
+            print("Email...")
+            if report_progress:
+                for key in email:
+                    print("\t{}: {}".format(key, email[key]))
+                    msg[key] = into_string(email[key])
             msg.attach(MIMEText(body, 'plain'))
 #           attach_many(attachments, msg)  ## Fails, 2b trouble sh.
             for attachment in attachments:
                 attach(attachment, msg)
-
-            if report_progress:
-                for key in mailing:
-                    print("{}=>{}".format(key, msg[key]))
 
             s.send_message(msg)
             del msg
@@ -248,12 +260,12 @@ def send(mailings, service='easy', report_progress=True,
         s.quit()
         if report_progress:
             print("Pymail.send.send() failed sending to {}."
-                .format(mailing['To']))
+                .format(email['To']))
         raise
     s.quit()
 
 
-def main(mailings):
+def main(emails):
     """
     email.mime.text.MIMEText
     email.mime.multipart.MIMEMultipart
@@ -269,20 +281,19 @@ if __name__ == "__main__":
     argv_length = len(sys.argv)
 
     if not argv_length > 1:
-        print("SMTP server not specified.")
+        print("Server (MTA) not specified.")
         sys.exit()
-    arg1 = sys.argv[1]
-    if not arg1 in config.config:
-        print("SMTP server designation invalid.")
+    mta = sys.argv[1]
+    if not mta in config.config:
+        print("MTA server designation invalid.")
         sys.exit()
-    server = config.config[arg1]
 
     if argv_length == 3:
         print("Second argument not yet implemented")
         sys.exit()
-        test_mailings = get_mailings(sys.argv[2])
+        test_emails = get_emails(sys.argv[2])
     else:
-        test_mailings = [
+        test_emails = [
             {
             'From': 'alex@kleider.ca',
             'Reply-To': 'alexkleider@gmail.com',
@@ -295,5 +306,5 @@ if __name__ == "__main__":
             'body': test_body_1,
             },
         ]
-    send(test_mailings, service=arg1, report_progress=True)
+    send(test_emails, mta=mta)
 

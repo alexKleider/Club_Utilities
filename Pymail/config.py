@@ -19,8 +19,10 @@ def getpw(service):
         return f_obj.read().strip()
 
 
-config = {
-    "easy": {
+# Plan to rename 'config' to 'mta' ("--mta" command line option.)
+# mta = dict(
+config = dict(
+    easy= {
         "host": "mailout.easydns.com",
         "tls_port": "587",
         "ssl_port": "465",  # SSL deprecated predecessor to TLS
@@ -30,11 +32,11 @@ config = {
         "auth": "on",
         "tls_starttls": "on",
         "user": "kleider.ca",
-#       "from": "akleider@sonic.net",
+        "from": "alex@kleider.ca",
         "password": getpw("easy"),
         "tls": "on",
     },
-    "akg": {
+    akg= {
         "host": "smtp.gmail.com",
         "tls_port": "587",
         "port": "587",
@@ -44,7 +46,7 @@ config = {
         "password": getpw("akg"),
 
     },
-    "clubg": {
+    clubg= {
         "host": "smtp.gmail.com",
         "tls_port": "587",
         "ssl_port": "465",
@@ -53,7 +55,7 @@ config = {
         "password": getpw("clubg"),
 
     },
-}
+)
 
 if __name__ == '__main__':
 

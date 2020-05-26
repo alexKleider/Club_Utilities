@@ -546,39 +546,22 @@ def append_email(record, club):
     """
     club.which has already been assigned to one of the values
     of content.content_types
-
-    Format of the json data varied depending on mta:
-     <gmail> (no -E option) the format is a list of 2 tuples:
-    The first item in each 'tuple' is a list of recipient email
-    addresses; the second is the email itself presented in a very
-    specific format with "From:", "To:" & "Subject:" lines (no
-    leading spaces!), and then a blank line followed by the text of
-    the email.  The "From:" line should read as follows:
-    "From: rodandboatclub@gmail.com"
-     < easydns> A list of dicts each with following keys:
-            To, From, Subject, attachments, body, Reply-To
+    Returns a list of dicts.
     """
-    email = club.email.format(**record)
-    if club.easy:  # Using easydns.com as mail transfer agent.
-        sender =  club.which['from']['email']
-        # To avoid gmails nasty warning ...
-        if (
-        ('gmail.com' in record['email'])
-        and
-        ('gmail.com' in sender)
-        ):
-             sender = EASY_ACCOUNT
-        easy_email = {
-            'To': record['email'],
-            'From': sender,
-            'Subject': club.which['subject'],
-            'attachments': [],
-            'body': email,
-            'Reply-To': club.which['from']['reply2'],
-        }
-        club.json_data.append(easy_email)
-    else:  # Using gmail as mta.
-        club.json_data.append([[record['email']], email])
+    body = club.email.format(**record)
+    sender =  club.which['from']['email']
+    email = {
+        'From': sender,    # Mandatory field.
+        'Sender': sender,   # 0 or 1
+        'Reply-To': club.which['from']['reply2'],  # 0 or 1
+        'To': record['email'],  # O or 1 comma separated list.
+        'Cc': None,             # O or 1 comma separated list.
+        'Bcc': None,            # O or 1 comma separated list.
+        'Subject': club.which['subject'],  # 0 or 1
+        'attachments': [],
+        'body': body,
+    }
+    club.json_data.append(email)
 
 def file_letter(record, club):
     entry = club.letter.format(**record)
@@ -592,7 +575,7 @@ def q_mailing(record, club):
     """
     Checks on desired type of mailing and
     deals with mailing as appropriate.
-    Bottom line: decides wich (if any) of the following to call:
+    Decides wich (if any or both) of the following to call:
     file_letter   or
     append_email
     """
@@ -623,9 +606,10 @@ def q_mailing(record, club):
 def prepare_mailing(club):
     """
     Only client of this method is the utils.prepare_mailing_cmd
-    which must assign a number of instance attributes to the
-    <club> parameter.  These attributes are either defaults
-    or come from command line arguments (except for one [*]):
+    which must assign the following attributes to <club> (an instance
+    of rbc.Club:)
+    Except for the last[*], these attributes are either defaults
+    or come from command line arguments.
         club.which: one of the content.content_types which
             in turn provides values for the following keys:
                 subject
@@ -654,6 +638,9 @@ def prepare_mailing(club):
 
 
 ### The following are functions used for mailing. ###
+## These are special functions suitable for the <func_dict>:
+## they provide necessary attributes to their 'record' parameter
+## in order to add custom content (to a letter &/or email.)
 
 def std_mailing_func(record, club):
     """
@@ -665,10 +652,18 @@ def std_mailing_func(record, club):
         record["subject"] = club.which["subject"]
         q_mailing(record, club)
 
-## Following are special functions that need to be in the
-## <func_dict> : they provide necessary attributes to their
-## 'record' parameter in order to add custom content (to a
-## letter &/or email.)
+
+def testing_func(record, club):
+    """
+    For mailings which require no special processing.
+    Mailing is sent if the "test" lambda => True.
+    Otherwise the record is ignored.
+    """
+    if club.which["test"](record):
+        record["subject"] = club.which["subject"]
+        record['extra'] = "Blah, Blah, Blah!"
+        q_mailing(record, club)
+
 
 def set_owing_mailing_func(record, club):
     """
@@ -758,6 +753,7 @@ def test_func(record, club=None):
 
 def send_attachment(record, club):
     """
+    ## Will probably be redacted. Client is utils.emailing_cmd.
     Uses 'mutt' (which in turns uses 'msmtp') to send emails
     with attachment: relies on <mutt_send> which in turn
     relies on command line args:
@@ -765,8 +761,6 @@ def send_attachment(record, club):
         "-a": file name of the attachment
         "-c": name of file containing content of the email
         "-s": subject of the email
-    This is being redacted since we've learned to use python
-    to send emails.
     """
     body = club.content.format(**record)
     email = record["email"]
