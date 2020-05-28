@@ -1,0 +1,14 @@
+# File: dot_files
+
+Files that must be in ~/ to provide security credentials
+for sending emails:
+
+-rw------- 1 alex alex  1145 May 27 11:54 .msmtprc
+-rw------- 1 alex alex   775 May 28 11:34 .muttakg
+-rw------- 1 alex alex   816 May 28 11:35 .muttclubg
+-rw------- 1 alex alex   756 May 28 11:18 .mutteasy
+-rw------- 1 alex alex   779 May 28 11:36 .muttsonic
+-rw------- 1 alex alex    10 May 27 11:51 .pw.akg
+-rw------- 1 alex alex     9 May 27 11:52 .pw.clubg
+-rw------- 1 alex alex     9 May 27 11:51 .pw.easy
+-rw------- 1 alex alex     9 May 27 11:51 .pw.sonic

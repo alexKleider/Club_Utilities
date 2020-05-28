@@ -1,0 +1,38 @@
+# vi ~/.muttrc
+
+# File ~/.muttsonic    for mail via sonic
+# Subject: Re: [Sonic #5893961] mutt
+
+set sendmail="/usr/bin/msmtp"
+
+# About Me
+set from = "akleider@sonic.net"
+set realname = "Alex Kleider"
+
+# My credentials
+set smtp_url=smtp://akleider@mailout.sonic.net:587
+set smtp_pass = "REDACTED"
+set imap_user = "akleider@imap.sonic.net"
+set imap_pass = "REDACTED"
+
+# My mailboxes
+set folder = "imaps://imap.sonic.net:993"
+set spoolfile = "+INBOX"
+
+# My address book
+set alias_file="~/.muttalias"
+set reverse_alias
+
+
+# Where to put the stuff
+set header_cache = "~/.mutt/cache/headers"
+set message_cachedir = "~/.mutt/cache/bodies"
+set certificate_file = "~/.mutt/certificates"
+
+# Etc
+set mail_check = 30
+set move = no
+set imap_keepalive = 900
+set sort = threads
+set editor = "vim"
+

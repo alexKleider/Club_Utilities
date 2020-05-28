@@ -1,0 +1,38 @@
+
+# vi ~/.muttrc
+
+# File ~/.mutteasy    for mail via easydns.com
+
+set sendmail="/usr/bin/msmtp"
+
+# About Me
+set from = "akleider@easydns.com
+set realname = "Alex Kleider"
+
+# My credentials
+set smtp_url=mailout.easydns.com:587
+set smtp_pass = "easy445DNS"
+#set imap_user = "akleider@imap.easydns.com"
+#set imap_pass = "easy445DNS"
+
+# My mailboxes
+#set folder = "imaps://imap.easydns.com:993"
+#set spoolfile = "+INBOX"
+
+# My address book
+#set alias_file="~/.muttalias"
+#set reverse_alias
+
+
+# Where to put the stuff
+set header_cache = "~/.mutt/cache/headers"
+set message_cachedir = "~/.mutt/cache/bodies"
+set certificate_file = "~/.mutt/certificates"
+
+# Etc
+#set mail_check = 30
+#set move = no
+#set imap_keepalive = 900
+#set sort = threads
+set editor = "vim"
+

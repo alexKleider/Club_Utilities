@@ -1,0 +1,57 @@
+# File: Notes/Mail/README
+
+An outline of how emailing is done.
+
+Last update: Thu 28 May 2020 11:47:47 AM PDT
+
+OVERVIEW
+========
+
+Emailer
+-------
+The mechanism for sending emails can be either through the use of
+python modules (available in the Python Standard Library) or using
+Bash utilities (accessible through the Python subprocess module.)
+Hence the other option can be specified as follows:
+--emailer [python|bash]  # The default is 'python'.
+
+MTA
+---
+Each email must go out to an MTA (Mail Transfer Agent) to be then
+sent on through the Internet to its final destination.  All MTAs
+require authentication before accepting emails; they don't accept
+from just anybody- anybody could be sending out spam or worse.
+I have access to my gmail account, the Club's gmail account, my
+ISP (sonic) email account and through my account with easydns.com.
+Hence the following as one of the command line arguments for the
+send_emails command:
+--mta [akg|clubg|sonic|easy]
+# For club purposes it would make sense to use the Club's gmail
+account but gmail won't accept emails unless security is lessened
+and although possible, and fairly straight forward to do, it does
+cause headaches. Google detects when such a change is made and
+more often than not blocks emails until receiving a reassuring 
+response to its warning email that such a change was made by an
+authorized person. For this reason I prefer to use either Sonic
+or Easydns.
+If using gmail, change settings at
+"https://myaccount.google.com/lesssecureapps",
+wait for the warning email (which comes very soon) and then
+respond by reassuring them.  Only after doing so is it likely that
+emails will be accepted.
+
+
+Security
+========
+Each MTA has its own security needs and each emailer authenticates
+in its own way. This sensitive information (passwords!) is kept in
+a number of 'dot files' with highly restricted access rights) all
+in the users home directory (~/) as specified by $HOME.
+See the Dot directory for redacted examples.
+
+
+The Reality
+===========
+As of the time of writing not all options are working. Stay tuned
+for developments.
+

@@ -1,0 +1,73 @@
+https://tools.ietf.org/html/rfc5322
+
+"""
+The MIMEultipart() message accepts parameters in the form of
+RFC5233-style key/value pairs, which are stored in a dictionary
+and passed to the .add_header method of the Message base class.
+
+   fields          =   *(trace
+                         *optional-field /
+                         *(resent-date /
+                          resent-from /
+                          resent-sender /
+                          resent-to /
+                          resent-cc /
+                          resent-bcc /
+                          resent-msg-id))
+                       *(orig-date /
+                       from /
+                       sender /
+                       reply-to /
+                       to /
+                       cc /
+                       bcc /
+                       message-id /
+                       in-reply-to /
+                       references /
+                       subject /
+                       comments /
+                       keywords /
+                       optional-field)
+
+
+3.6.2.  Originator Fields
+
+   from            =   "From:" mailbox-list CRLF
+
+   sender          =   "Sender:" mailbox CRLF
+
+   reply-to        =   "Reply-To:" address-list CRLF
+
+3.6.3.  Destination Address Fields
+
+   to              =   "To:" address-list CRLF
+
+   cc              =   "Cc:" address-list CRLF
+
+   bcc             =   "Bcc:" [address-list / CFWS] CRLF
+
+3.6.4.  Identification Fields
+
+   message-id      =   "Message-ID:" msg-id CRLF
+
+   in-reply-to     =   "In-Reply-To:" 1*msg-id CRLF
+
+   references      =   "References:" 1*msg-id CRLF
+
+   msg-id          =   [CFWS] "<" id-left "@" id-right ">" [CFWS]
+
+   id-left         =   dot-atom-text / obs-id-left
+
+   id-right        =   dot-atom-text / no-fold-literal / obs-id-right
+
+   no-fold-literal =   "[" *dtext "]"
+
+3.6.5.  Informational Fields
+
+   subject         =   "Subject:" unstructured CRLF
+
+   comments        =   "Comments:" unstructured CRLF
+
+   keywords        =   "Keywords:" phrase *("," phrase) CRLF
+
+"""

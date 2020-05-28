@@ -133,13 +133,10 @@ Commands:
     prepare_mailing:  Demands a <--which> argument to specify the
         content and the custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
-        Other parameters have defaults set:
-        '-E'  use easydns.com as mta (vs the default gmail account.)
-        The format of the <json_file> content differs depending on
-        whether using gmail or easydns.com.
-        'ATTACHMENTS...'  Must be a list of file names.  Applies
-        only when -E is set to specify using easydns since gmail
-        doesn't support this functionality (to my knowledge.)
+        'ATTACHMENTS...'  The command line arguments may end with
+        zero or more names of files which are to be added as
+        attachments to the emails.
+        Other parameters have defaults set (see prepare_mailing_cmd:)
         '--oo'  Send request for fee payment only to those with an
         outstanding balance.  This is relevant only to letters
         relating to dues and fees.
@@ -148,21 +145,12 @@ Commands:
         '-j <json_file>' where to dump prepared emails.
         '---dir <dir4letters>' where to put letters.
     display_emails: Provides an opportunity to proof read the emails.
-        If the -E option was used to prepare the emails, it must
-        also be provided to this command.
     send_emails: Sends out the emails found in the -j <json_file>.
-        If the latter is prepared using the -E option, this option
-        must also be provided to this command since the json formats
-        are different.
-        Without the -E option, gmail is used and account security
-        must first be lowered:
-        https://myaccount.google.com/lesssecureapps
-        Also (if using gmail) the content of each email must be in
-        proper format (as provided by the prepare_mailing_command)
-        with "From:", "To:" & "Subject:" lines (no leading spaces!)
-        followed by a blank line and then the body of the email.
-        The "From:" line should read as follows:
-        "From: rodandboatclub@gmail.com"
+        Each mta has its own security requirements and each emailer
+        has its own way of implementing them. Check the
+        Notes/emailREADME for details.  Note that not all
+        combinations of mta and emailer are working.
+    within the ./Notes directory (./Notes/msmtprc.)
     print_letters: Sends the files contained in the directory
         specified by the --dir parameter.  Depricated in favour of
         simply using the lpr utility: $ lpr ./Data/MailDir/*
@@ -198,6 +186,7 @@ import helpers
 import content
 import data
 import Pymail.send
+import Bashmail.send
 from rbc import Club
 
 # Constants required for correct rendering of "?" command:
@@ -752,68 +741,15 @@ def display_emails_cmd(json_file):
         email.append('')
         all_emails.extend(email)
         n_emails += 1
-    print("Processed {} emails..."
-        .format(n_emails))
+    print("Processed {} emails...".format(n_emails))
     return "\n".join(all_emails)
 
 
-def old_send_emails_cmd():
-    """
-    The format of the <json_file> ("-j" parameter) varies depending
-    on whether or not easydns.com is used (as specified by the -E
-    option.) See docstring for member.append_email.
-
-    If using gmail the gmail account security setting must be lowered:
-    https://myaccount.google.com/lesssecureapps
-    ... and note that (for the time begin at least..)
-    Package msmtp is a dependency: # apt install msmtp
-    There must be a ~/.msmtprc configuration file. See an example
-    within the ./Notes directory (./Notes/msmtprc.)
-    (With easydns Pymail.send.send does everything and it is planned
-    to have this become true for gmail as well.)
-    """
-    j_file = args["-j"]
-    message = None
-    with open(j_file, 'r') as f_obj:
-        data = json.load(f_obj)
-        print('Loading JSON from "{}"'.format(f_obj.name))
-    counter = 0
-    if args['-E']:  # using easydns
-        Pymail.send.send(data, service='easy', include_wait=False)
-    else:  # using gmail
-        response = input( # Check lesssecureapps setting:
-'Has "https://myaccount.google.com/lesssecureapps" been set?')
-        if ((not response) or
-        not (response[0] in 'Yy')):
-            print("Please do that then begin again.")
-            sys(exit)
-#       Pymail.send.send(data, service='gmail', include_wait=True)
-###  When the above line is proven to work, the rest will be redacted.
-#       return
-        for datum in data:
-            try:
-                recipients = datum[0]
-            except KeyError:
-                print("Perhaps you've forgotten the '-E' option?")
-                sys.exit()
-            content = datum[1]
-            counter += 1
-            print("Sending email #{} to {}."
-                .format(counter, ", ".join(recipients)))
-            smtp_send(recipients, content)
-            # Using random waits so as not to look like a 'bot'.
-            time.sleep(random.randint(MIN_TIME_TO_SLEEP,
-                                    MAX_TIME_TO_SLEEP))
-
 def ck_lesssecureapps_setting():
     """
-    Does nothing is not using a gmail account. (--mta ending in 'g')
-    If using gmail the gmail account security setting must be lowered:
+    Does nothing if not using a gmail account. (--mta ending in 'g')
+    If using gmail the account security setting must be lowered:
     https://myaccount.google.com/lesssecureapps
-    ... and note that (for the time begin at least..)
-    Package msmtp is a dependency: # apt install msmtp
-    There must be a ~/.msmtprc configuration file. See an example
-    within the ./Notes directory (./Notes/msmtprc.)
     """
     if args['--mta'].endswith('g'):
         response = input(             # Check lesssecureapps setting:
@@ -875,19 +811,6 @@ def print_letters_cmd():
     report = successes + args['-s'] + failures
     output(report)
 
-def display_emails_cmd1(json_file, output_file=None):
-    ret = []
-    with open(json_file, 'r') as f_obj:
-        print('Reading JSON file "{}".'.format(f_obj.name))
-        data = f_obj.read()
-        emails = json.loads(data)
-        print("Type 'emails' is '{}'.".format(type(emails)))
-    for recipients in emails:
-        ret.append(recipients)
-        for line in emails[recipients]:
-            ret.append(line)
-    out_put = "\n".join(ret)
-    output(out_put)
 
 def emailing_cmd():
     """

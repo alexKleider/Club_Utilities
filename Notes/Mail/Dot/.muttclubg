@@ -1,0 +1,39 @@
+# File: .muttclubg
+
+# vi ~/.muttrc
+
+# File ~/.muttclubg    for mail using BR&BC gmail account as MTA
+
+set sendmail="/usr/bin/msmtp"
+
+# About Me
+set from = "rodandboatclub@gmail.com"
+set realname = "Bolinas Rod & Boat Club"
+
+# My credentials
+set smtp_url=smtp://rodandboatclub@gmail.gmail:587
+set smtp_pass = "REDACTED"
+#set imap_user = "rodandboatclub@gmail.com"
+#set imap_pass = "REDACTED"
+
+# My mailboxes
+#set folder = "imaps://imap.gmail.com:993"
+#set spoolfile = "+INBOX"
+
+# My address book
+#set alias_file="~/.muttalias"
+#set reverse_alias
+
+
+# Where to put the stuff
+set header_cache = "~/.mutt/cache/headers"
+set message_cachedir = "~/.mutt/cache/bodies"
+set certificate_file = "~/.mutt/certificates"
+
+# Etc
+#set mail_check = 30
+#set move = no
+#set imap_keepalive = 900
+#set sort = threads
+set editor = "vim"
+

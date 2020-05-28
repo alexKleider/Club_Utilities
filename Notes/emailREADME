@@ -3,89 +3,58 @@
 Wed 20 May 2020 06:38:19 PM PDT
 Embarking on a rewrite of the emailing component of the utilities.
 Issue(s):
-    Plan to separate which MTA (Mail Transfer Agent) to use
-    from which methodology to use.
-Possible MTAs: gmail, easydns, ...
+    Plan to separate which MTA (Mail Transfer Agent) to use from
+    which methodology (emailer: Bash or Python modules) to use.
+Possible MTAs: gmail, easydns, sonic, ...
     There's the possibility of a specific account for each:
     For gmail we have the Club's account and my account.
-    For now there's only the alex@kleider.ca account with easydns.com.
-Possible methodologies: msmtp +/- mutt or the python emailing modules.
+    For now there's only the alex@kleider.ca account with easydns.com
+    and akleider@sonic.net with sonic.
+Possible methodologies (emailers:)
+    Bash via the subprocess module or
+    the python emailing modules.
 
 
-Plan to have two indepentant Command line options:
-"--mta"="clubg"|'akg'|"easy"|"sonic"  # Assigned to club.mta
-"--emailer"="bash"|"python"           # Assigned to club.emailer
+Implemention is through two indepentant command line options:
+'--mta'='clubg'|'akg'|'easy'|'sonic'  # Assigned to club.mta
+'--emailer'='bash'|'python'           # Assigned to club.emailer
+
+Security
+========
+Each mta demands security credentials (userID and password at a 
+minimum) and this is handled differently by each emailer.
+All credentials are kept in dot files within the user's home
+directory with restricted permissions. They are:
+ .msmtprc
+ .muttakg, .muttclubg, .mutteasy, .muttsonic, 
+ .pw.akg, .pw.clubg, .pw.easy, .pw.sonic, 
+Examples (with passwords redacted) can be found in Notes/Dot/.
+
+The Python emailer 'retrieves' passwords from the .pw.* files
+thru the Pymail.config module.
+The Bash emailer uses the .mutt* and .msmtprc files.
+Each user must tend to these configurations for herself.
+See the Examples in Notes/Dot for guidance.
 
 --mta
 =====
-The mail transfer agent is defined in Pymail.config.mta.
-(Pymail.config.config is being renamed Pymail.config.mta)
-This is in it's own Pymail package because of the need to maintain
-password security.  Actual passwords are kept in highly restricted
-dot files in the user's home directory and retrieved by 'getpw'
-function found as a helper function within Pymail.py/config.py
-Pymail.py/send.py provides the send function which does the sending
-if emailer is "python".
 
 --emailer
 =========
-If emailer is "smtp" python passes the job of sending emails
+If emailer is "bash" the python code passes the job of sending emails
 to the shell through the subprocess module using msmtp (or mutt if
 attachments are involved since msmtp can't handle attachments.)
-Security is handled by the ~/.msmtprc and
-~/.mutt[clubg|akg|easy|sonic] configuration file.
-Accounts within .msmtprc and specialized .muttrc files:
-    clubg   ~/.muttclubg   rodandboatclub@gmail account.
-    akg     ~/.muttakg     alexkleider@gmail account.
-    sonic   ~/.muttsonic   akleider@sonic.net account.
-    easy    ~/.mutteasy    alex@kleider.ca account with easydns.com
-There is also a .muttrc file but not sure that it is integrated for
-use with anything other than my sonic account.  I think it is needed
-if we wish to send attachments.
+[NOTE: currently having difficulty configuring msmtp so we are
+using mutt regardless of existence of attachments.]
 
-Currently the emails are created and placed into a json file to
-allow for inspection before being mailed as a separate command.
-The formats differ for each emailer- the plan is to make them the
-same.  The format used for the python_modules emailer is probably
-the one to be used.
-
-Preparing
-=========
-Plan is to create the same json file regardless of MTA or emailer
-so -E option is redundant/non applicable and should be deleted.
-utils.prepare_mailing_cmd  --which <letter>\
-        [-O -E --oo --lpr <printer> -i <infile>\
-        -j <json_file> --dir <dir4letters> ATTACHMENTS...]
-    sets up and configures an instance of (rbc.)Club which 
-    involves a call to:
-        content.prepare_email_template()  (which must be modified)
-    and then calls 
-        member.prepare_mailing
-    which just traverses the specified '..._funcs' (also defined in
-    member.py) each of which calls member.q_mailing(record, club)
-    before terminating. q_mailing calls append_email (and/or
-    file_letter) as appropriate.  
-    append_email already sets up 'easy_email' with in the if/else
-    clause the else part of which should be deleted while the if part
-    is made the main body. "easy_email" should be renamed 'email'
-    (which is appended to the json file.)
 
 Inspecting
 ==========
-utils.display_emails_cmd -j <json_file> [-O -E -o <txt_file>]
-As above, the -E option will become redundant and only the code which
-assumes this option is kept.
+utils.display_emails_cmd -j <json_file> [-O -o <txt_file>]
 
 Sending
 =======
-./utils.send_emails [-O -E] -j <json_file>
-Both MTA and emailer must be specified so CL options become:
 ./utils.send_emails [-O --mta MTA --emailer <emailer>] -j <json_file>
-It will be necessary to take the data from the json file and adapt it
-to a format suitable when using msmtp: see the 'else' part of the
-if/else clause in append_email.
-Note: the 'email' as required by "smtp" (vs "python") is set up by
-the member...funcs so look there for clues as to how it's done.
 
 Headers that I expect to implement as keys in the json file:
     From:

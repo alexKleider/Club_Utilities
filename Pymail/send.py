@@ -82,39 +82,39 @@ rfc5322 = {    # Here for reference, not used by the code.
     }
 
 
+def get_bytes(text):
+    """
+    Not used. Can be redacted.
+    """
+    return hashlib.sha224(bytes(text, 'utf-8')).hexdigest()
+
+
 def get_py_header(header):
     """
-    Not used.
+    Not used. Can be redacted.
     """
     return rfc5322[header.replace('-', '_')]
 
 
-def get_emails(json_file_name):
+def get_json(file_name):
     """
-    Reads 'jason_file_name' to...
-    Return a dict suitable for use as the 'emails' parameter
-    of the send function (defined below.)
-    The json file must be of a format described in the 
-    'send' function's docstring.
+    Reads 'file_name' and returns a dict.
     """
-    with open (json_file_name, 'r') as f_obj:
+    with open (file_name, 'r') as f_obj:
         return json.load(f_obj)
 
 
-def get_bytes(text):
-    return hashlib.sha224(bytes(text, 'utf-8')).hexdigest()
-
-
-def pseudo_recipient(plus_name, email):
+def pseudo_recipient(plus_name, g_email):
     """
     Returns an email address that will go to the gmail
-    account specified by gmail_address.
+    account specified by <g_email>.
     This is only applicable to gmail accounts: emulation of
     multiple addresses all pointing to same inbox:
     my+person1@gmail.com, my+person2@gmail.com, ...
     all go to my@gmail.com
     """
-    parts = email.split('@')
+    parts = g_email.split('@')
+    assert len(parts) == 2
     return parts[0] + '+' + plus_name + '@' + parts[1]
 
 
@@ -143,6 +143,8 @@ def attach_many(attachments, msg):
     It is a slightly modified version of an excerpt of
     code submitted by vijay.anand found here..
     https://stackoverflow.com/questions/52292971/sending-single-email-with-3-different-attachments-python-3
+    It is failing and therefore not used.  It's being left here
+    in the hopes that it can be mended.
     """
     for attachment in attachments:
         content_type, encoding = mimetypes.guess_type(attachment)
@@ -169,6 +171,9 @@ def attach_many(attachments, msg):
         msg.attach(attachment)
 
 def attach1(attachment, msg):
+    """
+    Not used.  Not understood- should probably be redacted.
+    """
     # Open PDF file in binary mode
     with open(filename, "rb") as attachment:
         # Add file as application/octet-stream
@@ -187,18 +192,18 @@ def attach1(attachment, msg):
     )
 
 
-def into_string(string_or_list):
+def into_string(header_value):
     """
     Returns a string (possibly empty.)
     If given a list it must be of strings and a comma/space
     separated concatination is returned.
     """
-#   print("<string_or_list> '{}' is of type {}."
-#       .format(string_or_list, type(string_or_list)))
-    if isinstance(string_or_list, str):
-        return string_or_list
-    elif isinstance(string_or_list, list):
-        return ', '.join(string_or_list)
+#   print("<header_value> '{}' is of type {}."
+#       .format(header_value, type(header_value)))
+    if isinstance(header_value, str):
+        return header_value
+    elif isinstance(header_value, list):
+        return ', '.join(header_value)
     else:
         return ''
 
@@ -225,12 +230,18 @@ def send(emails, mta, report_progress=True,
     s = smtplib.SMTP(host=server['host'], port=server['port'])
     s.starttls()
     s.ehlo
+
+    # Comment out one of the following two:
+#   testing = True     # Very INSECURE: use only for testing.
+    testing = False    # This should be the default.
     if report_progress:
-        if mta.endswith('g'):
-            print("Attempt at login as {user} with password '{password}' ..."
+        if mta.endswith('g') and testing:
+            message = (
+                "Attempting login: {user} /w pw '{password}' ...")
         else:
-#           print("Attempt at login as {user} with password REDACTED ..."
-            .format(**server))
+            message = (
+                "Attempting login: {user} /w pw REDACTED ...")
+        print(message.format(**server))
     s.login(server['user'], server['password'])
     print("... successful.")
 

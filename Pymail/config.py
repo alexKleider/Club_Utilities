@@ -22,6 +22,17 @@ def getpw(service):
 # Plan to rename 'config' to 'mta' ("--mta" command line option.)
 # mta = dict(
 config = dict(
+    sonic= {
+        "host": "smtp://akleider@mail.sonic.net",
+        "port": "587",
+        "protocol": "smtp",
+        "auth": "on",
+        "tls_starttls": "on",
+        "user": "akleider@sonic.net",
+        "from": "akleider@sonic.net",
+        "password": getpw("sonic"),
+        "tls": "on",
+    },
     easy= {
         "host": "mailout.easydns.com",
         "tls_port": "587",
