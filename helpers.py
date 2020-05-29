@@ -386,5 +386,6 @@ def test_first_friday():
 if __name__ == "__main__":
 #   test_first_friday()
     print("This year is {}.".format(this_year))
+    main()
 
 

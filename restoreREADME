@@ -5,36 +5,43 @@ Guide to Cloning the Repository and Restoring Backed up Data
 ============================================================
 
     $ cd
-    $ mkdir Club
-    $ cd Club
+    $ mkdir Club  # Pick a name/location of your choosing.
+    $ cd Club   # Move into what we'll call the project directory.
     $ git clone https://github.com/alexKleider/Club_Utilities
-    $ mv Club_Utilities Utils
-    $ mkdir Mnt
+    $ mv Club_Utilities Utils  # Repos is cloned and renamed.
+    $ mkdir Mnt  # Create a mount point for non repo data.
+    $ su -  # Mounting requires root privileges.
+    # cd ~<username>/Club  # Get root into the project directory.
     # mount /dev/sdb1 Mnt
-    $ ls -lA Mnt/Club   # Make a note of the <most-recent-time-stamp>.
-    $ cp -a Mnt/Club/<most-recent-time-stamp>.tar.gz/* Club/
-    $ cd Club
+    # exit   # No need for root privileges (unitl umounting.)
+    $ LAST=`cat Mnt/Club/last`  # Pick up date of last backup.
+    $ cp -a Mnt/Club/${LAST}/* ./  # Copy bu data => proj dir.
+    #
+    ## Now we deal with the directories that exist under
+    ## the repo directory but are not part of the repo:
+    ls -lA Archives/Data  # Note the <most-recent-time-stamp>.
+    cp Archives/Data/<most-recent-time-stamp>.tar.gz ./
     $ tar xvzf <most-recent-time-stamp>.tar.gz
     $ rm  <most-recent-time-stamp>.tar.gz
-    $ mkdir Temp
-    cd Archives/Data
-    ls -lA Archives/Data  # Again note the <most-recent-time-stamp>.
-    cp Archives/Data/<most-recent-time-stamp.tar.gz Temp/
-    cd Temp
-    $ tar xvzf <most-recent-time-stamp>.tar.gz
-    $ rm  <most-recent-time-stamp>.tar.gz
-    cd ..
-    $ ls -lA Temp  # A sanity check!
-    $ mv Temp/* Utils/
-    $ rm -r Temp
-    $ cp exclude .git/info/
+    $ ls -lA <most-recent-time-stamp>  # A sanity check!
+    $ mv <most-recent-time-stamp>/* Utils/
+    $ rmdir <most-recent-time-stamp>
+    $ cd Utils
+    $ cp -a Notes/Mail/Dot/\. ~/  # Move dot files [2]
+    $ cp ../exclude .git/info/  # Copy exclude file into git repo.
+    $ workon p37  # Activate the venv.
+    $ pip install -r requirements.txt  # Bring in dependencies
+    $ .utils.py ?
 
 
-[1] NOTE: Do NOT mount the backup media onto a mount point within
+[1] WARNING: Do NOT mount the backup media onto a mount point within
 the project directory when doing back up! Create and Use ~/MntPoint.
     $ mkdir ~/Mnt
     # mount
 Otherwise you'll get a recusive backup!!!
 The above is only to restore data from backup.
+[It would be better perhaps to modify the instructions so the mount
+point is never in the project directory in order to avoid confusion.]
 
-
+[2] The dot files have passwords redacted.  This will have to be
+corrected before emailing will work.

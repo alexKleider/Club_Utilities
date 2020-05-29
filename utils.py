@@ -752,11 +752,13 @@ def ck_lesssecureapps_setting():
     https://myaccount.google.com/lesssecureapps
     """
     if args['--mta'].endswith('g'):
-        response = input(             # Check lesssecureapps setting:
-        'Has "https://myaccount.google.com/lesssecureapps" been set?')
+        print(             # Check lesssecureapps setting:
+        'Has "https://myaccount.google.com/lesssecureapps" been set')
+        response = input(
+        '.. and have you respoinded affirmatively to the warning? ')
         if ((not response) or
         not (response[0] in 'Yy')):
-            print("Please do that then begin again.")
+            print("Emailing won't work until that's done.")
             sys.exit()
 
 

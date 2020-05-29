@@ -166,13 +166,18 @@ than paid up) for the upcoming year and we thank you.
 
 # Send with June minutes:
     June_request = """
-This is yet another request being sent out to Club members whose
-dues (and/or fees where applicable) for the ({}) Club year
-have not yet been payed.  (If you've any reason to believe that
-our accounting might be in error, please let us know[1].) 
+The final month of this ({}) Club year is now upon us
+and annual dues (and fees where applicable) are due at the end
+of the month.
+
+This mailing is going out to all members so everyone can know
+where they stand wether already paid up or not.
+
+(If you've any reason to believe that our accounting might be
+in error, please let it be known[1].) 
 
 Details are as follows:
-{{extra}}""".format(helpers.next_club_year()),
+{{extra}}""".format(helpers.this_club_year()),
 
 # Send with July minutes:
     final_warning = """
@@ -600,7 +605,8 @@ content_types = dict(  # which_letter
         "funcs": (member.set_owing_mailing_func,),
         "test": lambda record: True if (
             member.is_member(record) and
-            member.not_paid_up(record)and
+#           member.not_paid_up(record)and
+            not ('r' in record["status"]) and
             not ('w' in record["status"])
             ) else False,
         "e_and_or_p": "one_only",
