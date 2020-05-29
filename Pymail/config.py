@@ -49,6 +49,7 @@ config = dict(
     },
     akg= {
         "host": "smtp.gmail.com",
+        "port": "587",
         "tls_port": "587",
         "port": "587",
         "ssl_port": "465",
@@ -59,6 +60,7 @@ config = dict(
     },
     clubg= {
         "host": "smtp.gmail.com",
+        "port": "587",
         "tls_port": "587",
         "ssl_port": "465",
         "user": "rodandboatclub@gmail.com",
