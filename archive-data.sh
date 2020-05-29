@@ -26,8 +26,11 @@ echo "Copying Temp directory and contents into $STAMP"
 cp -r Temp/  ${STAMP}/
 
 # tar -czvf $TARFILE $STAMP
+echo "Calling tar on $STAMP > $TARFILE"
 tar -czf $TARFILE $STAMP
+echo "Moving $TARFILE into $DATA_ARCHIVES"
 mv $TARFILE $DATA_ARCHIVES
+echo "Deleting $STAMP"
 rm -r $STAMP
 
 ### to 'untar':

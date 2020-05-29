@@ -12,8 +12,8 @@
 # are the destination device/directory assigned in the
 # next line and the rsync command at the end of the script.
 
-BACKUP="/home/alex/MntPoint/Brbc"  #***
-# BACKUP="/media/alex/_EAGLE/Brbc"  #***
+BACKUP="/home/alex/Mnt/Club"  #***  The ScanDisc
+# BACKUP="/media/alex/_EAGLE/Brbc"  #*** The HardDrive
 
 STAMP=`date +%y-%m-%d`
 DEST=${BACKUP}/$STAMP

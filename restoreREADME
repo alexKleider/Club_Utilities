@@ -1,46 +1,39 @@
 # File: restoreREADME
 #    -located within the git repository.
 
-When restoring data:
-1. Mount the backup drive on '~/Mnt'.
-2. Create a project directory.  (In this case it's ~/Git/Club)
-3. Create a temporary directory ~/Temp and into it copy all the
-files in the most recently time stamped directory within ~/Mnt/Club.
-A directory listing will look something like this:
--rw-r--r-- 1 alex alex 184818 Apr 19 16:09 application_for_membership.pdf
-drwxr-xr-x 7 alex alex   4096 Apr 22 12:55 Archives
--rw-r--r-- 1 alex alex   2435 Apr 24 16:28 clubREADME
--rw-r--r-- 1 alex alex    326 May  1 17:45 exclude
--rwxr-xr-x 1 alex alex    919 Apr 19 16:09 files.py
-drwxr-xr-x 2 alex alex   4096 Apr 19 16:09 Guides
-drwxr-xr-x 2 alex alex   4096 Apr 19 16:09 Lists
--rw-r--r-- 1 alex alex  16455 Apr 19 16:09 mylist.xlsx
--rw-r--r-- 1 alex alex   2117 Apr 24 23:33 restoreREADME
-These are destined to then (after first checking) to be all
-moved into the project directory.
-    cp -a ~/Mnt/Club/<most-recent-time-stamp>/* ~/Temp
-    cp -a ~/Temp/* <the project directory>
-    rm -r ~/Temp
-This will bring in the 'Archives' directory along with others.
-Create a Temp directory and copy into it the most recent tar.gz
-file found in the Archives/Data directory. 
-    cp <most-recent-date>.tar.gz Temp/
+Guide to Cloning the Repository and Restoring Backed up Data
+============================================================
+
+    $ cd
+    $ mkdir Club
+    $ cd Club
+    $ git clone https://github.com/alexKleider/Club_Utilities
+    $ mv Club_Utilities Utils
+    $ mkdir Mnt
+    # mount /dev/sdb1 Mnt
+    $ ls -lA Mnt/Club   # Make a note of the <most-recent-time-stamp>.
+    $ cp -a Mnt/Club/<most-recent-time-stamp>.tar.gz/* Club/
+    $ cd Club
+    $ tar xvzf <most-recent-time-stamp>.tar.gz
+    $ rm  <most-recent-time-stamp>.tar.gz
+    $ mkdir Temp
+    cd Archives/Data
+    ls -lA Archives/Data  # Again note the <most-recent-time-stamp>.
+    cp Archives/Data/<most-recent-time-stamp.tar.gz Temp/
     cd Temp
-    tar xvzf <most-recent-date>.tar.gz
-    cd <most-recent-date>
-    ls -lA  # Do a sanity check on the listing.
-    rm <most-recent-date>.tar.gz
-    mv * ../../Utils
-    cd ../..
-    rm -r Temp
-Restore .git/info/exclude with the exclude file found in the
-project directory.
+    $ tar xvzf <most-recent-time-stamp>.tar.gz
+    $ rm  <most-recent-time-stamp>.tar.gz
+    cd ..
+    $ ls -lA Temp  # A sanity check!
+    $ mv Temp/* Utils/
+    $ rm -r Temp
+    $ cp exclude .git/info/
 
-    git branch dev
-    git checkout dev
 
-Note: Do NOT mount the backup media onto within  the project
-directory when doing back up! Use ~/MntPoint".
+[1] NOTE: Do NOT mount the backup media onto a mount point within
+the project directory when doing back up! Create and Use ~/MntPoint.
+    $ mkdir ~/Mnt
+    # mount
 Otherwise you'll get a recusive backup!!!
 The above is only to restore data from backup.
 
