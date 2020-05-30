@@ -1,47 +1,88 @@
 # File: restoreREADME
 #    -located within the git repository.
 
+
 Guide to Cloning the Repository and Restoring Backed up Data
 ============================================================
 
-    $ cd
-    $ mkdir Club  # Pick a name/location of your choosing.
-    $ cd Club   # Move into what we'll call the project directory.
-    $ git clone https://github.com/alexKleider/Club_Utilities
-    $ mv Club_Utilities Utils  # Repos is cloned and renamed.
-    $ mkdir Mnt  # Create a mount point for non repo data.
+    $ cd  # Begin from within your home directory (~/).
+    $ mkdir Mnt  # Create a mount point for non repo data.[1]
     $ su -  # Mounting requires root privileges.
-    # cd ~<username>/Club  # Get root into the project directory.
+    # cd ~<username>/   # Get root into your home directory.
+    ## Assuming backup media is assigned to /dev/sdb1...
     # mount /dev/sdb1 Mnt
     # exit   # No need for root privileges (unitl umounting.)
-    $ LAST=`cat Mnt/Club/last`  # Pick up date of last backup.
-    $ cp -a Mnt/Club/${LAST}/* ./  # Copy bu data => proj dir.
+    $ LAST=`cat Mnt/last`  # Pick up date of last backup.
+    $ mkdir Club  # Pick a project name & create a directory for it.
+    $ cd Club   # Move into the project directory.
+    $ git clone https://github.com/alexKleider/Club_Utilities
+    ## Alternate URL: git@github.com:alexKleider/Club_Utilities.git
+    $ mv Club_Utilities Utils  # Repos is cloned and renamed.
+    $ cp -a ~/Mnt/Club/${LAST}/* ./  # Copy bu data => proj dir.
     #
-    ## Now we deal with the directories that exist under
-    ## the repo directory but are not part of the repo:
+    ## Now we deal with directories that live within the repo
+    ## directory but are excluded by git:
     ls -lA Archives/Data  # Note the <most-recent-time-stamp>.
-    cp Archives/Data/<most-recent-time-stamp>.tar.gz ./
+    cp -a Archives/Data/<most-recent-time-stamp>.tar.gz ./
     $ tar xvzf <most-recent-time-stamp>.tar.gz
     $ rm  <most-recent-time-stamp>.tar.gz
     $ ls -lA <most-recent-time-stamp>  # A sanity check!
     $ mv <most-recent-time-stamp>/* Utils/
-    $ rmdir <most-recent-time-stamp>
+    $ rmdir <most-recent-time-stamp>   # No need for empty directory.
     $ cd Utils
     $ cp -a Notes/Mail/Dot/\. ~/  # Move dot files [2]
     $ cp ../exclude .git/info/  # Copy exclude file into git repo.
-    $ workon p37  # Activate the venv.
-    $ pip install -r requirements.txt  # Bring in dependencies
+    $ workon p37  # Activate the venv.[3]
+    $ pip install -r requirements.txt  # Bring in dependencies.[4]
     $ .utils.py ?
 
 
 [1] WARNING: Do NOT mount the backup media onto a mount point within
-the project directory when doing back up! Create and Use ~/MntPoint.
+the project directory, especially when doing back up!
+Create and Use ~/Mnt
     $ mkdir ~/Mnt
     # mount
 Otherwise you'll get a recusive backup!!!
-The above is only to restore data from backup.
-[It would be better perhaps to modify the instructions so the mount
-point is never in the project directory in order to avoid confusion.]
 
 [2] The dot files have passwords redacted.  This will have to be
-corrected before emailing will work.
+corrected before emailing will work.  For the Club gmail account:
+    $ echo rodandboat123 > ~/.pw.clubg
+
+[3] This assumes virtualenvwrapper has been installed and configured
+and the p37 venv has been created.
+
+[4] This only needs to be done once.
+
+
+
+To Udate an Already Set up Repo and its Data
+============================================
+
+Update Files Kept in the Repository
+-----------------------------------
+    $ cd <project_directory>/<repository>  # ~/Club/Utils
+    $ git stash  # If you want to save any repo changes.[1]
+    $ git reset HEAD --hard  # Destroys any changes to repo files.
+    $ git pull   # Pulls in any changes to the repo from github.
+    ## At this point your repo is up to date with github
+
+Update Files from Backup (those not kept in the repo.)
+------------------------------------------------------
+    ## Assume existence of ~/Mnt to serve as a mount point.
+    $ su -  # Need root privileges to mount backup thumb drive.
+    # mount /dev/sdb1 ~user/Mnt  # insert user name for 'user'
+    # exit   # No need for root privileges (until time to 'umount'.)
+    $ cd <project_directory>/<repository>  # ~/Club/Utils
+    $ ls -lA ~/Mnt  # Note most recent date/directory name.
+    $ ls -lA ~/Mnt/<latest-date>    # Sanity check.
+    $ ls -lA ../  # Output should be similar to that of above command.
+    $ rsync -av ~/Mnt/<latest-date>/ ../
+
+After the above is done, your files should be in the same state
+as that of your co-conspirators (unless one or more of them has
+made changes since last backing up.
+
+
+[1] If changes are stashed, they can be later added. (Conflicts may
+need to be resolved.) May then wish to issue a pull request.
+See https://git-scm.com/docs/git-stash for details.
