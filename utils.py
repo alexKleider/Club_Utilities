@@ -768,23 +768,26 @@ def send_emails_cmd():
     See also content.authors_DOCSTRING.
     """
     ck_lesssecureapps_setting()
-    wait = args["--mta"].endswith('g')
+    mta = args["--mta"]
+    emailer = args["--emailer"]
+    if emailer == "python":
+        emailer = Pymail.send.send
+        print("Using Python modules to dispatch emails.")
+    elif emailer == "bash":
+        emailer = Bashmail.send.send
+        print("Using Bash to dispatch emails.")
+    else:
+        print('"{}" is an unrecognized "--emailer" option.'
+            .format(emailer))
+        sys.exit(1)
+    wait = mta.endswith('g')
     j_file = args["-j"]
     message = None
     with open(j_file, 'r') as f_obj:
         data = json.load(f_obj)
         print('Loading JSON from "{}"'.format(f_obj.name))
     counter = 0
-    if args['--emailer']=='python':
-        print("Using Python modules to dispatch emails.")
-        Pymail.send.send(data, args['--mta'], include_wait=wait)
-    elif args['--emailer']=='bash':
-        print("Using Bash to dispatch emails.")
-        Bashmail.send.send(data, args['--mta'], include_wait=wait)
-    else:
-        print('"{}" is an unrecognized "--emailer" option.'
-            .format(args['--emailer']))
-        sys.exit()
+    emailer(data, mta, include_wait=wait)
 
 
 def print_letters_cmd():
