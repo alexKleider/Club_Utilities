@@ -27,8 +27,8 @@ Usage:
   ./utils.py stati [-O -A -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -r -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-O -T -w <width> -i <infile>] -o <outfile>
+  ./utils.py extra_charges [-O -r -w <width> --oo -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py payables [-O -T -w <width> --oo -i <infile>] -o <outfile>
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
@@ -40,7 +40,7 @@ Usage:
   ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
 
 Options:
-  -h --help  Print this docstring.
+  -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
   -A  re 'stati' comand: show only applicants.
   -c <content>  The name of a file containing the body of an email.
@@ -101,7 +101,7 @@ Options:
 Commands:
     When run without a command, suggests ways of getting help.
     ck_data: Checks all the club's data bases for consistency.
-        Assumes (user must assertain) a fresh export of the
+        Assumes (user must assertain) a fresh export of the gmail
         contacts list.  If the -j option is specified, it names the
         file to which to send emails (in JSON format) to members with
         differing emails. (After proof reading, use 'send_emails'.)
@@ -112,7 +112,8 @@ Commands:
         Depends on acurate entries in 'status' field.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive their
-        Club minutes by post. Includes the secretary.
+        Club minutes by post. Also includes any with an 's' status.
+        (Provides a mechanism of sending a copy to the secretary.)
     extra_charges: Reports on members paying extra charges (for
         kayak storage, mooring &/or dock usage.)
         Output format can be specified by the -f <format> option.
@@ -124,32 +125,32 @@ Commands:
         paying for one or more of the Club's three special privileges.
         There is also the option of creating a json file needed by
         the restore_fees_cmd. (See the README file re SPoL.)
-    payables: reports on content of the member data money fields
-        providing a listing of those who owe and those who have paid
-        in advance.
+    payables: Reports on content of the member data money fields.
+        With the --oo option, only reports money still owing.
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
-        See the 'content_types' dict in content.py.)
+        (See the 'content_types' dict in content.py.)
     prepare_mailing:  Demands a <--which> argument to specify the
         content and the custom function(s) to be used.  Try the
         'show_mailing_categories' command for a list of choices.
-        'ATTACHMENTS...'  The command line arguments may end with
-        zero or more names of files which are to be added as
-        attachments to the emails.
-        Other parameters have defaults set (see prepare_mailing_cmd:)
+        The command line arguments may end with zero or more names
+        of files which are to be added as attachments to the emails.
+        Other parameters have defaults set.
         '--oo'  Send request for fee payment only to those with an
-        outstanding balance.  This is relevant only to letters
-        relating to dues and fees.
+        outstanding balance.  This is relevant only to mailings
+        relating to dues and fees. Without this option mailings go
+        to all members (including those with credit or 0 balance.
         '--lpr <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
-        '---dir <dir4letters>' where to put letters.
+        '---dir <dir4letters>' where to file letters.
     display_emails: Provides an opportunity to proof read the emails.
     send_emails: Sends out the emails found in the -j <json_file>.
         Each mta has its own security requirements and each emailer
         has its own way of implementing them. Check the
         Notes/emailREADME for details.  Note that not all
-        combinations of mta and emailer are working.
+        combinations of mta and emailer are working but the following
+        does: "--mta clubg --emailer python".
     within the ./Notes directory (./Notes/msmtprc.)
     print_letters: Sends the files contained in the directory
         specified by the --dir parameter.  Depricated in favour of
@@ -160,13 +161,15 @@ Commands:
         specified membership csv file. One can then mannually check
         the new file and move it if all is well.
         NOTE: check out 'rewrite_db.py'.
-    emailing: provides ability to send emails with attachments.
-        Uses a different mechanism than the prepare_mailing and
-        send_emails commands. Sends the same to all in the input file.
+    emailing: Initially developed to allow sending of attachments.
+        Since attachments are now possible using the send_mailing
+        command (at least with emailer python) this command will
+        most likely be redacted.
     fee_intake_totals: Input file should be a 'receipts' file with a
-        specific format. It defaults to 'Data/receipts-YYYY.txt'.
-        Output yields subtotals and the grand total.
-        This simply automates totaling the numbers.
+        specific format. It defaults to 'Data/receipts-YYYY.txt'
+        where YYYY is the current year.  Output yields subtotals and
+        the grand total which can be copy/pasted into the 'receipts'
+        file.
     labels: print labels.       | default: -p A5160  | Both
     envelopes: print envelopes. | default: -p E000   | redacted.
 """
@@ -219,10 +222,13 @@ if args['-O']:
     res = sorted(["{}: {}".format(key, args[key]) for key in args])
     ret = helpers.tabulate(res, max_width=max_width, separator='   ')
     print('\n'.join(ret))
-    _ = input("...end of arguments. Continue? ")
+    response = input("...end of arguments. Continue? ")
+    if response and response[0] in 'yY':
+        pass
+    else:
+        sys.exit()
 
-lpr = args["--lpr"]
-if lpr and lpr not in content.printers.keys():
+if args["--lpr"] not in content.printers.keys():
     print("Invalid '--lpr' parameter! '{}'".
         format(lpr))
     sys.exit()
