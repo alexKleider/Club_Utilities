@@ -13,7 +13,7 @@
 maintanance of the Bolinas Rod and Boat Club membership records.
 Most commands deal with a csv file named "./Data/memlist.csv" so for
 these it is the default input file.
-Labels and Envelopes (along with the '-p <params>' option) have
+Labels and Envelopes (along with the '-P <params>' option) have
 been deprecated but the code left in place incase anyone ever
 wishes to revive them.  Current usage replaces them with emails and
 letters (which can be prepared using the 'prepare_mailing' command.)
@@ -21,32 +21,33 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -d -P -r -s -i <infile> -N <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -o <outfile> ]
-  ./utils.py report [-O -i <infile> -N <applicant_spot> -o <outfile> ]
-  ./utils.py stati [-O -A -i <infile> -o <outfile>]
+  ./utils.py report [-O -i <infile> -A <applicant_spot> -o <outfile> ]
+  ./utils.py stati [-O -a -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -r -w <width> --oo -f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-O -T -w <width> --oo -i <infile>] -o <outfile>
+  ./utils.py extra_charges [-O -w <width> --oo -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py payables [-O -T -w <width> --oo -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O --oo --lpr <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
+  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
-  ./utils.py (labels | envelopes) [-O -i <infile> -p <params> -o <outfile> -x <file>]
+  ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
-  -A  re 'stati' comand: show only applicants.
+  -a  re 'stati' comand: show only applicants.
+  -A <app_spot>  Applicant data file.
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data.
-  --dir <dir4letters>  The directory to be created and/or read
+  - dir <dir4letters>  The directory to be created and/or read
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
@@ -63,28 +64,21 @@ Options:
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
-  --lpr <printer>  Deals with printer variablility; ensures correct
+  -p <printer>  Deals with printer variablility; ensures correct
             alignment of text when printing letters. [default: X6505]
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account
                 akg       my gmail account
                 easy      my easydns account  [default: easy]
-  -N <app_spot>  Applicant data file.
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only send notices if fees are outstanding.
             (Sets owing_only attribute of instance of Club.)
-  -p <params>  This option will probably be redacted since old
+  -P <params>  This option will probably be redacted since old
             methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
-  -P    Some commands may have more than one component to
-        their output.  This ('-P') option makes each component appear
-        on a separate page. (i.e. Separated by form feeds.)
-  -r    ...for 'raw': Supress headers (to make the output suitable as
-        input for creating tables.)
   -s    Report status in ck_data command.
-  -S <separator>   ?? not sure that this is used.
   --subject <subject>  The subject line of an email.
   -t <temp_file>  An option provided for when one does not want to
         risk corruption of an important input file which is to be
@@ -140,7 +134,7 @@ Commands:
         outstanding balance.  This is relevant only to mailings
         relating to dues and fees. Without this option mailings go
         to all members (including those with credit or 0 balance.
-        '--lpr <printer>' specifies printer to be used for letters.
+        '-p <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
         '---dir <dir4letters>' where to file letters.
@@ -170,8 +164,8 @@ Commands:
         where YYYY is the current year.  Output yields subtotals and
         the grand total which can be copy/pasted into the 'receipts'
         file.
-    labels: print labels.       | default: -p A5160  | Both
-    envelopes: print envelopes. | default: -p E000   | redacted.
+    labels: print labels.       | default: -P A5160  | Both
+    envelopes: print envelopes. | default: -P E000   | redacted.
 """
 
 import os
@@ -228,9 +222,9 @@ if args['-O']:
     else:
         sys.exit()
 
-if args["--lpr"] not in content.printers.keys():
-    print("Invalid '--lpr' parameter! '{}'".
-        format(lpr))
+if args["-p"] not in content.printers.keys():
+    print("Invalid '-p' parameter! '{}'".
+        format(args['-p']))
     sys.exit()
 
 
@@ -394,8 +388,8 @@ def ck_data_cmd():
     club = Club()
     if args['-i']:
         club.MEMBERSHIP_SPoT = args['-i']
-    if args['-N']:
-        club.APPLICANT_SPoT = args['-N']
+    if args['-A']:
+        club.APPLICANT_SPoT = args['-A']
     if args['-X']:
         club.EXTRA_FEES_SPoT = args['-X']
     if args['-C']:
@@ -404,9 +398,7 @@ def ck_data_cmd():
     confirm_file_up_to_date(club.CONTACTS_SPoT)
     ret = data.ck_data(club,
                     report_status=args['-s'],
-                    fee_details=args['-d'],
-                    raw=args['-r'],
-                    formfeed=args['-P'])
+                    fee_details=args['-d'])
     output("\n".join(ret))
 
 
@@ -459,7 +451,7 @@ def report():
     club.ms_by_status = {}
     club.nmembers = 0
     infile = args["-i"]
-    applicant_spot = args['-N']
+    applicant_spot = args['-A']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     if not applicant_spot:
@@ -534,7 +526,7 @@ def stati_cmd():
     club.infile = args["-i"]
     if not club.infile:
         club.infile = Club.MEMBERSHIP_SPoT
-    if args['-A']:
+    if args['-a']:
         club.mode = 'applicants_only'
     else:
         club.mode = 'all'
@@ -602,15 +594,13 @@ def extra_charges_cmd():
     if not infile:
         infile = Club.EXTRA_FEES_SPoT
     print('Retrieving input data from "{}"'.format(infile))
-    if not args['-f']:
-        args['-f'] = 'table'
     extra_fees = None
     if args['-j']:
         json_file = args['-j']
         extra_fees = data.gather_extra_fees_data(infile,
                                         json_file=json_file)
     else:
-        json_file = False
+        json_file = None
     if infile.endswith(TEXT):
         print('<infile> ends in "{}"; reading from SPoL'.
                                         format(TEXT))
@@ -625,17 +615,15 @@ def extra_charges_cmd():
         by_name = extra_fees[Club.NAME_KEY]
         by_category = extra_fees[Club.CATEGORY_KEY]
         if args['-f'] == 'table':  # Names /w fees in columns:
-            res = data.present_fees_by_name(by_name, raw=True)
-            ret = helpers.tabulate(res, down=True,
-                        max_width=max_width, separator=' ')
-            if not args['-r']:
-                header = ["Extra fees by member:",
-                          "=====================",  ]
-                ret = header + ret
+            res = data.present_fees_by_name(by_name)
+            ret = ["Extra fees by member:",
+                   "=====================",  ]
+            ret.extend(helpers.tabulate(res, down=True,
+                        max_width=max_width, separator=' '))
             output('\n'.join(ret))
         elif args['-f'] == 'listings':
-            output('\n'.join(data.present_fees_by_category(
-                                    extra_fees, raw=args['-r'])))
+            output('\n'.join(
+                        data.present_fees_by_category(extra_fees)))
         else:
             print("""Bad argument for '-f' option...
     Choose one of the following:        [default: table]
@@ -701,10 +689,10 @@ def prepare_mailing_cmd():
     if args['--oo']:
         club.owing_only = True
     club.which = content.content_types[args["--which"]]
-    club.lpr = content.printers[args["--lpr"]]
+    club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.letter_format(club.which, 
-                                        args["--lpr"])
+                                        args["-p"])
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     club.input_file_name = args['-i']
@@ -890,8 +878,8 @@ def fee_intake_totals_cmd():
             file_obj.write('\n'.join(club.invalid_lines))
 
 def labels_cmd():
-    if args["--parameters"]:
-        medium = media[args["--parameters"]]
+    if args["-P"]:
+        medium = media[args["-P"]]
     else:
         medium = A5160
     club = Club(medium)
@@ -899,8 +887,8 @@ def labels_cmd():
     return club.get_labels2print(source_file)
 
 def envelopes_cmd():
-    if args["--parameters"]:
-        medium = media[args["--parameters"]]
+    if args["-P"]:
+        medium = media[args["-P"]]
     else:
         medium = E0000
     club = Club(medium)

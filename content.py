@@ -549,7 +549,8 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             ),
         "funcs": (member.set_owing_mailing_func,),
-        "test": lambda record: True,
+        "test": lambda record: False if ('r' in record['status']
+                    ) else True,
         "e_and_or_p": "one_only",
         },
     thank_you_for_payment = {
@@ -590,6 +591,7 @@ content_types = dict(  # which_letter
             member.is_member(record) and
             member.not_paid_up(record)and
             not ('w' in record["status"])
+            and not ('r' in record['status'])
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -608,6 +610,7 @@ content_types = dict(  # which_letter
 #           member.not_paid_up(record)and
             not ('r' in record["status"]) and
             not ('w' in record["status"])
+            and not ('r' in record['status'])
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -624,6 +627,7 @@ content_types = dict(  # which_letter
             member.is_member(record) and
             member.not_paid_up(record)and
             not ('w' in record["status"])
+            and not ('r' in record['status'])
             ) else False,
         "e_and_or_p": "both",
         },
@@ -640,6 +644,7 @@ content_types = dict(  # which_letter
             member.is_member(record) and
             member.not_paid_up(record)and
             not ('w' in record["status"])
+            and not ('r' in record['status'])
             ) else False,
         "e_and_or_p": "both",
         },

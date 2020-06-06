@@ -356,7 +356,7 @@ def present_fees_by_name(extra_fees, raw=False):
         for value in jv[key]:
             charges.append("{} {}".format(value[0], value[1]))
         charges = ', '.join(charges)
-        ret.append(key + ': ' + charges)
+        ret.append("{key}: {charges}".format())
     ret.sort()
     return header_lines + ret
 
@@ -387,8 +387,9 @@ def present_fees_by_category(extra_fees,
     if raw:
         header = []
     else:
-        header = ["Extra fees by category:",
-                  "======================="]
+        header = ["Extra fees by category",
+                  "======================",
+                  '']
     for category in categories:
         if category == 'Kayak':
             ret[category].append(category + ': ${}'.format(
@@ -424,8 +425,8 @@ def present_fees_by_category(extra_fees,
     zipped = zip(*[value for value in new_ret.values()])
     res = []
     for item in zipped:
-        res.append('{} {} {}'.format(*item))
-    return res
+        res.append('{}  {}  {}'.format(*item))
+    return header + res
 
 
 def present_expired(list_of_expired_applications, raw=False):
@@ -574,9 +575,7 @@ def ck_applicants_cmd():
 
 def ck_data(club,
             report_status=True,
-            fee_details=False,
-            raw=True,
-            formfeed=False):
+            fee_details=False):
     """
     Check integrity/consistency of of the Club's data bases:
         MEMBERSHIP_SPoT  # the main club data base
@@ -596,11 +595,8 @@ def ck_data(club,
     ret = []
     ok = []
     varying_amounts = []
-    first_line = "Report Regarding Data Integrity"
-    if not (raw or formfeed):
-        ret.append(first_line)
-        ret.append("#" * len(first_line) )
-
+    helpers.add_header2list("Report Regarding Data Integrity",
+                    ret, underline_char='#', extra_line=True)
     # Collect data from csv files ==> club attributes
     gather_membership_data(club)
     gather_contacts_data(club) # Sets up and populates:
@@ -695,12 +691,9 @@ def ck_data(club,
 
     # Provide listing of those with 'stati':
     if report_status:
-        if formfeed:
-            ret.append('')
-        if not raw:
-            ret.extend(["",
-                        "Members /w 'status' Content",
-                        '==========================='])
+        ret.extend(["",
+                    "Members /w 'status' Content",
+                    '==========================='])
         members_w_status = sorted(club.ms_by_status.keys())
 #       print("Members w status: {}".format(repr(members_w_status)))
         for key in members_w_status:

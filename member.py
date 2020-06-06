@@ -448,6 +448,8 @@ def get_payables(record, club):
     positives are added to club.still_owing,
     negatives to club.advance_payments.
     """
+    if 'r' in record['status']:
+        return
     name = "{last}, {first}: ".format(**record)
     line_positive = []
     line_negative = []
