@@ -105,13 +105,15 @@ def send(emails, mta, report_progress=True,
     in the latter case the values are converted into a single
     comma separated string.
     """
-    ret = []
     counter = 0
+    n_emails = len(emails)
+    ret = []
     for email in emails:
         counter += 1
-        print("Sending email #{} to {}..."
-#           .format(counter, ", ".join(email['To'])))
-            .format(counter, email['To']))
+        if report_progress:
+            print("Sending email #{}/{} to {}..."
+    #           .format(counter, n_emails, ", ".join(email['To'])))
+                .format(counter, email['To']))
         mutt_send(email, mta)  #Using mutt; msmtp not working.
         if include_wait:
             time.sleep(random.randint(MIN_TIME_TO_SLEEP,

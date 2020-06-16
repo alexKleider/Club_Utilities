@@ -24,6 +24,8 @@ echo "Copying NonRepo directory and contents into $STAMP"
 cp -r NonRepo/  ${STAMP}/
 echo "Copying Temp directory and contents into $STAMP"
 cp -r Temp/  ${STAMP}/
+echo "Copying TestData directory and contents into $STAMP"
+cp -r TestData/  ${STAMP}/
 
 # tar -czvf $TARFILE $STAMP
 echo "Calling tar on $STAMP > $TARFILE"

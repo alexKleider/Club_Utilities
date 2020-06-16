@@ -356,7 +356,8 @@ def present_fees_by_name(extra_fees, raw=False):
         for value in jv[key]:
             charges.append("{} {}".format(value[0], value[1]))
         charges = ', '.join(charges)
-        ret.append("{key}: {charges}".format())
+        ret.append("{key}: {charges}".format(
+                key=key, charges=charges))
     ret.sort()
     return header_lines + ret
 
@@ -880,6 +881,53 @@ def ck_data(club,
         ret.append("club.fee_category_by_m:")
         ret.append(repr(club.fee_category_by_m))
     return ret
+
+
+def restore_fees(club):
+    """
+    Leaves a new list of records in club.new_db:
+    Dues and relevant fees are applied to each member's record.
+    Also populates the following:
+        <club.name_set>   a set used as a check
+        <club.errors>
+    The <club.errors> list is populated by names that are found
+    in the <fees_json_file> but not in the <membership_csv_file>. 
+    Also listed will be any members still owing.
+    Other warnings may also appear.
+    """
+    print(
+        "Preparing to restore dues and fees to the data base...")
+    print(
+        "  1st check that no one is still owing ...")
+    club.errors = []
+    club.non0balance = {}
+    club.name_set = set()
+    by_name = gather_extra_fees_data(club.infile)[Club.NAME_KEY]
+    club.extra_fee_names = set([key for key in by_name.keys()])
+    err_code = member.traverse_records(club.infile,(
+        member.populate_non0balance_func, 
+        member.populate_name_set_func,
+        member.add_dues_fees2new_db_func,
+        ), club)
+    names_not_members = club.extra_fee_names - club.name_set
+    if names_not_members:
+        warning = "Not all in extra fees listing are members!" 
+        print(warning)
+        club.errors.append(warning)
+        for name in names_not_members:
+            club.errors.append(
+            "\t{} listed as paying fee(s) but not a member."
+            .format(name))
+
+
+def save_db(new_db, outfile, key_list)
+    with open(outfile, 'w') as file_obj:
+        writer = csv.DictWriter(file_obj, fieldnames= key_list)
+        writer.writeheader()
+        for record in new_db:
+            writer.writerow(record)
+        print("Updated membership data is in file '{}'."
+            .format(file_obj.name))
 
 
 def data_listed(data, underline_char='=', inline=False):

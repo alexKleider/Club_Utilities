@@ -20,7 +20,7 @@ from rbc import Club
 
 SEPARATOR = '|'  ### Note: NOT the same as rvc.SEPARATOR
 WAIVED = "w"     #   \ although its value happens to be the same.
-status_key_values = {
+STATUS_KEY_VALUES = {
     "a0": "Application received",
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
@@ -33,18 +33,16 @@ status_key_values = {
     'r': "Retiring/Giving up Club Membership",
     's': "Secretary of the Club"
     }
-STATI = sorted([key for key in status_key_values.keys()])
+STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
 APPLICANT_STATI = STATI[:6]
 APPLICANT_SET = set(STATI[:6])
 MISCELANEOUS_STATI = "m|w|be"
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
-n_fields = 15  # Plan to redact in favour of N_FIELDS
-money_keys = ("dues", "dock", "kayak", "mooring") 
-money_keys_capped = [item.capitalize() for item in money_keys]
-fees_keys = money_keys[1:]
-fees_keys_capped = money_keys_capped[1:]
-money_headers = {
+MONEY_KEYS = ("dues", "dock", "kayak", "mooring") 
+MONEY_KEYS_CAPPED = [item.capitalize() for item in MONEY_KEYS]
+FEES_KEYS = MONEY_KEYS[1:]
+MONEY_HEADERS = {
     "dues":    "Dues..........",
     "mooring": "Mooring.......",
     "dock":    "Dock Usage....",
@@ -52,7 +50,7 @@ money_headers = {
     "total":   "    TOTAL.........",
     }
 
-n_fields_per_record = 15
+N_FIELDS_PER_RECORD = 15
 
 # The following is no longer used...
 # we get around the problem in a different way..
@@ -67,7 +65,6 @@ feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
 
-EASY_ACCOUNT = 'alex@kleider.ca'
 
 def traverse_records(infile, custom_funcs, club=None):
     """
@@ -87,7 +84,7 @@ def traverse_records(infile, custom_funcs, club=None):
     with open(infile, 'r', newline='') as file_object:
         print("DictReading {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
-        # fieldnames is used by get_usps
+        # fieldnames is used by get_usps and restore_fees cmds.
         if club:
             club.fieldnames = dict_reader.fieldnames  # used by get_usps
             club.n_fields = len(club.fieldnames)  # to check db integrity
@@ -120,7 +117,7 @@ def ck_number_of_fields(record, club=None):
     if not: error is reported by printing to stdout.
     """
     record.n_fields = len(record)
-    possible_error = ("{last} {first} has {n_fields}"
+    possible_error = ("{last} {first} has {N_FIELDS}"
         .format(**record))
     if ((club and (record.n_fields != club.n_fields))
     or record.n_fields != N_FIELDS):
@@ -288,8 +285,8 @@ def add2fee_data(record, club):
     club.ms_by_fee_category if these attributes exist.
     """
     name = member_name(record, club)
-#   print(repr(fees_keys))
-    for key in fees_keys:
+#   print(repr(FEES_KEYS))
+    for key in FEES_KEYS:
 #       print("Checking key '{}' for {}".format(key, name))
         try:
             fee = int(record[key])
@@ -310,7 +307,7 @@ def add2malformed(record, club=None):
     """
     Populates club.malformed (which must be set up by client.)
     Checks that that for each record:
-    1. there are n_fields_per_record
+    1. there are N_FIELDS_PER_RECORD
     2. the money fields are blank or evaluate to an integer.
     3. the email field contains "@"
     club.__init__ sets club.previous_name to "".
@@ -318,10 +315,10 @@ def add2malformed(record, club=None):
     Client must set up a club.malformed[] empty list to be populated.
     """
     name = member_name(record, club)
-    if len(record) != n_fields:
+    if len(record) != N_FIELDS:
         club.malformed.append("{}: Wrong # of fields."
             .format(name))
-    for key in money_keys:
+    for key in MONEY_KEYS:
         value = record[key]
         if value:
             try:
@@ -382,7 +379,7 @@ def show_stati(club):
     do_it_once = True
     for key in keys:
         if key in stati2show:
-            sub_header = status_key_values[key]
+            sub_header = STATUS_KEY_VALUES[key]
             values = sorted(club.ms_by_status[key])
             if key.startswith('a'):
                 if do_it_once:
@@ -408,7 +405,7 @@ def show_by_status(by_status, stati2show=STATI):
     stati = by_status.keys()
     for status in sorted(stati):
         if status in stati2show:
-            helpers.add_header2list(status_key_values[status],
+            helpers.add_header2list(STATUS_KEY_VALUES[status],
                                         ret, underline_char='-')
             for line in by_status[status]:
                 ret.append(line)
@@ -418,7 +415,7 @@ def not_paid_up(record, club=None):
     """
     Checks if there is a positive balance in any of the money fields.
     """
-    for key in money_keys:
+    for key in MONEY_KEYS:
       if record[key] and int(record[key]) > 0:
         return True
     return False
@@ -431,7 +428,7 @@ def get_owing(record, club):
     function to use if need be.)
     """
     owing = dict()
-    for key in money_keys:
+    for key in MONEY_KEYS:
         if record[key]:
             owing[key] = int(record[key])
         else:
@@ -453,13 +450,13 @@ def get_payables(record, club):
     name = "{last}, {first}: ".format(**record)
     line_positive = []
     line_negative = []
-    for key in money_keys:
+    for key in MONEY_KEYS:
         if record[key]:
             amount = int(record[key])
             if amount > 0:
                 line_positive.append("{} {}".format(
                     key, amount))
-#                       money_headers[key], amount))
+#                       MONEY_HEADERS[key], amount))
             elif amount < 0:
                 line_negative.append("{} {}".format(
                     key, amount))
@@ -523,7 +520,7 @@ def get_extra_charges(record, club=None):
     """
     name = member_name(record, club)
     _list = []
-    for key in fees_keys:
+    for key in FEES_KEYS:
         value = record[key]
         if value:
             try:
@@ -538,6 +535,58 @@ def get_extra_charges(record, club=None):
     if _list:
         club.extras_by_member.append("{:<26} {}"
             .format(name + ":", ", ".join(_list)))
+
+
+def set_owing_func(record, club):
+    """
+    Sets up the following record keys (with values as appropriate.)
+        extra
+        total
+    """
+    record["money"] = 0
+    record["total"] = 0
+    record["extra"] = []
+    for key in MONEY_KEYS:
+        try:
+            money = int(record[key])
+        except ValueError:
+            club.errors.append("{}: {} {} => ValueError."
+                .format(member_name(record), key, record[key]))
+            money = 0
+        if money:
+            record['extra'].append("{}.: ${}"
+                .format(MONEY_HEADERS[key], money))
+            record['total'] += money
+
+
+def populate_non0balance_func(record, club):
+    """
+    Reads the MONEY_KEYS fields and, if any are not zero,
+    populates the club.non0balance dict keyed by member name
+    with values keyed by MONEY_KEYS.
+    """
+    total = 0
+    name = record.name()
+    for key in MONEY_KEYS:
+        try:
+            money = int(record[key])
+        except ValueError:
+            club.errors.append("{}: {} {} => ValueError."
+                .format(member_name(record), key, record[key]))
+            money = 0
+        if money:
+            _ = club.non0balance.get(name, {})
+            club.non0balance[name][key] =  money))
+
+
+def populate_name_set(record, club):
+    club.name_set.add(name(record))
+
+
+def add_dues_fees2new_db_func(record, club):
+
+
+
 
 ##### Next group of methods deal with sending out mailings. #######
 # Clients must set up the following attributes of the 'club' parameter
@@ -675,47 +724,32 @@ def set_owing_mailing_func(record, club):
     are ignored; othewise, these are acknowledged
     (so every one gets a message.)
     Applies only to records that pass the "test" function.
+    <club> (an instance of Club) must have the following attributes:
+        extra
+        total
+        which
+        owing_only
     """
     if not club.which["test"](record):
 #       print( "{first} {last} fails 'test' function/lambda."
 #           .format(**record))
         return
-    money = 0
-    total = 0
-    extra = []
-    for key in money_keys:
-        if record[key] and 'w' in record[key]:
-            name = '{first}, {last}'.format(**record)
-            extra.append("{}: {} fee waived."
-                .format(name, money_headers[key]))
-            continue
-        try:
-            money = int(record[key])
-        except ValueError:
-            money = 0
-        if money:
-            extra.append("{}.: ${}"
-                .format(money_headers[key], money))
-            total += money
-    try:
-        owing_only = club.owing_only
-    except AttributeError:
-        owing_only = False
-    if total <= 0 and owing_only:
+    set_owing(record, club)
+    if record.total <= 0 and owing_only:
         return  # no notice sent
-    if total <= 0:
-        extra.append("Total is 0 or a credit."
+    if record.total <= 0:
+        record.extra.append("Total is 0 or a credit."
             .format(total))
-    extra = ["\n"] + extra
-    extra.append("{}.: ${}"
-        .format(money_headers["total"], total))
+    record.extra = ["\n"] + extra
+    record.extra.append("{}.: ${}"
+        .format(MONEY_HEADERS["total"], record.total))
     if total < 0:
-        extra.extend(
+        record.extra.extend(
         ["Thank you for your advance payment.",
          "Your balance is a credit so there is nothing due."])
     if total == 0:
-        extra.append("You are all paid up! Thank you.")
-    record["extra"] = '\n'.join(extra)
+        record.extra.append("You are all paid up! Thank you.")
+    record["extra"] = '\n'.join(record['extra'])
     q_mailing(record, club)
 
 def set_inductee_dues(record, club=None):

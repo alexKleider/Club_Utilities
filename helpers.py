@@ -7,6 +7,7 @@ Some helper functions needed by content and utils
 and perhaps other modules in this folder.
 """
 
+import os
 import json
 import datetime
 import functools
@@ -144,6 +145,11 @@ def add_header2list(header, list_,
     list_.append(header)
     if underline_char:
         list_.append(underline_char * len(header))
+
+
+def prepend2file_name(word, file_name):
+    head, tail = os.path(file_name)
+    return os.path.join(head, ''.join((word, tail)))
 
 
 def display_json(data, res):

@@ -222,6 +222,8 @@ def send(emails, mta, report_progress=True,
     in the latter case the values are converted into a single
     comma separated string.
     """
+    n_emails = len(emails)
+    counter = 0
     print("Using {} as MTA...".format(mta))
     server = config.config[mta]
     sender = server["from"]
@@ -253,8 +255,10 @@ def send(emails, mta, report_progress=True,
             attachments = email['attachments']
             del email['body']
             del email['attachments']
-            print("Email...")
             if report_progress:
+                counter += 1
+                print("Sending email {} of {} ..."
+                    .format(counter, n_emails))
                 for key in email:
                     print("\t{}: {}".format(key, email[key]))
                     msg[key] = into_string(email[key])

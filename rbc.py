@@ -86,13 +86,14 @@ class Club(object):
         """
         self.infile = Club.MEMBERSHIP_SPoT
         self.pattern = '{last}, {first}'
-#       self.name_tuples = []
-        self.json_data = []
+#       self.json_data = []
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check 
         self.first_letter = ''               # } ordering.
 
-### I believe the remaining methods can all be redacted. ###
+### I believe methods can all be redacted. ###
+### They are implemented elsewhere: mostly in data.py
+### 
 
     def present_by_status(self, applicants_only=False):
         """
@@ -359,134 +360,6 @@ class Club(object):
 #   def create_extra_fees_json(self, extra_fees_txt_file):
 #       # this functionality is provided by extra_fees.py
 #       pass
-
-    def restore_fees(self, membership_csv_file,
-                        dues, fees_json_file,
-                        new_membership_csv_file):
-        """
-        Dues and relevant fees are applied to each member's record
-        in a new_membership_csv_file. It can then be checked before
-        renaming.
-        Sets up and then populates:
-            <self.errors>        }  all are
-            <self.name_tuples>   }  instance list
-            <self.still_owing>   }  attributes
-        Several conditions prevent the method from completing (i.e.
-        actually restoring fees.) In each instance, the specifics are
-        reported inside the <self.errors> attribute.  This happens if
-        any member still has dues or fees owing or if a person appears
-        in the <fees_json_file> but is not a member (i.e. in the
-        <membership_csv_file>.)
-        The <fees_json_file> is NOT the SPoL! The extra_fees.txt file
-        is the SPoL. The json file can be optionally created by
-        running the extra_charges command
-        """
-        print(
-            "Preparing to restore dues and fees to the data base...")
-        print(
-            "  1st check that all have been zeroed out...")
-        self.errors = []
-        self.name_tuples = []
-        self.still_owing = []
-        # MAJOR WORK NEEDS DONE HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        err_code = self.traverse_records(membership_csv_file,
-                    [(record["last"], record["first"]),
-                    self.get_payables])  # vvv
-        # Populates self.name_tuples so we can later check that
-        # everyone in the extra_fees data base is in fact a member
-        # and populates self.still_owing so we can check if OK to
-        # proceed.
-        if self.still_owing:
-            self.errors.append(
-                "The following members have not been zeroed out:")
-            self.errors = "\n".join(self.errors + self.still_owing)
-            print("The following have not been zeroed out:")
-            print(self.errors)
-            # self.errors can be sent to an error file by caller.
-            print(
-                "Can't continue until all members are 'zeroed out'.")
-            return 1
-        else:
-            print("All members are zeroed out- OK to continue...")
-            assert not self.errors
-
-        new_file = new_membership_csv_file
-        if os.path.exists(new_file):
-            response = input(
-                "...planning to overwrite '{}', OK? (y/n) "
-                .format(new_file))
-            if not response or not response[0] in "Yy":
-                print("Terminating.")
-                return 1
-
-        # Preliminaries are done- time to do the work...
-        fees_by_name = self.parse_extra_fees(fees_json_file)
-        fee_name_tuples = set(fees_by_name.keys())
-        fee_name_t_list = list(fee_name_tuples)
-        fee_name_t_list.sort()
-#       The following two files were used for debugging only:
-#       with open("mem_name_tuples.txt", 'w') as file_obj:
-#           for tup in mem_name_t_list:
-#               file_obj.write("{}, {}\n".format(*tup))
-#       with open("fee_name_tuples.txt", 'w') as file_obj:
-#           for tup in fee_name_t_list:
-#               file_obj.write("{}, {}\n".format(*tup))
-        if not fee_name_tuples.issubset(self.name_tuples):
-            print("There's a discrepency- one or more fee paying")
-            print("members are not in the membership data base.")
-            bad_set = (fee_name_tuples -
-                {tup for tup in self.name_tuples})
-            self.errors.append("Fee payers not in member database:")
-            for last, first in bad_set:
-                error = "{}, {}".format(last, first)
-                print(error)
-                self.errors.append(error)
-            self.errors.sort()
-            self.errors = '\n'.join(self.errors)
-            return 1
-
-        # Now we are ready to change the
-        # data base (i.e. add dues & fees)
-        new_records = []
-        with open(membership_csv_file, 'r') as file_obj:
-            reader = csv.DictReader(file_obj, restkey='status')
-            print('Membership data loaded from "{}".'
-                .format(file_obj.name))
-            key_list = reader.fieldnames  # Save this for later.
-            for record in reader:
-                if 'w' in record["status"]:  # Fees are waved.
-                    continue
-                name_tuple = (record["last"], record["first"])
-                dues = record['dues']
-                if not dues:
-                    dues = 0
-                else:
-                    dues = int(dues)  # To allow for members who pay
-                record['dues'] = dues + self.YEARLY_DUES  # in advance.
-                if name_tuple in fee_name_tuples:
-                    # We've got fees to enter as well as dues.
-                    print("found '{}' to be charged extra"
-                        .format(', '.join(name_tuple)))
-                    for category, amount in fees_by_name[name_tuple]:
-                        assert isinstance(amount, int)
-                        existing_amount = record[category]
-                        if existing_amount:
-                            existing_amount = int(existing_amount)
-                        else:
-                            existing_amount = 0
-                        record[category] = existing_amount + amount
-                new_records.append(record)
-
-        with open(new_file, 'w') as file_obj:
-            writer = csv.DictWriter(file_obj, fieldnames= key_list)
-            writer.writeheader()
-            for record in new_records:
-                writer.writerow(record)
-            new__file = file_obj.name
-        print("Done with application of dues and fees...")
-        print("...updated membership file is '{}'."
-            .format(new__file))
-
 
     def get_labels2print(self, source_file):
         """

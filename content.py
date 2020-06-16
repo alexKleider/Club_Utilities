@@ -30,6 +30,10 @@ Other items:
     email_header
     def letter_format(which_letter, printer):
     def prepare_email_template(which_letter):
+
+Printing Letters:
+Both the printer and the windowed envelope being used must be taken
+into consideration. 
 """
 
 import helpers
@@ -171,7 +175,7 @@ and annual dues (and fees where applicable) are due at the end
 of the month.
 
 This mailing is going out to all members so everyone can know
-where they stand wether already paid up or not.
+where they stand whether already paid up or not.
 
 (If you've any reason to believe that our accounting might be
 in error, please let it be known[1].) 
@@ -374,7 +378,7 @@ post_scripts = dict(
 It's always a good idea to jot down 'club dues' on
 the check in order to prevent any confusion.""",
 
-    ref1_email_or_PO = """[1] rodandboatclub@gmail.com or PO Box 748, 94924""",
+    ref1_email_or_PO = """[1] rodandboatclub@gmail.com or PO Box 248, 94924""",
 
     ref1_reservations = """[1] Reservations can be made through Anna Gade
     (uc_anna@sbcglobal.net.)""",
@@ -816,7 +820,20 @@ content_types = dict(  # which_letter
 
 printers = dict(
     # tuples in the case of windows.
-    X6505 = dict(
+    X6505_e1 = dict(
+        # e1: envelope with distances (in mm) from top to
+        # top of top window       21
+        # bottom of top window    43
+        # top of lower window     59
+        # bottom of lower window  84
+        indent = 7,
+        top = 4,  # blank lines at top  1 ..2
+        frm = (4, 25),  # return window 3..6
+        date = 5,  # lines between windows 7..11
+        to = (5, 30),  # recipient window 12..16
+        re = 2,  # lines below bottom window
+        ),
+    X6505_e2 = dict(
         indent = 5,
         top = 2,  # blank lines at top  1 ..2
         frm = (4, 25),  # return window 3..6

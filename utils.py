@@ -35,7 +35,7 @@ Usage:
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
-  ./utils.py restore_fees [-O -i <membership_file> -j <json_fees_file> -t <temp_membership_file> -e <error_file>]
+  ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
 
@@ -51,10 +51,10 @@ Options:
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
                     can be written.  If not specified, errors are
-                    generally reported to stdout.
+                    generally reported to stdout. [default: 2check]
   --emailer <emailer>  Use bash (via smtp or mutt) or python to send
                     emails.  [default: python]
-  -f <format>  Specify output format of extra_charges command.
+  -f <format>  Specify output format of 'extra_charges' command.
         Possible choices are:
             'table' listing of names /w fees tabulated (=> 2 columns.)
             'listing' same format as Data/extra_fees.txt
@@ -65,7 +65,7 @@ Options:
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   -p <printer>  Deals with printer variablility; ensures correct
-            alignment of text when printing letters. [default: X6505]
+        alignment of text when printing letters. [default: X6505_e1]
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account
                 akg       my gmail account
@@ -78,14 +78,10 @@ Options:
   -P <params>  This option will probably be redacted since old
             methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
-  -s    Report status in ck_data command.
+  -s    Report status in 'ck_data' command.
   --subject <subject>  The subject line of an email.
-  -t <temp_file>  An option provided for when one does not want to
-        risk corruption of an important input file which is to be
-        modified, thus providing an opportunity for proof reading
-        the 'modified' file before renaming it to the original.
-        (Typically named '2proof_read.txt'.)
   -T  Present data in columns (a Table) rather than a long list.
+            Only used with the 'payables' command.
   -w <width>  Maximum number of characters per line in output.
                                     [default: 95]
   --which <letter>  Specifies type/subject of mailing.
@@ -149,12 +145,14 @@ Commands:
     print_letters: Sends the files contained in the directory
         specified by the --dir parameter.  Depricated in favour of
         simply using the lpr utility: $ lpr ./Data/MailDir/*
-    restore_fees: Use this command after all dues and fees have been
-        paid- will abort if any are outstanding. Will place the
-        results into a file named as a concatination of "new_" and the
-        specified membership csv file. One can then mannually check
-        the new file and move it if all is well.
-        NOTE: check out 'rewrite_db.py'.
+    restore_fees: Use this command to populate each member's record
+        with what they will owe for the next club year. Respects any
+        existing credits. Best done after all dues and fees have been
+        paid. (Will abort if any dues or fees are still outstanding.)
+        Results are either placed into a file specified by the '-o'
+        option (if provided) or placed into a file named as a
+        concatination of "new_" and the input file. One can then
+        mannually check the new file and rename it if all is well.
     emailing: Initially developed to allow sending of attachments.
         Since attachments are now possible using the send_mailing
         command (at least with emailer python) this command will
@@ -831,28 +829,41 @@ def emailing_cmd():
 
 def restore_fees_cmd():
     """
-    Assumes the dues paying season is over and all dues and fees
-    fields have been zeroed out or contain a credit (over payment.)
+    If records are found with balance still outstanding, these are
+    reported to errors.  Also reported will be anyone listed as paying
+    fees but not found amongst members.
     Repopulates the club's master list with the ANNUAL_DUES constant
-    and information from args['<extra_fees.json>'].
-    If '-t <temp_membership_file>' is specified, the original
-    membership file is not modified and output is to the new file,
-    else the original file is changed.
+    and any fees being charged as specified in the file specified by
+    'args['<extra_fees.json>']'.
+    The -i <membership_file> is not changed. 
+    If '-o <temp_membership_file>' is specified, output goes there,
+    if not, output goes to a file named by concatenating 'new_' with
+    the name of the input file.
     """
+    ### During implementation, be sure to ...                     ###
     ### Take into consideration the possibility of credit values. ###
     club = Club()
-    if not args['<membership_file>']:
-        args['<membership_file>'] = club.MEMBERSHIP_SPoT
-    if not args['-j']:
-        args['-j'] = club.EXTRA_FEES_JSON
-    if not args['-t']:
-        args['-t'] = club.TEMP_MEMBERSHIP_SPoT
-    ret = club.restore_fees(
-                args['<membership_file>'],
-                club.YEARLY_DUES,
-                args['-j'],
-                args['-t']
-            )
+    club.infile = args['-i']
+    club.outfile = args['-o']
+    club.extra_fees_spot = args['-X']
+    club.owing_only = args['--oo']
+    if not club.infile:
+        club.infile = club.MEMBERSHIP_SPoT
+    if not club.outfile:
+        club.outfile = helpers.prepend2file_name('new_', club.infile)
+    if not club.extra_fees_spot:
+        club.extra_fees_spot = club.EXTRA_FEES_SPoT
+    club.new_db = []
+    data.restore_fees(club)  # Populates club.new_db & club.errors
+    data.save_db(club.new_db, club.outfile, club.field_names)
+    if club.errors:
+        output('\n'.join(
+               ['Note the following irregularities:',
+                '==================================',]
+                + club.errors), destination=args['-e'])
+
+    if club.still_owing:
+        pass
     if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
             file_obj.write(club.errors)
