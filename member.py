@@ -27,16 +27,18 @@ STATUS_KEY_VALUES = {
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment",
-    "m": "Member in good standing",
-    "w": "Fees being waived",
     "be": "Email on record being rejected",
+    "h": "Honorary Member",
+    "m": "New Member",
     'r': "Retiring/Giving up Club Membership",
-    's': "Secretary of the Club"
+    's': "Secretary of the Club",
+    "w": "Fees being waived",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
 APPLICANT_STATI = STATI[:6]
 APPLICANT_SET = set(STATI[:6])
 MISCELANEOUS_STATI = "m|w|be"
+NON_MEMBER_SET = APPLICANT_SET | set("h")
 
 N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
 MONEY_KEYS = ("dues", "dock", "kayak", "mooring") 
@@ -124,14 +126,19 @@ def ck_number_of_fields(record, club=None):
         report_error(possible_error, club)
 
 
+def get_status_set(record):
+    if record['status']:
+        return set(record['status'].split(SEPARATOR))
+    return set()
+
+
 def is_applicant(record):
     """
     Tests whether or not <record> is an applicant.
     """
-    stati = record['status'].split(SEPARATOR)
-    for status in stati:
-        if status in APPLICANT_SET: 
-            return True
+    stati = get_status_set(record)
+    if stati & APPLICANT_SET:
+        return True
     return False
 
 
@@ -143,10 +150,17 @@ def is_member(record):
     club.errors (if it exists) or print out a warning.
     """
     if not record['status']: return True
-    stati = set(record['status'].split(SEPARATOR))
-    if stati.intersection(set(APPLICANT_SET)): return False 
+    stati = get_status_set(record)
+    if stati.intersection(set(NON_MEMBER_SET)): return False 
     if 'm' in stati: return True
     return True
+
+def is_honorary_member(record):
+    """
+    """
+    if ((record['status'])
+    and ('h' in set(record['status'].split(SEPARATOR)))):
+        return True
 
 def increment_nmembers(record, club):
     """
@@ -477,6 +491,7 @@ def add2list4web(record, club):
     with the following attributes in place:
         pattern
         members = []        &  nmembers = 0
+        honorary = []      &  nhonorary = 0
         by_n_meetings = []  &  napplicants = 0
         errors = []
     Populates club.members, club.stati, club.applicants,
@@ -486,10 +501,11 @@ def add2list4web(record, club):
     All these attributes (of 'club', an instance of utils.membership
     class) must be set up by the client.
     """
+    stati = get_status_set(record)
     if not record['email']: record['email'] = 'no email'
     if not record['phone']: record['phone'] = 'no phone'
     line = club.pattern.format(**record)
-    if record["status"] and "be" in record["status"]:
+    if "be" in stati:
         line = line + " (bad email!)"
         club.errors.append(line)
     if is_member(record): 
@@ -501,22 +517,25 @@ def add2list4web(record, club):
             club.members.append("")
         club.nmembers += 1
         club.members.append(line)
-    else:
-        stati = record['status'].split(SEPARATOR)
-        for status in stati:
-            if status in APPLICANT_SET: 
-                club.napplicants += 1
-                _ = club.by_n_meetings.setdefault(status, [])
-                club.by_n_meetings[status].append(line)
+    if is_applicant(record):
+        status = stati & APPLICANT_SET
+        assert len(status)==1
+        club.napplicants += 1
+        s = status.pop()
+        _ = club.by_n_meetings.setdefault(s, [])
+        club.by_n_meetings[s].append(line)
+    if is_honorary_member(record):
+        club.honorary.append(line)
+        club.nhonorary += 1
                 
 
 
-def get_extra_charges(record, club=None):
+def get_extra_charges(record, club):
     """
     Populates the club.extras_by_member list attribute
     and the club.extras_by_category dict attribute.
     Both these attributes must be initialized by the client.
-    Used by utils.extra_charges_cmd()
+    NOT USED! CAN BE REDACTED
     """
     name = member_name(record, club)
     _list = []
@@ -535,6 +554,58 @@ def get_extra_charges(record, club=None):
     if _list:
         club.extras_by_member.append("{:<26} {}"
             .format(name + ":", ", ".join(_list)))
+
+def dues_and_fees(record, club):
+    """
+    ## A work in progress!! ##
+    Populates following attributes of club:
+        null_dues (if giving up membership should have 'r' in
+                    status else probably an error condition!)
+        members_owing
+        members_zero_or_cr
+        dues_balance
+        fees_balance
+        retiring
+        applicants
+        errors
+    """
+    name = member_name(record, club)
+    entry = {}
+    try:
+        value = int(record['dues'])
+    except ValueError:
+        status_set = get_status_set(record)
+        club.null_dues.append(name)
+        if 'r' in status_set:
+            club.retiring.append(name)
+        elif status_set & APPLICANT_SET:
+            club.applicants.append(name)
+        else:
+            report_error("{}: Unexplained null in dues field."
+                        .format(name), club)
+    else:
+        formatted_value = helpers.format_dollar_value(value)
+        if value > 0:
+            club.members_owing.append("{}: {}"
+                            .format(name, formatted_value))
+        elif value <= 0:
+            club.members_zero_or_cr.append("{}: {}"
+                            .format(name, formatted_value))
+        else:
+            assert False
+        club.dues_balance += value
+    for key in FEES_KEYS:
+        fees = []
+        try:
+            value = int(record[key])
+        except ValueError:
+            pass
+        else:
+            formatted_value = helpers.format_dollar_value(value)
+            fees.append("{} {}"
+                        .format( key.capitalize(), formatted_value))
+    if fees:
+        fees = ', '.join(fees)
 
 
 def set_owing_func(record, club):
@@ -576,7 +647,7 @@ def populate_non0balance_func(record, club):
             money = 0
         if money:
             _ = club.non0balance.get(name, {})
-            club.non0balance[name][key] =  money))
+            club.non0balance[name][key] =  money
 
 
 def populate_name_set(record, club):
@@ -584,7 +655,7 @@ def populate_name_set(record, club):
 
 
 def add_dues_fees2new_db_func(record, club):
-
+    pass
 
 
 

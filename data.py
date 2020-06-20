@@ -347,10 +347,6 @@ def present_fees_by_name(extra_fees, raw=False):
     else:
         jv = extra_fees
     ret = []
-    header_lines = []
-    if not raw:
-        header_lines.append("Extra fees by member:")
-        header_lines.append("=====================")
     for key in jv:
         charges = []
         for value in jv[key]:
@@ -358,8 +354,7 @@ def present_fees_by_name(extra_fees, raw=False):
         charges = ', '.join(charges)
         ret.append("{key}: {charges}".format(
                 key=key, charges=charges))
-    ret.sort()
-    return header_lines + ret
+    return sorted(ret)
 
 
 def present_fees_by_category(extra_fees,
@@ -469,36 +464,6 @@ def present_applicants(applicants_keyed_by_status, raw=False):
         for value in values:
             ret.append("{}".format(value))
     return ret
-
-
-def add2problems(problem_header, new_problems, problem_list,
-                separator=[""], underline_with=["="], raw=False):
-    """
-    Extends an existing <problem_list> with a sorted version of
-    <new_problems>.
-    The added part is separated from the original by <separator> which
-    must be a (possibly empty) list of strings- it defaults to a
-    list of one empty string.
-    If <problem_header> is not an empty empty string it will be used
-    as a header separated from the ensuing list by what is defined by
-    <underline_with> which must be a list (possibly empty.) If not
-    empty, the first item of this list should be a single character,
-    typically "=" or "-" which will be expanded to the length of
-    <problem_header> (serving as an underline) and then followed by
-    the remaining part of the list (if there is any.)
-    """
-    if problem_list:
-#       print("Extending '{}' with:".format(problem_header))
-#       print(repr(new_problems))
-        if separator:
-            problem_list.extend(separator)
-        if problem_header:
-            problem_list.append(problem_header)
-            if underline_with:
-                problem_list.append(underline_with[0] *
-                    len(problem_header))
-                problem_list.extend(underline_with[1:])
-        problem_list.extend(new_problems)
 
 
 def remove_unwanted_items(dictionary, list_of_keys,
@@ -615,7 +580,7 @@ def ck_data(club,
         ok.append("No malformed records found.")
     else:
         print("Found Malformed Records.")
-        add2problems("Malformed Records", club.malformed, ret)
+        helpers.add_sub_list("Malformed Records", club.malformed, ret)
     
     # Catch problem cases & change from set to one name for each email.
     dangling_m_emails = []   # email without a name
@@ -636,7 +601,7 @@ def ck_data(club,
                 .format(m_email, names))
     if dangling_m_emails:
         print("Found Dangling Member Emails")
-        add2problems("Dangling Member Email(s)",
+        helpers.add_sub_list("Dangling Member Email(s)",
                         dangling_m_emails, ret)
         remove_unwanted_items(club.ms_by_email, dangling_m_emails,
             ignore_keyerror=False)
@@ -662,7 +627,7 @@ def ck_data(club,
                 .format(g_email, names))
     if dangling_g_emails:
         print("Found Dangling Contact Emails")
-        add2problems("Dangling Contact Email(s)",
+        helpers.add_sub_list("Dangling Contact Email(s)",
                         dangling_g_emails, ret)
         remove_unwanted_items(club.g_by_email,dangling_g_emails,
             ignore_keyerror=False)
@@ -670,19 +635,19 @@ def ck_data(club,
     # Now deal with both <shared_m_emails> and <shared_g_emails>:
     if shared_m_emails or shared_g_emails:
         if shared_m_emails == shared_g_emails:
-            add2problems(
+            helpers.add_sub_list(
                 "Shared Emails (in both Membership Data & Gmail)",
                 shared_m_emails, ret)
         elif shared_m_emails:
             print("Found Shared Member Emails")
-            add2problems(
+            helpers.add_sub_list(
                 "Shared Member Email(s)", shared_m_emails, ret)
             remove_unwanted_items(club.ms_by_email,
                         first_parts_only(shared_m_emails),
                             ignore_keyerror=False)
         elif shared_g_emails:
             print("Found Shared Contact Emails")
-            add2problems(
+            helpers.add_sub_list(
                 "Shared Contact Email(s)", shared_g_emails, ret)
             remove_unwanted_items(club.g_by_email, 
                             first_parts_only(shared_g_emails),
@@ -699,10 +664,10 @@ def ck_data(club,
 #       print("Members w status: {}".format(repr(members_w_status)))
         for key in members_w_status:
 #           print("Adding members by stati")
-            add2problems(key, 
+            helpers.add_sub_list(key, 
                 sorted([member for member in club.ms_by_status[key]]),
                 ret,
-                underline_with=["-"])
+                underline_char="-")
 
 
     # Compare gmail vs memlist emails and then memlist vs gmail
@@ -722,7 +687,7 @@ def ck_data(club,
                 "{} ({})".format(m_email, m_name))
 
     if emails_missing_from_contacts:
-        add2problems("Emails Missing from Google Contacts",
+        helpers.add_sub_list("Emails Missing from Google Contacts",
                 emails_missing_from_contacts, ret)
     else:
         ok.append("No emails missing from gmail contacts.")
@@ -797,7 +762,7 @@ def ck_data(club,
         ok.append("No applicant problem.")
 
     if non_member_contacts:
-        add2problems("Contacts that are Not Members",
+        helpers.add_sub_list("Contacts that are Not Members",
                 non_member_contacts, ret)
     else:
         ok.append('No contacts that are not members.')
@@ -855,7 +820,7 @@ def ck_data(club,
         ok.append("No fees by name problem.")
 
     if ok:
-        add2problems("No Problems with the Following", ok, ret)
+        helpers.add_sub_list("No Problems with the Following", ok, ret)
     ai_notice = "Acceptable Inconsistency"
     if not_matching_notice:
         helpers.add_header2list(ai_notice,
@@ -920,7 +885,7 @@ def restore_fees(club):
             .format(name))
 
 
-def save_db(new_db, outfile, key_list)
+def save_db(new_db, outfile, key_list):
     with open(outfile, 'w') as file_obj:
         writer = csv.DictWriter(file_obj, fieldnames= key_list)
         writer.writeheader()

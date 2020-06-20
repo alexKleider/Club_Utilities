@@ -28,7 +28,7 @@ Usage:
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> --oo -f <format> -i <infile> -o <outfile> -j <jsonfile>]
-  ./utils.py payables [-O -T -w <width> --oo -i <infile> -o <outfile>]
+  ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
@@ -73,7 +73,7 @@ Options:
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
-  --oo   Owing_Only: Only send notices if fees are outstanding.
+  --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
   -P <params>  This option will probably be redacted since old
             methods of mailing are no longer used.
@@ -115,8 +115,9 @@ Commands:
         paying for one or more of the Club's three special privileges.
         There is also the option of creating a json file needed by
         the restore_fees_cmd. (See the README file re SPoL.)
-    payables: Reports on content of the member data money fields.
-        With the --oo option, only reports money still owing.
+    payables: Reports on non zero money fields.
+        | -T  Present as a table rather than a listing.
+        | -w <width>  Maximum number of characters per line if -T.
     show_mailing_categories: Sends a list of possible entries for the
         '--which' parameter required by the prepare_mailings command.
         (See the 'content_types' dict in content.py.)
@@ -394,10 +395,11 @@ def ck_data_cmd():
         club.CONTACTS_SPoT = args['-C']
     confirm_file_present(club.CONTACTS_SPoT)
     confirm_file_up_to_date(club.CONTACTS_SPoT)
-    ret = data.ck_data(club,
+    output("\n".join(
+                data.ck_data(club,
                     report_status=args['-s'],
                     fee_details=args['-d'])
-    output("\n".join(ret))
+                     ))
 
 
 def show_cmd():
@@ -406,6 +408,8 @@ def show_cmd():
                     "{town}, {state} {postal_code} [{email}]")
     club.members = []
     club.nmembers = 0
+    club.honorary = []
+    club.nhonorary = 0
     club.napplicants = 0
     club.errors = []
     club.by_n_meetings = {}
@@ -424,10 +428,16 @@ OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
 BOARD OF THE BRBC.
     """]
     if club.members:
-        ret.extend(("Club Members ({} in number as of {})"
-                .format(club.nmembers, helpers.date),
-                            "============"))
+        helpers.add_header2list("Club Members ({} in number as of {})"
+                .format(club.nmembers, helpers.date), ret,
+                underline_char='=', extra_line=True)
         ret.extend(club.members)
+    if club.honorary:
+        helpers.add_header2list(
+            "Honorary Club Members"
+                .format(club.nhonorary, helpers.date),
+            ret, underline_char='=', extra_line=True)
+        ret.extend(club.honorary)
     if club.by_n_meetings:
         header = "Applicants ({} in number)".format(club.napplicants)
         helpers.add_header2list(header, ret, underline_char='=')
@@ -664,8 +674,8 @@ def payables_cmd():
             output.extend(club.still_owing)
     if club.advance_payments:
         output.append("\n")
-        output.extend(["Members Payed in Advance",
-                       "------------------------"])
+        output.extend(["Members with a Credit",
+                       "---------------------"])
         output.extend(club.advance_payments)
     return '\n'.join(output)
 
@@ -885,7 +895,8 @@ def fee_intake_totals_cmd():
     output(res)
     if club.invalid_lines and errorfile:
         with open(errorfile, 'w') as file_obj:
-            print('Writing to "{}".'.format(file_obj.name))
+            print('Writing possible errors to "{}".'
+                .format(file_obj.name))
             file_obj.write('\n'.join(club.invalid_lines))
 
 def labels_cmd():

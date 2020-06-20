@@ -84,6 +84,16 @@ def get_datestamp():
     """
     return date
 
+def format_dollar_value(value):
+    if value > 0:
+        return "${:.2f}".format(value)
+    elif value == 0:
+        return "$0.00"
+    elif value < 0:
+        return "-${:.2f}".format(abs(value))
+    else:
+        assert False
+
 
 def indent(text, n_spaces):
     """
@@ -145,6 +155,20 @@ def add_header2list(header, list_,
     list_.append(header)
     if underline_char:
         list_.append(underline_char * len(header))
+
+
+def add_sub_list(sub_header, sub_list, main_list,
+                underline_char="=", extra_line=True):
+    """
+    Extends an existing <main_list> with a sorted version of
+    <sub_list>.
+    The added part is separated from the original by <separator> which
+    must be a (possibly empty) list of strings- it defaults to a
+    list of one empty string.
+    """
+    add_header2list(sub_header, main_list,
+        underline_char=underline_char, extra_line=extra_line)
+    main_list.extend(sorted(sub_list))
 
 
 def prepend2file_name(word, file_name):
