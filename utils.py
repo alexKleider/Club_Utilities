@@ -91,19 +91,20 @@ Options:
 Commands:
     When run without a command, suggests ways of getting help.
     ck_data: Checks all the club's data bases for consistency.
-        Assumes (user must assertain) a fresh export of the gmail
-        contacts list.  If the -j option is specified, it names the
-        file to which to send emails (in JSON format) to members with
-        differing emails. (After proof reading, use 'send_emails'.)
-    show: Returns membership demographics. A copy is sent to the web
-        master for display on the web site.
+        Assumes (user must assert) a fresh export of the gmail
+        contacts list. Options:
+        | -s  Report stati.
+        | -d  Include fee inconsistencies (which are expected
+        when some have paid.)
+    show: Returns membership demographics a copy of which can then
+        be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
-    stati: Returns a listing of stati.  Applicants plus ..
-        Depends on acurate entries in 'status' field.
+    stati: Returns a listing of stati (entries in 'status' field.) 
+        | -a  Applicants only will be shown.
     usps: Creates a csv file containing names and addresses of
-        members without an email address who therefore receive their
-        Club minutes by post. Also includes any with an 's' status.
-        (Provides a mechanism of sending a copy to the secretary.)
+        members without an email address who therefore receive Club
+        minutes by post. Also includes any one with an 's' status
+        (... a mechanism for sending a copy to the secretary.)
     extra_charges: Reports on members paying extra charges (for
         kayak storage, mooring &/or dock usage.)
         Output format can be specified by the -f <format> option.
@@ -113,8 +114,9 @@ Commands:
         '.txt' then it is assumed to be in the format of the
         "extra_feess.txt" file and output will include all who are
         paying for one or more of the Club's three special privileges.
-        There is also the option of creating a json file needed by
-        the restore_fees_cmd. (See the README file re SPoL.)
+        Default is the latter.
+        There is also the option of creating a json file. (This was
+        but is no longer required by the restore_fees_cmd.)
     payables: Reports on non zero money fields.
         | -T  Present as a table rather than a listing.
         | -w <width>  Maximum number of characters per line if -T.
@@ -594,57 +596,48 @@ def usps_cmd():
 def extra_charges_cmd():
     """
     Returns a report of members with extra charges.
-
     It also can create a json file: specified by the -j option.
-    Such a json file is required by the restore_fees command.
     """
     infile = args["-i"]
     if not infile:
         infile = Club.EXTRA_FEES_SPoT
     print('Retrieving input data from "{}"'.format(infile))
-    extra_fees = None
-    if args['-j']:
-        json_file = args['-j']
-        extra_fees = data.gather_extra_fees_data(infile,
-                                        json_file=json_file)
+    print('<infile> ends in "{}"; reading from SPoL'.
+                                    format(TEXT))
+    if args['-f'] == 'listing':  # No further processing needed..
+        # Just return file content:
+        with open(infile, 'r') as f_object:
+            output(f_object.read())
+        if args['-j']:   # .. unless we want a json file..
+            _ = data.gather_extra_fees_data(infile,
+                                        json_file=args['-j'])
+        return
+    extra_fees = data.gather_extra_fees_data(infile,
+                                    json_file=json_file)
+    by_name = extra_fees[Club.NAME_KEY]
+    by_category = extra_fees[Club.CATEGORY_KEY]
+    if args['-f'] == 'table':  # Names /w fees in columns:
+        res = data.present_fees_by_name(by_name)
+        ret = ["Extra fees by member:",
+               "=====================",  ]
+        ret.extend(helpers.tabulate(res, down=True,
+                    max_width=max_width, separator=' '))
+        output('\n'.join(ret))
+    elif args['-f'] == 'listings':
+        output('\n'.join(
+                    data.present_fees_by_category(extra_fees)))
     else:
-        json_file = None
-    if infile.endswith(TEXT):
-        print('<infile> ends in "{}"; reading from SPoL'.
-                                        format(TEXT))
-        if args['-f'] == 'listing':  # No further processing needed..
-            # Just return file content:
-            with open(infile, 'r') as f_object:
-                output(f_object.read())
-            return
-        if not extra_fees:
-            extra_fees = data.gather_extra_fees_data(infile,
-                                            json_file=json_file)
-        by_name = extra_fees[Club.NAME_KEY]
-        by_category = extra_fees[Club.CATEGORY_KEY]
-        if args['-f'] == 'table':  # Names /w fees in columns:
-            res = data.present_fees_by_name(by_name)
-            ret = ["Extra fees by member:",
-                   "=====================",  ]
-            ret.extend(helpers.tabulate(res, down=True,
-                        max_width=max_width, separator=' '))
-            output('\n'.join(ret))
-        elif args['-f'] == 'listings':
-            output('\n'.join(
-                        data.present_fees_by_category(extra_fees)))
-        else:
-            print("""Bad argument for '-f' option...
-    Choose one of the following:        [default: table]
-            'table' listing of names /w fees tabulated (=> 2 columns.)
-            'listing' same format as Data/extra_fees.txt
-            'listings' side by side lists (best use landscape mode.)
-    """)
-    elif infile.endswith(CSV):  # Getting data from membership db.
-        print('Not set up to deal with membership db (csv) file yet.')
-        assert(False)
-    else:
-        print('<infile> must end in ".txt" or ".csv"')
-        assert(False)
+        print("""Bad argument for '-f' option...
+Choose one of the following:        [default: table]
+        'table' listing of names /w fees tabulated (=> 2 columns.)
+        'listing' same format as Data/extra_fees.txt
+        'listings' side by side lists (best use landscape mode.)
+""")
+elif infile.endswith(CSV):  # Redacting this option.
+    print('Option redacted- use payables cmd')
+else:
+    print('<infile> must end in ".txt".')
+    sys.exit()
 
 
 def payables_cmd():
