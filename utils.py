@@ -27,7 +27,7 @@ Usage:
   ./utils.py stati [-O -a -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -w <width> --oo -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
@@ -107,15 +107,9 @@ Commands:
         (... a mechanism for sending a copy to the secretary.)
     extra_charges: Reports on members paying extra charges (for
         kayak storage, mooring &/or dock usage.)
-        Output format can be specified by the -f <format> option.
-        If the <infile> name ends in '.csv' then the/membership main
-        data base file is assumed and output will be charges
-        outstanding (i.e. owed but still not payed.) If it ends in
-        '.txt' then it is assumed to be in the format of the
-        "extra_feess.txt" file and output will include all who are
-        paying for one or more of the Club's three special privileges.
-        Default is the latter.
-        There is also the option of creating a json file. (This was
+        | -f <format>  -specify listing, listings or table format.
+        | -w <width>  -specify maxm # of chars per line in output.
+        | -j <json_file>  -creat a json file. (This was
         but is no longer required by the restore_fees_cmd.)
     payables: Reports on non zero money fields.
         | -T  Present as a table rather than a listing.
@@ -591,53 +585,25 @@ def usps_cmd():
 #   if hasattr(club, 'secretary'):
 #       res.append(club.secretary)
     return '\n'.join(res)
-        
 
 def extra_charges_cmd():
     """
     Returns a report of members with extra charges.
     It also can create a json file: specified by the -j option.
     """
-    infile = args["-i"]
-    if not infile:
-        infile = Club.EXTRA_FEES_SPoT
-    print('Retrieving input data from "{}"'.format(infile))
-    print('<infile> ends in "{}"; reading from SPoL'.
-                                    format(TEXT))
-    if args['-f'] == 'listing':  # No further processing needed..
-        # Just return file content:
-        with open(infile, 'r') as f_object:
-            output(f_object.read())
-        if args['-j']:   # .. unless we want a json file..
-            _ = data.gather_extra_fees_data(infile,
-                                        json_file=args['-j'])
-        return
-    extra_fees = data.gather_extra_fees_data(infile,
-                                    json_file=json_file)
-    by_name = extra_fees[Club.NAME_KEY]
-    by_category = extra_fees[Club.CATEGORY_KEY]
-    if args['-f'] == 'table':  # Names /w fees in columns:
-        res = data.present_fees_by_name(by_name)
-        ret = ["Extra fees by member:",
-               "=====================",  ]
-        ret.extend(helpers.tabulate(res, down=True,
-                    max_width=max_width, separator=' '))
-        output('\n'.join(ret))
-    elif args['-f'] == 'listings':
-        output('\n'.join(
-                    data.present_fees_by_category(extra_fees)))
-    else:
-        print("""Bad argument for '-f' option...
+    club = Club
+    club.infile = args["-i"]
+    if not club.infile:
+        club.infile = club.EXTRA_FEES_SPoT
+    club.json_file = args['-j']
+    club.width = args['-w']
+    club.presentation_format = args['-f']
+    club.bad_format_warning = """Bad argument for '-f' option...
 Choose one of the following:        [default: table]
         'table' listing of names /w fees tabulated (=> 2 columns.)
         'listing' same format as Data/extra_fees.txt
-        'listings' side by side lists (best use landscape mode.)
-""")
-elif infile.endswith(CSV):  # Redacting this option.
-    print('Option redacted- use payables cmd')
-else:
-    print('<infile> must end in ".txt".')
-    sys.exit()
+        'listings' side by side lists (best use landscape mode.) """
+    output(data.extra_charges(club))
 
 
 def payables_cmd():

@@ -304,6 +304,43 @@ def gather_extra_fees_data(in_file, json_file=None):
             }
 
 
+def extra_charges(club):
+    """
+    Returns a report of members with extra charges.
+    Only client is extra_charges_cmd.
+    Also creates a json file if requested.
+    Instance of Club must be set up by client along with
+    the following attributes (from command line arguments):
+        infile, json_file,
+        presentation_format, width
+    """
+    print('Retrieving input data from "{}"'
+                .format(club.infile))
+    if club.presentation_format == 'listing':
+        if club.json_file:   # do we want a json file..
+            _ = gather_extra_fees_data(club.infile,
+                                        json_file=club.json_file)
+        # Just return file content:
+        with open(club.infile, 'r') as f_object:
+            return(f_object.read())
+    extra_fees = gather_extra_fees_data(club.infile,
+                                    json_file=club.json_file)
+    by_name = extra_fees[club.NAME_KEY]
+    by_category = extra_fees[club.CATEGORY_KEY]
+    if club.presentation_format == 'table':  # Names /w fees in columns:
+        res = present_fees_by_name(by_name)
+        ret = ["Extra fees by member:",
+               "=====================",  ]
+        ret.extend(helpers.tabulate(res, down=True,
+                    max_width=max_width, separator=' '))
+        return('\n'.join(ret))
+    elif club.presentation_format == 'listings':
+        return('\n'.join(
+                    present_fees_by_category(extra_fees)))
+    else:
+        print(club.bad_format_warning)
+        sys.exit()
+
 def json_fees_by_name(extra_fees):
     """
     Param would typically be the returned value of

@@ -134,6 +134,9 @@ Code is backed up at https://github.com/alexKleider/Club_Utils.
 Data is archived (to preserve an historical record) to the
 **Archive** sister directory which in turn can be backed up to an
 external hard drive or an USB stick.
+Each backup takes the form of a directory named by a time stamp.
+As of Sun 21 Jun 2020 a copy is being kept on the Clubs google Drive:
+Drive/Membership/Archives/...
 
 ---------
 WORK FLOW
