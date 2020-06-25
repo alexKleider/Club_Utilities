@@ -108,6 +108,13 @@ def send(emails, mta, report_progress=True,
     counter = 0
     n_emails = len(emails)
     ret = []
+    if mta != 'clubg':
+        response = input(
+            "Gmail addressees will get a warning! Continue? ")
+        if response and response[0] in 'yY':
+            pass
+        else:
+            sys.exit()
     for email in emails:
         counter += 1
         if report_progress:

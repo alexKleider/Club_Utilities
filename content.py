@@ -11,9 +11,9 @@ name and depend on a dict within the utils.Membership class
 with those names as keys and the methods as values.
 
 A number of 'dict's are being used:
-    letter_bodies
-    authors: ak, membership,
-    content_types
+    letter_bodies   Marked by 'b'
+    authors: ak, membership,   Marked by 'a'
+    content_types   Marked by 'c'
         each provides: {
             "subject":
             "from": authors["membership"],
@@ -83,6 +83,17 @@ First extra content is
 May have as many 'extra's as required as long as each one
 has a corresponding entry in the record dict (typically arranged
 by the custom function.
+""",
+
+    bad_address = """
+We have your mailing address as :
+
+{extra}
+
+but mail sent to that address has been returned.
+
+Please let us know a working postal address so records
+can be updated.[1]
 """,
 
     meeting_announcement = """
@@ -367,6 +378,7 @@ Thank you for your services.
 
 
 post_scripts = dict(
+    
     at_request_of_secretary = (
     """ Sent at the request of {}, Secretary"""
         .format(rbc.Club.SECRETARY)),
@@ -506,6 +518,15 @@ content_types = dict(  # which_letter
         "funcs": [member.testing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",
+        },
+    bad_address = {
+        "subject": "Address correction requested.",
+        "from": authors["membership"],
+        "body": letter_bodies["bad_address"],
+        "post_scripts": (post_scripts["ref1_email_or_PO"],),
+        "funcs": [member.bad_address_mailing_func, ],
+        "test": member.letter_returned,
+        "e_and_or_p": "email",
         },
     bill_payment = {
         "subject": "Payment of Invoice.",
@@ -778,6 +799,7 @@ content_types = dict(  # which_letter
         lambda record: True if 'p' in record["status"] else False),
         "e_and_or_p": "usps",
         },
+
     tpmg_social_security = {
         "subject": "Medicare Reimbursement",
         "from": authors["ak"],

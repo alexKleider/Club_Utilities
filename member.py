@@ -28,6 +28,7 @@ STATUS_KEY_VALUES = {
     "ai": "Inducted, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment",
     "be": "Email on record being rejected",
+    "ba": "Postal address => mail returned",
     "h": "Honorary Member",
     "m": "New Member",
     'r': "Retiring/Giving up Club Membership",
@@ -179,6 +180,14 @@ def has_valid_email(record, club=None):
     and 'be' in record['status'].split(SEPARATOR)):
         return False
     if record["email"]:
+        return True
+    else:
+        return False
+
+
+def letter_returned(record, club=None):
+    if (record["status"]
+    and 'ba' in record['status'].split(SEPARATOR)):
         return True
     else:
         return False
@@ -670,6 +679,7 @@ def append_email(record, club):
     of content.content_types
     Returns a list of dicts.
     """
+    print(club.email)
     body = club.email.format(**record)
     sender =  club.which['from']['email']
     email = {
@@ -683,6 +693,10 @@ def append_email(record, club):
         'attachments': [],
         'body': body,
     }
+    if club.cc:
+        email['Cc'] = club.cc
+    if club.bcc:
+        email['Bcc'] = club.bcc
     club.json_data.append(email)
 
 def file_letter(record, club):
@@ -774,6 +788,13 @@ def std_mailing_func(record, club):
         record["subject"] = club.which["subject"]
         q_mailing(record, club)
 
+
+def bad_address_mailing_func(record, club):
+    if club.which["test"](record):
+        record["subject"] = club.which["subject"]
+        record['extra'] = ("{address}\n{town}, {state} {postal_code}"
+                                    .format(**record))
+        q_mailing(record, club)
 
 def testing_func(record, club):
     """

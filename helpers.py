@@ -3,8 +3,9 @@
 # File: helpers.py
 
 """
-Some helper functions needed by content and utils
-and perhaps other modules in this folder.
+Some helper functions developed for the Club/Utils repo but
+which can probably be of service in other contexts so a hard
+link to it also appears in ~/PyLib.
 """
 
 import os

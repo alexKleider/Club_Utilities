@@ -30,7 +30,7 @@ Usage:
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> ATTACHMENTS...]
+  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
@@ -44,6 +44,8 @@ Options:
   --version  Print version.
   -a  re 'stati' comand: show only applicants.
   -A <app_spot>  Applicant data file.
+  --bcc <bcc>   Comma separated listing of bcc recipients
+  --cc <cc>   Comma separated listing of cc recipients
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data.
@@ -69,7 +71,7 @@ Options:
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account
                 akg       my gmail account
-                easy      my easydns account  [default: easy]
+                easy      my easydns account  [default: clubg]
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
@@ -670,6 +672,8 @@ def prepare_mailing_cmd():
         args["--dir"] = club.MAILING_DIR
     club.dir4letters = args["--dir"]
     club.attachment = args['ATTACHMENTS']
+    club.cc = args['--cc']
+    club.bcc = args['--bcc']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'."
