@@ -68,14 +68,23 @@ feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
 
+def setup_required_attributes(custom_funcs, club):
+    """
+    Ensures that club has necessary attributes
+    required by all the custom_funcs to be called.
+    """
+    for func in custom_funcs:
+        for code in prerequisites[func]:
+            exec(code)
+
 
 def traverse_records(infile, custom_funcs, club=None):
     """
     Traverses <infile> and applies <custom_funcs> to each
     record.  <custom_funcs> can be a single function or a
     list of functions. These functions typically require a
-    named <club> parameter, an instance of the "club" class
-    which for the Bolinas Rod and Boat Club is found in the
+    <club> parameter, an instance of the "Club" class which
+    for the Bolinas Rod and Boat Club is found in the
     module rbc.py.
     Generally each <custom_func> will leave its results in
     one of the "club" attributes (similarly named.)  These
@@ -89,6 +98,7 @@ def traverse_records(infile, custom_funcs, club=None):
         dict_reader = csv.DictReader(file_object, restkey='extra')
         # fieldnames is used by get_usps and restore_fees cmds.
         if club:
+            setup_required_attributes(custom_funcs, club)
             club.fieldnames = dict_reader.fieldnames  # used by get_usps
             club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
@@ -289,8 +299,7 @@ def add2status_data(record, club):
     if is_applicant(record) and hasattr(club, "napplicants"):
         club.napplicants += 1
     name = club.pattern.format(**record)
-    stati = record["status"].split(SEPARATOR)
-    for status in stati:
+    for status in get_status_set(record):
         _ = club.ms_by_status.setdefault(status, [])
         if status == 'be':
             club.ms_by_status[status].append(name + 
@@ -353,7 +362,7 @@ def add2malformed(record, club=None):
                     .format(name, key, value))
     if record["email"] and not '@' in record["email"]:
         club.malformed.append("{}: {} Problem /w email."
-            .format(name, record[emal]))
+            .format(name, record['email']))
     if name < club.previous_name:
         club.malformed.append("Record out of order: {}"
             .format(name))
@@ -477,11 +486,11 @@ def get_payables(record, club):
         if record[key]:
             amount = int(record[key])
             if amount > 0:
-                line_positive.append("{} {}".format(
+                line_positive.append("{} {:>3d}".format(
                     key, amount))
 #                       MONEY_HEADERS[key], amount))
             elif amount < 0:
-                line_negative.append("{} {}".format(
+                line_negative.append("{} {:>3d}".format(
                     key, amount))
     if line_positive:
         line = ("{:<26}".format(name)
@@ -501,7 +510,7 @@ def add2list4web(record, club):
         pattern
         members = []        &  nmembers = 0
         honorary = []      &  nhonorary = 0
-        by_n_meetings = []  &  napplicants = 0
+        by_n_meetings = {}  &  napplicants = 0
         errors = []
     Populates club.members, club.stati, club.applicants,
     Club.inductees and club.errors (initially empty lists)
@@ -537,32 +546,6 @@ def add2list4web(record, club):
         club.honorary.append(line)
         club.nhonorary += 1
                 
-
-
-def get_extra_charges(record, club):
-    """
-    Populates the club.extras_by_member list attribute
-    and the club.extras_by_category dict attribute.
-    Both these attributes must be initialized by the client.
-    NOT USED! CAN BE REDACTED
-    """
-    name = member_name(record, club)
-    _list = []
-    for key in FEES_KEYS:
-        value = record[key]
-        if value:
-            try:
-                value = int(value)
-            except ValueError:
-                record['key'] = key
-                club.errors.append("{last}, {first}: '{key}'  "
-                    .format(**record))
-            _list.append("{}- {}".format(key, int(record[key])))
-            club.extras_by_category[key].append("{:<26} {}- {}"
-                .format(name + ":", key, value))
-    if _list:
-        club.extras_by_member.append("{:<26} {}"
-            .format(name + ":", ", ".join(_list)))
 
 def dues_and_fees(record, club):
     """
@@ -900,6 +883,79 @@ def send_attachment(record, club):
             args["-a"],
             )
 
+prerequisites = {
+    increment_nmembers: [
+        "club.nmembers = 0",
+        ],
+    get_usps: [
+        'club.usps_only = []',
+        ],
+    get_zeros_and_nulls: [
+        'club.nulls = []',
+        'club.zeros = []',
+        ],
+    add2m_by_name: [
+        'club.m_by_name = {}',
+        ],
+    add2email_data: [
+        'club.email_by_m = {}',
+        'club.ms_by_email = {}',
+        ],
+    add2status_data: [
+        'club.ms_by_status = {}',
+        'club.napplicants = 0',
+        'club.stati_by_m = {}',
+        ],
+    add2fee_data: [
+        'club.fee_category_by_m = {}',
+        'club.ms_by_fee_category = {}',
+        ],
+    add2malformed: [
+        'club.malformed = []',
+        ],
+    add2list4web: [
+        'club.members = []',
+        'club.nmembers = 0',
+        'club.honorary = []',
+        'club.nhonorary = 0',
+        'club.by_n_meetings = {}',
+        'club.napplicants = 0',
+        'club.errors = []',
+        ],
+    get_payables: [
+        'club.still_owing = []',
+        'club.advance_payments = []',
+        ],
+    get_secretary: [
+        'club.secretary = ""',
+        ],
+    dues_and_fees: [
+        'club.null_dues = []',
+        'club.members_owing = []',
+        'club.members_zero_or_cr = []',
+        'club.dues_balance = 0',
+        'club.fees_balance = 0',
+        'club.retiring = []',
+        'club.applicants = []',
+        'club.errors = []',
+        ],
+    set_owing_func: [
+        "club.errors = []",
+        ],
+    populate_non0balance_func: [
+        "club.errors = []",
+        "club.non0balance = []",
+        ],
+    populate_name_set: [
+        "club.name_set = set()",
+        ],
+    add_dues_fees2new_db_func: [
+        ],
+    append_email: [
+        "club.json_data = []",
+        ],
+
+    }
 
 if __name__ == "__main__":
     print("member.py compiles OK.")

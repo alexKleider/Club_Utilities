@@ -332,7 +332,7 @@ def extra_charges(club):
         ret = ["Extra fees by member:",
                "=====================",  ]
         ret.extend(helpers.tabulate(res, down=True,
-                    max_width=max_width, separator=' '))
+                    max_width=club.max_width, separator=' '))
         return('\n'.join(ret))
     elif club.presentation_format == 'listings':
         return('\n'.join(
@@ -702,7 +702,7 @@ def ck_data(club,
         for key in members_w_status:
 #           print("Adding members by stati")
             helpers.add_sub_list(key, 
-                sorted([member for member in club.ms_by_status[key]]),
+                sorted([entry for entry in club.ms_by_status[key]]),
                 ret,
                 underline_char="-")
 
@@ -749,10 +749,10 @@ def ck_data(club,
     m_applicants = set()
     for key in club.ms_by_status:
 #       print(key)
-        if 'a' in key:
+        if key in member.APPLICANT_SET:
 #           print("key chosen")
-            for member in club.ms_by_status[key]:
-                m_applicants.add(member)
+            for entry in club.ms_by_status[key]:
+                m_applicants.add(entry)
 ### The following should be checked for equivalence and    ###
 ### if different, they need to be reported in the output-  ###
 ### left here for time being until Data can be corrected.  ###
@@ -782,7 +782,7 @@ def ck_data(club,
     keys = [key for key in club.ms_by_status.keys()]
 #   temp_ret = []
     for key in keys:
-        if not 'a' in key:
+        if not (key in member.APPLICANT_SET):
             val = (club.ms_by_status.pop(key))
 #           temp_ret.append(key)
 #   if temp_ret:

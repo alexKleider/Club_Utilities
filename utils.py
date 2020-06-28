@@ -200,8 +200,10 @@ TEMP_FILE = "2print.temp"  # see <output> function
 DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
 
 args = docopt(__doc__, version="1.1")
-if args['-w'][0] == '=':
-    args['-w'] = args['-w'][1:]
+for arg in args:
+    if type(args[arg]) == str:
+        if args[arg] and (args[arg][0] == '='):
+            args[arg] = args[arg][1:]
 try:
     max_width = int(args['-w'])
 except ValueError:
@@ -474,7 +476,7 @@ def report():
 
     ap_listing = club.ms_by_status # } This segment is for
     for key in ap_listing:      # } error checking only;
-      if 'a' in key:            # } not required if data match.
+      if key[0]=='a':           # } not required if data match.
         # Only deal with applicants.
         if len(ap_listing[key]) != len(ap_set_w_dates_by_status[key]):
             print("!!! {} != {} !!!"
@@ -518,14 +520,15 @@ def report():
     report.extend(['','',
         "Respectfully submitted by...\n\n",
         "Alex Kleider, Membership Chair,",
-        "for presentation to the Executive Committee",
-        "at the time of their next meeting to be held",
-         "{}.".format(helpers.next_first_friday()),
+        "for presentation {}."
+         .format(helpers.next_first_friday()),
         ])
     return report
  
+
 def report_cmd():
     output('\n'.join(report()))
+
 
 def stati_cmd():
     club = Club()
@@ -598,7 +601,11 @@ def extra_charges_cmd():
     if not club.infile:
         club.infile = club.EXTRA_FEES_SPoT
     club.json_file = args['-j']
-    club.width = args['-w']
+    try:
+        club.max_width = int(args['-w'])
+    except TypeError:
+        print("'-w' option must be an integer")
+        sys.exit()
     club.presentation_format = args['-f']
     club.bad_format_warning = """Bad argument for '-f' option...
 Choose one of the following:        [default: table]
@@ -624,12 +631,14 @@ def payables_cmd():
     err_code = member.traverse_records(infile,
                 member.get_payables, club)
     if club.still_owing:
-        output.extend(["Members owing",
-                       "-------------"])
+        helpers.add_header2list(
+            "Members owing ({} in number)"
+                .format(len(club.still_owing)),
+            output, underline_char='-', extra_line=False)
         if args['-T']:
             tabulated = helpers.tabulate(club.still_owing,
                                     max_width=max_width,
-                                    separator = '')
+                                    separator = '  ')
             output.extend(tabulated)
         else:
             output.extend(club.still_owing)
