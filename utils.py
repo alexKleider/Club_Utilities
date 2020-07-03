@@ -669,8 +669,8 @@ def prepare_mailing_cmd():
     club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
-    club.letter = content.letter_format(club.which, 
-                                        args["-p"])
+    club.letter = content.prepare_letter_template(club.which,
+                                                club.lpr)
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     club.input_file_name = args['-i']

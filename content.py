@@ -28,7 +28,7 @@ A number of 'dict's are being used:
 
 Other items:
     email_header
-    def letter_format(which_letter, printer):
+    def prepare_letter_template(which_letter, printer):
     def prepare_email_template(which_letter):
 
 Printing Letters:
@@ -187,6 +187,17 @@ of the month.
 
 This mailing is going out to all members so everyone can know
 where they stand whether already paid up or not.
+
+(If you've any reason to believe that our accounting might be
+in error, please let it be known[1].) 
+
+Details are as follows:
+{{extra}}""".format(helpers.this_club_year()),
+
+    July_request = """
+The new ({}) Club year has begun. Please send in your dues
+(and any applicable fees) to the Bolinas Rod and Boat Club,
+PO Box 248, Bolinas, CA 94924.
 
 (If you've any reason to believe that our accounting might be
 in error, please let it be known[1].) 
@@ -573,7 +584,8 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: False if ('r' in record['status']
                     ) else True,
         "e_and_or_p": "one_only",
@@ -595,7 +607,8 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -611,7 +624,8 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -629,11 +643,30 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
 #           member.not_paid_up(record)and
             not ('r' in record["status"]) and
+            not ('w' in record["status"])
+            and not ('r' in record['status'])
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
+    July_request = {
+        "subject":"Bolinas R&B Club dues",
+        "from": authors["membership"],
+        "body": letter_bodies["July_request"],
+        "signature": '',
+        "post_scripts": (
+            post_scripts["ref1_email_or_PO"],
+            ),
+        "funcs": (member.assign_statement2extra,
+                member.std_mailing_func),
+        "test": lambda record: True if (
+            member.is_member(record) and
+            member.not_paid_up(record) and
             not ('w' in record["status"])
             and not ('r' in record['status'])
             ) else False,
@@ -647,7 +680,8 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -664,7 +698,8 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_mailing_func,),
+        "funcs": (member.set_owing_extra_str_func,
+                member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record)and
@@ -939,7 +974,7 @@ def get_postscripts(which_letter):
     return ret
 
 
-def letter_format(which_letter, printer):
+def prepare_letter_template(which_letter, lpr):
     """
     Prepares the template for a letter.
     <which_letter>: one of the <content_types> and
@@ -952,7 +987,8 @@ def letter_format(which_letter, printer):
     {postal_code}, {country}, and possibly (one or more)
     {extra}(s) &/or 'PS's.
     """
-    lpr = printers[printer]
+#   print(printer)
+#   lpr = printers[printer]
     # top margin:
     ret = [""] * lpr["top"]  # add blank lines at top
     # return address:
@@ -1024,7 +1060,7 @@ def main():
     print("content.py has no syntax errors")
     which = content_types["for_testing"]
     lpr = "X6505"
-    letter = letter_format(which, lpr)
+    letter = prepare_letter_template(which, lpr)
     email = prepare_email_template(which)
     rec = dict(
         first = "Jane",

@@ -443,6 +443,7 @@ def show_by_status(by_status, stati2show=STATI):
                 ret.append(line)
     return ret
 
+
 def not_paid_up(record, club=None):
     """
     Checks if there is a positive balance in any of the money fields.
@@ -452,20 +453,52 @@ def not_paid_up(record, club=None):
         return True
     return False
 
-def get_owing(record, club):
+
+def get_statement_dict(record):
     """
     Calculates debit/credit for member represented by 'record'
-    and stores the resulting dict as an 'owing' attribute of
-    'club' (which provides a _temporary_ value for another
-    function to use if need be.)
+    and returns a dict keyed by the MONEY_KEYS and 'total'.
+    Note: 'total' is always returned. Values for other keys are
+    included only if are non zero.
     """
-    owing = dict()
+    ret = dict()
+    ret['total'] = 0
     for key in MONEY_KEYS:
         if record[key]:
-            owing[key] = int(record[key])
-        else:
-            owing[key] = 0
-    club.owing = owing
+            ret[key] = int(record[key])
+            ret['total'] += ret[key]
+    return ret
+
+def get_statement(statement_dict):
+    """
+    Returns an array of strings making up a
+    statement of dues and fees.
+    """
+    key_set = set([key for key in statement_dict.keys()])
+    ret = []
+    for key in MONEY_HEADERS.keys():
+        if key in key_set:
+            ret.append("{} {}".format(
+                        MONEY_HEADERS[key],
+                        statement_dict[key]))
+    return ret
+
+
+def assign_statement2extra(record, club=None):
+    """
+    Sets up record['extra'] to contain a statement with
+    appropriate suffix.
+    """
+    d = get_statement_dict(record)
+    extra = ['Statement of account:',]
+    if d['total'] == 0:
+        extra.append("You are all paid up. Thank you.")
+    else:
+        extra.extend(get_statement(d))
+    if d['total'] < 0:
+        extra.extend(["You have a credit balance.",
+                "Thank you for your advanced payment."])
+    record['extra'] = '\n'.join(extra)
 
 
 def get_payables(record, club):
@@ -602,24 +635,10 @@ def dues_and_fees(record, club):
 
 def set_owing_func(record, club):
     """
-    Sets up the following record keys (with values as appropriate.)
-        extra
-        total
+    Replaced by get_owing_dict(record)
+            and get_owing_statement(record).
     """
-    record["money"] = 0
-    record["total"] = 0
-    record["extra"] = []
-    for key in MONEY_KEYS:
-        try:
-            money = int(record[key])
-        except ValueError:
-            club.errors.append("{}: {} {} => ValueError."
-                .format(member_name(record), key, record[key]))
-            money = 0
-        if money:
-            record['extra'].append("{}.: ${}"
-                .format(MONEY_HEADERS[key], money))
-            record['total'] += money
+    pass
 
 
 def populate_non0balance_func(record, club):
@@ -725,23 +744,8 @@ def q_mailing(record, club):
 def prepare_mailing(club):
     """
     Only client of this method is the utils.prepare_mailing_cmd
-    which must assign the following attributes to <club> (an instance
-    of rbc.Club:)
-    Except for the last[*], these attributes are either defaults
-    or come from command line arguments.
-        club.which: one of the content.content_types which
-            in turn provides values for the following keys:
-                subject
-                email_header
-                body of letter
-                func(s) to be used on each record
-                test: a boolean lambda- consider record or not
-                e_and_or_p: both, usps or one_only
-        club.input_file_name
-        club.json_file_name
-        club.dir4letters
-        club.json_data = [] # [*] used to collect the emails
-    to be subsequently sent to club.json_file_name.
+    which uses command line args to assign attributes to club.
+    (See Notes/call_flow.)
     """
     traverse_records(club.input_file_name, 
         club.which["funcs"], club)  # 'which' comes from content
@@ -763,7 +767,8 @@ def prepare_mailing(club):
 
 def std_mailing_func(record, club):
     """
-    For mailings which require no special processing.
+    Assumes any prerequisite processing has been done and
+    requisite values added to record.
     Mailing is sent if the "test" lambda => True.
     Otherwise the record is ignored.
     """
@@ -791,30 +796,22 @@ def testing_func(record, club):
         q_mailing(record, club)
 
 
-def set_owing_mailing_func(record, club):
+def set_owing_extra_str_func(record, club):
     """
-    Sets up record["extra"] for dues and fees notice,
-    Client has option of setting club.owing_only => True
-    in which case those with zero or negative balances
-    are ignored; othewise, these are acknowledged
-    (so every one gets a message.)
-    Applies only to records that pass the "test" function.
-    <club> (an instance of Club) must have the following attributes:
-        extra
-        total
-        which
-        owing_only
+    Sets up record["extra"] string for dues and fees notice.
     """
     if not club.which["test"](record):
-#       print( "{first} {last} fails 'test' function/lambda."
-#           .format(**record))
+#       print( "{} fails 'test' function/lambda."
+#           .format(member_name(record, club)))
         return
-    set_owing(record, club)
-    if record.total <= 0 and owing_only:
-        return  # no notice sent
-    if record.total <= 0:
-        record.extra.append("Total is 0 or a credit."
-            .format(total))
+
+    owed = get_owing_dict(record)
+    if owed['total'] <= 0:
+        if club.owing_only:
+            return  # no notice sent
+    pass
+    record['extra'].append("Total is 0 or a credit."
+            .format(owed['total']))
     record.extra = ["\n"] + extra
     record.extra.append("{}.: ${}"
         .format(MONEY_HEADERS["total"], record.total))
@@ -939,9 +936,6 @@ prerequisites = {
         'club.applicants = []',
         'club.errors = []',
         ],
-    set_owing_func: [
-        "club.errors = []",
-        ],
     populate_non0balance_func: [
         "club.errors = []",
         "club.non0balance = []",
@@ -954,7 +948,11 @@ prerequisites = {
     append_email: [
         "club.json_data = []",
         ],
-
+    assign_statement2extra: [
+        ],
+    std_mailing_func: [
+        ],
+    
     }
 
 if __name__ == "__main__":

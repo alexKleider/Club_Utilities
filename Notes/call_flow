@@ -75,9 +75,25 @@ show_mailing_categories =>
 
 prepare_mailing => prepare_mailing_cmd => 
     assign club attributes:
-        easy, owing_only, which, lpr, email(_template), letter,
-        input_file_name, json_file_name, dir4letters, json_data
-    & call club methods:
+        owing_only << args['--oo']
+        lpr << args['-p']
+        email << content.prepare_email_template(club.which)
+        letter << content.letter_format(club.which, club.lpr)
+        input_file << default or args['-i']
+        json_file <<  default or args['-j']
+        dir4letters << default or args['--dir']
+        attachment << args['ATTACHMENTS']
+        cc << args['--cc']
+        bcc << args['--bcc']
+        which << args['--which']
+            Provides values for the following keys:
+                subject
+                email_header
+                body of letter
+                func(s) to be used on each record
+                test: a boolean lambda- consider record or not
+                e_and_or_p: both, usps or one_only
+    check for over-write of email.json and letters (club methods:)
         check_dir4letters, check_json_file
     member.prepare_mailing(club)
         traverse_records applying 'funcs' specified in content.py
