@@ -97,9 +97,9 @@ prepare_mailing => prepare_mailing_cmd =>
         check_dir4letters, check_json_file
     member.prepare_mailing(club)
         traverse_records applying 'funcs' specified in content.py
-            std_mailing, 
-            set_owing, ???
-            request_inductee_payment,
+            eg: 
+                member.assign_statement2extra
+                member.std_mailing_func, 
 
 
 

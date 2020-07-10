@@ -143,8 +143,8 @@ If the number is negative or zero, there'll be nothing due in June.
 """,
 
     thank_you_for_payment = """
-Your payment of dues for the next ({}) Club year
-has been received.  Thank you.
+This acknowledges receipt of a payment you sent in
+recently. Thank you.
 
 All the best!
 """.format(helpers.next_club_year()),
@@ -990,6 +990,7 @@ def prepare_letter_template(which_letter, lpr):
 #   print(printer)
 #   lpr = printers[printer]
     # top margin:
+#   print(lpr['top'])
     ret = [""] * lpr["top"]  # add blank lines at top
     # return address:
     ret_addr = address_format.format(**which_letter["from"])
@@ -1059,7 +1060,7 @@ def choices():
 def main():
     print("content.py has no syntax errors")
     which = content_types["for_testing"]
-    lpr = "X6505"
+    lpr = printers["X6505_e1"]
     letter = prepare_letter_template(which, lpr)
     email = prepare_email_template(which)
     rec = dict(
@@ -1079,7 +1080,7 @@ Just a lot of junk.""",
     print(letter.format(**rec))
     with open("letter2print", 'w') as fout:
         fout.write(helpers.indent(letter.format(**rec),
-            printers[lpr]['indent']))
+            lpr['indent']))
     print("Email follows...")
     print(email.format(**rec))
     with open("email2print", 'w') as fout:

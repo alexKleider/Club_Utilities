@@ -38,7 +38,7 @@ echo "..creating (using hard links) a copy of previous backup"
 cp -al ${BACKUP}/${LAST}/. $DEST
 
 # ... then rsync to update that copy with current versions:
-echo "..run rsync to update the copy."
+echo "Running rsync to update the copy..."
 # Using verbose mode helps pick up errors...
 rsync -av --exclude='Utils' --delete $SRC $DEST  #***
 # The excluded 'Utils' directory is backed up by git.

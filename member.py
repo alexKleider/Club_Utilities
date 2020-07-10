@@ -681,7 +681,7 @@ def append_email(record, club):
     of content.content_types
     Returns a list of dicts.
     """
-    print(club.email)
+#   print(club.email)
     body = club.email.format(**record)
     sender =  club.which['from']['email']
     email = {
