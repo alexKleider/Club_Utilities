@@ -205,7 +205,20 @@ in error, please let it be known[1].)
 Details are as follows:
 {{extra}}""".format(helpers.this_club_year()),
 
-# Send with July minutes:
+# Send with August minutes:
+    penultimate__warning = """
+Club records indicate that your dues (+/- other fees) have
+as yet not been paid.  Please be aware that according to
+Club bylaws, membership lapses if fees are not paid by Sept 1st.
+(If you've any reason to believe that our accounting might be in
+error, please let us know[1].) 
+
+Please pay promptly; we'd hate to loose you as a member.
+
+Details follow.
+{extra}""",
+
+# Send towards end of August:
     final_warning = """
 Club records indicate that your dues (+/- other fees) have
 as yet not been paid.  Please be aware that according to
@@ -584,7 +597,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: False if ('r' in record['status']
                     ) else True,
@@ -607,7 +620,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
@@ -624,7 +637,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
@@ -643,7 +656,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
@@ -662,13 +675,29 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.assign_statement2extra,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and
             member.not_paid_up(record) and
             not ('w' in record["status"])
             and not ('r' in record['status'])
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
+    penultimate_warning = {
+        "subject":"Membership soon to expire",
+        "from": authors["membership"],
+        "body": letter_bodies["penultimate_warning"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
+        "funcs": (member.assign_statement2extra_func,
+                member.std_mailing_func),
+        "test": lambda record: True if (
+            member.is_fee_paying_member(record) and
+            member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -680,13 +709,11 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_member(record) and
-            member.not_paid_up(record)and
-            not ('w' in record["status"])
-            and not ('r' in record['status'])
+            member.is_fee_paying_member(record) and
+            member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "both",
         },
@@ -698,7 +725,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
             ),
-        "funcs": (member.set_owing_extra_str_func,
+        "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
             member.is_member(record) and

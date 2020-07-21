@@ -82,6 +82,11 @@ After the above is done, your files should be in the same state
 as that of your co-conspirators (unless one or more of them has
 made changes since last backing up.
 
+Backed up data is also kept on the Club's Google Drive:
+MyDrive > Membership > Data > <date-stamp> (from external media backup)
+and
+MyDrive > Membership > Data > Data > <date-stamp>.tar.gz (from ../Archives/Data)
+
 
 [1] If changes are stashed, they can be later added. (Conflicts may
 need to be resolved.) May then wish to issue a pull request.

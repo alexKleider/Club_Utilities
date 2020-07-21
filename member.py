@@ -73,9 +73,12 @@ def setup_required_attributes(custom_funcs, club):
     Ensures that club has necessary attributes
     required by all the custom_funcs to be called.
     """
+    set_of_funcs = set(prerequisites.keys())
     for func in custom_funcs:
-        for code in prerequisites[func]:
-            exec(code)
+#       print("func is '{}'".format(func))
+        if func in set_of_funcs:
+            for code in prerequisites[func]:
+                exec(code)
 
 
 def traverse_records(infile, custom_funcs, club=None):
@@ -166,12 +169,12 @@ def is_member(record):
     if 'm' in stati: return True
     return True
 
+
 def is_honorary_member(record):
     """
     """
-    if ((record['status'])
-    and ('h' in set(record['status'].split(SEPARATOR)))):
-        return True
+    return 'h' in get_status_set(record)
+
 
 def increment_nmembers(record, club):
     """
@@ -196,33 +199,35 @@ def has_valid_email(record, club=None):
 
 
 def letter_returned(record, club=None):
-    if (record["status"]
-    and 'ba' in record['status'].split(SEPARATOR)):
-        return True
-    else:
-        return False
+    return 'ba' in get_status_set(record)
+#   if (record["status"]
+#   and 'ba' in record['status'].split(SEPARATOR)):
+#       return True
+#   else:
+#       return False
 
 
 def is_fee_paying_member(record, club=None):
     """
     """
-    if WAIVED in record['status'].split(SEPARATOR):
-        return False
-    if is_member(record):
-        return True
-    else:
-        return False
+    return (is_member(record)
+            and not (
+                get_status_set(record)
+                &
+                set('h', 'r', 'w')
+                )
+            )
 
 
 def get_usps(record, club):
     """
     Selects members who get their copy of meeting minutes by US
-    Postal Service. i.e. Their "email_only" field is blank.
+    Postal Service. i.e. Those with no email.
     Populates self.usps_only with a line for each such member
     using csv format: first, last, address, town, state, and
     postal_code.
     """
-    if not record['email_only']:
+    if not record['email']:
         club.usps_only.append(
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
@@ -484,10 +489,10 @@ def get_statement(statement_dict):
     return ret
 
 
-def assign_statement2extra(record, club=None):
+def assign_statement2extra_func(record, club=None):
     """
     Sets up record['extra'] to contain a statement with
-    appropriate suffix.
+    appropriate suffix for dues & fees notice.
     """
     d = get_statement_dict(record)
     extra = ['Statement of account:',]
@@ -631,14 +636,6 @@ def dues_and_fees(record, club):
                         .format( key.capitalize(), formatted_value))
     if fees:
         fees = ', '.join(fees)
-
-
-def set_owing_func(record, club):
-    """
-    Replaced by get_owing_dict(record)
-            and get_owing_statement(record).
-    """
-    pass
 
 
 def populate_non0balance_func(record, club):
@@ -796,34 +793,6 @@ def testing_func(record, club):
         q_mailing(record, club)
 
 
-def set_owing_extra_str_func(record, club):
-    """
-    Sets up record["extra"] string for dues and fees notice.
-    """
-    if not club.which["test"](record):
-#       print( "{} fails 'test' function/lambda."
-#           .format(member_name(record, club)))
-        return
-
-    owed = get_owing_dict(record)
-    if owed['total'] <= 0:
-        if club.owing_only:
-            return  # no notice sent
-    pass
-    record['extra'].append("Total is 0 or a credit."
-            .format(owed['total']))
-    record.extra = ["\n"] + extra
-    record.extra.append("{}.: ${}"
-        .format(MONEY_HEADERS["total"], record.total))
-    if total < 0:
-        record.extra.extend(
-        ["Thank you for your advance payment.",
-         "Your balance is a credit so there is nothing due."])
-    if total == 0:
-        record.extra.append("You are all paid up! Thank you.")
-    record["extra"] = '\n'.join(record['extra'])
-    q_mailing(record, club)
-
 def set_inductee_dues(record, club=None):
     """
     Provides processing regarding what fee to charge
@@ -943,16 +912,9 @@ prerequisites = {
     populate_name_set: [
         "club.name_set = set()",
         ],
-    add_dues_fees2new_db_func: [
-        ],
     append_email: [
         "club.json_data = []",
         ],
-    assign_statement2extra: [
-        ],
-    std_mailing_func: [
-        ],
-    
     }
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
+  ./utils.py thank -t <2thank> [-O -p <printer> -i <infile> -j <json_file> --dir <dir4letters>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
@@ -82,6 +83,8 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -s    Report status in 'ck_data' command.
   --subject <subject>  The subject line of an email.
+  -t <2thank>  A csv file in same format as memlist.csv showing
+            recent payments.  Input for thanks_cmd.
   -T  Present data in columns (a Table) rather than a long list.
             Only used with the 'payables' command.
   -w <width>  Maximum number of characters per line in output.
@@ -133,6 +136,11 @@ Commands:
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
         '---dir <dir4letters>' where to file letters.
+    thank:  Reads the file specified by -t <thank>, applies payments
+        specified there in to the -i <infile> and prepares thank you
+        letter/email acknowledging receipt of payment and showing
+        current balance(s.) See prepare_mailing command for further
+        details.
     display_emails: Provides an opportunity to proof read the emails.
     send_emails: Sends out the emails found in the -j <json_file>.
         Each mta has its own security requirements and each emailer
@@ -655,14 +663,10 @@ def show_mailing_categories_cmd():
     output('\n'.join(ret))
 
 
-def prepare_mailing_cmd():
+def prepare4mailing(club):
     """
-    See description under 'Commands' heading in the docstring.
-    Sets up an instance of rbc.Club with necessary attributes and
-    then calls member.prepare_mailing() method.
+    Set up configuration in an instance of rbc.Club.
     """
-    # ***** Set up configuration in an instance of # Club:
-    club = Club()
     club.owing_only = False
     if args['--oo']:
         club.owing_only = True
@@ -693,6 +697,17 @@ def prepare_mailing_cmd():
             .format(club.json_file_name))
         club.check_json_file(club.json_file_name)
         club.json_data = []
+
+
+def prepare_mailing_cmd():
+    """
+    See description under 'Commands' heading in the docstring.
+    Sets up an instance of rbc.Club with necessary attributes and
+    then calls member.prepare_mailing() method.
+    """
+    # ***** Set up configuration in an instance of # Club:
+    club = Club()
+    prepare4mailing(club)
     # ***** Done with configuration & checks ...
     member.prepare_mailing(club)  # Populates club.dir4letters
                                 # and moves json_data to file.
@@ -700,6 +715,11 @@ def prepare_mailing_cmd():
     ..next step might be the following:
     $ zip -r 4Michael {}"""
         .format(args["--dir"]))
+
+
+def thanks_cmd():
+    club = Club()
+    prepare4mailing(club)
 
 
 def display_emails_cmd(json_file):
