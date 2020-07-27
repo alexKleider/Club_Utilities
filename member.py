@@ -30,10 +30,10 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",
     "ba": "Postal address => mail returned",
     "h": "Honorary Member",
-    "m": "New Member",
+    "m": "New Member",  # temporary until congratulatory letter.
     'r': "Retiring/Giving up Club Membership",
-    's': "Secretary of the Club",
-    "w": "Fees being waived",
+    's': "Secretary of the Club",  # not used under Rafferty
+    "w": "Fees being waived",  # a rarely applied special status
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
 APPLICANT_STATI = STATI[:6]
@@ -81,7 +81,7 @@ def setup_required_attributes(custom_funcs, club):
                 exec(code)
 
 
-def traverse_records(infile, custom_funcs, club=None):
+def traverse_records(infile, custom_funcs, club):
     """
     Traverses <infile> and applies <custom_funcs> to each
     record.  <custom_funcs> can be a single function or a
@@ -96,14 +96,13 @@ def traverse_records(infile, custom_funcs, club=None):
     """
     if callable(custom_funcs): # If only one function provided
         custom_funcs = [custom_funcs] # place it into a list.
+    setup_required_attributes(custom_funcs, club)
     with open(infile, 'r', newline='') as file_object:
         print("DictReading {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         # fieldnames is used by get_usps and restore_fees cmds.
-        if club:
-            setup_required_attributes(custom_funcs, club)
-            club.fieldnames = dict_reader.fieldnames  # used by get_usps
-            club.n_fields = len(club.fieldnames)  # to check db integrity
+        club.fieldnames = dict_reader.fieldnames  # used by get_usps
+        club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
             for custom_func in custom_funcs:
                 custom_func(record, club)
@@ -211,10 +210,8 @@ def is_fee_paying_member(record, club=None):
     """
     """
     return (is_member(record)
-            and not (
-                get_status_set(record)
-                &
-                set('h', 'r', 'w')
+            and get_status_set(record).isdisjoint(
+                set(('h', 'r', 'w'))
                 )
             )
 
@@ -229,6 +226,13 @@ def get_usps(record, club):
     """
     if not record['email']:
         club.usps_only.append(
+            "{first},{last},{address},{town},{state},{postal_code}"
+            .format(**record))
+
+
+def get_bad_emails(record, club):
+    if 'be' in get_status_set(record):
+        club.bad_emails.append(
             "{first},{last},{address},{town},{state},{postal_code}"
             .format(**record))
 
@@ -375,6 +379,27 @@ def add2malformed(record, club=None):
 
 # End of 'add2...' functions
 
+def thank_func(record, club):
+    """
+    Prerequisite: club.statement_data has already been populated.
+    Must assign "payment" and extra" to record.
+    """
+    key = member_name(record)
+    if key in club.set_of_statement_data_keys:
+        pass
+
+
+# The next two functions add entries to club.new_db 
+
+def update_db_payment_func(member, club):
+    pass
+
+
+def update_db_apply_charges_func(member, club):
+    pass
+
+# .. above two functions create club.new_db for an updated data base.
+
 
 def show_stati(club):
     """
@@ -388,7 +413,6 @@ def show_stati(club):
     """
     print("Debug: mode is set to '{}'.".format(club.mode))
     print("Preparing listing of stati.")
-    club.ms_by_status = {}
     err_code = traverse_records(club.infile,
                                     add2status_data,
                                     club)
@@ -473,6 +497,12 @@ def get_statement_dict(record):
             ret[key] = int(record[key])
             ret['total'] += ret[key]
     return ret
+
+
+def add2statement_data(record, club):
+    club.statement_data[
+        member_name(record, club)] = get_statement_dict(record)
+
 
 def get_statement(statement_dict):
     """
@@ -880,6 +910,8 @@ prerequisites = {
         'club.malformed = []',
         ],
     add2list4web: [
+        """club.pattern = ("{first} {last}  [{phone}]  {address}, " +
+                    "{town}, {state} {postal_code} [{email}]")""",
         'club.members = []',
         'club.nmembers = 0',
         'club.honorary = []',
@@ -894,6 +926,9 @@ prerequisites = {
         ],
     get_secretary: [
         'club.secretary = ""',
+        ],
+    get_bad_emails: [
+        'club.bad_emails = []',
         ],
     dues_and_fees: [
         'club.null_dues = []',
@@ -914,6 +949,18 @@ prerequisites = {
         ],
     append_email: [
         "club.json_data = []",
+        ],
+    update_db_payment_func: [
+        "club.new_db = {}",
+        ],
+    update_db_apply_charges_func: [
+        "club.new_db = {}",
+        ],
+    add2statement_data: [
+        'club.statement_data = {}',
+        ],
+    add2status_data: [
+        'club.ms_by_status = {}',
         ],
     }
 

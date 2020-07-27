@@ -31,7 +31,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank -t <2thank> [-O -p <printer> -i <infile> -j <json_file> --dir <dir4letters>]
+  ./utils.py thank -t <2thank> [-O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
@@ -84,7 +84,7 @@ Options:
   -s    Report status in 'ck_data' command.
   --subject <subject>  The subject line of an email.
   -t <2thank>  A csv file in same format as memlist.csv showing
-            recent payments.  Input for thanks_cmd.
+            recent payments.  Input for thank_cmd.
   -T  Present data in columns (a Table) rather than a long list.
             Only used with the 'payables' command.
   -w <width>  Maximum number of characters per line in output.
@@ -412,15 +412,17 @@ def ck_data_cmd():
 
 def show_cmd():
     club = Club()
+    unused = """
     club.pattern = ("{first} {last}  [{phone}]  {address}, " +
                     "{town}, {state} {postal_code} [{email}]")
     club.members = []
     club.nmembers = 0
     club.honorary = []
     club.nhonorary = 0
+    club.by_n_meetings = {}
     club.napplicants = 0
     club.errors = []
-    club.by_n_meetings = {}
+    """
     infile = args["-i"]
     if not infile:
         infile = club.infile
@@ -583,9 +585,11 @@ def usps_cmd():
         infile = Club.MEMBERSHIP_SPoT
     club = Club()
     club.usps_only = []
-    err_code = member.traverse_records(infile, 
-                [member.get_usps, member.get_secretary],
-                club)
+    err_code = member.traverse_records(infile, [
+                member.get_usps,
+                member.get_secretary,
+                member.get_bad_emails,
+                ], club)
     header = []
     for key in club.fieldnames:
         header.append(key)
@@ -597,6 +601,8 @@ def usps_cmd():
     # Michael Rafferty doesn't need/want to be on the list.
 #   if hasattr(club, 'secretary'):
 #       res.append(club.secretary)
+    if club.bad_emails:
+        res.extend(club.bad_emails)
     return '\n'.join(res)
 
 def extra_charges_cmd():
@@ -717,9 +723,15 @@ def prepare_mailing_cmd():
         .format(args["--dir"]))
 
 
-def thanks_cmd():
+def thank_cmd():
     club = Club()
+    args['--which'] = 'thank'
     prepare4mailing(club)
+    prepare_mailing(club) ## => thank_func, add2statement_data
+    print(data.display_statement_data(club.statement_data))
+    club.set_of_statement_data_keys = set(club.statement_data.keys())
+    print("Removing Data/MailingDir during development...")
+    os.rmdir('Data/MailingDir')
 
 
 def display_emails_cmd(json_file):
@@ -829,6 +841,20 @@ def emailing_cmd():
         member.send_attachment,
         club=club)
 
+def setup4new_db(club):
+    club.infile = args['-i']
+    club.outfile = args['-o']
+    club.extra_fees_spot = args['-X']
+    club.owing_only = args['--oo']
+    if not club.infile:
+        club.infile = club.MEMBERSHIP_SPoT
+    if not club.outfile:
+        club.outfile = helpers.prepend2file_name('new_', club.infile)
+    if not club.extra_fees_spot:
+        club.extra_fees_spot = club.EXTRA_FEES_SPoT
+    club.new_db = []
+
+
 def restore_fees_cmd():
     """
     If records are found with balance still outstanding, these are
@@ -845,17 +871,7 @@ def restore_fees_cmd():
     ### During implementation, be sure to ...                     ###
     ### Take into consideration the possibility of credit values. ###
     club = Club()
-    club.infile = args['-i']
-    club.outfile = args['-o']
-    club.extra_fees_spot = args['-X']
-    club.owing_only = args['--oo']
-    if not club.infile:
-        club.infile = club.MEMBERSHIP_SPoT
-    if not club.outfile:
-        club.outfile = helpers.prepend2file_name('new_', club.infile)
-    if not club.extra_fees_spot:
-        club.extra_fees_spot = club.EXTRA_FEES_SPoT
-    club.new_db = []
+    setup4new_db(club)
     data.restore_fees(club)  # Populates club.new_db & club.errors
     data.save_db(club.new_db, club.outfile, club.field_names)
     if club.errors:
@@ -874,12 +890,15 @@ def restore_fees_cmd():
         sys.exit(ret)
 
 def fee_intake_totals_cmd():
-    infile = args['-i']
+    """
+    This command deals with the manual method of entering receipts.
+    Eventually this will be deprecated in favour of the thank_cmd
+    """
     outfile = args['-o']
     errorfile = args['-e']
     club = Club()
-    if infile:
-        fees_taken_in = club.fee_totals(infile)
+    if args['-i']:
+        fees_taken_in = club.fee_totals(infile=args['-i'])
     else:
         fees_taken_in = club.fee_totals()
     fees_taken_in.append(" ")
@@ -994,6 +1013,10 @@ if __name__ == "__main__":
         print("Preparing emails and letters...")
         prepare_mailing_cmd()
         print("...finished preparing emails and letters.")
+    elif args["thank"]:
+        print("Preparing thank you emails and/or letters...")
+        thank_cmd()
+#       print("...finished preparing thank you emails and/or letters.")
     elif args['display_emails']:
         output(display_emails_cmd(args['-j']))
     elif args["send_emails"]:

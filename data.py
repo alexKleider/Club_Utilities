@@ -394,6 +394,26 @@ def present_fees_by_name(extra_fees, raw=False):
     return sorted(ret)
 
 
+def display_statement_data(statement_data):
+    """
+    Returns a readable (multiline string) version of
+    <statement_data> which is expected to be a dict of dicts:
+    First level keys are names.
+    Second level keys are dues/fee categories (incl 'total') 
+    with values.
+    """
+    ret = []
+    for name in sorted(statement_data.keys()):
+        _name = '{}: '.format(name)
+        values = []
+        for val in statement_data[name].keys():
+            values.append("{}: ${}".format(val,
+                    statement_data[name][val]))
+        values = ', '.join(values)
+        ret.append(_name + values)
+    return '\n'.join(ret)
+
+
 def present_fees_by_category(extra_fees,
                             raw=False,
                             always_incl_fees=False, #not implemented
@@ -847,6 +867,8 @@ def ck_data(club,
                 not_matching_notice = (
                 "Fee amounts don't match (try -d option for details)")
         else:
+            print(sorted(club_keys))
+            print(sorted(file_keys))
             ret.append("\nFees problem (by name):")
             ret.append("extra_fees_info[club.NAME_KEY]:")
             ret.append(repr(extra_fees_info[club.NAME_KEY]))

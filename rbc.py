@@ -40,6 +40,8 @@ class Club(object):
     RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
         # Zeroed out yearly
         # and then stored in archives with date extension.
+        # The method for dealing with receipts is expected to change
+        # to use of the utils.thank_cmd.
 
     SEPARATOR = "|"   #} File APPLICANT_SPoT must be in a
     N_SEPARATORS = 3  #} specific format for it to be read

@@ -142,12 +142,22 @@ behind you.{extra}
 If the number is negative or zero, there'll be nothing due in June.
 """,
 
+    thank = """
+This acknowledges receipt of your recent ${payment} payment.
+Thank you.
+
+A statement of your current standing follows:
+{extra}
+
+All the best!
+""",
+
     thank_you_for_payment = """
 This acknowledges receipt of a payment you sent in
 recently. Thank you.
 
 All the best!
-""".format(helpers.next_club_year()),
+""",
 
 # Correction!!!
     correction = """
@@ -205,8 +215,22 @@ in error, please let it be known[1].)
 Details are as follows:
 {{extra}}""".format(helpers.this_club_year()),
 
+    interim_request = """
+Club records indicate that you still have dues (and/or
+applicable fees) outstanding as follows...
+
+{extra}
+
+If you've any reason to believe that our accounting might be
+in error, please let it be known[1]. Otherwise, please send
+in your remittance to the
+    Bolinas Rod and Boat Club,
+    PO Box 248, Bolinas, CA 94924.
+at your earliest convenience.
+""",
+
 # Send with August minutes:
-    penultimate__warning = """
+    penultimate_warning = """
 Club records indicate that your dues (+/- other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
@@ -603,6 +627,16 @@ content_types = dict(  # which_letter
                     ) else True,
         "e_and_or_p": "one_only",
         },
+    thank = {
+        "subject": "Thanks for your payment",
+        "from": authors["membership"],
+        "body": letter_bodies["thank"],
+        "post_scripts": (),
+        "funcs": (member.thank_func,
+                member.add2statement_data),
+        "test": lambda record: True,
+        "e_and_or_p": "one_only",
+        },
     thank_you_for_payment = {
         "subject": "Thanks for your payment",
         "from": authors["membership"],
@@ -678,10 +712,24 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                 member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_member(record) and
-            member.not_paid_up(record) and
-            not ('w' in record["status"])
-            and not ('r' in record['status'])
+            member.is_fee_paying_member(record) and
+            member.not_paid_up(record)
+            ) else False,
+        "e_and_or_p": "one_only",
+        },
+    interim_request = {
+        "subject":"Bolinas R&B Club dues",
+        "from": authors["membership"],
+        "body": letter_bodies["interim_request"],
+        "signature": '',
+        "post_scripts": (
+            post_scripts["ref1_email_or_PO"],
+            ),
+        "funcs": (member.assign_statement2extra_func,
+                member.std_mailing_func),
+        "test": lambda record: True if (
+            member.is_fee_paying_member(record) and
+            member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
