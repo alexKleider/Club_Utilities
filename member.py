@@ -379,15 +379,29 @@ def add2malformed(record, club=None):
 
 # End of 'add2...' functions
 
+
+def apply_credit(statement, credit):
+    """
+    credit is used to modify statement- both are dicts
+    """
+    for key in credit.keys():
+        statement[key] -= credit[key]
+
+
 def thank_func(record, club):
     """
-    Prerequisite: club.statement_data has already been populated.
     Must assign "payment" and extra" to record.
     """
-    key = member_name(record)
-    if key in club.set_of_statement_data_keys:
-        pass
-
+    name = member_name(record, club)
+    if name in club.statement_data_keys:
+#       print(get_statement(club.statement_data[name]))
+        payment = club.statement_data[name]['total']
+        statement_dict = get_statement_dict(record)
+        apply_credit(statement_dict, club.statement_data[name])
+        record['extra'] = get_statement(statement_dict)
+        record['payment'] = payment
+        q_mailing(record, club)
+    # Still need to move record to new db
 
 # The next two functions add entries to club.new_db 
 
@@ -504,7 +518,7 @@ def add2statement_data(record, club):
         member_name(record, club)] = get_statement_dict(record)
 
 
-def get_statement(statement_dict):
+def get_statement(statement_dict, club=None):
     """
     Returns an array of strings making up a
     statement of dues and fees.
@@ -513,10 +527,29 @@ def get_statement(statement_dict):
     ret = []
     for key in MONEY_HEADERS.keys():
         if key in key_set:
-            ret.append("{} {}".format(
+            ret.append("{} {: >3}".format(
                         MONEY_HEADERS[key],
                         statement_dict[key]))
-    return ret
+    if club and club.inline:
+        return '; '.join(ret)
+#   return '\n\t'.join(ret)
+    return '\n'.join(ret)
+
+
+def get_statement_data(statement_data, club=None):
+    """
+    Returns an array of strings:  a statement for each record/member.
+    """
+    ret = []
+    for name in statement_data.keys():
+        line = "{: <21}".format(name)
+        statement = get_statement(statement_data[name], club)
+        if club and club.inline:
+            ret.append(line + statement)
+        else:
+            ret.append(line)
+            ret.append(statement)
+    return '\n'.join(ret)
 
 
 def assign_statement2extra_func(record, club=None):

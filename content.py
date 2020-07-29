@@ -632,8 +632,10 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "body": letter_bodies["thank"],
         "post_scripts": (),
-        "funcs": (member.thank_func,
-                member.add2statement_data),
+        "funcs": (
+                member.add2statement_data,
+                member.thank_func,
+                ),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },

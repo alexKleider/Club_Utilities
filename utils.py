@@ -31,7 +31,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank -t <2thank> [-O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
+  ./utils.py thank -t <2thank> [-I -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
@@ -63,6 +63,7 @@ Options:
             'listing' same format as Data/extra_fees.txt
             'listings' side by side lists (best use landscape mode.)
         [default: table]
+  -I  Inline- output is more horizontal, less vertical.
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
@@ -676,7 +677,10 @@ def prepare4mailing(club):
     club.owing_only = False
     if args['--oo']:
         club.owing_only = True
-    club.which = content.content_types[args["--which"]]
+    if not args['--which']:
+        club.which =  content.content_types["thank"]
+    else:
+        club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
@@ -693,6 +697,7 @@ def prepare4mailing(club):
     club.attachment = args['ATTACHMENTS']
     club.cc = args['--cc']
     club.bcc = args['--bcc']
+    club.inline = args['-I']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'."
@@ -725,13 +730,17 @@ def prepare_mailing_cmd():
 
 def thank_cmd():
     club = Club()
-    args['--which'] = 'thank'
+    club.inline = args['-I']
+    member.traverse_records(args['-t'],
+        [member.add2statement_data,],
+        club)
+    club.statement_data_keys = club.statement_data.keys()
+#   print(member.get_statement_data(club.statement_data, club))
     prepare4mailing(club)
-    prepare_mailing(club) ## => thank_func, add2statement_data
-    print(data.display_statement_data(club.statement_data))
-    club.set_of_statement_data_keys = set(club.statement_data.keys())
-    print("Removing Data/MailingDir during development...")
-    os.rmdir('Data/MailingDir')
+    print('club.input_file_name is {}'.format(club.input_file_name))
+    club.input_file_name = args['-t']
+    print('club.input_file_name is {}'.format(club.input_file_name))
+    member.prepare_mailing(club) ## => thank_func, 
 
 
 def display_emails_cmd(json_file):
