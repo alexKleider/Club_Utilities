@@ -173,7 +173,7 @@ def add_sub_list(sub_header, sub_list, main_list,
 
 
 def prepend2file_name(word, file_name):
-    head, tail = os.path(file_name)
+    head, tail = os.path.split(file_name)
     return os.path.join(head, ''.join((word, tail)))
 
 

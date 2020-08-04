@@ -31,7 +31,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank -t <2thank> [-I -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
+  ./utils.py thank [-t <2thank> -I -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
@@ -53,8 +53,7 @@ Options:
   - dir <dir4letters>  The directory to be created and/or read
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
-                    can be written.  If not specified, errors are
-                    generally reported to stdout. [default: 2check]
+            can be written.  [default: stdout]
   --emailer <emailer>  Use bash (via smtp or mutt) or python to send
                     emails.  [default: python]
   -f <format>  Specify output format of 'extra_charges' command.
@@ -64,6 +63,7 @@ Options:
             'listings' side by side lists (best use landscape mode.)
         [default: table]
   -I  Inline- output is more horizontal, less vertical.
+           (Pertains mainly to statements. Not used; may be redacted.)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -j <json>  Specify a json formated file (whether for input or output
@@ -86,8 +86,10 @@ Options:
   --subject <subject>  The subject line of an email.
   -t <2thank>  A csv file in same format as memlist.csv showing
             recent payments.  Input for thank_cmd.
+            [default: Info/2thank.csv]
   -T  Present data in columns (a Table) rather than a long list.
-            Only used with the 'payables' command.
+            Only used with the 'payables' command. May not have
+            much effect without setting -w to a high number.
   -w <width>  Maximum number of characters per line in output.
                                     [default: 95]
   --which <letter>  Specifies type/subject of mailing.
@@ -260,7 +262,7 @@ def confirm_file_up_to_date(file_name):
         sys.exit()
 
 
-def output(data, destination=args["-o"]):
+def output(data, destination=args["-o"], announce_write=True):
     """
     Sends data (text) to destination as specified
     by the -o <outfile> command line parameter (which
@@ -281,7 +283,8 @@ def output(data, destination=args["-o"]):
     else:
         with open(destination, "w") as fileobj:
             fileobj.write(data)
-            print('Data written to "{}".'.format(fileobj.name))
+            if announce_write:
+                print('Data written to "{}".'.format(fileobj.name))
 
 # Medium specific classes:
 # e.g. labels, envelopes, ...
@@ -290,6 +293,7 @@ def output(data, destination=args["-o"]):
 # are named beginning with a letter (A - Avery, E - Envelope, ...)
 # followed by a 4 digit number: A5160, E0000, ... .
 # Clients typically refer to these as <params>.
+
 
 class Dummy(object):
     """ REDACTED
@@ -728,19 +732,40 @@ def prepare_mailing_cmd():
         .format(args["--dir"]))
 
 
+def setup4new_db(club):
+    club.infile = args['-i']
+    club.outfile = args['-o']
+    club.extra_fees_spot = args['-X']
+    club.owing_only = args['--oo']
+    if not club.infile:
+        club.infile = club.MEMBERSHIP_SPoT
+#   print('club.outfile set to {}'.format(club.outfile))
+    if club.outfile == 'stdout' or not club.outfile:
+        club.outfile = helpers.prepend2file_name('new_', club.infile)
+#   print('club.outfile set to {}'.format(club.outfile))
+    if not club.extra_fees_spot:
+        club.extra_fees_spot = club.EXTRA_FEES_SPoT
+    club.new_db = []  # Expect to write to file as data is processed
+                    #... so this will not be used.
+
+
 def thank_cmd():
     club = Club()
     club.inline = args['-I']
-    member.traverse_records(args['-t'],
-        [member.add2statement_data,],
-        club)
+    club.thank_file = args["-t"]
+    if not club.thank_file:
+        club.thank_file = CLUB.THANK_FILE
+    member.traverse_records(club.thank_file,
+        [member.add2statement_data,], club)
     club.statement_data_keys = club.statement_data.keys()
 #   print(member.get_statement_data(club.statement_data, club))
     prepare4mailing(club)
-    print('club.input_file_name is {}'.format(club.input_file_name))
-    club.input_file_name = args['-t']
-    print('club.input_file_name is {}'.format(club.input_file_name))
+    club.input_file_name = club.thank_file
     member.prepare_mailing(club) ## => thank_func, 
+    # Done with thanking; Must now update DB.
+    setup4new_db(club)
+    data.modify_data(club.infile, [member.update_db_re_payment_func,],
+                                                            club)
 
 
 def display_emails_cmd(json_file):
@@ -850,19 +875,6 @@ def emailing_cmd():
         member.send_attachment,
         club=club)
 
-def setup4new_db(club):
-    club.infile = args['-i']
-    club.outfile = args['-o']
-    club.extra_fees_spot = args['-X']
-    club.owing_only = args['--oo']
-    if not club.infile:
-        club.infile = club.MEMBERSHIP_SPoT
-    if not club.outfile:
-        club.outfile = helpers.prepend2file_name('new_', club.infile)
-    if not club.extra_fees_spot:
-        club.extra_fees_spot = club.EXTRA_FEES_SPoT
-    club.new_db = []
-
 
 def restore_fees_cmd():
     """
@@ -898,6 +910,7 @@ def restore_fees_cmd():
     if ret:
         sys.exit(ret)
 
+
 def fee_intake_totals_cmd():
     """
     This command deals with the manual method of entering receipts.
@@ -914,10 +927,11 @@ def fee_intake_totals_cmd():
     res = '\n'.join(fees_taken_in)
     output(res)
     if club.invalid_lines and errorfile:
-        with open(errorfile, 'w') as file_obj:
-            print('Writing possible errors to "{}".'
-                .format(file_obj.name))
-            file_obj.write('\n'.join(club.invalid_lines))
+        print('Writing possible errors to "{}".'
+                            .format(errorfile))
+        output('\n'.join(club.invalid_lines),
+                errorfile, announce_write=False)
+
 
 def labels_cmd():
     if args["-P"]:

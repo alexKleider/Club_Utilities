@@ -380,12 +380,22 @@ def add2malformed(record, club=None):
 # End of 'add2...' functions
 
 
-def apply_credit(statement, credit):
+def apply_credit2statement(statement, credit):
     """
     credit is used to modify statement- both are dicts
     """
     for key in credit.keys():
         statement[key] -= credit[key]
+
+
+def apply_credit2record(statement, record):
+    """
+    """
+    keys = [key for key in statement.keys() if key != 'total']
+    print("Keys are {}".format(keys))
+    for key in keys:
+#   for key in [key for key in statement.keys() if key != 'total']:
+        record[key] = int(record[key]) - statement[key]
 
 
 def thank_func(record, club):
@@ -397,7 +407,7 @@ def thank_func(record, club):
 #       print(get_statement(club.statement_data[name]))
         payment = club.statement_data[name]['total']
         statement_dict = get_statement_dict(record)
-        apply_credit(statement_dict, club.statement_data[name])
+        apply_credit2statement(statement_dict, club.statement_data[name])
         record['extra'] = get_statement(statement_dict)
         record['payment'] = payment
         q_mailing(record, club)
@@ -405,14 +415,25 @@ def thank_func(record, club):
 
 # The next two functions add entries to club.new_db 
 
-def update_db_payment_func(member, club):
+def update_db_re_payment_func(record, club):
+    """
+    Checks if record is in the club.statement_data dict and if so
+    credits payment(s).  In either case data is moved to new
+    db specified by club.dict_writer.
+    """
+    new_record = {}
+    for key in record.keys():
+        new_record[key] = record[key]
+    name = member_name(record, club)
+    if name in club.statement_data_keys:
+        apply_credit2record(club.statement_data[name], new_record)
+    club.dict_writer.writerow(new_record)
+
+
+def update_db_apply_charges_func(record, club):
     pass
 
-
-def update_db_apply_charges_func(member, club):
-    pass
-
-# .. above two functions create club.new_db for an updated data base.
+# .. above two functions write to new db with updated information.
 
 
 def show_stati(club):
@@ -541,7 +562,7 @@ def get_statement_data(statement_data, club=None):
     Returns an array of strings:  a statement for each record/member.
     """
     ret = []
-    for name in statement_data.keys():
+    for name in statemenet_data_keys.keys():
         line = "{: <21}".format(name)
         statement = get_statement(statement_data[name], club)
         if club and club.inline:
@@ -983,9 +1004,9 @@ prerequisites = {
     append_email: [
         "club.json_data = []",
         ],
-    update_db_payment_func: [
-        "club.new_db = {}",
-        ],
+#   update_db_payment_func: [
+#       "club.new_db = {}",
+#       ],
     update_db_apply_charges_func: [
         "club.new_db = {}",
         ],

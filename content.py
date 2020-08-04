@@ -152,13 +152,6 @@ A statement of your current standing follows:
 All the best!
 """,
 
-    thank_you_for_payment = """
-This acknowledges receipt of a payment you sent in
-recently. Thank you.
-
-All the best!
-""",
-
 # Correction!!!
     correction = """
 You recently received a statement of dues for the upcoming
@@ -633,18 +626,8 @@ content_types = dict(  # which_letter
         "body": letter_bodies["thank"],
         "post_scripts": (),
         "funcs": (
-                member.add2statement_data,
                 member.thank_func,
                 ),
-        "test": lambda record: True,
-        "e_and_or_p": "one_only",
-        },
-    thank_you_for_payment = {
-        "subject": "Thanks for your payment",
-        "from": authors["membership"],
-        "body": letter_bodies["thank_you_for_payment"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },

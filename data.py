@@ -954,6 +954,21 @@ def save_db(new_db, outfile, key_list):
             .format(file_obj.name))
 
 
+def modify_data(infile, funcs, club):
+    """
+    <club> defines output file, both it and infile are of csv format.
+    <funcs> is a list of functions to be applied to each record
+    before adding it to the output file.
+    """
+    print('club.outfile set to '.format(club.outfile))
+    with open(club.outfile, 'w') as outfile_obj:
+        club.dict_writer = csv.DictWriter(outfile_obj,
+                                            club.fieldnames)
+        club.dict_writer.writeheader()
+        member.traverse_records(infile, funcs, club)
+        print('Finished writing to {}'.format(outfile_obj.name))
+
+
 def data_listed(data, underline_char='=', inline=False):
     """
     Assumes 'data' is a dict with list values.

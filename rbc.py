@@ -38,6 +38,7 @@ class Club(object):
     CONTACTS_SPoT = os.path.expanduser(     #} File to which google
                 '~/Downloads/contacts.csv') #} exports the data.
     RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
+    THANK_FILE = 'Info/2thank.csv'
         # Zeroed out yearly
         # and then stored in archives with date extension.
         # The method for dealing with receipts is expected to change
@@ -93,10 +94,95 @@ class Club(object):
         self.previous_name_tuple = ('', '')  # } check 
         self.first_letter = ''               # } ordering.
 
+
+    def fee_totals(self, infile=RECEIPTS_FILE):
+        """
+        Returns a list of strings: subtotals and grand total.
+        Sets up and populates self.invalid_lines ....
+        (... the only reason it's a class method
+        rather than a function or a static method.)
+        NOTE: Money taken in (or refunded) must appear
+        within line[23:28]! i.e. maximum 5 digits (munus sign
+        and only 4 digits if negatime).
+        """
+        res = ["Fees taken in to date:"]
+        self.invalid_lines = []
+
+        total = 0
+        subtotal = 0
+        date = ''
+
+        with open(infile, "r") as file_obj:
+            print('Reading from file "{}".'
+                .format(file_obj.name))
+            for line in file_obj:
+                line= line.rstrip()
+                if line[:5] == "Date:":
+                    date = line
+                if (line[24:27] == "---") and subtotal:
+                    res.append("    SubTotal            --- ${}"
+                        .format(subtotal))
+                    subtotal = 0
+                try:
+                    amount = int(line[23:28])
+                except (ValueError, IndexError):
+                    self.invalid_lines.append(line)
+                    continue
+#               res.append("Adding ${}.".format(amount))
+                total += amount
+                subtotal += amount
+#               print(" adding {}, running total is {}"
+#                   .format(amount, total))
+        if subtotal:
+            res.append("    SubTotal            --- ${}"
+                .format(subtotal))
+        res.append("\nGrand Total to Date:    --- ---- ${}"
+            .format(total))
+#       print("returning {}".format(res))
+        return res
+
+
+    def check_dir4letters(self, dir4letters):
+        """
+        Set up the directory for postal letters.
+        """
+        if os.path.exists(dir4letters):
+            print("The directory '{}' already exists."
+                .format(dir4letters))
+            response = input("... OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                shutil.rmtree(dir4letters)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+        os.mkdir(dir4letters)
+        pass
+
+
+    def check_json_file(self, json_email_file):
+        """
+        Checks the name of the json output file where
+        emails are to be stored.
+        """
+#       print("method check_json_file param is: {}"
+#           .format(json_email_file))
+        if os.path.exists(json_email_file):
+            print("The file '{}' already exists."
+                .format(json_email_file))
+            response = input("... OK to overwrite it? ")
+            if response and response[0] in "Yy":
+                os.remove(json_email_file)
+            else:
+                print(
+            "Without permission, must abort.")
+                sys.exit(1)
+
 ### I believe methods can all be redacted. ###
 ### They are implemented elsewhere: mostly in data.py
 ### 
 
+redacted = '''
     def present_by_status(self, applicants_only=False):
         """
         Assumes presense of self.by_status dict
@@ -116,6 +202,7 @@ class Club(object):
                     self.napplicants += 1
                 ret.append(line)
         return ret
+
     
     def applicant_listing(self):
         ret = []
@@ -127,6 +214,7 @@ class Club(object):
                                         underline_char='=')
             ret.extend(applicants)
         return ret
+
 
     def ck_data(self, source_file, google_file, separator):
         """
@@ -334,6 +422,8 @@ class Club(object):
         ...
         }
         """
+
+
         def translate(category):
             """
             Used to convert the more human readable form into the terse
@@ -359,9 +449,11 @@ class Club(object):
                 extras[name_tuple].append(to_add)
         return extras
 
+
 #   def create_extra_fees_json(self, extra_fees_txt_file):
 #       # this functionality is provided by extra_fees.py
 #       pass
+
 
     def get_labels2print(self, source_file):
         """
@@ -371,6 +463,7 @@ class Club(object):
             codecs.open(source_file, 'rU', 'utf-8'),
             dialect='excel')
         pages = []
+
             
         def deal_with_page(page):
 #           print("Page contains {} records".format(n_records))
@@ -450,40 +543,6 @@ class Club(object):
         print("{} pages ready to print".format(len(pages)))
         return "\f".join(pages) 
 
-    def check_dir4letters(self, dir4letters):
-        """
-        Set up the directory for postal letters.
-        """
-        if os.path.exists(dir4letters):
-            print("The directory '{}' already exists."
-                .format(dir4letters))
-            response = input("... OK to overwrite it? ")
-            if response and response[0] in "Yy":
-                shutil.rmtree(dir4letters)
-            else:
-                print(
-            "Without permission, must abort.")
-                sys.exit(1)
-        os.mkdir(dir4letters)
-        pass
-
-    def check_json_file(self, json_email_file):
-        """
-        Checks the name of the json output file where
-        emails are to be stored.
-        """
-#       print("method check_json_file param is: {}"
-#           .format(json_email_file))
-        if os.path.exists(json_email_file):
-            print("The file '{}' already exists."
-                .format(json_email_file))
-            response = input("... OK to overwrite it? ")
-            if response and response[0] in "Yy":
-                os.remove(json_email_file)
-            else:
-                print(
-            "Without permission, must abort.")
-                sys.exit(1)
 
     def annual_usps_billing2dir(self, source_file, dir4letters):
         """
@@ -580,50 +639,5 @@ class Club(object):
             print("Records (header only?) that weren't processed:")
             for error in errors:
                 print(error)
-
-    def fee_totals(self, infile=RECEIPTS_FILE):
-        """
-        Returns a list of strings: subtotals and grand total.
-        Sets up and populates self.invalid_lines ....
-        (... the only reason it's a class method
-        rather than a function or a static method.)
-        NOTE: Money taken in (or refunded) must appear
-        within line[23:28]! i.e. maximum 5 digits (munus sign
-        and only 4 digits if negatime).
-        """
-        res = ["Fees taken in to date:"]
-        self.invalid_lines = []
-
-        total = 0
-        subtotal = 0
-        date = ''
-
-        with open(infile, "r") as file_obj:
-            print('Reading from file "{}".'
-                .format(file_obj.name))
-            for line in file_obj:
-                line= line.rstrip()
-                if line[:5] == "Date:":
-                    date = line
-                if (line[24:27] == "---") and subtotal:
-                    res.append("    SubTotal            --- ${}"
-                        .format(subtotal))
-                    subtotal = 0
-                try:
-                    amount = int(line[23:28])
-                except (ValueError, IndexError):
-                    self.invalid_lines.append(line)
-                    continue
-#               res.append("Adding ${}.".format(amount))
-                total += amount
-                subtotal += amount
-#               print(" adding {}, running total is {}"
-#                   .format(amount, total))
-        if subtotal:
-            res.append("    SubTotal            --- ${}"
-                .format(subtotal))
-        res.append("\nGrand Total to Date:    --- ---- ${}"
-            .format(total))
-#       print("returning {}".format(res))
-        return res
+'''
 ####  End of Club class declaration.
