@@ -614,6 +614,9 @@ def ck_data(club,
     <report_status> parameter, if set to False, abreviates
     the output by not including the listing of members who
     have 'status' entries.
+    <fee_details> if set to True extends the output to include
+    any discrepencies between what's billed each year vs what is
+    still owed; expected after payments begin to come in.
     """
     ret = []
     ok = []
@@ -810,10 +813,11 @@ def ck_data(club,
 #           .format(','.join(temp_ret)))
     if a_applicants != club.ms_by_status:
         ret.append("\nApplicant problem:")
-        ret.append("The following-")
-        ret.extend(helpers.show_dict(a_applicants))
-        ret.append("- is not the same as what follows-")
-        ret.extend(helpers.show_dict(club.ms_by_status))
+        ret.append("The following data from applicant SPoT-")
+        ret.extend(helpers.show_dict(a_applicants, extra_line=False))
+        ret.append("- does not match the following membership SPot-")
+        ret.extend(helpers.show_dict(club.ms_by_status,
+                                                   extra_line=False))
         ret.append("- End of comparison -")
     else:
         ok.append("No applicant problem.")

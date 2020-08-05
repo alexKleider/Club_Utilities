@@ -438,7 +438,7 @@ def show_cmd():
     ret = ["""FOR MEMBER USE ONLY
 
 THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS
-ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN IS NOT TO BE REPRODUCED
+ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN ARE NOT TO BE REPRODUCED
 OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
 BOARD OF THE BRBC.
     """]
@@ -464,8 +464,8 @@ BOARD OF THE BRBC.
 
 def report():
     """
-    Prepare a "Membership Report"
-    Automatically Dateed, reports:
+    Prepare a "Membership Report".
+    Automatically dated, it reports:
     Number of members & Number of applicants and provides an
     applicant role call (/w dates of meetings attended.)
     Checks both the applicant SPoT and the main data base.
@@ -484,6 +484,7 @@ def report():
     err_code = member.traverse_records(infile,
             [member.add2status_data,
             member.increment_nmembers,
+            member.increment_napplicants,
             ], club)
     ap_set_w_dates_by_status = (
         data.gather_applicant_data(
@@ -506,8 +507,9 @@ def report():
                     .format(club.nmembers))
 
     if ap_set_w_dates_by_status:
-        report.extend(["\nApplicants",
-                         "=========="])
+        helpers.add_header2list(
+            "Applicants ({} in number)".format(club.napplicants),
+            report, underline_char='=', extra_line=True)
         report.extend(member.show_by_status(ap_set_w_dates_by_status))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
@@ -518,7 +520,7 @@ def report():
             report.append(name)
 
     misc_stati = member.show_by_status(club.ms_by_status,
-                                        stati2show="m|w|be".split('|'))
+                                        stati2show="m|w|be|ba".split('|'))
     if misc_stati:
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')

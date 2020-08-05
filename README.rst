@@ -196,6 +196,34 @@ Once the above is all done, the mailings can be archived using the
 archive-mailings.sh script.
 
 
+------------
+Applications
+------------
+
+New applications are mannually entered in three locations:
+1. Data/memlist.csv
+2. Data/applicants.txt
+3. gmail contacts (and put her/him into applicant listing)
+
+
+-----------------------
+Induction to Membership
+-----------------------
+
+Change ai status to m, send mailing (--which welcome2full_membership),
+and then clear status field.
+Complete line in Data/applicants.txt.
+Change gmail contact removing from applicant and adding to LIST group
+
+
+---------
+Attrition
+---------
+
+Remember to move line from Data/memlist.csv into Info/attrition
+and remove contact from gmail contacts
+
+
 -----------------------------------------
 Payment of Dues/Acknoledgement of payment
 -----------------------------------------

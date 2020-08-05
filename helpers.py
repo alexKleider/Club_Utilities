@@ -217,7 +217,7 @@ def show_dict(d, underline_char=None, extra_line=True):
             for val in sorted_values:
                 ret.append(val)
         else:
-            values = ", ".join(sorted_values)
+            values = ";  ".join(sorted_values)
             ret.append("{}: {}".format(key, values))
     return ret
 

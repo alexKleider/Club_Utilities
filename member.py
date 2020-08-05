@@ -175,6 +175,13 @@ def is_honorary_member(record):
     return 'h' in get_status_set(record)
 
 
+def increment_napplicants(record, club):
+    """
+    """
+    if is_applicant(record):
+        club.napplicants += 1
+
+
 def increment_nmembers(record, club):
     """
     Client must initiate club.nmembers(=0) attribute.
@@ -370,6 +377,8 @@ def add2malformed(record, club=None):
                 club.malformed.append("{}, {}:{}"
                     .format(name, key, value))
     if record["email"] and not '@' in record["email"]:
+#       for key in record.keys():
+#           print("{}: {}".format(key, record[key]))
         club.malformed.append("{}: {} Problem /w email."
             .format(name, record['email']))
     if name < club.previous_name:
@@ -936,6 +945,9 @@ def send_attachment(record, club):
 prerequisites = {
     increment_nmembers: [
         "club.nmembers = 0",
+        ],
+    increment_napplicants: [
+        "club.napplicants = 0",
         ],
     get_usps: [
         'club.usps_only = []',
