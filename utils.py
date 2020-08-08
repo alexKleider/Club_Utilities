@@ -471,8 +471,8 @@ def report():
     Checks both the applicant SPoT and the main data base.
     """
     club = Club()
-    club.ms_by_status = {}
-    club.nmembers = 0
+#   club.ms_by_status = {}
+#   club.nmembers = 0
     infile = args["-i"]
     applicant_spot = args['-A']
     if not infile:

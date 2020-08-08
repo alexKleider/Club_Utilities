@@ -179,6 +179,7 @@ def increment_napplicants(record, club):
     """
     """
     if is_applicant(record):
+        print("{} => n_applicants".format(member_name(record, club)))
         club.napplicants += 1
 
 
@@ -312,8 +313,8 @@ def add2status_data(record, club):
     """
     if not record["status"]:
         return
-    if is_applicant(record) and hasattr(club, "napplicants"):
-        club.napplicants += 1
+#   if is_applicant(record) and hasattr(club, "napplicants"):
+#       club.napplicants += 1
     name = club.pattern.format(**record)
     for status in get_status_set(record):
         _ = club.ms_by_status.setdefault(status, [])
