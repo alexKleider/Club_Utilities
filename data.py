@@ -114,7 +114,8 @@ def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
             new_rec = get_gmail_record(rec)
             entry = line.format(**new_rec)
             if entry.count('<') > 1:
-                print(entry)
+                print("data.gather_contacts4mutt error: {}".
+                    format(entry))
             if new_rec['g_email']:
                 ret.append(entry)
     with open(out_file, 'w') as file_obj:
@@ -162,14 +163,22 @@ def gather_contacts_data(club):
                 club.g_by_group[key].add(g_dict["gname"])
 
 
-def gather_applicant_data(in_file, include_dates=False):
+def gather_applicant_data(in_file,
+                    include_dates=False,
+                    sponsor_file=None):
     """
     Reads the in_file (APPLIANT_SPoT) and returns a dict With keys:
         "expired": list of applicants who've let applications expire.
         "applicants": a dict keyed by status =>
                 lists of applicants (+/- meeting dates)
+                    (+ sponsors if <sponsor_file> is set to a file name.)
         "bad_lines": lines not interpretable (for error checking.)
     """
+    if sponsor_file:
+        include_sponsors = True
+        sponsors = gather_sponsors(sponsor_file)
+    else:
+        include_sponsors = False
     bad_lines = []
     expired_applications = []
     applicants = {}
@@ -185,7 +194,6 @@ def gather_applicant_data(in_file, include_dates=False):
             names = parts[0].split()
             if len(names) == 2:
                 name = ", ".join((names[1], names[0]))
-#               print("Dealing with {}".format(name))
                 parts = parts[1:]
             else:
                 bad_lines.append(line)
@@ -221,11 +229,16 @@ def gather_applicant_data(in_file, include_dates=False):
             _ = applicants.setdefault(status, [])
 #           print("appending '{}' to status '{}'"
 #                       .format(name, status))
+            line2add = name
             if include_dates:
-                applicants[status].append("{}: {}"
-                    .format(name, parts))
-            else:
-                applicants[status].append(name)
+                line2add = "{}: {}".format(name, parts)
+            if include_sponsors:
+                line2add = "{}: [{}]".format(name, sponsors[name])
+            if include_dates and include_sponsors:
+                line2add = ("{}: {}; [{}]" 
+                            .format(name, parts, sponsors[name]))
+            applicants[status].append(line2add)
+
     for key in applicants:
         applicants[key] = sorted(applicants[key])
     return {"expired": expired_applications,  # just a list
@@ -302,6 +315,26 @@ def gather_extra_fees_data(in_file, json_file=None):
     return {Club.NAME_KEY: by_name,
            Club.CATEGORY_KEY: by_category,
             }
+
+
+def gather_sponsors(infile):
+    """
+    Read file typified by Data/sponsors.txt
+    and return a dict keyed by 'last, first' names with sponsors as
+    values.
+    """
+    ret = {}
+    with open(infile, 'r') as file_obj:
+        for line in file_obj:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(':')
+            names = parts[0].split()
+            name = "{}, {}".format(names[1], names[0])
+            sponsors = parts[1].strip()
+            ret[name] = sponsors
+    return ret
 
 
 def extra_charges(club):

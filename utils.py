@@ -23,7 +23,7 @@ Usage:
   ./utils.py [ ? | --help | --version]
   ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -o <outfile> ]
-  ./utils.py report [-O -i <infile> -A <applicant_spot> -o <outfile> ]
+  ./utils.py report [-O -i <infile> -S <sponsors_spot> -A <applicant_spot> -o <outfile> ]
   ./utils.py stati [-O -a -i <infile> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
@@ -34,7 +34,7 @@ Usage:
   ./utils.py thank [-t <2thank> -I -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
-  ./utils.py print_letters --dir <dir4letters> [-O -S <separator> -e error_file]
+  ./utils.py print_letters --dir <dir4letters> [-O --separator <separator> -o outfile]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
@@ -83,6 +83,8 @@ Options:
             methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
   -s    Report status in 'ck_data' command.
+  -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
+  --separator <separator>  A string. [default: \F]
   --subject <subject>  The subject line of an email.
   -t <2thank>  A csv file in same format as memlist.csv showing
             recent payments.  Input for thank_cmd.
@@ -454,7 +456,8 @@ BOARD OF THE BRBC.
             ret, underline_char='=', extra_line=True)
         ret.extend(club.honorary)
     if club.by_n_meetings:
-        header = "Applicants ({} in number)".format(club.napplicants)
+        header = ("Applicants ({} in number)"
+                                .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
         ret.extend(member.show_by_status(club.by_n_meetings))
     output("\n".join(ret))
@@ -462,7 +465,7 @@ BOARD OF THE BRBC.
 
 
 
-def report():
+def report(club):
     """
     Prepare a "Membership Report".
     Automatically dated, it reports:
@@ -470,26 +473,16 @@ def report():
     applicant role call (/w dates of meetings attended.)
     Checks both the applicant SPoT and the main data base.
     """
-    club = Club()
-#   club.ms_by_status = {}
-#   club.nmembers = 0
-    infile = args["-i"]
-    applicant_spot = args['-A']
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    if not applicant_spot:
-        applicant_spot = Club.APPLICANT_SPoT
-    print("Preparing Membership Report ...")
-
-    err_code = member.traverse_records(infile,
+    err_code = member.traverse_records(club.infile,
             [member.add2status_data,
             member.increment_nmembers,
             member.increment_napplicants,
             ], club)
     ap_set_w_dates_by_status = (
         data.gather_applicant_data(
-                applicant_spot, include_dates=True)["applicants"])
-
+            club.applicant_spot,
+            include_dates=True,
+            sponsor_file=club.sponsor_file)["applicants"])
     ap_listing = club.ms_by_status # } This segment is for
     for key in ap_listing:      # } error checking only;
       if key[0]=='a':           # } not required if data match.
@@ -508,7 +501,8 @@ def report():
 
     if ap_set_w_dates_by_status:
         helpers.add_header2list(
-            "Applicants ({} in number)".format(club.napplicants),
+            "Applicants ({} in number, with meeting dates & sponsors listed)"
+                    .format(club.napplicants),
             report, underline_char='=', extra_line=True)
         report.extend(member.show_by_status(ap_set_w_dates_by_status))
     if 'r' in club.ms_by_status:
@@ -544,7 +538,18 @@ def report():
  
 
 def report_cmd():
-    output('\n'.join(report()))
+    club = Club()
+    club.infile = args["-i"]
+    club.applicant_spot = args['-A']
+    club.sponsor_file = args['-S']
+    if not club.infile:
+        club.infile = Club.MEMBERSHIP_SPoT
+    if not club.applicant_spot:
+        club.applicant_spot = Club.APPLICANT_SPoT
+    if not club.sponsor_file:
+        club.sponsor_file = Club.SPONSORS_SPoT
+    print("Preparing Membership Report ...")
+    output('\n'.join(report(club)))
 
 
 def stati_cmd():
@@ -833,6 +838,9 @@ def send_emails_cmd():
 
 
 def print_letters_cmd():
+    """
+    Depricated in favour of simply using 'lpr' cmd.
+    """
     successes = []
     failures = []
     for letter_name in os.listdir(args["--dir"]):
@@ -855,7 +863,7 @@ def print_letters_cmd():
         failures = ["All files printed successfully."]
     successes = '\n'.join(successes)
     failures = '\n'.join(failures)
-    report = successes + args['-s'] + failures
+    report = successes + args['--separator'] + failures
     output(report)
 
 

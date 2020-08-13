@@ -179,7 +179,7 @@ def increment_napplicants(record, club):
     """
     """
     if is_applicant(record):
-        print("{} => n_applicants".format(member_name(record, club)))
+#       print("{} => n_applicants".format(member_name(record, club)))
         club.napplicants += 1
 
 
@@ -402,7 +402,7 @@ def apply_credit2record(statement, record):
     """
     """
     keys = [key for key in statement.keys() if key != 'total']
-    print("Keys are {}".format(keys))
+    print("member.py: Keys are {}".format(keys))
     for key in keys:
 #   for key in [key for key in statement.keys() if key != 'total']:
         record[key] = int(record[key]) - statement[key]
@@ -504,8 +504,10 @@ def show_stati(club):
 
 def show_by_status(by_status, stati2show=STATI):
     """
+    <by_status> is a dict keyed by status.
     Returns a list of strings (which can be '\n'.join(ed))
-    Each 'status' is a header followed by the list of members.
+    consisting of Keys as headers with values listed beneath each key.
+    Second parameter can be used to restrict which stati to display.
     """
     ret = []
     stati = by_status.keys()

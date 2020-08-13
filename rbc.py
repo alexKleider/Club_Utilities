@@ -34,6 +34,7 @@ class Club(object):
     # Data bases used with default file names.
     MEMBERSHIP_SPoT = 'Data/memlist.csv'
     APPLICANT_SPoT = "Data/applicants.txt"
+    SPONSORS_SPoT = "Data/sponsors.txt"
     EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
     CONTACTS_SPoT = os.path.expanduser(     #} File to which google
                 '~/Downloads/contacts.csv') #} exports the data.
