@@ -18,6 +18,7 @@ import json
 import helpers
 from rbc import Club
 
+NO_EMAIL_KEY = 'no_email'
 SEPARATOR = '|'  ### Note: NOT the same as rvc.SEPARATOR
 WAIVED = "w"     #   \ although its value happens to be the same.
 STATUS_KEY_VALUES = {
@@ -41,7 +42,7 @@ APPLICANT_SET = set(STATI[:6])
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | set("h")
 
-N_FIELDS = 15  # Only when unable to use len(dict_reader.fieldnames).
+N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
 MONEY_KEYS = ("dues", "dock", "kayak", "mooring") 
 MONEY_KEYS_CAPPED = [item.capitalize() for item in MONEY_KEYS]
 FEES_KEYS = MONEY_KEYS[1:]
@@ -52,8 +53,6 @@ MONEY_HEADERS = {
     "kayak":   "Kayak Storage.",
     "total":   "    TOTAL.........",
     }
-
-N_FIELDS_PER_RECORD = 15
 
 # The following is no longer used...
 # we get around the problem in a different way..
@@ -81,10 +80,12 @@ def setup_required_attributes(custom_funcs, club):
                 exec(code)
 
 
+
 def traverse_records(infile, custom_funcs, club):
     """
-    Traverses <infile> and applies <custom_funcs> to each
-    record.  <custom_funcs> can be a single function or a
+    Opens <infile> for dict_reading setting club.fieldnames.
+    Applies <custom_funcs> to each record.
+    <custom_funcs> can be a single function or a
     list of functions. These functions typically require a
     <club> parameter, an instance of the "Club" class which
     for the Bolinas Rod and Boat Club is found in the
@@ -101,7 +102,7 @@ def traverse_records(infile, custom_funcs, club):
         print("DictReading {}".format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         # fieldnames is used by get_usps and restore_fees cmds.
-        club.fieldnames = dict_reader.fieldnames  # used by get_usps
+        club.fieldnames = dict_reader.fieldnames
         club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
             for custom_func in custom_funcs:
@@ -273,6 +274,7 @@ def get_zeros_and_nulls(record, club):
 ## Beginning of 'add2' functions:
 
 
+redacted = '''
 def add2m_by_name(record, club):
     """
     REDACT! use add2email_by_m
@@ -286,12 +288,34 @@ def add2m_by_name(record, club):
         email= record['email'],
         stati= {status for status in record["status"].split(
         SEPARATOR)})
+'''
+
+
+def add2email_by_m(record, club):
+    name = member_name(record, club)
+    email = record['email']
+    if email:
+        club.email_by_m[name] = email
+
+
+def add2ms_by_email(record, club):
+    """
+    Populates club.ms_by_email, a dict keyed by emails one of which
+    is NO_EMAIL_KEY to capture members without an email address.
+    """
+    name = member_name(record, club)
+    email = record['email']
+    if not email:
+       email = NO_EMAIL_KEY 
+    _ = club.ms_by_email.setdefault(email, [])
+    club.ms_by_email[email].append(name)
 
 
 def add2email_data(record, club):
     """
     Populates club.email_by_m  and (if it
     exists)   club.ms_by_email.
+    BEING REDACTED in favour of add2email_by_m and add2ms_by_email
     """
     name = member_name(record, club)
     email = record['email']
@@ -305,11 +329,28 @@ def add2email_data(record, club):
             club.without_email.append(name)
 
 
+def add2stati_by_m(record, club):
+    if not record["status"]:
+        return
+    stati_by_m[member_name(record, club)] = get_status_set(record)
+
+
+def add2ms_by_status(record, club):
+    if not record['status']:
+        return
+    stati = get_status_set(record)
+    for status in stati:
+        _ = club.ms_by_status.setdefault('status', [])
+        club.ms_by_status['status'].append(record_name(record))
+
+
 def add2status_data(record, club):
     """
     Populates club.ms_by_status: lists of members keyed by status.
     Also populates club.stati_my_m if attribute exists...
     and increments club.napplicants if attribute exists.
+    BEING REDACTED in favour of add2stati_by_m, add2ms_by_stati
+    and incriment_napplicants.
     """
     if not record["status"]:
         return
@@ -356,7 +397,7 @@ def add2malformed(record, club=None):
     """
     Populates club.malformed (which must be set up by client.)
     Checks that that for each record:
-    1. there are N_FIELDS_PER_RECORD
+    1. there are N_FIELDS per record.
     2. the money fields are blank or evaluate to an integer.
     3. the email field contains "@"
     club.__init__ sets club.previous_name to "".
@@ -444,6 +485,28 @@ def update_db_apply_charges_func(record, club):
     pass
 
 # .. above two functions write to new db with updated information.
+# The next function changes the db!!
+
+
+def rm_email_only_field(record, club):
+    """
+    A one time use function:
+    removes the "emailonly" field of the record.
+    """
+    new_record = {}
+    for key in club.new_fieldnames:
+        new_record[key] = record[key]
+    return new_record
+
+
+def modify_data(infile, func, club):
+    """
+    A generator to serve as the iterable parameter for dict_write.
+    """
+    with open(infile, 'r') as file_obj:
+        reader = csv.DictReader(file_obj)
+        for rec in reader:
+            yield func(rec, club)
 
 
 def show_stati(club):
@@ -553,8 +616,9 @@ def add2statement_data(record, club):
 
 def get_statement(statement_dict, club=None):
     """
-    Returns an array of strings making up a
-    statement of dues and fees.
+    Returns a string making up a statement of dues and fees.
+    If club.inline then all is in one line; otherwise parts
+    are separated by '/n' chars.
     """
     key_set = set([key for key in statement_dict.keys()])
     ret = []
@@ -595,7 +659,7 @@ def assign_statement2extra_func(record, club=None):
     if d['total'] == 0:
         extra.append("You are all paid up. Thank you.")
     else:
-        extra.extend(get_statement(d))
+        extra.append(get_statement(d))
     if d['total'] < 0:
         extra.extend(["You have a credit balance.",
                 "Thank you for your advanced payment."])
@@ -959,9 +1023,19 @@ prerequisites = {
         'club.nulls = []',
         'club.zeros = []',
         ],
-    add2m_by_name: [
-        'club.m_by_name = {}',
+    add2email_by_m: [
+        'club.email_by_m = {}',
         ],
+    add2ms_by_email: [
+        'club.ms_by_email = {}',
+        ],
+    add2stati_by_m: [
+        'club.stati_by_m = {}',
+        ],
+#   add2m_by_name: [
+#       'club.m_by_name = {}',
+#       ],
+# Next one is being redacted:
     add2email_data: [
         'club.email_by_m = {}',
         'club.ms_by_email = {}',

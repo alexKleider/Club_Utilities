@@ -28,6 +28,11 @@ import member
 from rbc import Club
 
 
+def get_fieldnames(csv_file):
+    with open(csv_file, 'r', newline='') as file_object:
+        dict_reader = csv.DictReader(file_object, restkey='extra')
+        return dict_reader.fieldnames
+
 def gather_membership_data(club):
     """
     Gathers the info we want from the membership csv file
@@ -161,6 +166,94 @@ def gather_contacts_data(club):
             for key in g_dict["groups"]:
                 _ = club.g_by_group.setdefault(key, set())
                 club.g_by_group[key].add(g_dict["gname"])
+
+
+def parse_applicant_line4dates(line,
+                    bad_line_list=None,
+                    expired_applicant_list=None,
+                    former_applicant_list=None):
+    """
+    Takes a line from the applicant SPoT file and returns either
+    None (if not a valid applicant line) or
+    a tuple: first element is the name and meeting dates make up
+    the remaining elements.
+    Also adds to lists if provided.
+    """
+    parts = [part.strip() for part in line.split(
+                            Club.SEPARATOR)]
+    if not parts and bad_line_list is not None:
+        bad_line_list.append(line)
+        return
+    names = parts[0].split()
+    if len(names) == 2:
+        name = ", ".join((names[1], names[0]))
+        parts = parts[1:]
+    else:
+        if bad_line_list is not None:
+            bad_line_list.append(line)
+        return
+    if not parts[-1]:       #} neutilizes empty field
+        parts = parts[:-1]  #} after trailing SEPARATOR
+    if parts[-1].startswith("Application"):
+        if expired_applicant_list is not None:
+            expired_applicant_list.append(name)
+        return
+    if len(parts) < 2:  # application received; fee paid
+        if bad_line_list is not None:
+            bad_line_list.append(line)
+#       print("len(parts) is < 2 (before deleting first 2)")
+        return
+    else:
+        parts = parts[2:]
+        l = len(parts)
+#       print("len(parts): {}".format(l))
+    status = ''
+    if l == 5:
+        if parts[l-1] == 'aw':
+            status = 'aw'
+#           print("status is aw")
+            parts = parts[:-1]
+        else:
+            if former_applicant_list is not None:
+                former_applicant_list.append(line)
+            return  # no longer an appliant
+    if not status:
+        try:
+            status = member.APPLICANT_STATI[l]
+        except IndexError:
+            if bad_line_list is not None:
+                bad_line_list.append(
+                    "IndexError: {}".format(line))  # got none
+            return
+    return (name, parts)
+
+
+def get_applicant_data(spot, sponsor_file=None,
+                    bad_line_list=None,
+                    expired_applicant_list=None,
+                    former_applicant_list=None):
+    """
+    Returns a dict keyed by member names ("last, first").
+    Values are dicts keyed by "dates" (value a string of dates) and
+    (if sponsor_file is provided) "sponsors" (value a string of
+    sponsors.)
+    UNDER DEVELOPMENT_ TO REPLACE gather_applicant_data().
+    """
+    ret = {}
+    with open(spot, 'r') as file_obj:
+        print("Reading {}...".format(file_obj.name))
+        for line in file_obj:
+            res = parse_applicant_line4dates(line,
+                                            bad_line_list,
+                                            expired_applicant_list,
+                                            former_applicant_list)
+            if res:
+                ret[res[0]] = {'dates': ', '.join(res[1])}
+    if sponsor_file:
+        sponsors = gather_sponsors(sponsor_file)
+        for key in sponsors:
+            ret[key]['sponsors'] = sponsors[key]
+    return ret
 
 
 def gather_applicant_data(in_file,
@@ -991,19 +1084,17 @@ def save_db(new_db, outfile, key_list):
             .format(file_obj.name))
 
 
-def modify_data(infile, funcs, club):
+def dict_write(f, fieldnames, iterable):
     """
-    <club> defines output file, both it and infile are of csv format.
-    <funcs> is a list of functions to be applied to each record
-    before adding it to the output file.
+    Code writen in such a way that <iterable> could be
+    a generator function.
     """
-    print('club.outfile set to '.format(club.outfile))
-    with open(club.outfile, 'w') as outfile_obj:
-        club.dict_writer = csv.DictWriter(outfile_obj,
-                                            club.fieldnames)
-        club.dict_writer.writeheader()
-        member.traverse_records(infile, funcs, club)
-        print('Finished writing to {}'.format(outfile_obj.name))
+    with open(f, 'w') as outfile_obj:
+        print("Opening {} for output...".format(outfile_obj.name))
+        dict_writer = csv.DictWriter(outfile_obj, fieldnames)
+        dict_writer.writeheader()
+        for record in iterable:
+            dict_writer.writerow(record)
 
 
 def data_listed(data, underline_char='=', inline=False):
@@ -1132,77 +1223,8 @@ def ck_all():
         test_applicants_incl_expired,  #2
         test_extras,                   #3
         test_ck_data,                  #4
-        test_fees_by,                  #5
-        test_list_mooring,             #6
-    ):
-        n += 1
-        print("Test #{}: {}".format(n, test_routine.__name__))
-        res = "\n".join(test_routine())
-        file_name = "2check{}".format(str(n))
-        with open(file_name, "w") as f_obj:
-            header = "Result of ({}) {}...".format(n,
-                test_routine.__name__)
-            f_obj.write(header + "\n")
-            f_obj.write("=" * len(header) + "\n")
-            f_obj.write(res)
-
-def readable_json_fee_data(json_data_file):
-    with open(json_data_file, 'r') as jfo:
-        records = json.load(jfo)
-    to_examine = json_fees_by_name(records)
-    data = '\n'.join(helpers.show_dict(to_examine, extra_line=False))
-    return data
-
-
-def ck_json_dump_of_extra_fees():
-    jf = 'extras.json'
-    readable_json = 'json2check'
-    _ = gather_extra_fees_data(Club.EXTRA_FEES_SPoT,
-                            json_file=jf)
-    data = readable_json_fee_data(jf)
-    with open(readable_json, 'w') as jfo:
-        jfo.write(data)
-    print("'{}' now contains readable data."
-            .format(readable_json))
-    
-
-if __name__ == "__main__":
-
-    if len(sys.argv) == 2:
-        if sys.argv[1] == 'ck_json':
-            ck_json_dump_of_extra_fees()
-        elif sys.argv[1] == 'ck_applicant_spot':
-            res = gather_applicant_data("Data/applicants.txt")
-            bad_lines = res["bad_lines"]
-            expired_applicants = res["expired"]
-            applicants = res['applicants']
-            print("Bad Lines:")
-            print("==========")
-            for line in bad_lines:
-                print(line)
-            print("\nExpired_applications")
-            print(  "==================")
-            for line in expired_applicants:
-                print(line)
-            print("\nBy Status")
-            print(  "=========")
-            for key in applicants.keys():
-                print("\n{}".format(key))
-                print('-' * len(key))
-                for val in applicants[key]:
-                    print(val)
-        else:
-            print("Invalid argument:'{}'."
-                .format(sys.argv[1]))
-    else:
-        print("Need one and only one argument.")
-#   ck_all()
-#   club = Club()
-    
-#   test_applicant_presentations()
-#   test_applicants_incl_expired()
-#   test_extras()
-#   test_fees_by()
+        ):
+        pass
 #   test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))

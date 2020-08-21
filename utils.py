@@ -4,9 +4,9 @@
 
 # After any changes to the docstring, 
 # the following contstants may need to be changed:
-#     TOP_QUOTE_LINE_NUMBER     } These facilitate preparing
-#     BLANK_LINE_ABOVE_USAGE    } a response to the
-#     BLANK_LINE_ABOVE_OPTIONS  } 'utils.py ?' command.
+#     TOP_QUOTE_LINE     } These facilitate preparing
+#     USAGE_LINE                } a response to the
+#     OPTIONS_LINE  } 'utils.py ?' command.
 
 """
 "utils.py" is an utility providing functionality for usage and
@@ -22,9 +22,10 @@ Consult the README file for further info.
 Usage:
   ./utils.py [ ? | --help | --version]
   ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
-  ./utils.py show [-O -i <infile> -o <outfile> ]
-  ./utils.py report [-O -i <infile> -S <sponsors_spot> -A <applicant_spot> -o <outfile> ]
-  ./utils.py stati [-O -a -i <infile> -o <outfile>]
+  ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py show_applicants [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py stati [-O -a -d --ia --id --is -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -39,6 +40,8 @@ Usage:
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
+  ./utils.py wip [-O -o 2check]
+  ./utils.py new_db [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
@@ -49,7 +52,7 @@ Options:
   --cc <cc>   Comma separated listing of cc recipients
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
-  -d   Include details: fee inconsistency for ck_data.
+  -d   Include details: fee inconsistency for ck_data,
   - dir <dir4letters>  The directory to be created and/or read
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
@@ -66,6 +69,9 @@ Options:
            (Pertains mainly to statements. Not used; may be redacted.)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
+  --ia   include address/demographic data  } These pertain
+  --id   include meeting dates             } to applicant
+  --is   include sponsors                  } reports. 
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   -p <printer>  Deals with printer variablility; ensures correct
@@ -176,6 +182,7 @@ Commands:
         file.
     labels: print labels.       | default: -P A5160  | Both
     envelopes: print envelopes. | default: -P E000   | redacted.
+    wip: "work in progress" Used for development/testing.
 """
 
 import os
@@ -197,9 +204,9 @@ import Bashmail.send
 from rbc import Club
 
 # Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE_NUMBER = 11      #} These facilitate preparing
-BLANK_LINE_ABOVE_USAGE = 21     #} response to the
-BLANK_LINE_ABOVE_OPTIONS = 41   #} 'utils.py ?' command.
+TOP_QUOTE_LINE = 12      #} These facilitate preparing
+USAGE_LINE = 22     #} response to the
+OPTIONS_LINE = 44   #} 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   #} Seconds between
@@ -419,22 +426,9 @@ def ck_data_cmd():
 
 def show_cmd():
     club = Club()
-    unused = """
-    club.pattern = ("{first} {last}  [{phone}]  {address}, " +
-                    "{town}, {state} {postal_code} [{email}]")
-    club.members = []
-    club.nmembers = 0
-    club.honorary = []
-    club.nhonorary = 0
-    club.by_n_meetings = {}
-    club.napplicants = 0
-    club.errors = []
-    """
-    infile = args["-i"]
-    if not infile:
-        infile = club.infile
+    setup_for_stati(club)
     print("Preparing membership listings...")
-    err_code = member.traverse_records(infile,
+    err_code = member.traverse_records(club.infile,
         (member.add2list4web), club)
 
     ret = ["""FOR MEMBER USE ONLY
@@ -482,7 +476,8 @@ def report(club):
         data.gather_applicant_data(
             club.applicant_spot,
             include_dates=True,
-            sponsor_file=club.sponsor_file)["applicants"])
+            sponsor_file=club.sponsor_file)["applicants"]
+            )
     ap_listing = club.ms_by_status # } This segment is for
     for key in ap_listing:      # } error checking only;
       if key[0]=='a':           # } not required if data match.
@@ -535,28 +530,33 @@ def report(club):
          .format(helpers.next_first_friday()),
         ])
     return report
- 
 
-def report_cmd():
-    club = Club()
+
+def setup_for_stati(club):
     club.infile = args["-i"]
     club.applicant_spot = args['-A']
     club.sponsor_file = args['-S']
+    club.include_addresses = args['--ia']
+    club.include_dates = args['--id']
+    club.include_sponsors = args['--is']
     if not club.infile:
         club.infile = Club.MEMBERSHIP_SPoT
     if not club.applicant_spot:
         club.applicant_spot = Club.APPLICANT_SPoT
     if not club.sponsor_file:
         club.sponsor_file = Club.SPONSORS_SPoT
+ 
+
+def report_cmd():
+    club = Club()
+    setup_for_stati(club)
     print("Preparing Membership Report ...")
     output('\n'.join(report(club)))
 
 
 def stati_cmd():
     club = Club()
-    club.infile = args["-i"]
-    if not club.infile:
-        club.infile = Club.MEMBERSHIP_SPoT
+    setup_for_stati(club)
     if args['-a']:
         club.mode = 'applicants_only'
     else:
@@ -752,8 +752,7 @@ def setup4new_db(club):
 #   print('club.outfile set to {}'.format(club.outfile))
     if not club.extra_fees_spot:
         club.extra_fees_spot = club.EXTRA_FEES_SPoT
-    club.new_db = []  # Expect to write to file as data is processed
-                    #... so this will not be used.
+    club.fieldnames = data.get_fieldnames(club.infile)
 
 
 def thank_cmd():
@@ -761,7 +760,7 @@ def thank_cmd():
     club.inline = args['-I']
     club.thank_file = args["-t"]
     if not club.thank_file:
-        club.thank_file = CLUB.THANK_FILE
+        club.thank_file = Club.THANK_FILE
     member.traverse_records(club.thank_file,
         [member.add2statement_data,], club)
     club.statement_data_keys = club.statement_data.keys()
@@ -773,6 +772,21 @@ def thank_cmd():
     setup4new_db(club)
     data.modify_data(club.infile, [member.update_db_re_payment_func,],
                                                             club)
+
+
+def new_db_cmd():
+    """
+    One time use only:
+    Eliminates 'email_only' field from data base.
+    """
+    club = Club()
+    setup4new_db(club)
+    club.new_fieldnames = [key for key in club.fieldnames if
+                                            key != 'email_only']
+    data.dict_write(club.outfile, club.new_fieldnames,
+            member.modify_data(club.infile,
+                member.rm_email_only_field,
+                club))
 
 
 def display_emails_cmd(json_file):
@@ -952,6 +966,7 @@ def labels_cmd():
     club = args["-i"]
     return club.get_labels2print(source_file)
 
+
 def envelopes_cmd():
     if args["-P"]:
         medium = media[args["-P"]]
@@ -960,6 +975,24 @@ def envelopes_cmd():
     club = Club(medium)
     source_file = args["-i"]
     club.print_custom_envelopes(source_file)
+
+
+def wip_cmd():
+    """
+    Code under development temporarily housed here.
+    """
+    spot = Club.APPLICANT_SPoT
+    applicants = data.get_applicant_data(spot, Club.SPONSORS_SPoT)
+    for key in applicants.keys():
+        if applicants[key]['dates']:
+            print("{}: Meeting dates '{}'"
+                    .format(key, applicants[key]['dates']))
+        else:
+            print("{}: No meetings attended to date."
+                    .format(key))
+        print("\tsponsors are '{}'".format(applicants[key]['sponsors']))
+    return
+
 
 ## Plan to redact the next two functions in favour of using
 ## the Python mailing modules instead of msmtp and mutt.
@@ -1015,9 +1048,9 @@ if __name__ == "__main__":
     if args["?"]:
         doc_lines = __doc__.split('\n') 
         print('\n'.join(doc_lines[
-            (BLANK_LINE_ABOVE_USAGE - TOP_QUOTE_LINE_NUMBER)
+            (USAGE_LINE - TOP_QUOTE_LINE)
             :
-            (BLANK_LINE_ABOVE_OPTIONS - TOP_QUOTE_LINE_NUMBER + 1)
+            (OPTIONS_LINE - TOP_QUOTE_LINE + 2)
             ]))
     elif args["ck_data"]:
         ck_data_cmd()
@@ -1079,6 +1112,12 @@ if __name__ == "__main__":
     with output sent to '{}'"""
             .format(args['-i'], args['-o']))
         envelopes_cmd()
+    elif args["wip"]:
+        print("Work in progress command...")
+        wip_cmd()
+    elif args["new_db"]:
+        print("Creating a modified data base...")
+        new_db_cmd()
     else:
         print("You've failed to select a command.")
         print("Try ./utils.py ? # brief!  or")
