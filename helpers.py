@@ -146,20 +146,21 @@ def expand(text, nlines):
 
 
 def add_header2list(header, list_,
-        underline_char=None, extra_line=True):
+        underline_char=None, extra_line=True, indent=0):
     """
     Extends a list_ with a header preceded by an optional blank line
     and followed by an optional 'underline' composed of a specified
     character.
+    Optional number of spaces to <indent>.
     """
     if extra_line: list_.append('')
-    list_.append(header)
+    list_.append(" " * indent + header)
     if underline_char:
-        list_.append(underline_char * len(header))
+        list_.append(" " * indent + underline_char * len(header))
 
 
 def add_sub_list(sub_header, sub_list, main_list,
-                underline_char="=", extra_line=True):
+                underline_char="=", extra_line=True, indent=0):
     """
     Extends an existing <main_list> with a sorted version of
     <sub_list>.
@@ -168,8 +169,14 @@ def add_sub_list(sub_header, sub_list, main_list,
     list of one empty string.
     """
     add_header2list(sub_header, main_list,
-        underline_char=underline_char, extra_line=extra_line)
-    main_list.extend(sorted(sub_list))
+        underline_char=underline_char,
+        extra_line=extra_line,
+        indent=indent)
+    if indent:
+        for item in sorted(sub_list):
+            main_list.append(' ' * indent + item)
+    else:
+        main_list.extend(sorted(sub_list))
 
 
 def prepend2file_name(word, file_name):
@@ -177,19 +184,22 @@ def prepend2file_name(word, file_name):
     return os.path.join(head, ''.join((word, tail)))
 
 
-def display_json(data, res):
-    for datum in data:
-        if isinstance(datum, dict):
-            for key in datum:
-                add_header2list(key, res, underline_char='-')
-                for val in datum[key]:
-                    display_json(val, res)
-        elif isintance(datum, list):
-            for item in datum:
-                display_json(item, res)
-        elif isinstance(datum, str):
-                res.append(item)
-
+def show_json(data, res=[], indent=0, indent_factor=2):
+    if isinstance(data, dict):
+        for key in data:
+            helpers.add_header2list(key, res, extra_line=False,
+                    underline_char='-', indent=indent)
+            indent += indent_factor
+            show_json(data[key], res, indent)
+            indent -= indent_factor
+    elif isinstance(data, list):
+        for item in data:
+            indent += indent_factor
+            show_json(item, res, indent)
+            indent -= indent_factor
+    else:
+        res.append(' ' * indent + str(data))
+    return res
 
 
 def show_dict(d, underline_char=None, extra_line=True):

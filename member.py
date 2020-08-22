@@ -53,6 +53,8 @@ MONEY_HEADERS = {
     "kayak":   "Kayak Storage.",
     "total":   "    TOTAL.........",
     }
+demografic_f = (
+    "{first},{last},{address},{town},{state},{postal_code},{country}")
 
 # The following is no longer used...
 # we get around the problem in a different way..
@@ -67,40 +69,25 @@ feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
 
-def setup_required_attributes(custom_funcs, club):
-    """
-    Ensures that club has necessary attributes
-    required by all the custom_funcs to be called.
-    """
-    set_of_funcs = set(prerequisites.keys())
-    for func in custom_funcs:
-#       print("func is '{}'".format(func))
-        if func in set_of_funcs:
-            for code in prerequisites[func]:
-                exec(code)
-
-
-
 def traverse_records(infile, custom_funcs, club):
     """
-    Opens <infile> for dict_reading setting club.fieldnames.
+    Opens <infile> for dict_reading (and in the process
+    assigns club.fieldnames.
     Applies <custom_funcs> to each record.
     <custom_funcs> can be a single function or a
-    list of functions. These functions typically require a
-    <club> parameter, an instance of the "Club" class which
-    for the Bolinas Rod and Boat Club is found in the
-    module rbc.py.
-    Generally each <custom_func> will leave its results in
-    one of the "club" attributes (similarly named.)  These
-    custom funcs are mostly found in this ('member.py')
-    module.
+    list of functions. These functions typically populate
+    attributes of club, an instance of the rbc.Club class.
+    Required club attributes are set up using the 
+    setup_required_attributes function (see end of module.)
+    Also assigns club.fieldnames and club.n_fields which are
+    sometimes useful.
     """
     if callable(custom_funcs): # If only one function provided
         custom_funcs = [custom_funcs] # place it into a list.
     setup_required_attributes(custom_funcs, club)
     with open(infile, 'r', newline='') as file_object:
         print("DictReading {}".format(file_object.name))
-        dict_reader = csv.DictReader(file_object, restkey='extra')
+        dict_reader = csv.DictReader(file_object)
         # fieldnames is used by get_usps and restore_fees cmds.
         club.fieldnames = dict_reader.fieldnames
         club.n_fields = len(club.fieldnames)  # to check db integrity
@@ -132,11 +119,11 @@ def ck_number_of_fields(record, club=None):
     which must be set up by client;
     if not: error is reported by printing to stdout.
     """
-    record.n_fields = len(record)
+    n_fields = len(record)
     possible_error = ("{last} {first} has {N_FIELDS}"
         .format(**record))
-    if ((club and (record.n_fields != club.n_fields))
-    or record.n_fields != N_FIELDS):
+    if ((club and (n_fields != club.n_fields))
+    or n_fields != N_FIELDS):
         report_error(possible_error, club)
 
 
@@ -197,8 +184,7 @@ def is_member_or_applicant(record, club=None):
 
 
 def has_valid_email(record, club=None):
-    if (record["status"]
-    and 'be' in record['status'].split(SEPARATOR)):
+    if 'be' in get_status_set(record):
         return False
     if record["email"]:
         return True
@@ -208,11 +194,6 @@ def has_valid_email(record, club=None):
 
 def letter_returned(record, club=None):
     return 'ba' in get_status_set(record)
-#   if (record["status"]
-#   and 'ba' in record['status'].split(SEPARATOR)):
-#       return True
-#   else:
-#       return False
 
 
 def is_fee_paying_member(record, club=None):
@@ -229,21 +210,17 @@ def get_usps(record, club):
     """
     Selects members who get their copy of meeting minutes by US
     Postal Service. i.e. Those with no email.
-    Populates self.usps_only with a line for each such member
+    Populates club.usps_only with a line for each such member
     using csv format: first, last, address, town, state, and
     postal_code.
     """
     if not record['email']:
-        club.usps_only.append(
-            "{first},{last},{address},{town},{state},{postal_code}"
-            .format(**record))
+        club.usps_only.append(demographic_f .format(**record))
 
 
 def get_bad_emails(record, club):
     if 'be' in get_status_set(record):
-        club.bad_emails.append(
-            "{first},{last},{address},{town},{state},{postal_code}"
-            .format(**record))
+        club.bad_emails.append(demographic_f.format(**record))
 
 
 def get_secretary(record, club):
@@ -252,9 +229,7 @@ def get_secretary(record, club):
     assigns secretary's demographics to club.secretary
     """
     if 's' in record['status']:
-        club.secretary = (
-            "{first},{last},{address},{town},{state},{postal_code}"
-            .format(**record))
+        club.secretary = demographic_f.format(**record)
 
 def get_zeros_and_nulls(record, club):
     """
@@ -684,11 +659,11 @@ def get_payables(record, club):
         if record[key]:
             amount = int(record[key])
             if amount > 0:
-                line_positive.append("{} {:>3d}".format(
+                line_positive.append("{:<5}{:>4d}".format(
                     key, amount))
 #                       MONEY_HEADERS[key], amount))
             elif amount < 0:
-                line_negative.append("{} {:>3d}".format(
+                line_negative.append("{:<5}{:>4d}".format(
                     key, amount))
     if line_positive:
         line = ("{:<26}".format(name)
@@ -1009,7 +984,11 @@ def send_attachment(record, club):
             args["-a"],
             )
 
+
 prerequisites = {
+    ck_number_of_fields: [
+        "club.errors = []",
+        ],
     increment_nmembers: [
         "club.nmembers = 0",
         ],
@@ -1032,9 +1011,6 @@ prerequisites = {
     add2stati_by_m: [
         'club.stati_by_m = {}',
         ],
-#   add2m_by_name: [
-#       'club.m_by_name = {}',
-#       ],
 # Next one is being redacted:
     add2email_data: [
         'club.email_by_m = {}',
@@ -1093,9 +1069,6 @@ prerequisites = {
     append_email: [
         "club.json_data = []",
         ],
-#   update_db_payment_func: [
-#       "club.new_db = {}",
-#       ],
     update_db_apply_charges_func: [
         "club.new_db = {}",
         ],
@@ -1106,6 +1079,21 @@ prerequisites = {
         'club.ms_by_status = {}',
         ],
     }
+
+
+def setup_required_attributes(custom_funcs, club):
+    """
+    Ensures that club has necessary attributes
+    required by all the custom_funcs to be called.
+    Relies on the above prerequisites dict.
+    """
+    set_of_funcs = set(prerequisites.keys())
+    for func in custom_funcs:
+#       print("func is '{}'".format(func))
+        if func in set_of_funcs:
+            for code in prerequisites[func]:
+                exec(code)
+
 
 if __name__ == "__main__":
     print("member.py compiles OK.")

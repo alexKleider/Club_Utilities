@@ -23,9 +23,8 @@ Usage:
   ./utils.py [ ? | --help | --version]
   ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py show_applicants [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O -a -d --ia --id --is -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -a --ia --id --is -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -53,7 +52,7 @@ Options:
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data,
-  - dir <dir4letters>  The directory to be created and/or read
+  -dir <dir4letters>  The directory to be created and/or read
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
             can be written.  [default: stdout]
@@ -602,12 +601,15 @@ def usps_cmd():
                 member.get_secretary,
                 member.get_bad_emails,
                 ], club)
+    print("There are {} members without an email address."
+            .format(len(club.usps_only)))
+    res = []
     header = []
     for key in club.fieldnames:
         header.append(key)
         if key == "postal_code":
             break
-    res = [",".join(header)]
+    res.append(",".join(header))
     res.extend(club.usps_only)
     # The following 2 lines are commented out because new secretary
     # Michael Rafferty doesn't need/want to be on the list.

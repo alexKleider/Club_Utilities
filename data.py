@@ -1225,6 +1225,10 @@ def ck_all():
         test_ck_data,                  #4
         ):
         pass
+
+
+if __name__ == '__main__':
+    print("data.py compiles OK.")
 #   test_list_mooring()    
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
