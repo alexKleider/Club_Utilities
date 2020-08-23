@@ -463,10 +463,10 @@ def update_db_apply_charges_func(record, club):
 # The next function changes the db!!
 
 
-def rm_email_only_field(record, club):
+def rm_email_only_field_func(record, club):
     """
     A one time use function:
-    removes the "emailonly" field of the record.
+    removes the "email_only" field of the record.
     """
     new_record = {}
     for key in club.new_fieldnames:
@@ -474,11 +474,14 @@ def rm_email_only_field(record, club):
     return new_record
 
 
-def modify_data(infile, func, club):
+def modify_data(csv_in_file_name, func, club):
     """
-    A generator to serve as the iterable parameter for dict_write.
+    A generator: yields the return value of
+    <func>(record) for each record read from the
+    csv file named <csv_in_file_name>.
+    <club> provides a method of passing values prn.
     """
-    with open(infile, 'r') as file_obj:
+    with open(csv_in_file_name, 'r') as file_obj:
         reader = csv.DictReader(file_obj)
         for rec in reader:
             yield func(rec, club)

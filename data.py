@@ -1084,19 +1084,6 @@ def save_db(new_db, outfile, key_list):
             .format(file_obj.name))
 
 
-def dict_write(f, fieldnames, iterable):
-    """
-    Code writen in such a way that <iterable> could be
-    a generator function.
-    """
-    with open(f, 'w') as outfile_obj:
-        print("Opening {} for output...".format(outfile_obj.name))
-        dict_writer = csv.DictWriter(outfile_obj, fieldnames)
-        dict_writer.writeheader()
-        for record in iterable:
-            dict_writer.writerow(record)
-
-
 def data_listed(data, underline_char='=', inline=False):
     """
     Assumes 'data' is a dict with list values.

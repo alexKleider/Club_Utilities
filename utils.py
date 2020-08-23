@@ -776,18 +776,41 @@ def thank_cmd():
                                                             club)
 
 
+def dict_write(f, fieldnames, iterable):
+    """
+    Writes all records received from <iterable> into a new csv
+    file named <f>.  <fieldnames> defines the record keys.
+    Code writen in such a way that <iterable> could be
+    a generator function. (See member.modify_data.)
+    """
+    with open(f, 'w') as outfile_obj:
+        print("Opening {} for output...".format(outfile_obj.name))
+        dict_writer = csv.DictWriter(outfile_obj, fieldnames)
+        dict_writer.writeheader()
+        for record in iterable:
+            dict_writer.writerow(record)
+
+
 def new_db_cmd():
     """
     One time use only:
     Eliminates 'email_only' field from data base.
     """
+    print("!!!! Don't use this command !!!!")
+    print("  ... unless the code has been updated!!!")
+    response = input("Has code been updated? ")
+    if response and response[0] in "Yy":
+        pass
+    else:
+        print("Terminating")
+        sys.exit()
     club = Club()
     setup4new_db(club)
     club.new_fieldnames = [key for key in club.fieldnames if
                                             key != 'email_only']
-    data.dict_write(club.outfile, club.new_fieldnames,
+    dict_write(club.outfile, club.new_fieldnames,
             member.modify_data(club.infile,
-                member.rm_email_only_field,
+                member.rm_email_only_field_func,
                 club))
 
 
