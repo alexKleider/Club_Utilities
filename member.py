@@ -43,7 +43,7 @@ MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | set("h")
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
-MONEY_KEYS = ("dues", "dock", "kayak", "mooring") 
+MONEY_KEYS = ("dues", "dock", "kayak", "mooring")
 MONEY_KEYS_CAPPED = [item.capitalize() for item in MONEY_KEYS]
 FEES_KEYS = MONEY_KEYS[1:]
 MONEY_HEADERS = {
@@ -77,7 +77,7 @@ def traverse_records(infile, custom_funcs, club):
     <custom_funcs> can be a single function or a
     list of functions. These functions typically populate
     attributes of club, an instance of the rbc.Club class.
-    Required club attributes are set up using the 
+    Required club attributes are set up using the
     setup_required_attributes function (see end of module.)
     Also assigns club.fieldnames and club.n_fields which are
     sometimes useful.
@@ -152,7 +152,7 @@ def is_member(record):
     """
     if not record['status']: return True
     stati = get_status_set(record)
-    if stati.intersection(set(NON_MEMBER_SET)): return False 
+    if stati.intersection(set(NON_MEMBER_SET)): return False
     if 'm' in stati: return True
     return True
 
@@ -281,7 +281,7 @@ def add2ms_by_email(record, club):
     name = member_name(record, club)
     email = record['email']
     if not email:
-       email = NO_EMAIL_KEY 
+       email = NO_EMAIL_KEY
     _ = club.ms_by_email.setdefault(email, [])
     club.ms_by_email[email].append(name)
 
@@ -335,7 +335,7 @@ def add2status_data(record, club):
     for status in get_status_set(record):
         _ = club.ms_by_status.setdefault(status, [])
         if status == 'be':
-            club.ms_by_status[status].append(name + 
+            club.ms_by_status[status].append(name +
                 " ({})".format(record['email']))
         else:
             club.ms_by_status[status].append(name)
@@ -416,11 +416,11 @@ def apply_credit2statement(statement, credit):
 
 def apply_credit2record(statement, record):
     """
+    <statement> is a dict with (money key): (dollar amnt)
+    money keys include "total"
+    <record> is modified accordingly (ignoring the 'total' key
     """
-    keys = [key for key in statement.keys() if key != 'total']
-    print("member.py: Keys are {}".format(keys))
-    for key in keys:
-#   for key in [key for key in statement.keys() if key != 'total']:
+    for key in [key for key in statement.keys() if key != 'total']:
         record[key] = int(record[key]) - statement[key]
 
 
@@ -439,7 +439,7 @@ def thank_func(record, club):
         q_mailing(record, club)
     # Still need to move record to new db
 
-# The next two functions add entries to club.new_db 
+# The next two functions add entries to club.new_db
 
 def update_db_re_payment_func(record, club):
     """
@@ -460,7 +460,7 @@ def update_db_apply_charges_func(record, club):
     pass
 
 # .. above two functions write to new db with updated information.
-# The next function changes the db!!
+# The next two function change the db!!
 
 
 def rm_email_only_field_func(record, club):
@@ -472,6 +472,16 @@ def rm_email_only_field_func(record, club):
     for key in club.new_fieldnames:
         new_record[key] = record[key]
     return new_record
+
+def credit_payment_func(record, club):
+    """
+    Returns the <record>, modified by crediting payment(s)
+    specified in club.statement_data
+    """
+    name = member_name(record, club)
+    if name in club.statement_data.keys():
+        apply_credit2record(club.statement_data[name], record)
+    return record
 
 
 def modify_data(csv_in_file_name, func, club):
@@ -702,7 +712,7 @@ def add2list4web(record, club):
     if "be" in stati:
         line = line + " (bad email!)"
         club.errors.append(line)
-    if is_member(record): 
+    if is_member(record):
         first_letter = record['last'][:1]
         if first_letter != club.first_letter:
 #           print("changing first letter from {} to {}"
@@ -721,7 +731,7 @@ def add2list4web(record, club):
     if is_honorary_member(record):
         club.honorary.append(line)
         club.nhonorary += 1
-                
+
 
 def dues_and_fees(record, club):
     """
@@ -808,7 +818,7 @@ def add_dues_fees2new_db_func(record, club):
 ##### Next group of methods deal with sending out mailings. #######
 # Clients must set up the following attributes of the 'club' parameter
 # typically an instance of the Membership class:
-#    email, letter, json_data, 
+#    email, letter, json_data,
 
 def append_email(record, club):
     """
@@ -878,11 +888,12 @@ def q_mailing(record, club):
 
 def prepare_mailing(club):
     """
-    Only client of this method is the utils.prepare_mailing_cmd
-    which uses command line args to assign attributes to club.
+    Clients of this method: utils.prepare_mailing_cmd
+                            utils.thank_cmd
+    Both use utils.prepare4mailing to assign attributes to <club>
     (See Notes/call_flow.)
     """
-    traverse_records(club.input_file_name, 
+    traverse_records(club.input_file_name,
         club.which["funcs"], club)  # 'which' comes from content
 
     # No point in creating a json file if no emails:

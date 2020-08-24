@@ -5,7 +5,7 @@
 """
 Some helper functions developed for the Club/Utils repo but
 which can probably be of service in other contexts so a hard
-link to it also appears in ~/PyLib.
+link to it also appears in ~/PyLib. ***
 """
 
 import os
@@ -34,7 +34,7 @@ def get_first_friday_of_month(date):
 #               .format(first_friday.weekday()))
         if first_friday.weekday() == n_friday:
             return first_friday
-    
+
 
 def next_first_friday(today= datetime.date.today()):
     n_friday = 4

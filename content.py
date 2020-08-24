@@ -33,7 +33,7 @@ Other items:
 
 Printing Letters:
 Both the printer and the windowed envelope being used must be taken
-into consideration. 
+into consideration.
 """
 
 import helpers
@@ -156,7 +156,7 @@ All the best!
     correction = """
 You recently received a statement of dues for the upcoming
 ({}) Club year. I believe the total was in error and the
-corrected amount is indicated below.  You can pay it any 
+corrected amount is indicated below.  You can pay it any
 time although it isn't due until June.
 
 If you have reason to believe this is in error, please let
@@ -177,7 +177,7 @@ summer.
 
 A statement of your dues (+/- fees) for the upcoming ({}) Club
 year appears bellow.  (If you've any reason to believe that
-our accounting might be in error, please let us know[1].) 
+our accounting might be in error, please let us know[1].)
 If the total is zero (or negative) you're all paid up (or more
 than paid up) for the upcoming year and we thank you.
 {{extra}}""".format(helpers.next_club_year()),
@@ -192,7 +192,7 @@ This mailing is going out to all members so everyone can know
 where they stand whether already paid up or not.
 
 (If you've any reason to believe that our accounting might be
-in error, please let it be known[1].) 
+in error, please let it be known[1].)
 
 Details are as follows:
 {{extra}}""".format(helpers.this_club_year()),
@@ -203,7 +203,7 @@ The new ({}) Club year has begun. Please send in your dues
 PO Box 248, Bolinas, CA 94924.
 
 (If you've any reason to believe that our accounting might be
-in error, please let it be known[1].) 
+in error, please let it be known[1].)
 
 Details are as follows:
 {{extra}}""".format(helpers.this_club_year()),
@@ -228,7 +228,7 @@ Club records indicate that your dues (+/- other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
 (If you've any reason to believe that our accounting might be in
-error, please let us know[1].) 
+error, please let us know[1].)
 
 Please pay promptly; we'd hate to loose you as a member.
 
@@ -241,7 +241,7 @@ Club records indicate that your dues (+/- other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
 (If you've any reason to believe that our accounting might be in
-error, please let us know[1].) 
+error, please let us know[1].)
 
 Please pay promptly; we'd hate to loose you as a member.
 
@@ -419,7 +419,7 @@ Thank you for your services.
 
 
 post_scripts = dict(
-    
+
     at_request_of_secretary = (
     """ Sent at the request of {}, Secretary"""
         .format(rbc.Club.SECRETARY)),
@@ -445,7 +445,7 @@ the check in order to prevent any confusion.""",
 
     )
 
-authors_DOCSTRING = """   ## NOTE ## 
+authors_DOCSTRING = """   ## NOTE ##
 A "Sender:" field, determined by the --mta is added to each email at
 the time it is sent.  The value of the 'email' field is entered into
 the 'From: ' header of the email. A "reply2" field is also available.
@@ -547,10 +547,10 @@ authors = dict(  # from
 
 content_types = dict(  # which_letter
     ### If a 'salutation' key/value is provied for any of the
-    ### following, the value will be used as the salutation 
+    ### following, the value will be used as the salutation
     ### instead of a 'Dear {first} {last},' line.
     ### The first 4 listed values for each are used for first
-    ### stage formatting. 
+    ### stage formatting.
     for_testing = {
         "subject": "This is a test.",
         "from": authors["ak"],

@@ -6,10 +6,10 @@
 # Originally called ck_data.py
 Renamed data.py because it deals with reading data files:
     specifically the non csv (SPoT) files.
-To avoid cross import problem, the class Club requires 
+To avoid cross import problem, the class Club requires
 a module of its own.
 
-Provides automated access to the 
+Provides automated access to the
 Bolinas Rod and Boat Club's data files:
 ... those identified by the constants ending in "SPoT".
 Motivated by the desire to have a way of checking for data integrity,
@@ -99,7 +99,7 @@ def get_gmail_record(g_rec):
         g_email= g_email,
         groups= group_membership,
         )
-    
+
 
 def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
                             muttalias='~/.muttalias'):
@@ -125,7 +125,7 @@ def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
                 ret.append(entry)
     with open(out_file, 'w') as file_obj:
         file_obj.write('\n'.join(ret))
-    
+
 
 def gather_contacts_data(club):
     """
@@ -143,8 +143,8 @@ def gather_contacts_data(club):
         each a set of "names" of contacts sharing that group membership.
     """
     club.gmail_by_name = dict()  # => string
-    club.groups_by_name = dict()  # => set 
-    
+    club.groups_by_name = dict()  # => set
+
     club.g_by_email = dict() # >set of names
     club.g_by_group = dict() # >set of names
 
@@ -328,7 +328,7 @@ def gather_applicant_data(in_file,
             if include_sponsors:
                 line2add = "{}: [{}]".format(name, sponsors[name])
             if include_dates and include_sponsors:
-                line2add = ("{}: {}; [{}]" 
+                line2add = ("{}: {}; [{}]"
                             .format(name, parts, sponsors[name]))
             applicants[status].append(line2add)
 
@@ -525,7 +525,7 @@ def display_statement_data(statement_data):
     Returns a readable (multiline string) version of
     <statement_data> which is expected to be a dict of dicts:
     First level keys are names.
-    Second level keys are dues/fee categories (incl 'total') 
+    Second level keys are dues/fee categories (incl 'total')
     with values.
     """
     ret = []
@@ -767,7 +767,7 @@ def ck_data(club,
     else:
         print("Found Malformed Records.")
         helpers.add_sub_list("Malformed Records", club.malformed, ret)
-    
+
     # Catch problem cases & change from set to one name for each email.
     dangling_m_emails = []   # email without a name
                              # can't imagine how that could happen
@@ -835,7 +835,7 @@ def ck_data(club,
             print("Found Shared Contact Emails")
             helpers.add_sub_list(
                 "Shared Contact Email(s)", shared_g_emails, ret)
-            remove_unwanted_items(club.g_by_email, 
+            remove_unwanted_items(club.g_by_email,
                             first_parts_only(shared_g_emails),
                                 ignore_keyerror=False)
         else:
@@ -850,7 +850,7 @@ def ck_data(club,
 #       print("Members w status: {}".format(repr(members_w_status)))
         for key in members_w_status:
 #           print("Adding members by stati")
-            helpers.add_sub_list(key, 
+            helpers.add_sub_list(key,
                 sorted([entry for entry in club.ms_by_status[key]]),
                 ret,
                 underline_char="-")
@@ -885,14 +885,14 @@ def ck_data(club,
         except KeyError:
             non_member_contacts.append("{} ({})"
                     .format(g_email, g))
-     
+
     # Compare results gleened from  files:
     # 'extra_fees_info' and 'a_applicants
 #   for key in a_applicants:
 #       print(key)
 #       for entry in a_applicants[key]:
 #           print(repr(entry))
-    
+
     # Check that gmail contacts' "groups" match membership data:
 ######  Following code could be refactored, perhaps /w Walrus!!#####
     m_applicants = set()
@@ -927,7 +927,7 @@ def ck_data(club,
 #       print()
 
     g_members = club.g_by_group[club.MEMBER_GROUP]
-    g_applicants = club.g_by_group[club.APPLICANT_GROUP] 
+    g_applicants = club.g_by_group[club.APPLICANT_GROUP]
     keys = [key for key in club.ms_by_status.keys()]
 #   temp_ret = []
     for key in keys:
@@ -953,7 +953,7 @@ def ck_data(club,
                 non_member_contacts, ret)
     else:
         ok.append('No contacts that are not members.')
-            
+
     ## Now check fees: mem list vs extra fees SPoT
     # Keep in mind that after payment amounts won't match
     not_matching_notice = ''
@@ -974,7 +974,7 @@ def ck_data(club,
             ret.append(repr(club.ms_by_fee_category))
     else:
         ok.append("No fees by category problem.")
-        
+
 
     if (extra_fees_info[club.NAME_KEY] !=
             club.fee_category_by_m):
@@ -1045,7 +1045,7 @@ def restore_fees(club):
         <club.name_set>   a set used as a check
         <club.errors>
     The <club.errors> list is populated by names that are found
-    in the <fees_json_file> but not in the <membership_csv_file>. 
+    in the <fees_json_file> but not in the <membership_csv_file>.
     Also listed will be any members still owing.
     Other warnings may also appear.
     """
@@ -1059,13 +1059,13 @@ def restore_fees(club):
     by_name = gather_extra_fees_data(club.infile)[Club.NAME_KEY]
     club.extra_fee_names = set([key for key in by_name.keys()])
     err_code = member.traverse_records(club.infile,(
-        member.populate_non0balance_func, 
+        member.populate_non0balance_func,
         member.populate_name_set_func,
         member.add_dues_fees2new_db_func,
         ), club)
     names_not_members = club.extra_fee_names - club.name_set
     if names_not_members:
-        warning = "Not all in extra fees listing are members!" 
+        warning = "Not all in extra fees listing are members!"
         print(warning)
         club.errors.append(warning)
         for name in names_not_members:
@@ -1159,7 +1159,7 @@ def list_mooring_data(extra_fees_spot):
 #       ["{} - {}".format(datum[0], datum[1]) for datum in mooring_data])
         ["{0} - {1}".format(*datum) for datum in mooring_data])
 
-    
+
 def test_list_mooring():
     return list_mooring_data(Club.EXTRA_FEES_SPoT )
 
@@ -1201,7 +1201,7 @@ def test_applicants_incl_expired():
     ret.append("\nApplicants...")
     ret.extend(applicants)
     return ret
-    
+
 
 def ck_all():
     n = 0
@@ -1216,10 +1216,10 @@ def ck_all():
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
-#   test_list_mooring()    
+#   test_list_mooring()
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
 
 #   test_ck_data("2check")
-   
+
 

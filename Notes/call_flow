@@ -119,3 +119,24 @@ labels =>
 
 envelopes =>
 
+thank => thank_cmd ==>
+    initiates club and
+    assigns
+        club.inline
+          & .thank_file
+    calls member.traverse(thank_file ..  /w member.add2statement_data
+    assigns club.statement_data_keys (names of those in thank_file)
+    calls prepare4mailing(club):
+       assigns
+            club.owing_only (boolean)
+                .which (defaults to "thank"
+                .lpr
+                .email  } templates
+                .letter }
+                .dir4letters
+                .attachment, .cc, .bcc, 
+                .inline
+                .json_data = []
+        checks dir4letters and json_file
+
+

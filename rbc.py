@@ -91,7 +91,7 @@ class Club(object):
         self.pattern = '{last}, {first}'
 #       self.json_data = []
         self.previous_name = ''              # } Used to
-        self.previous_name_tuple = ('', '')  # } check 
+        self.previous_name_tuple = ('', '')  # } check
         self.first_letter = ''               # } ordering.
 
 
@@ -180,5 +180,5 @@ class Club(object):
 
 ### I believe methods can all be redacted. ###
 ### They are implemented elsewhere: mostly in data.py
-### 
+###
 ####  End of Club class declaration.

@@ -2,7 +2,7 @@
 
 # File: utils.py
 
-# After any changes to the docstring, 
+# After any changes to the docstring,
 # the following contstants may need to be changed:
 #     TOP_QUOTE_LINE     } These facilitate preparing
 #     USAGE_LINE                } a response to the
@@ -70,7 +70,7 @@ Options:
                 the MEMBERSHIP_SPoT attribute of the Club class.
   --ia   include address/demographic data  } These pertain
   --id   include meeting dates             } to applicant
-  --is   include sponsors                  } reports. 
+  --is   include sponsors                  } reports.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   -p <printer>  Deals with printer variablility; ensures correct
@@ -101,7 +101,7 @@ Options:
                                     [default: 95]
   --which <letter>  Specifies type/subject of mailing.
   -x <file>  Used by commands not in use. (Expect redaction)
-  -X <fees_spot>  Extra Fees data file. 
+  -X <fees_spot>  Extra Fees data file.
 
 Commands:
     When run without a command, suggests ways of getting help.
@@ -114,7 +114,7 @@ Commands:
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
-    stati: Returns a listing of stati (entries in 'status' field.) 
+    stati: Returns a listing of stati (entries in 'status' field.)
         | -a  Applicants only will be shown.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
@@ -365,7 +365,7 @@ class A5160(object):
     # width of the labels :
     n_chars_per_field = 23
     #             /------left_margin (spaces before 1st field in row)
-    #             |  /----between 1st and 2nd 
+    #             |  /----between 1st and 2nd
     #             |  |  /--between 2nd & 3rd
     #             |  |  |   # These numbers refer to the room to be
     #             v  v  v   # left before and between the labels.
@@ -544,7 +544,7 @@ def setup_for_stati(club):
         club.applicant_spot = Club.APPLICANT_SPoT
     if not club.sponsor_file:
         club.sponsor_file = Club.SPONSORS_SPoT
- 
+
 
 def report_cmd():
     club = Club()
@@ -573,7 +573,7 @@ def zeros_cmd():
     club = Club()
     club.zeros = []
     club.nulls = []
-    err_code = member.traverse_records(infile, 
+    err_code = member.traverse_records(infile,
                 [member.get_zeros_and_nulls,],
                 club)
     res = ["Nulls:",
@@ -769,11 +769,15 @@ def thank_cmd():
 #   print(member.get_statement_data(club.statement_data, club))
     prepare4mailing(club)
     club.input_file_name = club.thank_file
-    member.prepare_mailing(club) ## => thank_func, 
+    member.prepare_mailing(club) ## => thank_func,
     # Done with thanking; Must now update DB.
     setup4new_db(club)
-    data.modify_data(club.infile, [member.update_db_re_payment_func,],
-                                                            club)
+    dict_write(club.outfile,
+            club.fieldnames,
+            member.modify_data(club.infile,
+                            member.credit_payment_func,
+                            club)
+                )
 
 
 def dict_write(f, fieldnames, iterable):
@@ -933,7 +937,7 @@ def restore_fees_cmd():
     Repopulates the club's master list with the ANNUAL_DUES constant
     and any fees being charged as specified in the file specified by
     'args['<extra_fees.json>']'.
-    The -i <membership_file> is not changed. 
+    The -i <membership_file> is not changed.
     If '-o <temp_membership_file>' is specified, output goes there,
     if not, output goes to a file named by concatenating 'new_' with
     the name of the input file.
@@ -1022,7 +1026,7 @@ def wip_cmd():
 ## Plan to redact the next two functions in favour of using
 ## the Python mailing modules instead of msmtp and mutt.
 ## For the time being the Python modules are being used
-## when sending via Easydns.com but msmtp is still being 
+## when sending via Easydns.com but msmtp is still being
 ## used when gmail is the MTA.
 
 def smtp_send(recipients, message):
@@ -1041,7 +1045,7 @@ def smtp_send(recipients, message):
     cmd_args = ["msmtp", "-a", MSMTP_ACCOUNT, ]
     for recipient in recipients:
         cmd_args.append(recipient)
-    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
+    p = subprocess.run(cmd_args, stdout=subprocess.PIPE,
         input=message, encoding='utf-8')
     if p.returncode:
         print("Error: {} ({})".format(
@@ -1060,7 +1064,7 @@ def mutt_send(recipient, subject, body, attachments=None):
             list2attach.append(path2attach)
         cmd_args.extend(list2attach)
     cmd_args.extend([ "--", recipient])
-    p = subprocess.run(cmd_args, stdout=subprocess.PIPE, 
+    p = subprocess.run(cmd_args, stdout=subprocess.PIPE,
         input=body, encoding='utf-8')
     if p.returncode:
         print("Error: {} ({})".format(
@@ -1071,7 +1075,7 @@ if __name__ == "__main__":
 #   print(args)
 
     if args["?"]:
-        doc_lines = __doc__.split('\n') 
+        doc_lines = __doc__.split('\n')
         print('\n'.join(doc_lines[
             (USAGE_LINE - TOP_QUOTE_LINE)
             :
@@ -1129,8 +1133,8 @@ if __name__ == "__main__":
             .format(args['-i'], args['-o']))
         output(labels_cmd())
     elif args["envelopes"]:
-        # destination is specified within Club 
-        # method print_custom_envelopes() which is called 
+        # destination is specified within Club
+        # method print_custom_envelopes() which is called
         # by print_statement_envelopes()
         print("""Printing envelopes...
     addresses sourced from '{}'
@@ -1152,4 +1156,4 @@ NOTE = """
 emailing_cmd()
     uses Club.traverse_records(infile,
         club.send_attachment(args["-i"]))
-"""        
+"""
