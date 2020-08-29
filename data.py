@@ -62,7 +62,9 @@ def gather_membership_data(club):
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
         (member.add2email_data,
         member.add2fee_data,
-        member.add2status_data,
+        member.add2stati_by_m,
+        member.add2ms_by_status,
+        member.increment_napplicants,
         member.add2malformed,  ),
         club)
     if err_code:
@@ -723,7 +725,6 @@ def ck_applicants_cmd():
 
 
 def ck_data(club,
-            report_status=True,
             fee_details=False):
     """
     Check integrity/consistency of of the Club's data bases:
@@ -737,9 +738,6 @@ def ck_data(club,
     Data in each of the 2nd and 4th are compared with
     the first and checked.
     Returns a report in the form of an array of lines.
-    <report_status> parameter, if set to False, abreviates
-    the output by not including the listing of members who
-    have 'status' entries.
     <fee_details> if set to True extends the output to include
     any discrepencies between what's billed each year vs what is
     still owed; expected after payments begin to come in.
@@ -840,21 +838,6 @@ def ck_data(club,
                                 ignore_keyerror=False)
         else:
             assert(False)
-
-    # Provide listing of those with 'stati':
-    if report_status:
-        ret.extend(["",
-                    "Members /w 'status' Content",
-                    '==========================='])
-        members_w_status = sorted(club.ms_by_status.keys())
-#       print("Members w status: {}".format(repr(members_w_status)))
-        for key in members_w_status:
-#           print("Adding members by stati")
-            helpers.add_sub_list(key,
-                sorted([entry for entry in club.ms_by_status[key]]),
-                ret,
-                underline_char="-")
-
 
     # Compare gmail vs memlist emails and then memlist vs gmail
     # now that both listings have names rather than sets of names:

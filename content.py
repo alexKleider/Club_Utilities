@@ -281,6 +281,28 @@ To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in the six
 month period beginning the date your application was received.""",
 
+    covid_welcome = """
+As Membership Chair it is my pleasure to welcome you as a new
+applicant for membership in the Bolinas Rod and Boat Club.
+
+The following is part of what used to be the welcoming text
+but unfortunately all meetings have been suspended during the
+pandemic.
+
+'''
+Please come and enjoy the meetings held on the first Fiday of
+each month. Meetings are scheduled to begin at 7:30 pm (except
+for the February special dinner meeting which begins at 6pm.)
+
+To become eligible for membership (and not waste your application
+fee) you must attend a minimum of three meetings with in the six
+month period beginning the date your application was received.
+'''
+
+The three meetings within six month rule has also been suspended
+so not to worry for now about your application expiring.
+Stay safe and let's all hope for more social times in the future!""",
+
     awaiting_vacancy = """
 The Club Executive Committee has, at its last meeting,
 approved your application for Club membership.
@@ -783,6 +805,17 @@ content_types = dict(  # which_letter
         "subject": "Welcome to the Club",
         "from": authors["membership"],
         "body": letter_bodies["new_applicant_welcome"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing_func,),
+        "test": (lambda record: True if
+            (record["status"] and 'a0' in record["status"].split("|"))
+            else False),
+        "e_and_or_p": "one_only",
+        },
+    covid_welcome = {
+        "subject": "Welcome to the Club",
+        "from": authors["membership"],
+        "body": letter_bodies["covid_welcome"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if

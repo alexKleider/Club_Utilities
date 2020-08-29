@@ -33,7 +33,7 @@ ck_data => ck_data_cmd =>
             shared_m_emails
 
 show => show_cmd
-    assign club attributes: 
+    assign club attributes:
         pattern, infile,
         errors,
         members, nmembers,
@@ -73,7 +73,7 @@ payables =>
 
 show_mailing_categories =>
 
-prepare_mailing => prepare_mailing_cmd => 
+prepare_mailing => prepare_mailing_cmd =>
     assign club attributes:
         owing_only << args['--oo']
         lpr << args['-p']
@@ -97,9 +97,9 @@ prepare_mailing => prepare_mailing_cmd =>
         check_dir4letters, check_json_file
     member.prepare_mailing(club)
         traverse_records applying 'funcs' specified in content.py
-            eg: 
+            eg:
                 member.assign_statement2extra
-                member.std_mailing_func, 
+                member.std_mailing_func,
 
 
 
@@ -134,7 +134,7 @@ thank => thank_cmd ==>
                 .email  } templates
                 .letter }
                 .dir4letters
-                .attachment, .cc, .bcc, 
+                .attachment, .cc, .bcc,
                 .inline
                 .json_data = []
         checks dir4letters and json_file

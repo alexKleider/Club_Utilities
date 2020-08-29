@@ -307,7 +307,8 @@ def add2email_data(record, club):
 def add2stati_by_m(record, club):
     if not record["status"]:
         return
-    stati_by_m[member_name(record, club)] = get_status_set(record)
+    club.stati_by_m[
+        member_name(record, club)] = get_status_set(record)
 
 
 def add2ms_by_status(record, club):
@@ -315,17 +316,18 @@ def add2ms_by_status(record, club):
         return
     stati = get_status_set(record)
     for status in stati:
-        _ = club.ms_by_status.setdefault('status', [])
-        club.ms_by_status['status'].append(record_name(record))
+        _ = club.ms_by_status.setdefault(status, [])
+        club.ms_by_status[status].append(member_name(record, club))
 
 
+redacted = '''
 def add2status_data(record, club):
     """
     Populates club.ms_by_status: lists of members keyed by status.
     Also populates club.stati_my_m if attribute exists...
     and increments club.napplicants if attribute exists.
-    BEING REDACTED in favour of add2stati_by_m, add2ms_by_stati
-    and incriment_napplicants.
+    BEING REDACTED in favour of add2stati_by_m, add2ms_by_status
+    and increment_napplicants.
     """
     if not record["status"]:
         return
@@ -342,6 +344,7 @@ def add2status_data(record, club):
         if hasattr(club, 'stati_by_m'):
             _ = club.stati_by_m.setdefault(name, set())
             club.stati_by_m[name].add(status)
+'''
 
 
 def add2fee_data(record, club):
@@ -507,35 +510,34 @@ def show_stati(club):
         a SEPARATOR separated listing of all stati to be included
     See client: utils.stati_cmd().
     """
-    print("Debug: mode is set to '{}'.".format(club.mode))
+    print("Debug: stati2show is set to '{}'."
+                        .format(club.stati2show))
     print("Preparing listing of stati.")
-    err_code = traverse_records(club.infile,
-                                    add2status_data,
-                                    club)
+    err_code = traverse_records(club.infile, [
+                                    add2stati_by_m,
+                                    add2ms_by_status,
+                                    increment_napplicants,
+                                    ],     club)
     if not club.ms_by_status:
         return ["Found No Entries with 'Status' Content." ]
     ret = []
-    if club.mode == 'all':
-        stati2show = STATI
-    elif club.mode == 'applicants_only':
-        stati2show = APPLICANT_STATI
-    else:
-        try:
-            stati2sshow = club.mode.split(SEPARATOR)
-        except AttributeError:
-            print(
-            'Bad "mode" parameter ({}) provided to stati function.'
-                .format(mode))
-            print('Must exit!')
-            raise
-            sys.exit()
+#   else:
+#       try:
+#           stati2sshow = club.mode.split(SEPARATOR)
+#       except AttributeError:
+#           print(
+#           'Bad "mode" parameter ({}) provided to stati function.'
+#               .format(mode))
+#           print('Must exit!')
+#           raise
+#           sys.exit()
     keys = [k for k in club.ms_by_status.keys()]
     keys.sort()
 #   print(keys)
 
     do_it_once = True
     for key in keys:
-        if key in stati2show:
+        if key in sorted(club.stati2show):
             sub_header = STATUS_KEY_VALUES[key]
             values = sorted(club.ms_by_status[key])
             if key.startswith('a'):
@@ -679,11 +681,11 @@ def get_payables(record, club):
                 line_negative.append("{:<5}{:>4d}".format(
                     key, amount))
     if line_positive:
-        line = ("{:<26}".format(name)
+        line = ("{:<30}".format(name)
                     + ', '.join(line_positive))
         club.still_owing.append(line)
     if line_negative:
-        line = ("{:<26}".format(name)
+        line = ("{:<30}".format(name)
                     + ', '.join(line_negative))
         club.advance_payments.append(line)
 
@@ -1030,11 +1032,14 @@ prerequisites = {
         'club.email_by_m = {}',
         'club.ms_by_email = {}',
         ],
-    add2status_data: [
+    add2ms_by_status: [
         'club.ms_by_status = {}',
-        'club.napplicants = 0',
-        'club.stati_by_m = {}',
         ],
+#   add2status_data: [
+#       'club.ms_by_status = {}',
+#       'club.napplicants = 0',
+#       'club.stati_by_m = {}',
+#       ],
     add2fee_data: [
         'club.fee_category_by_m = {}',
         'club.ms_by_fee_category = {}',
@@ -1089,9 +1094,9 @@ prerequisites = {
     add2statement_data: [
         'club.statement_data = {}',
         ],
-    add2status_data: [
-        'club.ms_by_status = {}',
-        ],
+#   add2status_data: [
+#       'club.ms_by_status = {}',
+#       ],
     }
 
 

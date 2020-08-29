@@ -24,7 +24,7 @@ Usage:
   ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O -a --ia --id --is -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O --ia --id --is --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -45,7 +45,6 @@ Usage:
 Options:
   -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
-  -a  re 'stati' comand: show only applicants.
   -A <app_spot>  Applicant data file.
   --bcc <bcc>   Comma separated listing of bcc recipients
   --cc <cc>   Comma separated listing of cc recipients
@@ -73,8 +72,11 @@ Options:
   --is   include sponsors                  } reports.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
-  -p <printer>  Deals with printer variablility; ensures correct
-        alignment of text when printing letters. [default: X6505_e1]
+  --mode <mode>   In stati command:
+                    If not specified, all stati are reported.
+                    | --mode applicants_only : only applicants are reported
+                    | --mode <member.SEPARATOR separated list of stati>
+                    to report.
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account
                 akg       my gmail account
@@ -87,7 +89,10 @@ Options:
   -P <params>  This option will probably be redacted since old
             methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
-  -s    Report status in 'ck_data' command.
+  -p <printer>  Deals with printer variablility; ensures correct
+        alignment of text when printing letters. [default: X6505_e1]
+  -s <stati>     Report only the stati listed (separated by 
+            member.SEPARATOR.
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --separator <separator>  A string. [default: \F]
   --subject <subject>  The subject line of an email.
@@ -108,14 +113,18 @@ Commands:
     ck_data: Checks all the club's data bases for consistency.
         Assumes (user must assert) a fresh export of the gmail
         contacts list. Options:
-        | -s  Report stati.
         | -d  Include fee inconsistencies (which are expected
         when some have paid.)
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
     stati: Returns a listing of stati (entries in 'status' field.)
-        | -a  Applicants only will be shown.
+        <mode> if set can be 'applicants' (Applicants only will be
+            shown) or a member.SEPARATOR separated set of stati
+            (indicating which stati to show.)
+        May also include any combination of --ia, --im, --is to 
+        include adress/demographics, meeting dates &/or sponsors
+        for applicants.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with an 's' status
@@ -418,7 +427,6 @@ def ck_data_cmd():
     confirm_file_up_to_date(club.CONTACTS_SPoT)
     output("\n".join(
                 data.ck_data(club,
-                    report_status=args['-s'],
                     fee_details=args['-d'])
                      ))
 
@@ -467,11 +475,12 @@ def report(club):
     Checks both the applicant SPoT and the main data base.
     """
     err_code = member.traverse_records(club.infile,
-            [member.add2status_data,
+            [member.add2stati_by_m,
+            member.add2ms_by_status,
             member.increment_nmembers,
             member.increment_napplicants,
             ], club)
-    ap_set_w_dates_by_status = (
+    ap_set_by_status = (
         data.gather_applicant_data(
             club.applicant_spot,
             include_dates=True,
@@ -481,9 +490,9 @@ def report(club):
     for key in ap_listing:      # } error checking only;
       if key[0]=='a':           # } not required if data match.
         # Only deal with applicants.
-        if len(ap_listing[key]) != len(ap_set_w_dates_by_status[key]):
+        if len(ap_listing[key]) != len(ap_set_by_status[key]):
             print("!!! {} != {} !!!"
-              .format(ap_listing[key], ap_set_w_dates_by_status[key]))
+              .format(ap_listing[key], ap_set_by_status[key]))
 
     report = []
     helpers.add_header2list("Membership Report (prepared {})"
@@ -493,12 +502,12 @@ def report(club):
     report.append('Club membership currently stands at {}.'
                     .format(club.nmembers))
 
-    if ap_set_w_dates_by_status:
+    if ap_set_by_status:
         helpers.add_header2list(
             "Applicants ({} in number, with meeting dates & sponsors listed)"
                     .format(club.napplicants),
             report, underline_char='=', extra_line=True)
-        report.extend(member.show_by_status(ap_set_w_dates_by_status))
+        report.extend(member.show_by_status(ap_set_by_status))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
                 .format(len(club.ms_by_status['r'])))
@@ -531,13 +540,21 @@ def report(club):
     return report
 
 
-def setup_for_stati(club):
+def setup4stati(club):
     club.infile = args["-i"]
     club.applicant_spot = args['-A']
     club.sponsor_file = args['-S']
     club.include_addresses = args['--ia']
     club.include_dates = args['--id']
     club.include_sponsors = args['--is']
+    mode = args['--mode']
+    if mode:
+        if 'applic' in mode:
+            club.stati2show = set(member.APPLICANT_STATI)
+        else:
+            club.stati2show = set(mode.split(member.SEPARATOR))
+    else:
+        club.stati2show = set(member.STATI)
     if not club.infile:
         club.infile = Club.MEMBERSHIP_SPoT
     if not club.applicant_spot:
@@ -548,18 +565,14 @@ def setup_for_stati(club):
 
 def report_cmd():
     club = Club()
-    setup_for_stati(club)
+    setup4stati(club)
     print("Preparing Membership Report ...")
     output('\n'.join(report(club)))
 
 
 def stati_cmd():
     club = Club()
-    setup_for_stati(club)
-    if args['-a']:
-        club.mode = 'applicants_only'
-    else:
-        club.mode = 'all'
+    setup4stati(club)
     output('\n'.join(member.show_stati(club)))
 
 
@@ -571,8 +584,6 @@ def zeros_cmd():
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     club = Club()
-    club.zeros = []
-    club.nulls = []
     err_code = member.traverse_records(infile,
                 [member.get_zeros_and_nulls,],
                 club)
