@@ -72,11 +72,12 @@ Options:
   --is   include sponsors                  } reports.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
-  --mode <mode>   In stati command:
+  --mode <mode>   In stati command signals stati to show:
                     If not specified, all stati are reported.
-                    | --mode applicants_only : only applicants are reported
-                    | --mode <member.SEPARATOR separated list of stati>
-                    to report.
+                    | --mode <any string beginning with 'applic'>:
+                    only applicants are reported
+                    | --mode <member.SEPARATOR separated list of
+                    stati>: only report stati listed.
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account
                 akg       my gmail account
@@ -91,10 +92,10 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Deals with printer variablility; ensures correct
         alignment of text when printing letters. [default: X6505_e1]
-  -s <stati>     Report only the stati listed (separated by 
+  -s <stati>     Report only the stati listed (separated by
             member.SEPARATOR.
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
-  --separator <separator>  A string. [default: \F]
+  --separator <separator>  A string. [default: \f]
   --subject <subject>  The subject line of an email.
   -t <2thank>  A csv file in same format as memlist.csv showing
             recent payments.  Input for thank_cmd.
@@ -122,7 +123,7 @@ Commands:
         <mode> if set can be 'applicants' (Applicants only will be
             shown) or a member.SEPARATOR separated set of stati
             (indicating which stati to show.)
-        May also include any combination of --ia, --im, --is to 
+        May also include any combination of --ia, --im, --is to
         include adress/demographics, meeting dates &/or sponsors
         for applicants.
     usps: Creates a csv file containing names and addresses of
@@ -212,17 +213,17 @@ import Bashmail.send
 from rbc import Club
 
 # Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE = 12      #} These facilitate preparing
-USAGE_LINE = 22     #} response to the
-OPTIONS_LINE = 44   #} 'utils.py ?' command.
+TOP_QUOTE_LINE = 12  # } These facilitate preparing
+USAGE_LINE = 22      # } response to the
+OPTIONS_LINE = 44    # } 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
-MIN_TIME_TO_SLEEP = 1   #} Seconds between
-MAX_TIME_TO_SLEEP = 5   #} email postings.
+MIN_TIME_TO_SLEEP = 1   # } Seconds between
+MAX_TIME_TO_SLEEP = 5   # } email postings.
 
 
-TEXT = ".txt"  #} Used by <extra_charges_cmd>
-CSV = ".csv"   #} command.
+TEXT = ".txt"  # } Used by <extra_charges_cmd>
+CSV = ".csv"   # } command.
 
 TEMP_FILE = "2print.temp"  # see <output> function
 DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
@@ -236,7 +237,7 @@ try:
     max_width = int(args['-w'])
 except ValueError:
     print(
-"Value of '-w' command line argument must be an integer.")
+        "Value of '-w' command line argument must be an integer.")
     sys.exit()
 if args['-O']:
     print("Arguments are...")
@@ -250,8 +251,7 @@ if args['-O']:
         sys.exit()
 
 if args["-p"] not in content.printers.keys():
-    print("Invalid '-p' parameter! '{}'".
-        format(args['-p']))
+    print("Invalid '-p' parameter! '{}'".format(args['-p']))
     sys.exit()
 
 
@@ -260,8 +260,7 @@ def confirm_file_present(file_name):
     Aborts the program if file_name doesn't exist.
     """
     if not os.path.exists(file_name):
-        print("File '{}' expected but not found."
-                    .format(file_name))
+        print("File '{}' expected but not found.".format(file_name))
         sys.exit()
 
 
@@ -270,8 +269,7 @@ def confirm_file_up_to_date(file_name):
     Asks user to confirm that the file is current.
     Used for the gmail contacts.csv file.
     """
-    response = input("Is file '{}' current? "
-                .format(file_name))
+    response = input("Is file '{}' current? ".format(file_name))
     if response and response[0] in "Yy":
         return True
     else:
@@ -291,12 +289,11 @@ def output(data, destination=args["-o"], announce_write=True):
     elif destination == 'printer':
         with open(TEMP_FILE, "w") as fileobj:
             fileobj.write(data)
-            print('Data written to temp file "{}".'
-                .format(fileobj.name))
+            print('Data written to temp file "{}".'.format(fileobj.name))
             subprocess.run(["lpr", TEMP_FILE])
             subprocess.run(["rm", TEMP_FILE])
             print('Temp file "{}" deleted after printing.'
-                .format(fileobj.name))
+                  .format(fileobj.name))
     else:
         with open(destination, "w") as fileobj:
             fileobj.write(data)
@@ -316,9 +313,11 @@ class Dummy(object):
     """ REDACTED
     a Dummy class for use when templates are not required"""
     formatter = ""
+
     @classmethod
     def self_check(cls):  # No need for the sanity check in this case
         pass
+
 
 class E0000(object):
     """
@@ -335,10 +334,10 @@ class E0000(object):
     separation = (34, )
     top_margin = 32
 
-    left_formatter = (" " * separation[0] + "{{:<{}}}"
-        .format(n_chars_per_field))
+    left_formatter = (" " * separation[0] +
+                      "{{:<{}}}".format(n_chars_per_field))
     right_formatter = (" " * separation[0] + "{{:>{}}}"
-        .format(n_chars_per_field))
+                       .format(n_chars_per_field))
     empty_line = ""
 
     @classmethod
@@ -388,10 +387,8 @@ class A5160(object):
 
     empty_label = [""] * n_lines_per_label
 
-    left_formatter = ("{{:<{}}}"
-        .format(n_chars_per_field))
-    right_formatter = ("{{:>{}}}"
-        .format(n_chars_per_field))
+    left_formatter = ("{{:<{}}}".format(n_chars_per_field))
+    right_formatter = ("{{:>{}}}".format(n_chars_per_field))
     empty_line = left_formatter.format(" ")
 
     def __init__(self):
@@ -406,10 +403,11 @@ class A5160(object):
             print("Label designations are incompatable!")
             sys.exit()
 
+
 media = dict(  # keep the classes in a dict
-        e000= E0000,
-        a5160= A5160,
-        )
+             e000=E0000,
+             a5160=A5160,
+             )
 
 
 def ck_data_cmd():
@@ -425,18 +423,15 @@ def ck_data_cmd():
         club.CONTACTS_SPoT = args['-C']
     confirm_file_present(club.CONTACTS_SPoT)
     confirm_file_up_to_date(club.CONTACTS_SPoT)
-    output("\n".join(
-                data.ck_data(club,
-                    fee_details=args['-d'])
-                     ))
+    output("\n".join(data.ck_data(club, fee_details=args['-d'])))
 
 
 def show_cmd():
     club = Club()
-    setup_for_stati(club)
+    setup4stati(club)
     print("Preparing membership listings...")
-    err_code = member.traverse_records(club.infile,
-        (member.add2list4web), club)
+    err_code = member.traverse_records(
+        club.infile, member.add2list4web, club)
 
     ret = ["""FOR MEMBER USE ONLY
 
@@ -447,23 +442,23 @@ BOARD OF THE BRBC.
     """]
     if club.members:
         helpers.add_header2list("Club Members ({} in number as of {})"
-                .format(club.nmembers, helpers.date), ret,
-                underline_char='=', extra_line=True)
+                                .format(club.nmembers, helpers.date),
+                                ret, underline_char='=',
+                                extra_line=True)
         ret.extend(club.members)
     if club.honorary:
         helpers.add_header2list(
             "Honorary Club Members"
-                .format(club.nhonorary, helpers.date),
+            .format(club.nhonorary, helpers.date),
             ret, underline_char='=', extra_line=True)
         ret.extend(club.honorary)
     if club.by_n_meetings:
         header = ("Applicants ({} in number)"
-                                .format(club.napplicants))
+                  .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
         ret.extend(member.show_by_status(club.by_n_meetings))
     output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
-
 
 
 def report(club):
@@ -475,49 +470,49 @@ def report(club):
     Checks both the applicant SPoT and the main data base.
     """
     err_code = member.traverse_records(club.infile,
-            [member.add2stati_by_m,
-            member.add2ms_by_status,
-            member.increment_nmembers,
-            member.increment_napplicants,
-            ], club)
+                                       [member.add2stati_by_m,
+                                        member.add2ms_by_status,
+                                        member.increment_nmembers,
+                                        member.increment_napplicants,
+                                        ], club)
     ap_set_by_status = (
         data.gather_applicant_data(
             club.applicant_spot,
             include_dates=True,
             sponsor_file=club.sponsor_file)["applicants"]
             )
-    ap_listing = club.ms_by_status # } This segment is for
-    for key in ap_listing:      # } error checking only;
-      if key[0]=='a':           # } not required if data match.
-        # Only deal with applicants.
-        if len(ap_listing[key]) != len(ap_set_by_status[key]):
-            print("!!! {} != {} !!!"
-              .format(ap_listing[key], ap_set_by_status[key]))
+    ap_listing = club.ms_by_status  # } This segment is for
+    for key in ap_listing:          # } error checking only;
+        if key[0] == 'a':           # } not required if data match.
+            # Only deal with applicants.
+            if len(ap_listing[key]) != len(ap_set_by_status[key]):
+                print("!!! {} != {} !!!"
+                      .format(ap_listing[key], ap_set_by_status[key]))
 
     report = []
     helpers.add_header2list("Membership Report (prepared {})"
-                                    .format(helpers.date),
-                    report, underline_char='=')
+                            .format(helpers.date),
+                            report, underline_char='=')
     report.append('')
     report.append('Club membership currently stands at {}.'
-                    .format(club.nmembers))
+                  .format(club.nmembers))
 
     if ap_set_by_status:
         helpers.add_header2list(
             "Applicants ({} in number, with meeting dates & sponsors listed)"
-                    .format(club.napplicants),
+            .format(club.napplicants),
             report, underline_char='=', extra_line=True)
         report.extend(member.show_by_status(ap_set_by_status))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
-                .format(len(club.ms_by_status['r'])))
+                  .format(len(club.ms_by_status['r'])))
         report.append('')
         helpers.add_header2list(header, report, underline_char='=')
         for name in club.ms_by_status['r']:
             report.append(name)
 
-    misc_stati = member.show_by_status(club.ms_by_status,
-                                        stati2show="m|w|be|ba".split('|'))
+    misc_stati = member.show_by_status(
+        club.ms_by_status, stati2show="m|w|be|ba".split('|'))
     if misc_stati:
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
@@ -531,12 +526,13 @@ def report(club):
     except FileNotFoundError:
         print('report.addendum not found')
         pass
-    report.extend(['','',
-        "Respectfully submitted by...\n\n",
-        "Alex Kleider, Membership Chair,",
-        "for presentation {}."
+    report.extend(
+        ['', '',
+         "Respectfully submitted by...\n\n",
+         "Alex Kleider, Membership Chair,",
+         "for presentation {}."
          .format(helpers.next_first_friday()),
-        ])
+         ])
     return report
 
 
@@ -547,7 +543,7 @@ def setup4stati(club):
     club.include_addresses = args['--ia']
     club.include_dates = args['--id']
     club.include_sponsors = args['--is']
-    mode = args['--mode']
+    mode = args['--mode']  # signals stati to show
     if mode:
         if 'applic' in mode:
             club.stati2show = set(member.APPLICANT_STATI)
@@ -561,6 +557,11 @@ def setup4stati(club):
         club.applicant_spot = Club.APPLICANT_SPoT
     if not club.sponsor_file:
         club.sponsor_file = Club.SPONSORS_SPoT
+    if club.include_sponsors:
+        club.sponsors = data.get_sponsors(club.sponsor_file)
+    if club.include_dates:
+        club.meeting_dates = data.get_meeting_dates(
+                                        club.applicant_spot)
 
 
 def report_cmd():
@@ -584,14 +585,13 @@ def zeros_cmd():
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
     club = Club()
-    err_code = member.traverse_records(infile,
-                [member.get_zeros_and_nulls,],
-                club)
+    err_code = member.traverse_records(
+        infile, [member.get_zeros_and_nulls, ], club)
     res = ["Nulls:",
-           "======",]
+           "======", ]
     res.extend(club.nulls)
     res.extend(["\nZeros:",
-                  "======",])
+               "======", ])
     res.extend(club.zeros)
     output('\n'.join(res))
 
@@ -613,7 +613,7 @@ def usps_cmd():
                 member.get_bad_emails,
                 ], club)
     print("There are {} members without an email address."
-            .format(len(club.usps_only)))
+          .format(len(club.usps_only)))
     res = []
     header = []
     for key in club.fieldnames:
@@ -629,6 +629,7 @@ def usps_cmd():
     if club.bad_emails:
         res.extend(club.bad_emails)
     return '\n'.join(res)
+
 
 def extra_charges_cmd():
     """
@@ -668,16 +669,17 @@ def payables_cmd():
     club.advance_payments = []
     output = []
     err_code = member.traverse_records(infile,
-                member.get_payables, club)
+                                       member.get_payables,
+                                       club)
     if club.still_owing:
         helpers.add_header2list(
             "Members owing ({} in number)"
-                .format(len(club.still_owing)),
+            .format(len(club.still_owing)),
             output, underline_char='-', extra_line=False)
         if args['-T']:
             tabulated = helpers.tabulate(club.still_owing,
-                                    max_width=max_width,
-                                    separator = '  ')
+                                         max_width=max_width,
+                                         separator='  ')
             output.extend(tabulated)
         else:
             output.extend(club.still_owing)
@@ -687,6 +689,7 @@ def payables_cmd():
                        "---------------------"])
         output.extend(club.advance_payments)
     return '\n'.join(output)
+
 
 def show_mailing_categories_cmd():
     ret = ["Possible choices for the '--which' option are: ", ]
@@ -702,13 +705,13 @@ def prepare4mailing(club):
     if args['--oo']:
         club.owing_only = True
     if not args['--which']:
-        club.which =  content.content_types["thank"]
+        club.which = content.content_types["thank"]
     else:
         club.which = content.content_types[args["--which"]]
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
-                                                club.lpr)
+                                                  club.lpr)
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
     club.input_file_name = args['-i']
@@ -724,12 +727,10 @@ def prepare4mailing(club):
     club.inline = args['-I']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
-        print("Checking for directory '{}'."
-            .format(args["--dir"]))
+        print("Checking for directory '{}'.".format(args["--dir"]))
         club.check_dir4letters(club.dir4letters)
     if club.which["e_and_or_p"] in ("both", "email", "one_only"):
-        print("Checking for file '{}'."
-            .format(club.json_file_name))
+        print("Checking for file '{}'.".format(club.json_file_name))
         club.check_json_file(club.json_file_name)
         club.json_data = []
 
@@ -745,11 +746,10 @@ def prepare_mailing_cmd():
     prepare4mailing(club)
     # ***** Done with configuration & checks ...
     member.prepare_mailing(club)  # Populates club.dir4letters
-                                # and moves json_data to file.
+    #                               and moves json_data to file.
     print("""prepare_mailing completed..
     ..next step might be the following:
-    $ zip -r 4Michael {}"""
-        .format(args["--dir"]))
+    $ zip -r 4Michael {}""".format(args["--dir"]))
 
 
 def setup4new_db(club):
@@ -775,20 +775,21 @@ def thank_cmd():
     if not club.thank_file:
         club.thank_file = Club.THANK_FILE
     member.traverse_records(club.thank_file,
-        [member.add2statement_data,], club)
+                            [member.add2statement_data, ],
+                            club)
     club.statement_data_keys = club.statement_data.keys()
 #   print(member.get_statement_data(club.statement_data, club))
     prepare4mailing(club)
     club.input_file_name = club.thank_file
-    member.prepare_mailing(club) ## => thank_func,
+    member.prepare_mailing(club)  # => thank_func,
     # Done with thanking; Must now update DB.
     setup4new_db(club)
     dict_write(club.outfile,
-            club.fieldnames,
-            member.modify_data(club.infile,
-                            member.credit_payment_func,
-                            club)
-                )
+               club.fieldnames,
+               member.modify_data(club.infile,
+                                  member.credit_payment_func,
+                                  club)
+               )
 
 
 def dict_write(f, fieldnames, iterable):
@@ -822,11 +823,11 @@ def new_db_cmd():
     club = Club()
     setup4new_db(club)
     club.new_fieldnames = [key for key in club.fieldnames if
-                                            key != 'email_only']
+                           key != 'email_only']
     dict_write(club.outfile, club.new_fieldnames,
-            member.modify_data(club.infile,
-                member.rm_email_only_field_func,
-                club))
+               member.modify_data(club.infile,
+                                  member.rm_email_only_field_func,
+                                  club))
 
 
 def display_emails_cmd(json_file):
@@ -854,11 +855,10 @@ def ck_lesssecureapps_setting():
     """
     if args['--mta'].endswith('g'):
         print(             # Check lesssecureapps setting:
-        'Has "https://myaccount.google.com/lesssecureapps" been set')
+            'Has "https://myaccount.google.com/lesssecureapps" been set')
         response = input(
-        '.. and have you respoinded affirmatively to the warning? ')
-        if ((not response) or
-        not (response[0] in 'Yy')):
+            '.. and have you respoinded affirmatively to the warning? ')
+        if ((not response) or not (response[0] in 'Yy')):
             print("Emailing won't work until that's done.")
             sys.exit()
 
@@ -879,7 +879,7 @@ def send_emails_cmd():
         print("Using Bash to dispatch emails.")
     else:
         print('"{}" is an unrecognized "--emailer" option.'
-            .format(emailer))
+              .format(emailer))
         sys.exit(1)
     wait = mta.endswith('g')
     j_file = args["-j"]
@@ -902,17 +902,17 @@ def print_letters_cmd():
         completed = subprocess.run(["lpr", path_name])
         if completed.returncode:
             failures.append("Problem ({}) printing '{}'."
-                .format(completed.returncode, path_name))
+                            .format(completed.returncode, path_name))
         else:
             successes.append("{}".format(path_name))
     if successes:
         successes = ("Following letters printed successfully:\n"
-            + successes)
+                     + successes)
     else:
         successes = ["No file was printed successfully."]
     if failures:
         failures = ("Following letters failed to print:\n"
-            + failures)
+                    + failures)
     else:
         failures = ["All files printed successfully."]
     successes = '\n'.join(successes)
@@ -936,8 +936,8 @@ def emailing_cmd():
     with open(args["-c"], "r") as content_file:
         club.content = content_file.read()
     err_code = member.traverse_records(args["-i"],
-        member.send_attachment,
-        club=club)
+                                       member.send_attachment,
+                                       club=club)
 
 
 def restore_fees_cmd():
@@ -953,8 +953,8 @@ def restore_fees_cmd():
     if not, output goes to a file named by concatenating 'new_' with
     the name of the input file.
     """
-    ### During implementation, be sure to ...                     ###
-    ### Take into consideration the possibility of credit values. ###
+    # ## During implementation, be sure to ...                     ###
+    # ## Take into consideration the possibility of credit values. ###
     club = Club()
     setup4new_db(club)
     data.restore_fees(club)  # Populates club.new_db & club.errors
@@ -962,8 +962,8 @@ def restore_fees_cmd():
     if club.errors:
         output('\n'.join(
                ['Note the following irregularities:',
-                '==================================',]
-                + club.errors), destination=args['-e'])
+                '==================================', ]
+               + club.errors), destination=args['-e'])
 
     if club.still_owing:
         pass
@@ -992,9 +992,9 @@ def fee_intake_totals_cmd():
     output(res)
     if club.invalid_lines and errorfile:
         print('Writing possible errors to "{}".'
-                            .format(errorfile))
+              .format(errorfile))
         output('\n'.join(club.invalid_lines),
-                errorfile, announce_write=False)
+               errorfile, announce_write=False)
 
 
 def labels_cmd():
@@ -1025,20 +1025,20 @@ def wip_cmd():
     applicants = data.get_applicant_data(spot, Club.SPONSORS_SPoT)
     for key in applicants.keys():
         if applicants[key]['dates']:
-            print("{}: Meeting dates '{}'"
-                    .format(key, applicants[key]['dates']))
+            print("{}: Meeting dates {}"
+                  .format(key, applicants[key]['dates']))
         else:
             print("{}: No meetings attended to date."
-                    .format(key))
-        print("\tsponsors are '{}'".format(applicants[key]['sponsors']))
+                  .format(key))
+        print("\tsponsors are {}".format(applicants[key]['sponsors']))
     return
 
 
-## Plan to redact the next two functions in favour of using
-## the Python mailing modules instead of msmtp and mutt.
-## For the time being the Python modules are being used
-## when sending via Easydns.com but msmtp is still being
-## used when gmail is the MTA.
+# # Plan to redact the next two functions in favour of using
+# # the Python mailing modules instead of msmtp and mutt.
+# # For the time being the Python modules are being used
+# # when sending via Easydns.com but msmtp is still being
+# # used when gmail is the MTA.
 
 def smtp_send(recipients, message):
     """
@@ -1057,39 +1057,39 @@ def smtp_send(recipients, message):
     for recipient in recipients:
         cmd_args.append(recipient)
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE,
-        input=message, encoding='utf-8')
+                       input=message, encoding='utf-8')
     if p.returncode:
         print("Error: {} ({})".format(
             p.stdout, recipient))
+
 
 def mutt_send(recipient, subject, body, attachments=None):
     """
     Does the mass e-mailings with attachment(s) which, if
     provided, must be in the form of a list of files.
     """
-    cmd_args = [ "mutt", "-F", args["-F"], ]
+    cmd_args = ["mutt", "-F", args["-F"], ]
     cmd_args.extend(["-s", "{}".format(subject)])
     if attachments:
         list2attach = ['-a']
         for path2attach in attachments:
             list2attach.append(path2attach)
         cmd_args.extend(list2attach)
-    cmd_args.extend([ "--", recipient])
+    cmd_args.extend(["--", recipient])
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE,
-        input=body, encoding='utf-8')
+                       input=body, encoding='utf-8')
     if p.returncode:
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
 
 if __name__ == "__main__":
-#   print(args)
+    #   print(args)
 
     if args["?"]:
         doc_lines = __doc__.split('\n')
         print('\n'.join(doc_lines[
-            (USAGE_LINE - TOP_QUOTE_LINE)
-            :
+            (USAGE_LINE - TOP_QUOTE_LINE):
             (OPTIONS_LINE - TOP_QUOTE_LINE + 2)
             ]))
     elif args["ck_data"]:
@@ -1141,7 +1141,7 @@ if __name__ == "__main__":
         fee_intake_totals_cmd()
     elif args["labels"]:
         print("Printing labels from '{}' to '{}'"
-            .format(args['-i'], args['-o']))
+              .format(args['-i'], args['-o']))
         output(labels_cmd())
     elif args["envelopes"]:
         # destination is specified within Club
@@ -1150,7 +1150,7 @@ if __name__ == "__main__":
         print("""Printing envelopes...
     addresses sourced from '{}'
     with output sent to '{}'"""
-            .format(args['-i'], args['-o']))
+              .format(args['-i'], args['-o']))
         envelopes_cmd()
     elif args["wip"]:
         print("Work in progress command...")
