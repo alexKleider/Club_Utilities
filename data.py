@@ -217,7 +217,7 @@ def parse_applicant_line4dates(line,
             return  # no longer an appliant
     if not status:
         try:
-            status = member.APPLICANT_STATI[l]
+            status = member.APPLICANT_STATI[nparts]
         except IndexError:
             if bad_line_list is not None:
                 bad_line_list.append(
@@ -310,7 +310,7 @@ def gather_applicant_data(in_file,
                     continue  # no longer an appliant
             if not status:
                 try:
-                    status = member.APPLICANT_STATI[l]
+                    status = member.APPLICANT_STATI[nparts]
                 except IndexError:
                     bad_lines.append(
                         "IndexError: {}".format(line))  # got none
@@ -357,7 +357,7 @@ def get_sponsors(infile):
     return ret
 
 
-def get_meeting_dates(infile, club):
+def get_meeting_dates(infile):
     """
     Returns a dict keyed by member name with each value
     being a list of dates of meetings attended.

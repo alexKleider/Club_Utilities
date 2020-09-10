@@ -28,8 +28,8 @@ STATUS_KEY_VALUES = {
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment",
-    "be": "Email on record being rejected",
-    "ba": "Postal address => mail returned",
+    "be": "Email on record being rejected",   # a special status
+    "ba": "Postal address => mail returned",  # a special status
     "h": "Honorary Member",
     "m": "New Member",  # temporary until congratulatory letter.
     'r': "Retiring/Giving up Club Membership",
@@ -37,6 +37,7 @@ STATUS_KEY_VALUES = {
     "w": "Fees being waived",  # a rarely applied special status
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
+SPECIAL_NOTICE_STATI = set(STATI[6:8])
 APPLICANT_STATI = STATI[:6]
 APPLICANT_SET = set(STATI[:6])
 MISCELANEOUS_STATI = "m|w|be"
@@ -53,8 +54,11 @@ MONEY_HEADERS = {
     "kayak":   "Kayak Storage.",
     "total":   "    TOTAL.........",
     }
-demografic_f = (
-    "{first},{last},{address},{town},{state},{postal_code},{country}")
+demographic_f = (
+    "{first} {last}, {address}, {town}, {state}, {postal_code}")
+demographic_f_w_phone_and_email = (
+    "{first} {last} [{phone}] {address}, {town}, {state}, " +
+    "{postal_code} [{email}]")
 
 # The following is no longer used...
 # we get around the problem in a different way..
@@ -325,6 +329,25 @@ def add2ms_by_status(record, club):
         club.ms_by_status[status].append(member_name(record, club))
 
 
+def add2special_notices_by_m(record, club):
+    stati = get_status_set(record) & SPECIAL_NOTICE_STATI
+    if stati:
+        special_notices = []
+        if 'be' in stati:
+            special_notices.append( '({})'.format(record['email']))
+        if 'ba' in stati:
+            special_notices.append(
+                " ({address}, {town}, {state} {postal_code})"
+                .format(**record))
+        club.special_notices_by_m[member_name(record, club)] = (
+                            ', '.join(special_notices))
+
+
+def add2demographics(record, club):
+    club.demographics[member_name(record, club)] = (
+        demographic_f_w_phone_and_email.format(**record))
+
+
 redacted = '''
 def add2status_data(record, club):
     """
@@ -364,10 +387,10 @@ def add2fee_data(record, club):
         try:
             fee = int(record[key])
         except ValueError:
-            print("'{}' => ValueError".format(record[key]))
+            # print("'{}' => ValueError".format(record[key]))
             continue
         capped = key.capitalize()
-        print("'{}' <=> {}".format(name, capped))
+        # print("'{}' <=> {}".format(name, capped))
         if hasattr(club, 'ms_by_fee_category'):
             _ = club.ms_by_fee_category.setdefault(capped, [])
             club.ms_by_fee_category[capped].append((name, fee))
@@ -498,61 +521,6 @@ def modify_data(csv_in_file_name, func, club):
         reader = csv.DictReader(file_obj)
         for rec in reader:
             yield func(rec, club)
-
-
-def show_stati(club):
-    """
-    Returns a list of strings (that can be '\n'.join(ed))
-    The default is to include every status found.
-    <mode> parameter must be one of the following:
-        'all'                   }  both self
-        'applicants_only'       } explanatory
-        a SEPARATOR separated listing of all stati to be included
-    See client: utils.stati_cmd().
-    """
-    print("Debug: stati2show is set to '{}'.".format(
-                                        club.stati2show))
-    print("Preparing listing of stati.")
-    err_code = traverse_records(club.infile, [
-                                    add2stati_by_m,
-                                    add2ms_by_status,
-                                    increment_napplicants,
-                                    ],     club)
-    if not club.ms_by_status:
-        return ["Found No Entries with 'Status' Content."]
-    ret = []
-#   else:
-#       try:
-#           stati2sshow = club.mode.split(SEPARATOR)
-#       except AttributeError:
-#           print(
-#           'Bad "mode" parameter ({}) provided to stati function.'
-#               .format(mode))
-#           print('Must exit!')
-#           raise
-#           sys.exit()
-    keys = [k for k in club.ms_by_status.keys()]
-    keys.sort()
-#   print(keys)
-
-    do_it_once = True
-    for key in keys:
-        if key in sorted(club.stati2show):
-            sub_header = STATUS_KEY_VALUES[key]
-            values = sorted(club.ms_by_status[key])
-            if key.startswith('a'):
-                if do_it_once:
-                    helpers.add_header2list("Applicants", ret,
-                                            underline_char='=')
-                    do_it_once = False
-                helpers.add_header2list(sub_header, ret,
-                                        underline_char='-')
-            else:
-                helpers.add_header2list(sub_header, ret,
-                                        underline_char='=')
-            for value in values:
-                ret.append("    {}".format(value))
-    return ret
 
 
 def show_by_status(by_status, stati2show=STATI):
@@ -791,8 +759,8 @@ def populate_non0balance_func(record, club):
         try:
             money = int(record[key])
         except ValueError:
-            club.errors.append("{}: {} {} => ValueError.".format(
-                           member_name(record), key, record[key]))
+            #club.errors.append("{}: {} {} => ValueError.".format(
+            #              member_name(record), key, record[key]))
             money = 0
         if money:
             _ = club.non0balance.get(name, {})
@@ -1035,6 +1003,9 @@ prerequisites = {
     #       'club.napplicants = 0',
     #       'club.stati_by_m = {}',
     #       ],
+    add2demographics: [
+        'club.demographics = {}',
+        ],
     add2fee_data: [
         'club.fee_category_by_m = {}',
         'club.ms_by_fee_category = {}',
@@ -1085,6 +1056,9 @@ prerequisites = {
         ],
     update_db_apply_charges_func: [
         "club.new_db = {}",
+        ],
+    add2special_notices_by_m: [
+        "club.special_notices_by_m = {}",
         ],
     add2statement_data: [
         'club.statement_data = {}',

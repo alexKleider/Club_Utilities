@@ -21,7 +21,7 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -d -s -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O --ia --id --is --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
@@ -543,14 +543,17 @@ def setup4stati(club):
     club.include_addresses = args['--ia']
     club.include_dates = args['--id']
     club.include_sponsors = args['--is']
-    mode = args['--mode']  # signals stati to show
-    if mode:
-        if 'applic' in mode:
+    whch2show = args['--mode']  # signals stati to show
+    if whch2show:
+        if 'applic' in whch2show:
             club.stati2show = set(member.APPLICANT_STATI)
         else:
-            club.stati2show = set(mode.split(member.SEPARATOR))
+            club.stati2show = set(whch2show.split(member.SEPARATOR))
     else:
         club.stati2show = set(member.STATI)
+    if not club.stati2show.issubset(member.STATI):
+        print('Invalid <--mode> parameter provided.')
+        sys.exit()
     if not club.infile:
         club.infile = Club.MEMBERSHIP_SPoT
     if not club.applicant_spot:
@@ -561,7 +564,68 @@ def setup4stati(club):
         club.sponsors = data.get_sponsors(club.sponsor_file)
     if club.include_dates:
         club.meeting_dates = data.get_meeting_dates(
-                                        club.applicant_spot)
+                                    club.applicant_spot)
+    err_code = member.traverse_records(club.infile, [
+                                    member.add2stati_by_m,
+                                    member.add2demographics,
+                                    member.add2ms_by_status,
+                                    member.increment_napplicants,
+                                    member.add2special_notices_by_m,
+                                    ],     club)
+
+
+def show_stati(club):
+    """
+    Returns a list of strings (that can be '\n'.join(ed))
+    The default is to include every status found.
+    <mode> parameter must be one of the following:
+        'all'                   }  both self
+        'applicants_only'       } explanatory
+        a SEPARATOR separated listing of all stati to be included
+    See client: utils.stati_cmd().
+    """
+    # print("Debug: stati2show is set to '{}'.".format(
+    #                                   club.stati2show))
+    # print("Preparing listing of stati.")
+    if not club.ms_by_status:
+        return ["Found No Entries with 'Status' Content."]
+    ret = []
+    applicant_header_written = False
+    stati2show = sorted(club.stati2show & club.ms_by_status.keys())
+    special_notice_members = set(club.special_notices_by_m.keys())
+    for status in stati2show:
+        if status.startswith('a'):
+            if not applicant_header_written:
+                helpers.add_header2list(
+                    "Applicants ({} in number)"
+                        .format(club.napplicants),
+                    ret, underline_char='=')
+                applicant_header_written = True
+            helpers.add_header2list(member.STATUS_KEY_VALUES[status],
+                                    ret, underline_char='-')
+            for applicant in sorted(club.ms_by_status[status]):
+                if club.include_addresses:
+                    ret.append(club.demographics[applicant])
+                else:
+                    ret.append(applicant)
+                if club.include_dates:
+                    pass
+                if club.include_sponsors:
+                    pass
+        else:
+            helpers.add_header2list(member.STATUS_KEY_VALUES[status],
+                                    ret, underline_char='=')
+            for status_holder in sorted(club.ms_by_status[status]):
+                if club.include_addresses:
+                    ret.append(club.demographics[status_holder])
+                else:
+                    if status_holder in special_notice_members:
+                        ret.append('{} {}'.format(
+                            status_holder,
+                            club.special_notices_by_m[status_holder]))
+                    else:
+                        ret.append(status_holder)
+    return ret
 
 
 def report_cmd():
@@ -574,7 +638,8 @@ def report_cmd():
 def stati_cmd():
     club = Club()
     setup4stati(club)
-    output('\n'.join(member.show_stati(club)))
+    print("Preparing 'Stati' Report ...")
+    output('\n'.join(show_stati(club)))
 
 
 def zeros_cmd():

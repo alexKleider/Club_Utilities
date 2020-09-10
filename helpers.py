@@ -78,6 +78,18 @@ def next_club_year():
         return ("{}-{}".format(this_year, this_year + 1))
 
 
+def expand_date(date_string):
+    if len(date_string) == 6:
+        year = '20{}'.format(date_string[:2])
+    elif len(date_string) == 8:
+        year = date_string[:4]
+    else:
+        print("Error: len(date_string) must be 6 or 8.")
+        return 'BAD DATE'
+    return '{}-{}-{}'.format(year, date_string[-4:-2],
+                             date_string[-2:])
+
+
 def get_datestamp():
     """
     Returns a string depicting the current date (for postal letters.)
