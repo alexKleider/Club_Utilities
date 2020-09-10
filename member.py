@@ -675,6 +675,9 @@ def add2list4web(record, club):
     if "be" in stati:
         line = line + " (bad email!)"
         club.errors.append(line)
+    if "ba" in stati:
+        line = line + " (mail returned!)"
+        club.errors.append(line)
     if is_member(record):
         first_letter = record['last'][:1]
         if first_letter != club.first_letter:

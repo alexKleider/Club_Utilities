@@ -352,7 +352,8 @@ def get_sponsors(infile):
             names = parts[0].split()
             name = "{}, {}".format(names[1], names[0])
             sponsors = parts[1].split(',')
-            sponsors = [sponsor.strip() for sponsor in sponsors]
+            sponsors = ', '.join(
+                [sponsor.strip() for sponsor in sponsors])
             ret[name] = sponsors
     return ret
 
@@ -363,6 +364,22 @@ def get_meeting_dates(infile):
     being a list of dates of meetings attended.
     """
     ret = {}
+    with open(infile, 'r') as file_obj:
+        print("Reading {}...".format(file_obj.name))
+        for line in file_obj:
+            res = parse_applicant_line4dates(line)
+            #                                 ,
+            #                                 bad_line_list,
+            #                                 expired_applicant_list,
+            #                                 former_applicant_list)
+            if res:
+                ret[res[0]] =  ', '.join(
+                    [helpers.expand_date(date) for date in res[1]])
+
+    # if sponsor_file:
+    #    sponsors = gather_sponsors(sponsor_file)
+    #    for key in sponsors:
+    #        ret[key]['sponsors'] = sponsors[key]
     return ret
 
 

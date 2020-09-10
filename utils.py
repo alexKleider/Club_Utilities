@@ -573,7 +573,6 @@ def setup4stati(club):
                                     member.add2special_notices_by_m,
                                     ],     club)
 
-
 def show_stati(club):
     """
     Returns a list of strings (that can be '\n'.join(ed))
@@ -609,8 +608,14 @@ def show_stati(club):
                 else:
                     ret.append(applicant)
                 if club.include_dates:
-                    pass
+                    if club.meeting_dates[applicant]:
+                        ret.append('\tMeeting(s): {}'.
+                                   format(club.meeting_dates[applicant]))
+                    # else:
+                    #     ret.append('\tNo meetings yet.')
                 if club.include_sponsors:
+                    ret.append('\tSponsors: {}'.
+                               format(club.sponsors[applicant]))
                     pass
         else:
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],
