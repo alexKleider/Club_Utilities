@@ -428,10 +428,12 @@ def ck_data_cmd():
 
 def show_cmd():
     club = Club()
-    setup4stati(club)
+    assign_applicant_files(club)
     print("Preparing membership listings...")
     err_code = member.traverse_records(
-        club.infile, member.add2list4web, club)
+        club.infile,
+        [member.add2list4web,
+        ], club)
 
     ret = ["""FOR MEMBER USE ONLY
 
@@ -456,7 +458,11 @@ BOARD OF THE BRBC.
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
-        ret.extend(member.show_by_status(club.by_n_meetings))
+        # ####
+        club.sponsors = data.get_sponsors(club.sponsor_file)
+        club.meeting_dates = data.get_meeting_dates(
+                                    club.applicant_spot)
+        ret.extend(member.show_by_status(club.by_n_meetings, club=club))
     output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
 
@@ -536,14 +542,38 @@ def report(club):
     return report
 
 
+def collect_stati_data(club):
+    err_code = member.traverse_records(club.infile, [
+                                    member.add2stati_by_m,
+                                    member.add2demographics,
+                                    member.add2ms_by_status,
+                                    member.increment_napplicants,
+#                                   member.add2special_notices_by_m,
+                                    ],     club)
+
+
+def assign_applicant_files(club):
+    club.applicant_spot = args['-A']
+    if not club.applicant_spot:
+        club.applicant_spot = Club.APPLICANT_SPoT
+    club.sponsor_file = args['-S']
+    if not club.sponsor_file:
+        club.sponsor_file = Club.SPONSORS_SPoT
+
+
 def setup4stati(club):
     club.infile = args["-i"]
-    club.applicant_spot = args['-A']
-    club.sponsor_file = args['-S']
-    club.include_addresses = args['--ia']
-    club.include_dates = args['--id']
-    club.include_sponsors = args['--is']
-    whch2show = args['--mode']  # signals stati to show
+    if not club.infile:
+        club.infile = Club.MEMBERSHIP_SPoT
+    assign_applicant_files(club)
+    if not hasattr(club, "include_addresses"):
+        club.include_addresses = args['--ia']
+    if not hasattr(club, "include_dates"):
+        club.include_dates = args['--id']
+    if not hasattr(club, "include_sponsors"):
+        club.include_sponsors = args['--is']
+    if not hasattr(club, "which2show"):
+        whch2show = args['--mode']  # signals stati to show
     if whch2show:
         if 'applic' in whch2show:
             club.stati2show = set(member.APPLICANT_STATI)
@@ -554,87 +584,91 @@ def setup4stati(club):
     if not club.stati2show.issubset(member.STATI):
         print('Invalid <--mode> parameter provided.')
         sys.exit()
-    if not club.infile:
-        club.infile = Club.MEMBERSHIP_SPoT
-    if not club.applicant_spot:
-        club.applicant_spot = Club.APPLICANT_SPoT
-    if not club.sponsor_file:
-        club.sponsor_file = Club.SPONSORS_SPoT
     if club.include_sponsors:
         club.sponsors = data.get_sponsors(club.sponsor_file)
     if club.include_dates:
         club.meeting_dates = data.get_meeting_dates(
                                     club.applicant_spot)
-    err_code = member.traverse_records(club.infile, [
-                                    member.add2stati_by_m,
-                                    member.add2demographics,
-                                    member.add2ms_by_status,
-                                    member.increment_napplicants,
-                                    member.add2special_notices_by_m,
-                                    ],     club)
+
 
 def show_stati(club):
     """
     Returns a list of strings (that can be '\n'.join(ed))
-    The default is to include every status found.
-    <mode> parameter must be one of the following:
-        'all'                   }  both self
-        'applicants_only'       } explanatory
-        a SEPARATOR separated listing of all stati to be included
-    See client: utils.stati_cmd().
+    Assumes existance of following club attributes:
+        ms_by_status
+            +/- stati2show
+        +/- napplicants
+        +/- demographics
+        +/- meeting_dates
+        +/- sponsors
+        +/- special_notices_by_m
+    See client: stati_cmd() (+/- show_cmd and others?)
     """
-    # print("Debug: stati2show is set to '{}'.".format(
-    #                                   club.stati2show))
-    # print("Preparing listing of stati.")
+    print("Using show_stati function (in utils.py)")
     if not club.ms_by_status:
         return ["Found No Entries with 'Status' Content."]
     ret = []
     applicant_header_written = False
-    stati2show = sorted(club.stati2show & club.ms_by_status.keys())
-    special_notice_members = set(club.special_notices_by_m.keys())
+    if hasattr(club, 'stati2show'):
+        stati2show = sorted(club.stati2show & club.ms_by_status.keys())
+    else:
+        stati2show = sorted(club.ms_by_status.keys())
+    if hasattr(club, 'special_notices_by_m'):
+        special_notice_members = set(club.special_notices_by_m.keys())
+    else:
+        special_notice_members = None
     for status in stati2show:
+        if hasattr(club, 'napplicants'):
+            applicant_header = ("Applicants ({} in number)"
+                                .format(club.napplicants))
+        else:
+            applicant_header = "Applicants"
         if status.startswith('a'):
             if not applicant_header_written:
                 helpers.add_header2list(
-                    "Applicants ({} in number)"
-                        .format(club.napplicants),
+                    applicant_header,
                     ret, underline_char='=')
                 applicant_header_written = True
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
             for applicant in sorted(club.ms_by_status[status]):
-                if club.include_addresses:
+                if (hasattr(club, 'demographics')
+                    and club.include_addresses
+                    ):
                     ret.append(club.demographics[applicant])
                 else:
                     ret.append(applicant)
-                if club.include_dates:
+                if hasattr(club, 'meeting_dates'):
                     if club.meeting_dates[applicant]:
-                        ret.append('\tMeeting(s): {}'.
+                        ret.append('\tDates(s) attended: {}'.
                                    format(club.meeting_dates[applicant]))
                     # else:
                     #     ret.append('\tNo meetings yet.')
-                if club.include_sponsors:
+                if hasattr(club, 'sponsors'):
                     ret.append('\tSponsors: {}'.
                                format(club.sponsors[applicant]))
-                    pass
         else:
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],
                                     ret, underline_char='=')
             for status_holder in sorted(club.ms_by_status[status]):
-                if club.include_addresses:
+                if hasattr(club, 'demographics'):
                     ret.append(club.demographics[status_holder])
+#                   line = (club.demographics[status_holder])
+#                   if (special_notice_members and
+#                       status_holder in special_notice_members
+#                       ):
+#                       line = ('{} {}'.format(
+#                           line,
+#                           club.special_notices_by_m[status_holder]))
+#                   ret.append(line)
                 else:
-                    if status_holder in special_notice_members:
-                        ret.append('{} {}'.format(
-                            status_holder,
-                            club.special_notices_by_m[status_holder]))
-                    else:
-                        ret.append(status_holder)
+                    ret.append(status_holder)
     return ret
 
 
 def report_cmd():
     club = Club()
+    collect_stati_data(club)
     setup4stati(club)
     print("Preparing Membership Report ...")
     output('\n'.join(report(club)))
@@ -642,6 +676,7 @@ def report_cmd():
 
 def stati_cmd():
     club = Club()
+    collect_stati_data(club)
     setup4stati(club)
     print("Preparing 'Stati' Report ...")
     output('\n'.join(show_stati(club)))
@@ -847,8 +882,8 @@ def thank_cmd():
     member.traverse_records(club.thank_file,
                             [member.add2statement_data, ],
                             club)
+    # To implememnt: maintain a record of those thanked...
     club.statement_data_keys = club.statement_data.keys()
-#   print(member.get_statement_data(club.statement_data, club))
     prepare4mailing(club)
     club.input_file_name = club.thank_file
     member.prepare_mailing(club)  # => thank_func,

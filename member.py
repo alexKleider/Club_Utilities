@@ -28,8 +28,8 @@ STATUS_KEY_VALUES = {
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment",
-    "be": "Email on record being rejected",   # a special status
-    "ba": "Postal address => mail returned",  # a special status
+    "be": "Email on record being rejected",   # => special notice
+    "ba": "Postal address => mail returned",  # => special notice
     "h": "Honorary Member",
     "m": "New Member",  # temporary until congratulatory letter.
     'r': "Retiring/Giving up Club Membership",
@@ -309,8 +309,7 @@ def add2email_data(record, club):
             _ = club.ms_by_email.setdefault(email, [])
             club.ms_by_email[email].append(name)
     else:
-        if hasattr(club, "without_email"):
-            club.without_email.append(name)
+        club.without_email.append(name)
 
 
 def add2stati_by_m(record, club):
@@ -329,23 +328,31 @@ def add2ms_by_status(record, club):
         club.ms_by_status[status].append(member_name(record, club))
 
 
+redacted = '''
 def add2special_notices_by_m(record, club):
+    """
+    Support 'bad email' and 'mail returned' notices.
+    """
+    return
     stati = get_status_set(record) & SPECIAL_NOTICE_STATI
     if stati:
         special_notices = []
         if 'be' in stati:
-            special_notices.append( '({})'.format(record['email']))
+            special_notices.append('({})'.format(record['email']))
         if 'ba' in stati:
             special_notices.append(
                 " ({address}, {town}, {state} {postal_code})"
                 .format(**record))
         club.special_notices_by_m[member_name(record, club)] = (
                             ', '.join(special_notices))
+        print("Appending '{}' to special_notices for {}."
+              .format(special_notices, member_name(record, club)))
+'''
 
 
 def add2demographics(record, club):
     club.demographics[member_name(record, club)] = (
-        demographic_f_w_phone_and_email.format(**record))
+        name_w_demographics(record, club))
 
 
 redacted = '''
@@ -522,14 +529,23 @@ def modify_data(csv_in_file_name, func, club):
         for rec in reader:
             yield func(rec, club)
 
+def get_name_key_from_line(line):
+    parts = line.split()
+    return "{1}, {0}".format(*parts)
 
-def show_by_status(by_status, stati2show=STATI):
+
+def show_by_status(by_status,
+                   stati2show=STATI,
+                   club=None):
     """
     <by_status> is a dict keyed by status.
     Returns a list of strings (which can be '\n'.join(ed))
     consisting of Keys as headers with values listed beneath each key.
     Second parameter can be used to restrict which stati to display.
     """
+    if club:
+        date_keys = club.meeting_dates.keys()
+        sponsor_keys = club.sponsors.keys()
     ret = []
     stati = by_status.keys()
     for status in sorted(stati):
@@ -538,6 +554,14 @@ def show_by_status(by_status, stati2show=STATI):
                                     ret, underline_char='-')
             for line in by_status[status]:
                 ret.append(line)
+                if club:
+                    key = get_name_key_from_line(line)
+                    if key in date_keys:
+                        if club.meeting_dates[key]:
+                            ret.append("\tDate(s) attended: {}".format(
+                                            club.meeting_dates[key]))
+                    if key in sponsor_keys:
+                        ret.append("\tSponsors: {}".format(club.sponsors[key]))
     return ret
 
 
@@ -658,14 +682,7 @@ def get_payables(record, club):
         club.advance_payments.append(line)
 
 
-def add2list4web(record, club):
-    """
-    Populates club.members, club.stati, club.applicants,
-    club.inductees and club.errors (initially empty lists)
-    and increments club.nmembers, club.napplicants
-    and club.ninductees (initially set to 0.)
-    <club> is an instance of rbc.Club.
-    """
+def name_w_demographics(record, club):
     stati = get_status_set(record)
     if not record['email']:
         record['email'] = 'no email'
@@ -674,10 +691,20 @@ def add2list4web(record, club):
     line = club.PATTERN4WEB.format(**record)
     if "be" in stati:
         line = line + " (bad email!)"
-        club.errors.append(line)
     if "ba" in stati:
         line = line + " (mail returned!)"
-        club.errors.append(line)
+    return line
+
+
+def add2list4web(record, club):
+    """
+    Populates club.members, club.stati, club.applicants,
+    club.inductees and club.errors (initially empty lists)
+    and increments club.nmembers, club.napplicants
+    and club.ninductees (initially set to 0.)
+    <club> is an instance of rbc.Club.
+    """
+    line = name_w_demographics(record, club)
     if is_member(record):
         first_letter = record['last'][:1]
         if first_letter != club.first_letter:
@@ -685,16 +712,18 @@ def add2list4web(record, club):
             club.members.append("")
         club.nmembers += 1
         club.members.append(line)
+    if is_honorary_member(record):
+        club.honorary.append(line)
+        club.nhonorary += 1
     if is_applicant(record):
+        stati = get_status_set(record)
         status = stati & APPLICANT_SET
         assert len(status) == 1
         club.napplicants += 1
         s = status.pop()
         _ = club.by_n_meetings.setdefault(s, [])
         club.by_n_meetings[s].append(line)
-    if is_honorary_member(record):
-        club.honorary.append(line)
-        club.nhonorary += 1
+        # add metadata here (dates of meetings; sponsors)
 
 
 def dues_and_fees(record, club):
@@ -762,8 +791,6 @@ def populate_non0balance_func(record, club):
         try:
             money = int(record[key])
         except ValueError:
-            #club.errors.append("{}: {} {} => ValueError.".format(
-            #              member_name(record), key, record[key]))
             money = 0
         if money:
             _ = club.non0balance.get(name, {})
@@ -997,6 +1024,7 @@ prerequisites = {
     add2email_data: [
         'club.email_by_m = {}',
         'club.ms_by_email = {}',
+        'club.without_email = []',
         ],
     add2ms_by_status: [
         'club.ms_by_status = {}',
@@ -1060,9 +1088,9 @@ prerequisites = {
     update_db_apply_charges_func: [
         "club.new_db = {}",
         ],
-    add2special_notices_by_m: [
-        "club.special_notices_by_m = {}",
-        ],
+#   add2special_notices_by_m: [
+#       "club.special_notices_by_m = {}",
+#       ],
     add2statement_data: [
         'club.statement_data = {}',
         ],

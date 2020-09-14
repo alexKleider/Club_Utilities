@@ -815,7 +815,7 @@ content_types = dict(  # which_letter
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: (
             True if
-            (record["status"] and 'a0' in record["status"].split("|"))
+            (record["status"] and 'a' in record["status"].split("|"))
             else False)),
         "e_and_or_p": "one_only",
         },

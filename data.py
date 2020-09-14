@@ -47,26 +47,14 @@ def gather_membership_data(club):
     member.add2fee_data function and
     both 'email' collectors.
     """
-    club.email_by_m = {}  # m => str (email)
-    club.stati_by_m = {}  # m => set (stati)
-    # lists (no need to sort since members and fees are ordered):
-    club.fee_category_by_m = {}  # m => list (fee_categories /w fee)
-    club.ms_by_email = {}  # email => list (members)
-    club.ms_by_status = {}  # status => list (members)
-    club.ms_by_fee_category = {}  # fee_category =>
-    #                               list (members or (name, amt))
-    club.malformed = []  # populated by member.add2malformed
-    club.without_email = []  # populated by member.add2email_data
-    club.napplicants = 0  # incremented prn by member.add2ms_by_status
-
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
                                        (member.add2email_data,
                                         member.add2fee_data,
                                         member.add2stati_by_m,
                                         member.add2ms_by_status,
                                         member.increment_napplicants,
-                                        member.add2malformed, ),
-                                       club)
+                                        member.add2malformed,
+                                        ), club)
     if err_code:
         print("Error condition! #{}".format(err_code))
 
@@ -373,7 +361,7 @@ def get_meeting_dates(infile):
             #                                 expired_applicant_list,
             #                                 former_applicant_list)
             if res:
-                ret[res[0]] =  ', '.join(
+                ret[res[0]] = ', '.join(
                     [helpers.expand_date(date) for date in res[1]])
 
     # if sponsor_file:
@@ -952,8 +940,9 @@ def ck_data(club,
         ok.append("No applicant problem.")
 
     if non_member_contacts:
-        helpers.add_sub_list("Contacts that are Not Members",
-                             non_member_contacts, ret)
+        helpers.add_sub_list(
+            "Contacts without a corresponding Member email",
+            non_member_contacts, ret)
     else:
         ok.append('No contacts that are not members.')
 
