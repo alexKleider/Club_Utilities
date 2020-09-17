@@ -14,7 +14,7 @@ for each category of json file used.
 import json
 import sys
 
-if len(sys.argv) < 2 :
+if len(sys.argv) < 2:
     print("No argument(s) provided!")
     sys.exit()
 
@@ -22,7 +22,7 @@ for f in sys.argv[1:]:
     collector = []
     components = f.split(".")
     if ((len(components) != 2)
-    or (components[1] != 'json')):
+            or (components[1] != 'json')):
         print("Argument(s) malformed- must be ____.json")
         sys.exit()
     out_file = ".".join((components[0], 'txt'))
@@ -35,7 +35,7 @@ for f in sys.argv[1:]:
         if isinstance(data[key], str):
             value = data[key]
             collector.append("{:<27} {}"
-                .format(key, value))
+                             .format(key, value))
         else:
             collector.append(key)
             for s in data[key]:

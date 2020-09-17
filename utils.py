@@ -21,7 +21,7 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [ ? | --help | --version]
-  ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O --ia --id --is --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
@@ -31,7 +31,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank [-t <2thank> -I -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
+  ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py print_letters --dir <dir4letters> [-O --separator <separator> -o outfile]
@@ -63,8 +63,6 @@ Options:
             'listing' same format as Data/extra_fees.txt
             'listings' side by side lists (best use landscape mode.)
         [default: table]
-  -I  Inline- output is more horizontal, less vertical.
-           (Pertains mainly to statements. Not used; may be redacted.)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   --ia   include address/demographic data  } These pertain
@@ -255,6 +253,29 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
+def assign_default_files(club, args):
+    if args['-i']:
+        club.infile = args['-i']
+    else:
+        club.infile = Club.MEMBERSHIP_SPoT
+    if args['-A']:
+        club.applicant_spot = args['-A']
+    else:
+        club.applicant_spot = Club.APPLICANT_SPoT
+    if args['-S']:
+        club.sponsor_spot = args['-S']
+    else:
+        club.sponsor_spot = Club.SPONSORS_SPoT
+    if args['-X']:
+        club.extra_fees_spot = args['-X']
+    else:
+        club.extra_fees_spot = Club.EXTRA_FEES_SPoT
+    if args['-C']:
+        club.contacts_spot = args['-C']
+    else:
+        club.contacts_spot = Club.CONTACTS_SPoT
+
+
 def confirm_file_present(file_name):
     """
     Aborts the program if file_name doesn't exist.
@@ -410,30 +431,24 @@ media = dict(  # keep the classes in a dict
              )
 
 
-def ck_data_cmd():
+def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club()
-    if args['-i']:
-        club.MEMBERSHIP_SPoT = args['-i']
-    if args['-A']:
-        club.APPLICANT_SPoT = args['-A']
-    if args['-X']:
-        club.EXTRA_FEES_SPoT = args['-X']
-    if args['-C']:
-        club.CONTACTS_SPoT = args['-C']
+    assign_default_files(club, args)
     confirm_file_present(club.CONTACTS_SPoT)
     confirm_file_up_to_date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])))
 
 
-def show_cmd():
+def show_cmd(args=args):
     club = Club()
-    assign_applicant_files(club)
+    assign_default_files(club, args)
     print("Preparing membership listings...")
     err_code = member.traverse_records(
         club.infile,
         [member.add2list4web,
-        ], club)
+         ],
+        club)
 
     ret = ["""FOR MEMBER USE ONLY
 
@@ -459,7 +474,7 @@ BOARD OF THE BRBC.
                   .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
         # ####
-        club.sponsors = data.get_sponsors(club.sponsor_file)
+        club.sponsors = data.get_sponsors(club.sponsor_spot)
         club.meeting_dates = data.get_meeting_dates(
                                     club.applicant_spot)
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
@@ -543,13 +558,14 @@ def report(club):
 
 
 def collect_stati_data(club):
-    err_code = member.traverse_records(club.infile, [
-                                    member.add2stati_by_m,
-                                    member.add2demographics,
-                                    member.add2ms_by_status,
-                                    member.increment_napplicants,
-#                                   member.add2special_notices_by_m,
-                                    ],     club)
+    err_code = member.traverse_records(
+        club.infile,
+        [member.add2stati_by_m,
+         member.add2demographics,
+         member.add2ms_by_status,
+         member.increment_napplicants,
+         ],
+        club)
 
 
 def assign_applicant_files(club):
@@ -633,8 +649,7 @@ def show_stati(club):
                                     ret, underline_char='-')
             for applicant in sorted(club.ms_by_status[status]):
                 if (hasattr(club, 'demographics')
-                    and club.include_addresses
-                    ):
+                        and club.include_addresses):
                     ret.append(club.demographics[applicant])
                 else:
                     ret.append(applicant)
@@ -666,7 +681,7 @@ def show_stati(club):
     return ret
 
 
-def report_cmd():
+def report_cmd(args=args):
     club = Club()
     collect_stati_data(club)
     setup4stati(club)
@@ -674,7 +689,7 @@ def report_cmd():
     output('\n'.join(report(club)))
 
 
-def stati_cmd():
+def stati_cmd(args=args):
     club = Club()
     collect_stati_data(club)
     setup4stati(club)
@@ -682,7 +697,7 @@ def stati_cmd():
     output('\n'.join(show_stati(club)))
 
 
-def zeros_cmd():
+def zeros_cmd(args=args):
     """
     Reports those with zero vs NIL in fees field.
     """
@@ -701,7 +716,7 @@ def zeros_cmd():
     output('\n'.join(res))
 
 
-def usps_cmd():
+def usps_cmd(args=args):
     """
     Generates a cvs file used by the Secretary to send out minutes.
         first,last,address,town,state,postal_code
@@ -732,11 +747,13 @@ def usps_cmd():
 #   if hasattr(club, 'secretary'):
 #       res.append(club.secretary)
     if club.bad_emails:
+        print("... and {} more with a non functioning email."
+              .format(len(club.bad_emails)))
         res.extend(club.bad_emails)
     return '\n'.join(res)
 
 
-def extra_charges_cmd():
+def extra_charges_cmd(args=args):
     """
     Returns a report of members with extra charges.
     It also can create a json file: specified by the -j option.
@@ -760,7 +777,7 @@ Choose one of the following:        [default: table]
     output(data.extra_charges(club))
 
 
-def payables_cmd():
+def payables_cmd(args=args):
     """
     Sets up club attributes still_owing and advance_payments (both
     of which are lists) and then calls member.get_payables which
@@ -780,7 +797,7 @@ def payables_cmd():
         helpers.add_header2list(
             "Members owing ({} in number)"
             .format(len(club.still_owing)),
-            output, underline_char='-', extra_line=False)
+            output, underline_char='=', extra_line=True)
         if args['-T']:
             tabulated = helpers.tabulate(club.still_owing,
                                          max_width=max_width,
@@ -796,7 +813,7 @@ def payables_cmd():
     return '\n'.join(output)
 
 
-def show_mailing_categories_cmd():
+def show_mailing_categories_cmd(args=args):
     ret = ["Possible choices for the '--which' option are: ", ]
     ret.extend((("\t" + key) for key in content.content_types.keys()))
     output('\n'.join(ret))
@@ -829,7 +846,6 @@ def prepare4mailing(club):
     club.attachment = args['ATTACHMENTS']
     club.cc = args['--cc']
     club.bcc = args['--bcc']
-    club.inline = args['-I']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'.".format(args["--dir"]))
@@ -840,7 +856,7 @@ def prepare4mailing(club):
         club.json_data = []
 
 
-def prepare_mailing_cmd():
+def prepare_mailing_cmd(args=args):
     """
     See description under 'Commands' heading in the docstring.
     Sets up an instance of rbc.Club with necessary attributes and
@@ -873,9 +889,8 @@ def setup4new_db(club):
     club.fieldnames = data.get_fieldnames(club.infile)
 
 
-def thank_cmd():
+def thank_cmd(args=args):
     club = Club()
-    club.inline = args['-I']
     club.thank_file = args["-t"]
     if not club.thank_file:
         club.thank_file = Club.THANK_FILE
@@ -912,7 +927,7 @@ def dict_write(f, fieldnames, iterable):
             dict_writer.writerow(record)
 
 
-def new_db_cmd():
+def new_db_cmd(args=args):
     """
     One time use only:
     Eliminates 'email_only' field from data base.
@@ -935,8 +950,8 @@ def new_db_cmd():
                                   club))
 
 
-def display_emails_cmd(json_file):
-    with open(json_file, 'r') as f_obj:
+def display_emails_cmd(args=args):
+    with open(args['-j'], 'r') as f_obj:
         print('Reading JSON file "{}".'.format(f_obj.name))
         records = json.load(f_obj)
     all_emails = []
@@ -968,7 +983,7 @@ def ck_lesssecureapps_setting():
             sys.exit()
 
 
-def send_emails_cmd():
+def send_emails_cmd(args=args):
     """
     Sends emails prepared by prepare_mailing_cmd.
     See also content.authors_DOCSTRING.
@@ -996,7 +1011,7 @@ def send_emails_cmd():
     emailer(data, mta, include_wait=wait)
 
 
-def print_letters_cmd():
+def print_letters_cmd(args=args):
     """
     Depricated in favour of simply using 'lpr' cmd.
     """
@@ -1026,7 +1041,7 @@ def print_letters_cmd():
     output(report)
 
 
-def emailing_cmd():
+def emailing_cmd(args=args):
     """
     Uses mutt (in member.send_attachment.)
     Sends emails with an attachment.
@@ -1045,7 +1060,7 @@ def emailing_cmd():
                                        club=club)
 
 
-def restore_fees_cmd():
+def restore_fees_cmd(args=args):
     """
     If records are found with balance still outstanding, these are
     reported to errors.  Also reported will be anyone listed as paying
@@ -1080,7 +1095,7 @@ def restore_fees_cmd():
         sys.exit(ret)
 
 
-def fee_intake_totals_cmd():
+def fee_intake_totals_cmd(args=args):
     """
     This command deals with the manual method of entering receipts.
     Eventually this will be deprecated in favour of the thank_cmd
@@ -1102,7 +1117,7 @@ def fee_intake_totals_cmd():
                errorfile, announce_write=False)
 
 
-def labels_cmd():
+def labels_cmd(args=args):
     if args["-P"]:
         medium = media[args["-P"]]
     else:
@@ -1112,7 +1127,7 @@ def labels_cmd():
     return club.get_labels2print(source_file)
 
 
-def envelopes_cmd():
+def envelopes_cmd(args=args):
     if args["-P"]:
         medium = media[args["-P"]]
     else:
@@ -1122,7 +1137,7 @@ def envelopes_cmd():
     club.print_custom_envelopes(source_file)
 
 
-def wip_cmd():
+def wip_cmd(args=args):
     """
     Code under development temporarily housed here.
     """
@@ -1229,7 +1244,7 @@ if __name__ == "__main__":
         thank_cmd()
 #       print("...finished preparing thank you emails and/or letters.")
     elif args['display_emails']:
-        output(display_emails_cmd(args['-j']))
+        output(display_emails_cmd())
     elif args["send_emails"]:
         print("Sending emails...")
         send_emails_cmd()

@@ -89,7 +89,6 @@ class Club(object):
         of the media.
         """
         self.infile = Club.MEMBERSHIP_SPoT
-#       self.json_data = []
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check
         self.first_letter = ''               # } ordering.

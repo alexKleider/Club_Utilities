@@ -223,7 +223,7 @@ def get_usps(record, club):
     postal_code.
     """
     if not record['email']:
-        club.usps_only.append(demographic_f .format(**record))
+        club.usps_only.append(demographic_f.format(**record))
 
 
 def get_bad_emails(record, club):
@@ -528,6 +528,7 @@ def modify_data(csv_in_file_name, func, club):
         reader = csv.DictReader(file_obj)
         for rec in reader:
             yield func(rec, club)
+
 
 def get_name_key_from_line(line):
     parts = line.split()
@@ -1088,9 +1089,6 @@ prerequisites = {
     update_db_apply_charges_func: [
         "club.new_db = {}",
         ],
-#   add2special_notices_by_m: [
-#       "club.special_notices_by_m = {}",
-#       ],
     add2statement_data: [
         'club.statement_data = {}',
         ],
