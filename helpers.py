@@ -23,6 +23,8 @@ s = today.strftime(date_template)
 d = datetime.datetime.strptime(s, date_template)
 date = d.strftime(date_template)
 n_friday = 4
+FORMFEED = chr(ord('L') - 64)  # '\x0c'
+
 
 
 def get_first_friday_of_month(date):

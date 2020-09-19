@@ -254,6 +254,21 @@ risk being removed from the Club's list of members.
 Details are as follows:
 {extra}""",
 
+    covid_final_notice="""
+Club records indicate that you have not yet paid Club dues for the
+current ({}) membership year.  If you no longer wish to be a
+member, no further action is necessary (although we would like to hear
+explicitly if that is your choice,) otherwise, please send in payment
+which must be received before the end of this month if you are to
+remain a member.
+{{extra}}
+If you would like to remain a member but are unable to make payment
+because of financial hardship imposed by the pandemic, please let us
+know; the Executive Committee is very concerned about, and wants to
+consider, any such cases.
+
+Sincerely,""".format(helpers.this_club_year()),
+
     bad_email="""
 Emails sent to you at
     "{email}"
@@ -779,6 +794,23 @@ content_types = dict(  # which_letter
         "test": (lambda record: True if
                  (member.is_member(record) and
                   member.not_paid_up(record) and
+                  not ('w' in record["status"])
+                  and not ('r' in record['status'])
+                  ) else False),
+        "e_and_or_p": "both",
+        },
+    covid_final_notice={
+        "subject": "BR&BC final notice",
+        "from": authors["membership"],
+        "body": letter_bodies["covid_final_notice"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            ),
+        "funcs": (member.assign_statement2extra_func,
+                  member.std_mailing_func),
+        "test": (lambda record: True if
+                 (member.is_member(record) and
+                  member.dues_owing(record) and
                   not ('w' in record["status"])
                   and not ('r' in record['status'])
                   ) else False),

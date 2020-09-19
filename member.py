@@ -566,6 +566,15 @@ def show_by_status(by_status,
     return ret
 
 
+def dues_owing(record, club=None):
+    """
+    Checks if there is a positive balance in the dues field.
+    """
+    if record["dues"] and int(record["dues"]) > 0:
+        return True
+    return False
+
+
 def not_paid_up(record, club=None):
     """
     Checks if there is a positive balance in any of the money fields.
