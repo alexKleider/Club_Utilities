@@ -2,12 +2,6 @@
 
 # File: utils.py
 
-# After any changes to the docstring,
-# the following contstants may need to be changed:
-#     TOP_QUOTE_LINE     } These facilitate preparing
-#     USAGE_LINE                } a response to the
-#     OPTIONS_LINE  } 'utils.py ?' command.
-
 """
 "utils.py" is an utility providing functionality for usage and
 maintanance of the Bolinas Rod and Boat Club membership records.
@@ -24,17 +18,17 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O --ia --id --is --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -D -M -B --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <dir4letters> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <dir4letters> -o <temp_membership_file> -e <error_file>]
+  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
+  ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
-  ./utils.py print_letters --dir <dir4letters> [-O --separator <separator> -o outfile]
+  ./utils.py print_letters --dir <mail_dir> [-O --separator <separator> -o outfile]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
@@ -51,7 +45,7 @@ Options:
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data,
-  -dir <dir4letters>  The directory to be created and/or read
+  -dir <mail_dir>  The directory to be created and/or read
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
             can be written.  [default: stdout]
@@ -65,9 +59,9 @@ Options:
         [default: table]
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
-  --ia   include address/demographic data  } These pertain
-  --id   include meeting dates             } to applicant
-  --is   include sponsors                  } reports.
+  -D   include demographic data  } These pertain
+  -M   include meeting dates     } to applicant
+  -B   include backers/sponsors  } reports.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
   --mode <mode>   In stati command signals stati to show:
@@ -121,7 +115,7 @@ Commands:
         <mode> if set can be 'applicants' (Applicants only will be
             shown) or a member.SEPARATOR separated set of stati
             (indicating which stati to show.)
-        May also include any combination of --ia, --im, --is to
+        May also include any combination of -D, -M, -S to
         include adress/demographics, meeting dates &/or sponsors
         for applicants.
     usps: Creates a csv file containing names and addresses of
@@ -153,7 +147,7 @@ Commands:
         '-p <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
-        '---dir <dir4letters>' where to file letters.
+        '---dir <mail_dir>' where to file letters.
     thank:  Reads the file specified by -t <thank>, applies payments
         specified there in to the -i <infile> and prepares thank you
         letter/email acknowledging receipt of payment and showing
@@ -209,11 +203,6 @@ import data
 import Pymail.send
 import Bashmail.send
 from rbc import Club
-
-# Constants required for correct rendering of "?" command:
-TOP_QUOTE_LINE = 12  # } These facilitate preparing
-USAGE_LINE = 22      # } response to the
-OPTIONS_LINE = 44    # } 'utils.py ?' command.
 
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   # } Seconds between
@@ -583,11 +572,11 @@ def setup4stati(club):
         club.infile = Club.MEMBERSHIP_SPoT
     assign_applicant_files(club)
     if not hasattr(club, "include_addresses"):
-        club.include_addresses = args['--ia']
+        club.include_addresses = args['-D']
     if not hasattr(club, "include_dates"):
-        club.include_dates = args['--id']
+        club.include_dates = args['-M']
     if not hasattr(club, "include_sponsors"):
-        club.include_sponsors = args['--is']
+        club.include_sponsors = args['-B']
     if not hasattr(club, "which2show"):
         whch2show = args['--mode']  # signals stati to show
     if whch2show:
@@ -842,14 +831,14 @@ def prepare4mailing(club):
     club.json_file_name = args["-j"]
     if not args["--dir"]:
         args["--dir"] = club.MAILING_DIR
-    club.dir4letters = args["--dir"]
+    club.mail_dir = args["--dir"]
     club.attachment = args['ATTACHMENTS']
     club.cc = args['--cc']
     club.bcc = args['--bcc']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'.".format(args["--dir"]))
-        club.check_dir4letters(club.dir4letters)
+        club.check_mail_dir(club.mail_dir)
     if club.which["e_and_or_p"] in ("both", "email", "one_only"):
         print("Checking for file '{}'.".format(club.json_file_name))
         club.check_json_file(club.json_file_name)
@@ -866,7 +855,7 @@ def prepare_mailing_cmd(args=args):
     club = Club()
     prepare4mailing(club)
     # ***** Done with configuration & checks ...
-    member.prepare_mailing(club)  # Populates club.dir4letters
+    member.prepare_mailing(club)  # Populates club.mail_dir
     #                               and moves json_data to file.
     print("""prepare_mailing completed..
     ..next step might be the following:
@@ -932,22 +921,23 @@ def new_db_cmd(args=args):
     One time use only:
     Eliminates 'email_only' field from data base.
     """
-    print("!!!! Don't use this command !!!!")
-    print("  ... unless the code has been updated!!!")
-    response = input("Has code been updated? ")
-    if response and response[0] in "Yy":
-        pass
-    else:
-        print("Terminating")
-        sys.exit()
+    while True:
+        func = input("Enter the function to be applied: ")
+        response = input("You've chosen the '{}' function; Continue? ")
+        if response and response[0] in "Yy":
+            break
+        elif response and response[0] in "Qq":
+            print("Terminating")
+            sys.exit()
     club = Club()
     setup4new_db(club)
     club.new_fieldnames = [key for key in club.fieldnames if
                            key != 'email_only']
     dict_write(club.outfile, club.new_fieldnames,
-               member.modify_data(club.infile,
-                                  member.rm_email_only_field_func,
-                                  club))
+               member.modify_data(
+                    club.infile,
+                    member.func_dict[func],
+                    club))
 
 
 def display_emails_cmd(args=args):
@@ -1018,7 +1008,7 @@ def print_letters_cmd(args=args):
     successes = []
     failures = []
     for letter_name in os.listdir(args["--dir"]):
-        path_name = os.path.join(dir4letters, letter_name)
+        path_name = os.path.join(mail_dir, letter_name)
         completed = subprocess.run(["lpr", path_name])
         if completed.returncode:
             failures.append("Problem ({}) printing '{}'."
@@ -1208,10 +1198,13 @@ if __name__ == "__main__":
 
     if args["?"]:
         doc_lines = __doc__.split('\n')
-        print('\n'.join(doc_lines[
-            (USAGE_LINE - TOP_QUOTE_LINE):
-            (OPTIONS_LINE - TOP_QUOTE_LINE + 2)
-            ]))
+        for n in range(len(doc_lines)):
+            if doc_lines[n] == "Usage:":
+                uline = n
+            if doc_lines[n] == "Options:":
+                oline = n
+                break
+        print('\n'.join(doc_lines[uline:oline - 1]))
     elif args["ck_data"]:
         ck_data_cmd()
     elif args["show"]:
@@ -1280,8 +1273,9 @@ if __name__ == "__main__":
         new_db_cmd()
     else:
         print("You've failed to select a command.")
-        print("Try ./utils.py ? # brief!  or")
-        print("    ./utils.py -h # for more detail")
+        print("Try ./utils.py ?           # brief!  or ...")
+        print("    ./utils.py -h          # for more detail  or ...")
+        print("    ./utils.py -h | pager  # to catch it all.")
 
 NOTE = """
 emailing_cmd()

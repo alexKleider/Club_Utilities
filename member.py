@@ -73,6 +73,7 @@ feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
 
+func_dict = {}
 
 def traverse_records(infile, custom_funcs, club):
     """
@@ -1105,6 +1106,9 @@ prerequisites = {
     #       'club.ms_by_status = {}',
     #       ],
     }
+
+
+func_dict['rm_email_only_field_func'] = rm_email_only_field_func
 
 
 def setup_required_attributes(custom_funcs, club):

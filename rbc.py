@@ -138,20 +138,20 @@ class Club(object):
 #       print("returning {}".format(res))
         return res
 
-    def check_dir4letters(self, dir4letters):
+    def check_mail_dir(self, mail_dir):
         """
         Set up the directory for postal letters.
         """
-        if os.path.exists(dir4letters):
+        if os.path.exists(mail_dir):
             print("The directory '{}' already exists.".format(
-                                                    dir4letters))
+                                                    mail_dir))
             response = input("... OK to overwrite it? ")
             if response and response[0] in "Yy":
-                shutil.rmtree(dir4letters)
+                shutil.rmtree(mail_dir)
             else:
                 print("Without permission, must abort.")
                 sys.exit(1)
-        os.mkdir(dir4letters)
+        os.mkdir(mail_dir)
         pass
 
     def check_json_file(self, json_email_file):
