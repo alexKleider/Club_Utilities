@@ -34,7 +34,7 @@ Usage:
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
   ./utils.py wip [-O -o 2check]
-  ./utils.py new_db [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
+  ./utils.py new_db -F function [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
@@ -57,6 +57,7 @@ Options:
             'listing' same format as Data/extra_fees.txt
             'listings' side by side lists (best use landscape mode.)
         [default: table]
+  -F <function>  Name of function to apply. (new_db command)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -D   include demographic data  } These pertain
@@ -916,28 +917,26 @@ def dict_write(f, fieldnames, iterable):
             dict_writer.writerow(record)
 
 
-def new_db_cmd(args=args):
+def new_db_cmd():
     """
     One time use only:
     Eliminates 'email_only' field from data base.
     """
-    while True:
-        func = input("Enter the function to be applied: ")
-        response = input("You've chosen the '{}' function; Continue? ")
-        if response and response[0] in "Yy":
-            break
-        elif response and response[0] in "Qq":
-            print("Terminating")
-            sys.exit()
+    if args['-F'] and args['-F'] in member.func_dict:
+        func, fieldnames = member.func_dict[args['-F']]
+    else:
+        print("Not a valid function parameter.")
+        print("Must be one of the following:")
+        for f in member.func_dict.keys():
+            print("\t{}".format(f))
+        print("Terminating")
+        sys.exit()
     club = Club()
     setup4new_db(club)
-    club.new_fieldnames = [key for key in club.fieldnames if
-                           key != 'email_only']
-    dict_write(club.outfile, club.new_fieldnames,
-               member.modify_data(
-                    club.infile,
-                    member.func_dict[func],
-                    club))
+    club.new_fieldnames = fieldnames
+    dict_write(club.outfile, fieldnames,
+               member.modify_data(club.infile, func, club)
+               )
 
 
 def display_emails_cmd(args=args):

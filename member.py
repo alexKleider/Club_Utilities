@@ -496,7 +496,7 @@ def update_db_apply_charges_func(record, club):
 # The next two function change the db!!
 
 
-def rm_email_only_field_func(record, club):
+def rm_email_only_field(record, club):
     """
     A one time use function:
     removes the "email_only" field of the record.
@@ -1108,7 +1108,12 @@ prerequisites = {
     }
 
 
-func_dict['rm_email_only_field_func'] = rm_email_only_field_func
+func_dict['rm_email_only_field'] = (
+    rm_email_only_field,
+    ("first","last","phone","address","town","state","postal_code",
+     "country","email","dues","dock","kayak","mooring","status",
+     )
+    )
 
 
 def setup_required_attributes(custom_funcs, club):
