@@ -121,8 +121,8 @@ Commands:
         for applicants.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
-        minutes by post. Also includes any one with an 's' status
-        (... a mechanism for sending a copy to the secretary.)
+        minutes by post. Also includes any one with a 'be' or an 's'
+        status (... a mechanism for sending a copy to the secretary.)
     extra_charges: Reports on members paying extra charges (for
         kayak storage, mooring &/or dock usage.)
         | -f <format>  -specify listing, listings or table format.
@@ -243,6 +243,7 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
+"""
 def assign_default_files(club, args):
     if args['-i']:
         club.infile = args['-i']
@@ -266,6 +267,7 @@ def assign_default_files(club, args):
         club.contacts_spot = Club.CONTACTS_SPoT
 
 
+"""
 def confirm_file_present(file_name):
     """
     Aborts the program if file_name doesn't exist.
@@ -310,6 +312,7 @@ def output(data, destination=args["-o"], announce_write=True):
             fileobj.write(data)
             if announce_write:
                 print('Data written to "{}".'.format(fileobj.name))
+
 
 # Medium specific classes:
 # e.g. labels, envelopes, ...
@@ -1149,6 +1152,8 @@ def wip_cmd(args=args):
 # # when sending via Easydns.com but msmtp is still being
 # # used when gmail is the MTA.
 
+
+'''
 def smtp_send(recipients, message):
     """
     Send email, as defined in <message>,
@@ -1172,6 +1177,7 @@ def smtp_send(recipients, message):
             p.stdout, recipient))
 
 
+'''
 def mutt_send(recipient, subject, body, attachments=None):
     """
     Does the mass e-mailings with attachment(s) which, if

@@ -91,6 +91,7 @@ def get_gmail_record(g_rec):
         )
 
 
+'''
 def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
                          muttalias='~/.muttalias'):
     """
@@ -115,6 +116,7 @@ def gather_contacts4mutt(g_contacts_file='~/Downloads/contacts.csv',
                 ret.append(entry)
     with open(out_file, 'w') as file_obj:
         file_obj.write('\n'.join(ret))
+'''
 
 
 def gather_contacts_data(club):
@@ -492,6 +494,7 @@ def extra_charges(club):
         sys.exit()
 
 
+'''
 def json_fees_by_name(extra_fees):
     """
     Param would typically be the returned value of
@@ -513,6 +516,7 @@ def json_fees_by_name(extra_fees):
         extras = ', '.join(charges)
         ret[key] = charges
     return ret
+'''
 
 
 def present_fees_by_name(extra_fees, raw=False):
@@ -537,6 +541,7 @@ def present_fees_by_name(extra_fees, raw=False):
     return sorted(ret)
 
 
+'''
 def display_statement_data(statement_data):
     """
     Returns a readable (multiline string) version of
@@ -555,6 +560,7 @@ def display_statement_data(statement_data):
         values = ', '.join(values)
         ret.append(_name + values)
     return '\n'.join(ret)
+'''
 
 
 def present_fees_by_category(extra_fees, raw=False,
@@ -1208,5 +1214,5 @@ if __name__ == '__main__':
 #   test_list_mooring()
 #   applicants = gather_applicant_data(APPLICANT_SPoT)
 #   print(repr(applicants))
-
+#   ck_all()
 #   test_ck_data("2check")

@@ -28,8 +28,8 @@ A number of 'dict's are being used:
 
 Other items:
     email_header
-    def prepare_letter_template(which_letter, printer):
-    def prepare_email_template(which_letter):
+    func: prepare_letter_template(which_letter, printer):
+    func: prepare_email_template(which_letter):
 
 Printing Letters:
 Both the printer and the windowed envelope being used must be taken
@@ -1044,41 +1044,6 @@ printers = dict(
 # ## ... end of printers (dict specifying printer being used.)
 
 
-def expand_array(content, n):
-    if len(content) > n:
-        print("ERROR: too many lines in <content>")
-        print("    parameter of content.expand()!")
-        assert False
-    a = [item for item in content]
-    while n > len(a):
-        if n - len(a) >= 2:
-            a = [''] + a + ['']
-        else:
-            a.append('')
-    return a
-
-
-def expand_string(content, n):
-    a = content.split('\n')
-    ret = expand_array(a, n)
-    return '\n'.join(ret)
-
-
-def expand(content, nlines):
-    """
-    Takes <content> which can be a list of strings or
-    all one string with line feeds separating it into lines.
-    Returns the same type (either string or list) but of <nlines>
-    length, centered by blank strings/lines. If need an odd number
-    of blanks, the odd one is at end (rather than the beginning.
-    Fails if <content> has more than nlines.
-    """
-    if isinstance(content, str):
-        return expand_string(content, nlines)
-    else:
-        return expand_array(content, nlines)
-
-
 def get_postscripts(which_letter):
     """
     Returns a list of lines representing the post scripts
@@ -1111,14 +1076,15 @@ def prepare_letter_template(which_letter, lpr):
     ret = [""] * lpr["top"]  # add blank lines at top
     # return address:
     ret_addr = address_format.format(**which_letter["from"])
-    ret.append(expand(ret_addr, lpr['frm'][0]))
+    ret.append(helpers.expand(ret_addr, lpr['frm'][0]))
     # format string for date:
-    ret.append(expand((helpers.get_datestamp()), lpr['date']))
+    ret.append(helpers.expand(
+            (helpers.get_datestamp()), lpr['date']))
     # format string for recipient adress:
-    ret.append(expand(address_format, lpr['to'][0]))
+    ret.append(helpers.expand(address_format, lpr['to'][0]))
     # subject/Re: line
-    ret.append(expand("Re: {}".format(which_letter["subject"]),
-               lpr['re']))
+    ret.append(helpers.expand(
+        "Re: {}".format(which_letter["subject"]), lpr['re']))
     # format string for salutation:
     try:
         ret.append(which_letter["salutation"] + "\n")
@@ -1146,12 +1112,12 @@ def prepare_email_template(which_letter):
     return '\n'.join(ret)
 
 
-def choices():
+def contents():
     """
     Provides a way of getting a quick glimps
     of the various contents provided.
     Typical usage:
-        print('\n'.join(choices()))
+        print('\n'.join(contents()))
     """
     tuples = (('custom_lambdas', custom_lambdas),
               ('letter_bodies', letter_bodies),
@@ -1220,5 +1186,5 @@ Membership"""
 
 
 if __name__ == "__main__":
-    main()
-    #   print('\n'.join(choices()))
+    # main()
+    print('\n'.join(contents()))

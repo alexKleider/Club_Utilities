@@ -258,24 +258,6 @@ def get_zeros_and_nulls(record, club):
 
 # # Beginning of 'add2' functions:
 
-
-redacted = '''
-def add2m_by_name(record, club):
-    """
-    REDACT! use add2email_by_m
-            and add2stati_by_m
-    Adds to already existing dict club.m_by_name which is
-    keyed by "name" with value also a dict with keys:
-    ["email"] => email as a string
-    ["stati"] => stati as a set
-    """
-    club.m_by_name[member_name(record, club)] = dict(
-        email= record['email'],
-        stati= {status for status in record["status"].split(
-        SEPARATOR)})
-'''
-
-
 def add2email_by_m(record, club):
     name = member_name(record, club)
     email = record['email']
@@ -737,59 +719,6 @@ def add2list4web(record, club):
         # add metadata here (dates of meetings; sponsors)
 
 
-def dues_and_fees(record, club):
-    """
-    ## A work in progress!! ##
-    Populates following attributes of club:
-        null_dues (if giving up membership should have 'r' in
-                    status else probably an error condition!)
-        members_owing
-        members_zero_or_cr
-        dues_balance
-        fees_balance
-        retiring
-        applicants
-        errors
-    """
-    name = member_name(record, club)
-    entry = {}
-    try:
-        value = int(record['dues'])
-    except ValueError:
-        status_set = get_status_set(record)
-        club.null_dues.append(name)
-        if 'r' in status_set:
-            club.retiring.append(name)
-        elif status_set & APPLICANT_SET:
-            club.applicants.append(name)
-        else:
-            report_error("{}: Unexplained null in dues field."
-                         .format(name), club)
-    else:
-        formatted_value = helpers.format_dollar_value(value)
-        if value > 0:
-            club.members_owing.append("{}: {}".format(
-                                    name, formatted_value))
-        elif value <= 0:
-            club.members_zero_or_cr.append("{}: {}".format(
-                                        name, formatted_value))
-        else:
-            assert False
-        club.dues_balance += value
-    for key in FEES_KEYS:
-        fees = []
-        try:
-            value = int(record[key])
-        except ValueError:
-            pass
-        else:
-            formatted_value = helpers.format_dollar_value(value)
-            fees.append("{} {}".format(
-                    key.capitalize(), formatted_value))
-    if fees:
-        fees = ', '.join(fees)
-
-
 def populate_non0balance_func(record, club):
     """
     Reads the MONEY_KEYS fields and, if any are not zero,
@@ -1076,16 +1005,16 @@ prerequisites = {
     get_bad_emails: [
         'club.bad_emails = []',
         ],
-    dues_and_fees: [
-        'club.null_dues = []',
-        'club.members_owing = []',
-        'club.members_zero_or_cr = []',
-        'club.dues_balance = 0',
-        'club.fees_balance = 0',
-        'club.retiring = []',
-        'club.applicants = []',
-        'club.errors = []',
-        ],
+#   dues_and_fees: [
+#       'club.null_dues = []',
+#       'club.members_owing = []',
+#       'club.members_zero_or_cr = []',
+#       'club.dues_balance = 0',
+#       'club.fees_balance = 0',
+#       'club.retiring = []',
+#       'club.applicants = []',
+#       'club.errors = []',
+#       ],
     populate_non0balance_func: [
         "club.errors = []",
         "club.non0balance = []",

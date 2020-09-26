@@ -129,33 +129,39 @@ def indent(text, n_spaces):
         print("Should NOT get here!")
         assert(False)
 
-
-def expand(text, nlines):
-    """
-    A helper function to expand addresses to requisite
-    number of lines:
-    Takes text which can be a list of strings/lines
-    or all one string (with line feeds separating lines,)
-    and returns the same type (either string or list) but
-    containing nlines.
-    Fails if address already has more than nlines.
-    """
-    isstring = False
-    if isinstance(text, str):
-        isstring = True
-        text = text.split("\n")
-    if len(text) > nlines:
-        print("Error: too many lines in an address!")
+def expand_array(content, n):
+    if len(content) > n:
+        print("ERROR: too many lines in <content>")
+        print("    parameter of content.expand()!")
         assert False
-    while nlines > len(text):
-        if nlines - len(text) >= 2:
-            text = [''] + text + ['']
+    a = [item for item in content]
+    while n > len(a):
+        if n - len(a) >= 2:
+            a = [''] + a + ['']
         else:
-            text.append('')
-    if isstring:
-        return '\n'.join(text)
+            a.append('')
+    return a
+
+
+def expand_string(content, n):
+    a = content.split('\n')
+    ret = expand_array(a, n)
+    return '\n'.join(ret)
+
+
+def expand(content, nlines):
+    """
+    Takes <content> which can be a list of strings or
+    all one string with line feeds separating it into lines.
+    Returns the same type (either string or list) but of <nlines>
+    length, centered by blank strings/lines. If need an odd number
+    of blanks, the odd one is at end (rather than the beginning.
+    Fails if <content> has more than nlines.
+    """
+    if isinstance(content, str):
+        return expand_string(content, nlines)
     else:
-        return text
+        return expand_array(content, nlines)
 
 
 def add_header2list(header, list_, underline_char=None,
@@ -385,6 +391,20 @@ def tabulate(data,
         new_data = new_data[1:]
     new_data = [item.strip() for item in new_data]
     return new_data
+
+
+def output(data, destination=None, announce=True):
+    """
+    Sends data (text) to (a file called <destination>
+    (defaults to stdout.)
+    """
+    if destination == None:
+        print(data)
+    else:
+        with open(destination, "w") as fileobj:
+            fileobj.write(data)
+            if announce:
+                print('Data written to "{}".'.format(fileobj.name))
 
 
 def main():
