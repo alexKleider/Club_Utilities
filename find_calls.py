@@ -4,10 +4,6 @@
 
 """
 Get a listing of all function calls in each module.
-Top level keys: tuple consisting of name of function being called
-and the module in which it is declared;
-next level keys: module where the call is being made
-final value: list of line numbers where the call appears.
 """
 
 import re
@@ -47,6 +43,9 @@ def call_found(func_name, line, refed):
 
 
 def cleanedup(d):
+    """
+    Return a dict with all empty values removed.
+    """
     new_d = {}
     modules = d.keys()
     for module in modules:
@@ -112,26 +111,26 @@ def main():
                 linenumber += 1
                 for module in MODULE_NAMES:
                     for funcname in names_by_module[module]:
-                        collector = []
-                        if call_found(funcname, line, collector):
+                        references = []  # collects refs vs calls.
+                        if call_found(funcname, line, references):
                             _ = res[module][funcname].setdefault(
                                                 module_name, [])
                             res[module][funcname][module_name
                                         ].append(linenumber)
-                        if (module == 'content'
-                            and funcname == 'prepare_email_template'
-                            and linenumber == 1150
-                            ):
-                            print('{} {}: {}.{}'
-                                  .format(module_name, linenumber,
-                                  module, funcname))
-                        if collector:
+                        if references:
                             _ = refs[module][funcname].setdefault(
                                                 module_name, [])
                             refs[module][funcname][module_name
                                         ].append(linenumber)
+    not_called = []
+    for def_module in res.keys():
+        for func_name in res[def_module].keys():
+            if not res[def_module][func_name]:
+                not_called.append('{}.{}'.format(def_module, func_name))
+
     helpers.output(pprint.pformat(res), 'calls')
     helpers.output(pprint.pformat(cleanedup(refs)), 'references')
+    helpers.output('\n'.join(not_called), 'not_called')
 
 
 if __name__ == '__main__':
