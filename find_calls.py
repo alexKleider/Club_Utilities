@@ -42,95 +42,102 @@ def call_found(func_name, line, refed):
             refed.append(func_name)
 
 
-def cleanedup(d):
-    """
-    Return a dict with all empty values removed.
-    """
-    new_d = {}
-    modules = d.keys()
-    for module in modules:
-        funcs = d[module].keys()
-        for func in funcs:
-            if d[module][func]:
-                _ = new_d.setdefault(module, {})
-                new_d[module][func] = d[module][func]
-    return new_d
+def all_defs():
+    result = []
+    for module in MODULE_NAMES:
+        ret = []
+        with open("{}.py".format(module), 'r') as fobj:
+            line_n = 0
+            for line in fobj:
+                line_n += 1
+                m = PAT.search(line)
+                if m:
+                    if m.group(1).endswith('_'):
+                        pass
+                    else:
+                        ret.append("{}.{}@{}"
+                                   .format(module,
+                                           m.group(1),
+                                           line_n))
+        result.extend(ret)
+        if len(ret) != len(set(ret)):
+            n = len(ret) - len(set(ret))
+            print("Warning! {} duplicate(s) in {}.py"
+                  .format(n, module))
+    return result
+
+def split_datum(datum):
+    module_name, func_name_w_line_n = datum.split('.')
+    func_name, line_n = func_name_w_line_n.split('@')
+    return module_name, func_name, line_n
 
 
-def find_defs(module):
-    """
-    Returns the set of names of functions/methods defined in module.
-    """
-    ret = set()
-    with open("{}.py".format(module), 'r') as fobj:
-        for line in fobj:
-            m = PAT.search(line)
-            if m:
-                if m.group(1).endswith('_'):
-                    pass
-                else:
-                    ret.add(m.group(1))
-    return ret
-
-
-def yield_function_names(names_by_module):
-    for module in names_by_module.keys():
-        for function_name in names_by_module[module]:
-            yield function_name
+def pformat(data):
+    res = []
+    current_module = ''
+    for key in sorted(data.keys()):
+        module, func, line_n = split_datum(key)
+        if module != current_module:
+            current_module = module
+            if res:
+                res.append('\f')
+            res.append(module)
+            res.append('=' * len(module))
+#       res.append(func_w_line_n)
+        res.append(key)
+        if 'calls' in data[key]:
+            res.append('  CALLS:')
+            for entry in data[key]['calls']:
+                res.append('    {}'.format(entry))
+        if 'references' in data[key]:
+            res.append('  REFS:')
+            for entry in data[key]['references']:
+                res.append('    {}'.format(entry))
+    return res
+        
 
 def main():
     """
     """
     res = {}
-    refs = {}
+    no_refs = []
+    defs = all_defs()
+    n_calls = 0
+    n_refs = 0
+    called_or_refed = set()
+    helpers.output('\n'.join(defs), "2ck_defs_joined")
+    for mod_name in MODULE_NAMES:
+        with open("{}.py".format(mod_name), 'r') as module:
+            line_n = 0
+            for line in module:
+                line_n += 1
+                for def_ in defs:
+                    # searching for funtion def_
+                    mod, func_w_n = def_.split('.')
+                    func, n = func_w_n.split('@')
+                    refed = []
+                    if call_found(func, line, refed):
+                        n_calls += 1
+                        called_or_refed.add(def_)
+                        _ = res.setdefault(def_, {})
+                        _ = res[def_].setdefault("calls", [])
+                        res[def_]["calls"].append("{}@{}"
+                                    .format(mod_name, line_n))
+                    if refed:
+                        n_refs += 1
+                        called_or_refed.add(def_)
+                        _ = res.setdefault(def_, {})
+                        _ = res[def_].setdefault("references", [])
+                        res[def_]["references"].append("{}@{}"
+                                    .format(mod_name, line_n))
 
-    # Step 1:
-    # Collect the name of each function or method declared
-    # indexed by the module where the declaration appears:
-    names_by_module = {}
-    for f in MODULE_NAMES:
-        names_by_module[f] = find_defs(f)
-    helpers.output(pprint.pformat(names_by_module), 'defs')
-    for module in names_by_module.keys():
-        res[module] = {}
-        refs[module] = {}
-        for func in names_by_module[module]:
-            res[module][func] = {}
-            refs[module][func] = {}
-#   pprint.pprint(res)
-            
-    # Step 2:
-    # Iterate line for line through each module.
-    # For each line, 
-    #    Iterate through all declared functions for a call to it.
-    for module_name in MODULE_NAMES:
-        fname = '{}.py'.format(module_name)
-        linenumber = 0
-        with open(fname, 'r') as fobj:
-            for line in fobj:
-                linenumber += 1
-                for module in MODULE_NAMES:
-                    for funcname in names_by_module[module]:
-                        references = []  # collects refs vs calls.
-                        if call_found(funcname, line, references):
-                            _ = res[module][funcname].setdefault(
-                                                module_name, [])
-                            res[module][funcname][module_name
-                                        ].append(linenumber)
-                        if references:
-                            _ = refs[module][funcname].setdefault(
-                                                module_name, [])
-                            refs[module][funcname][module_name
-                                        ].append(linenumber)
-    not_called = []
-    for def_module in res.keys():
-        for func_name in res[def_module].keys():
-            if not res[def_module][func_name]:
-                not_called.append('{}.{}'.format(def_module, func_name))
-
-    helpers.output(pprint.pformat(res), 'calls')
-    helpers.output(pprint.pformat(cleanedup(refs)), 'references')
-    helpers.output('\n'.join(not_called), 'not_called')
+    n_no_refs = len(defs) - len(called_or_refed)
+    print("Found {} calls, {} refs & {} with out either"
+          .format(n_calls, n_refs, n_no_refs))
+    helpers.output('\n'.join(pformat(res)), '2ck_where_used_joined')
+    helpers.output(pprint.pformat(res), '2ck_where_used_pformated')
+    helpers.output('\n'.join(no_refs), '2ck_unused')
+    return
 
 
 if __name__ == '__main__':

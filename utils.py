@@ -853,7 +853,7 @@ def prepare_mailing_cmd(args=args):
     """
     See description under 'Commands' heading in the docstring.
     Sets up an instance of rbc.Club with necessary attributes and
-    then calls member.prepare_mailing() method.
+    then calls member.prepare_mailing.
     """
     # ***** Set up configuration in an instance of # Club:
     club = Club()

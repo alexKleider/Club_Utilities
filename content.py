@@ -869,7 +869,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment_mailing_func,),
+        "funcs": (member.inductee_payment_f,),
         "test": (lambda record: True if 'ai' in record["status"]
                  else False),
         "e_and_or_p": "one_only",
@@ -881,7 +881,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment_mailing_func,),
+        "funcs": (member.inductee_payment_f,),
         "test": (lambda record: True if 'aw' in record["status"]
                  else False),
         "e_and_or_p": "one_only",
@@ -893,7 +893,7 @@ content_types = dict(  # which_letter
         "post_scripts": (
             post_scripts["remittance"],
             ),
-        "funcs": (member.request_inductee_payment_mailing_func,),
+        "funcs": (member.inductee_payment_f,),
         "test": (lambda record: True if 'ai' in record["status"]
                  else False),
         "e_and_or_p": "one_only",

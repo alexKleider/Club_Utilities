@@ -456,7 +456,8 @@ def thank_func(record, club):
 # The next two functions add entries to club.new_db
 
 
-def update_db_re_payment_func(record, club):
+#  update_db_re_payment_func(record, club):
+def db_credit_payment(record, club):
     """
     Checks if record is in the club.statement_data dict and if so
     credits payment(s).  In either case data is moved to new
@@ -471,7 +472,7 @@ def update_db_re_payment_func(record, club):
     club.dict_writer.writerow(new_record)
 
 
-def update_db_apply_charges_func(record, club):
+def db_apply_charges(record, club):
     pass
 
 # .. above two functions write to new db with updated information.
@@ -889,7 +890,7 @@ def set_inductee_dues(record, club=None):
         record["current_dues"] = 100
 
 
-def request_inductee_payment_mailing_func(record, club):
+def inductee_payment_f(record, club):
     """
     Contingent on the club.which["test"] lambda:
     (If the record's status field contains 'i' for 'inducted'.)
@@ -1025,7 +1026,7 @@ prerequisites = {
     append_email: [
         "club.json_data = []",
         ],
-    update_db_apply_charges_func: [
+    db_apply_charges: [
         "club.new_db = {}",
         ],
     add2statement_data: [
