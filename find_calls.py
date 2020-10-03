@@ -135,7 +135,8 @@ def main():
     print("Found {} calls, {} refs & {} with out either"
           .format(n_calls, n_refs, n_no_refs))
     helpers.output('\n'.join(pformat(res)), '2ck_where_used_joined')
-    helpers.output(pprint.pformat(res), '2ck_where_used_pformated')
+    helpers.output(pprint.pformat(res, compact=True, width=70),
+                                  '2ck_where_used_pformated')
     helpers.output('\n'.join(no_refs), '2ck_unused')
     return
 

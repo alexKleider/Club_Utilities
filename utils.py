@@ -243,7 +243,6 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
-"""
 def assign_default_files(club, args):
     if args['-i']:
         club.infile = args['-i']
@@ -267,7 +266,6 @@ def assign_default_files(club, args):
         club.contacts_spot = Club.CONTACTS_SPoT
 
 
-"""
 def confirm_file_present(file_name):
     """
     Aborts the program if file_name doesn't exist.
@@ -994,11 +992,10 @@ def send_emails_cmd(args=args):
               .format(emailer))
         sys.exit(1)
     wait = mta.endswith('g')
-    j_file = args["-j"]
     message = None
-    with open(j_file, 'r') as f_obj:
+    with open(args['-j'], 'r') as f_obj:
+        print('Reading JSON file "{}".'.format(f_obj.name))
         data = json.load(f_obj)
-        print('Loading JSON from "{}"'.format(f_obj.name))
     counter = 0
     emailer(data, mta, include_wait=wait)
 

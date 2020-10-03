@@ -532,8 +532,7 @@ def show_by_status(by_status,
         date_keys = club.meeting_dates.keys()
         sponsor_keys = club.sponsors.keys()
     ret = []
-    stati = by_status.keys()
-    for status in sorted(stati):
+    for status in sorted(by_status.keys()):
         if status in stati2show:
             helpers.add_header2list(STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
