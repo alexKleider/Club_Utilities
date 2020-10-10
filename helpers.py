@@ -101,11 +101,11 @@ def get_datestamp():
 
 def format_dollar_value(value):
     if value > 0:
-        return "${:.2f}".format(value)
+        return "${:,.2f}".format(value)
     elif value == 0:
         return "$0.00"
     elif value < 0:
-        return "-${:.2f}".format(abs(value))
+        return "-${:,.2f}".format(abs(value))
     else:
         assert False
 

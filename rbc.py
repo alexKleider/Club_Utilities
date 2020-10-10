@@ -117,8 +117,8 @@ class Club(object):
                 if line[:5] == "Date:":
                     date = line
                 if (line[24:27] == "---") and subtotal:
-                    res.append("    SubTotal            --- ${}"
-                               .format(subtotal))
+                    res.append("    SubTotal            --- {:>10}"
+                               .format(helpers.format_dollar_value(subtotal)))
                     subtotal = 0
                 try:
                     amount = int(line[23:28])
@@ -131,10 +131,10 @@ class Club(object):
 #               print(" adding {}, running total is {}"
 #                   .format(amount, total))
         if subtotal:
-            res.append("    SubTotal            --- ${}"
-                       .format(subtotal))
-        res.append("\nGrand Total to Date:    --- ---- ${}"
-                   .format(total))
+            res.append("    SubTotal            --- {:>10}"
+                       .format(helpers.format_dollar_value(subtotal)))
+        res.append("\nGrand Total to Date:    --- ---- {:>10}"
+                   .format(helpers.format_dollar_value(total)))
 #       print("returning {}".format(res))
         return res
 

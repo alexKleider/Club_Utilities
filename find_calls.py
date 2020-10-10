@@ -100,8 +100,8 @@ def main():
     """
     """
     res = {}
-    no_refs = []
     defs = all_defs()
+    n_defs = len(defs)
     n_calls = 0
     n_refs = 0
     called_or_refed = set()
@@ -132,13 +132,13 @@ def main():
                                     .format(mod_name, line_n))
 
     n_no_refs = len(defs) - len(called_or_refed)
-    print("Found {} calls, {} refs & {} with out either"
-          .format(n_calls, n_refs, n_no_refs))
-    helpers.output('\n'.join(pformat(res)), '2ck_where_used_joined')
+    no_refs = set(defs) - called_or_refed
+    helpers.output('\n'.join(pformat(res)), '2ck_calls_joined')
     helpers.output(pprint.pformat(res, compact=True, width=70),
-                                  '2ck_where_used_pformated')
-    helpers.output('\n'.join(no_refs), '2ck_unused')
-    return
+                                  '2ck_calls_pformated')
+    helpers.output('\n'.join(sorted(no_refs)), '2ck_unused')
+    print("Found {} defs, {} calls, {} refs & {} with out either"
+          .format(n_defs, n_calls, n_refs, n_no_refs))
 
 
 if __name__ == '__main__':

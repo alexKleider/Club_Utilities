@@ -243,6 +243,7 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
+redacted = '''
 def assign_default_files(club, args):
     if args['-i']:
         club.infile = args['-i']
@@ -264,6 +265,7 @@ def assign_default_files(club, args):
         club.contacts_spot = args['-C']
     else:
         club.contacts_spot = Club.CONTACTS_SPoT
+'''
 
 
 def confirm_file_present(file_name):
@@ -1172,9 +1174,9 @@ def smtp_send(recipients, message):
     if p.returncode:
         print("Error: {} ({})".format(
             p.stdout, recipient))
-
-
 '''
+
+
 def mutt_send(recipient, subject, body, attachments=None):
     """
     Does the mass e-mailings with attachment(s) which, if

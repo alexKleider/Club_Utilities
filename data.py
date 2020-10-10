@@ -541,28 +541,6 @@ def present_fees_by_name(extra_fees, raw=False):
     return sorted(ret)
 
 
-'''
-def display_statement_data(statement_data):
-    """
-    Returns a readable (multiline string) version of
-    <statement_data> which is expected to be a dict of dicts:
-    First level keys are names.
-    Second level keys are dues/fee categories (incl 'total')
-    with values.
-    """
-    ret = []
-    for name in sorted(statement_data.keys()):
-        _name = '{}: '.format(name)
-        values = []
-        for val in statement_data[name].keys():
-            values.append("{}: ${}".format(val,
-                          statement_data[name][val]))
-        values = ', '.join(values)
-        ret.append(_name + values)
-    return '\n'.join(ret)
-'''
-
-
 def present_fees_by_category(extra_fees, raw=False,
                              always_incl_fees=False,  # not implemented
                              ):
@@ -708,6 +686,7 @@ def ck_applicants(
     g_applicants = club.m_by_group["applicant"]
 
 
+redacted = '''
 def ck_applicants_cmd():
     """
     Driver for ck_applicants function.
@@ -741,6 +720,7 @@ def ck_applicants_cmd():
         ret.append("\nContacts do NOT match applicant file.")
 
     ck_applicants(club, a_by_status)
+'''
 
 
 def ck_data(club,
@@ -1114,12 +1094,6 @@ def compare(data1, data2, underline_char='=', inline=False):
     return ret
 
 
-def ret2file(ret, outfile):
-    with open(outfile, 'w') as f_obj:
-        f_obj.write("\n".join(ret))
-    print("Results written to '{}'.".format(f_obj.name))
-
-
 def test_extras():
     club = Club()
     ret = []
@@ -1157,24 +1131,6 @@ def list_mooring_data(extra_fees_spot):
 
 def test_list_mooring():
     return list_mooring_data(Club.EXTRA_FEES_SPoT)
-
-
-def test_fees_by():
-    ret = []
-    data = gather_extra_fees_data(Club.EXTRA_FEES_SPoT)
-    by_name0 = present_fees_by_name(data)
-    by_category0 = present_fees_by_category(data)
-    by_name1 = present_fees_by_name(data[Club.NAME_KEY])
-    by_category1 = present_fees_by_category(data[Club.CATEGORY_KEY])
-    ret.append("\nBy Name (0)...")
-    ret.extend(by_name0)
-    ret.append("\nBy Name (1)...")
-    ret.extend(by_name1)
-    ret.append("\nBy Category (0)...")
-    ret.extend(by_category0)
-    ret.append("\nBy Category (1)...")
-    ret.extend(by_category1)
-    return ret
 
 
 def test_applicant_presentations():

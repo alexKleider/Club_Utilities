@@ -311,28 +311,6 @@ def add2ms_by_status(record, club):
         club.ms_by_status[status].append(member_name(record, club))
 
 
-redacted = '''
-def add2special_notices_by_m(record, club):
-    """
-    Support 'bad email' and 'mail returned' notices.
-    """
-    return
-    stati = get_status_set(record) & SPECIAL_NOTICE_STATI
-    if stati:
-        special_notices = []
-        if 'be' in stati:
-            special_notices.append('({})'.format(record['email']))
-        if 'ba' in stati:
-            special_notices.append(
-                " ({address}, {town}, {state} {postal_code})"
-                .format(**record))
-        club.special_notices_by_m[member_name(record, club)] = (
-                            ', '.join(special_notices))
-        print("Appending '{}' to special_notices for {}."
-              .format(special_notices, member_name(record, club)))
-'''
-
-
 def add2demographics(record, club):
     club.demographics[member_name(record, club)] = (
         name_w_demographics(record, club))
