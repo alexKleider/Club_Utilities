@@ -17,6 +17,7 @@ Usage:
   ./utils.py [ ? | --help | --version]
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O -D -M -B --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
@@ -111,6 +112,9 @@ Commands:
         when some have paid.)
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
+    names_only: Returns a listing of members and applicants- names
+        only, without any demographics. If -w is 0, it's a single
+        column, otherwise output is in tabular.
     report: Prepares a 'Membership Report".
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
@@ -243,7 +247,6 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
-redacted = '''
 def assign_default_files(club, args):
     if args['-i']:
         club.infile = args['-i']
@@ -265,7 +268,6 @@ def assign_default_files(club, args):
         club.contacts_spot = args['-C']
     else:
         club.contacts_spot = Club.CONTACTS_SPoT
-'''
 
 
 def confirm_file_present(file_name):
@@ -473,6 +475,22 @@ BOARD OF THE BRBC.
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
     output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
+
+
+def names_only_cmd(args=args):
+    club = Club()
+    assign_default_files(club, args)
+    print("Preparing listing of member and applicant names...")
+    err_code = member.traverse_records(club.infile,
+                                       [member.add2names,],club)
+    ret = ["Members and Applicants of the Bolinas Rod & Boat Club",
+           "====================================================="]
+    if args['-w']:
+        club.names = helpers.tabulate(club.names,
+                                      max_width=int(args['-w']),
+                                      separator=' ')
+    ret.extend(club.names)
+    output('\n'.join(ret))
 
 
 def report(club):
@@ -1213,6 +1231,8 @@ if __name__ == "__main__":
         ck_data_cmd()
     elif args["show"]:
         show_cmd()
+    elif args["names_only"]:
+        names_only_cmd()
     elif args["report"]:
         report_cmd()
     elif args["stati"]:

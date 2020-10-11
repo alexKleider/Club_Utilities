@@ -696,6 +696,12 @@ def add2list4web(record, club):
         club.by_n_meetings[s].append(line)
         # add metadata here (dates of meetings; sponsors)
 
+def add2names(record, club):
+    """
+    """
+    if is_member_or_applicant(record, club):
+        club.names.append(club.pattern.format(**record))
+
 
 def populate_non0balance_func(record, club):
     """
@@ -971,6 +977,11 @@ prerequisites = {
         'club.nhonorary = 0',
         'club.by_n_meetings = {}',
         'club.napplicants = 0',
+        'club.errors = []',
+        ],
+    add2names: [
+        'club.pattern = ("{last}, {first} ({phone})")',
+        'club.names = []',
         'club.errors = []',
         ],
     get_payables: [
