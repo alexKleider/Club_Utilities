@@ -26,6 +26,14 @@ n_friday = 4
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
+def useful_lines(f, comment=None):
+    for line in f:
+        line = line.strip()
+        if comment and line.startswith(comment):
+            continue
+        if line:
+            yield line
+
 
 def get_first_friday_of_month(date):
     year = date.year

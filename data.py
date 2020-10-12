@@ -334,10 +334,7 @@ def get_sponsors(infile):
     """
     ret = {}
     with open(infile, 'r') as source:
-        for line in source:
-            line = line.strip()
-            if not line:
-                continue
+        for line in helpers.useful_lines(source):
             parts = line.split(':')
             names = parts[0].split()
             name = "{}, {}".format(names[1], names[0])
@@ -402,13 +399,8 @@ def gather_extra_fees_data(in_file, json_file=None):
 
     with open(in_file, 'r') as f_obj:
         print('Reading file "{}".'.format(f_obj.name))
-        line_number = 0
         category = ""
-        for line in f_obj:
-            line = line.strip()
-            line_number += 1
-            if not line:
-                continue
+        for line in helpers.useful_lines(f_obj):
             category_change = False
             if line[-1] == ':':  # category change
                 words = line[:-1].split()
@@ -445,10 +437,7 @@ def gather_sponsors(infile):
     """
     ret = {}
     with open(infile, 'r') as file_obj:
-        for line in file_obj:
-            line = line.strip()
-            if not line:
-                continue
+        for line in helpers.useful_lines(file_obj):
             parts = line.split(':')
             names = parts[0].split()
             name = "{}, {}".format(names[1], names[0])
