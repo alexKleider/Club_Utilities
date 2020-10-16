@@ -3,9 +3,8 @@
 # File: helpers.py
 
 """
-Some helper functions developed for the Club/Utils repo but
-which can probably be of service in other contexts so a hard
-link to it also appears in ~/PyLib. ***
+Helper functions developed for the Club/Utils repo.
+This file also appears in ~/PyLib (by means of a hard link.)
 """
 
 import os
@@ -26,8 +25,12 @@ n_friday = 4
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
-def useful_lines(f, comment=None):
-    for line in f:
+def script_location():
+    return os.path.dirname(os.path.realpath(__file__))
+
+
+def useful_lines(stream, comment=None):
+    for line in stream:
         line = line.strip()
         if comment and line.startswith(comment):
             continue
@@ -231,33 +234,42 @@ def show_json(data, res=[], indent=0, indent_factor=2):
     return res
 
 
-def show_dict(d, underline_char=None, extra_line=True):
+def show_json(json, underlinechar=''):
     """
-    Returns a list of strings representing a human readable version
-    of a dictionary, the values of which are assumed to be lists
-    of strings. If <underline_char> is specified, each key is
-    an underlined header with corresponding values listed beneath;
-    if not- each key is followed by its values all on one line.
-    If <extra_line>, each key is preceded by an extra (blank) line.
-    Keys and values are ordered/sorted.
-    Typically one would specify either an underline_char or
-    set extra_line to False.
+    Returns a human readable representation of json data
+    as a list of lines (which can be '\n'.joined.)
+    If underlinechar is specified, each key is underlined and 
+    preceeded by a blank line.
     """
-    ret = []
-    sorted_keys = sorted([key for key in d.keys()])
-    for key in sorted_keys:
-        sorted_values = sorted([val for val in d[key]])
-        if extra_line:
-            ret.append('')
-        if underline_char:
-            ret.append(key)
-            ret.append(underline_char * len(key))
-            for val in sorted_values:
-                ret.append(val)
+    collector = []
+    indent = 0
+
+    def collect(json, indent=indent, collector=collector):
+        if isinstance(json, dict):
+            # if keys need to be sorted change code by replaceing the
+            # next line with:
+            # for key in sorted(json.keys()):
+            for key in json:
+                if underlinechar:
+                    collector.extend(['', key, underlinechar*len(key)])
+                else:
+                    collector.append(key)
+                collect(json[key], indent=indent+2)
+        elif isinstance(json, list):
+            for item in json:
+                collect(item, indent, collector)
         else:
-            values = ";  ".join(sorted_values)
-            ret.append("{}: {}".format(key, values))
-    return ret
+            collector.append(' '*indent+str(json))
+
+#   for datum in json:
+    collect(json, indent=indent, collector=collector)
+
+    return collector
+
+
+def test_show_json():
+    data = {"Chadwick, Michael": [["Mooring", 114]], "Churchman, Josh": [["Mooring", 114]], "Cowman, Tim": [["Mooring", 114]], "Differding, Gary": [["Mooring", 114]], "Ferraro, Joseph": [["Mooring", 138]], "Mann, Ed": [["Mooring", 114]], "Murch, Don": [["Mooring", 152]], "O'Connor, Daniel": [["Mooring", 138]], "O'Neil, Terry": [["Mooring", 132]], "Rodoni, Fred": [["Mooring", 114]], "Smith, Thornton": [["Mooring", 138]], "Swanson, Eric": [["Mooring", 126]], "Bettini, Rick": [["Dock", 75]], "Buckenmeyer, Robert": [["Dock", 75]], "Dixon, Rupert": [["Dock", 75]], "Ferlinghetti, Leonardo": [["Dock", 75]], "Finney, Scott": [["Dock", 75]], "Heffelfinger, Robert": [["Dock", 75]], "Krakauer, George": [["Dock", 75]], "Krieger, Nicholas": [["Dock", 75]], "Light, Mike": [["Dock", 75]], "MacDonald, Bob": [["Dock", 75]], "Martinelli, Chris": [["Dock", 75]], "McPhail, Jeff": [["Dock", 75], ["Kayak", 70]], "Norton, William": [["Dock", 75]], "O'Connor, Nick": [["Dock", 75]], "Smith, Peter": [["Dock", 75]], "Vantress, John": [["Dock", 75]], "Walker, Kirsten": [["Dock", 75]], "Barth, Doug": [["Kayak", 70]], "Cirincione-Coles, Kathryn": [["Kayak", 70]], "Griffith, Melinda": [["Kayak", 70]], "Martin, Monica": [["Kayak", 70]], "Mott, James": [["Kayak", 70]], "Pedemonte, Richard": [["Kayak", 70]], "Read, Don": [["Kayak", 70]], "Sawyer, Aenor": [["Kayak", 70]], "Straton, Joe": [["Kayak", 70]], "Thompson, Randall": [["Kayak", 70]], "Tremp, Dieter": [["Kayak", 70]]}
+    print('\n'.join(show_json(data)))
 
 
 def dump2json_file(data, json_file, verbose=True):
@@ -403,8 +415,8 @@ def tabulate(data,
 
 def output(data, destination=None, announce=True):
     """
-    Sends data (text) to (a file called <destination>
-    (defaults to stdout.)
+    Sends data (text) to (a file called) <destination>
+    (which defaults to stdout.)
     """
     if destination == None:
         print(data)
