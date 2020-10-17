@@ -12,7 +12,7 @@ Guide to Cloning the Repository and Restoring Backed up Data
     ## Assuming backup media is assigned to /dev/sdb1...
     # mount /dev/sdb1 Mnt
     # exit   # No need for root privileges (unitl umounting.)
-    $ LAST=`cat Mnt/last`  # Pick up date of last backup.
+    $ LAST=`cat Mnt/Club/last`  # Pick up date of last backup.
     $ mkdir Club  # Pick a project name & create a directory for it.
     $ cd Club   # Move into the project directory.
     $ git clone https://github.com/alexKleider/Club_Utilities
