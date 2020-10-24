@@ -119,8 +119,8 @@ def send(emails, mta, report_progress=True,
         counter += 1
         if report_progress:
             print("Sending email #{}/{} to {}..."
-    #           .format(counter, n_emails, ", ".join(email['To'])))
-                .format(counter, email['To']))
+                .format(counter, n_emails, ", ".join(email['To'])))
+    #           .format(counter, email['To']))
         mutt_send(email, mta)  #Using mutt; msmtp not working.
         if include_wait:
             time.sleep(random.randint(MIN_TIME_TO_SLEEP,

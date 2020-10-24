@@ -215,25 +215,6 @@ def prepend2file_name(word, file_name):
     return os.path.join(head, ''.join((word, tail)))
 
 
-def show_json(data, res=[], indent=0, indent_factor=2):
-    if isinstance(data, dict):
-        for key in data:
-            helpers.add_header2list(
-                    key, res, extra_line=False,
-                    underline_char='-', indent=indent)
-            indent += indent_factor
-            show_json(data[key], res, indent)
-            indent -= indent_factor
-    elif isinstance(data, list):
-        for item in data:
-            indent += indent_factor
-            show_json(item, res, indent)
-            indent -= indent_factor
-    else:
-        res.append(' ' * indent + str(data))
-    return res
-
-
 def show_json(json, underlinechar=''):
     """
     Returns a human readable representation of json data
@@ -261,9 +242,7 @@ def show_json(json, underlinechar=''):
         else:
             collector.append(' '*indent+str(json))
 
-#   for datum in json:
     collect(json, indent=indent, collector=collector)
-
     return collector
 
 
@@ -278,6 +257,17 @@ def dump2json_file(data, json_file, verbose=True):
             print('Dumping (json) data to "{}".'.format(
                   json_file_obj.name))
         json.dump(data, json_file_obj)
+
+
+def get_json(file_name, report=False):
+    """
+    Reads 'file_name' and returns a dict.
+    Provides optional reporting.
+    """
+    with open (file_name, 'r') as f_obj:
+        if report:
+            print('Reading JSON file "{}".'.format(f_obj.name))
+        return json.load(f_obj)
 
 
 def longest(x, y):

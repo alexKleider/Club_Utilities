@@ -73,9 +73,9 @@ Options:
                     | --mode <member.SEPARATOR separated list of
                     stati>: only report stati listed.
   --mta <mta>  Specify mail transfer agent to use. Choices are:
-                clubg     club's gmail account
+                clubg     club's gmail account  [default: clubg]
                 akg       my gmail account
-                easy      my easydns account  [default: clubg]
+                easy      my easydns account
   -O  Show Options/commands/arguments.  Used for debuging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
@@ -961,9 +961,7 @@ def new_db_cmd():
 
 
 def display_emails_cmd(args=args):
-    with open(args['-j'], 'r') as f_obj:
-        print('Reading JSON file "{}".'.format(f_obj.name))
-        records = json.load(f_obj)
+    records = helpers.get_json(args['-j'], report=True)
     all_emails = []
     n_emails = 0
     for record in records:
@@ -1013,10 +1011,7 @@ def send_emails_cmd(args=args):
         sys.exit(1)
     wait = mta.endswith('g')
     message = None
-    with open(args['-j'], 'r') as f_obj:
-        print('Reading JSON file "{}".'.format(f_obj.name))
-        data = json.load(f_obj)
-    counter = 0
+    data = get_json(args['-j'], report=True)
     emailer(data, mta, include_wait=wait)
 
 

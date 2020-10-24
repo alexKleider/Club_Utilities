@@ -47,8 +47,8 @@ MAX_TIME_TO_SLEEP = 5   #} email postings.
 
 def pause():
     """
-    Provides a random interval between emails so that
-    the MTA is less likely to think the process is automated.
+    Provides a random interval between emails so that the
+    MTA is less likely to think the process is automated.
     Only used in the case of gmail.
     """
     time.sleep(random.randint(MIN_TIME_TO_SLEEP,
@@ -94,14 +94,6 @@ def get_py_header(header):
     Not used. Can be redacted.
     """
     return rfc5322[header.replace('-', '_')]
-
-
-def get_json(file_name):
-    """
-    Reads 'file_name' and returns a dict.
-    """
-    with open (file_name, 'r') as f_obj:
-        return json.load(f_obj)
 
 
 def pseudo_recipient(plus_name, g_email):

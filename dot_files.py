@@ -3,16 +3,19 @@
 # File: dot_files.py
 
 """
-There are 'dot files' that must be in ~/ to provide security
-credentials for sending emails. These are not kept in the repo
-or even on the backups (stored on the Club's Google Drive)
-so must be reconstituted each time a system is set up.
+There are 'dot files' that must be in the user's home directory
+('~/') to provide security credentials for sending emails. These
+are not (for security reasons) kept in the repo or even on the
+backups (stored on the Club's Google Drive) so must be reconstituted
+each time a system is set up.
 This utility provides menu driven functionality to:
 1. copy these files from a working system into a directory that 
-can then be scp'ed to a new system providing it with the needed
-files.
+can then be copied (using scp) to the new system.
 2. save an original copy of the .msmtprc file on the new system
-preventing its loss when overwritten.
+preventing its loss when overwritten. Typically invoked when the
+directory created by the first option has been moved to the new
+installation but before it's files are copied into the user's
+home directory. 
 """
 
 import os

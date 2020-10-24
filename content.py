@@ -994,8 +994,8 @@ content_types = dict(  # which_letter
 # ... end of content_types.
 
 printers = dict(
-    # tuples in the case of windows.
-    X6505_e1=dict(
+    # tuples in the case of envelope windows.
+    X6505_e1=dict(  # Smaller envelope.
         # e1: envelope with distances (in mm) from top to
         # top of top window       21
         # bottom of top window    43
@@ -1008,7 +1008,7 @@ printers = dict(
         to=(5, 30),  # recipient window 12..16
         re=2,  # lines below bottom window
         ),
-    X6505_e2=dict(
+    X6505_e2=dict(  # Larger envelope.
         indent=5,
         top=2,  # blank lines at top  1 ..2
         frm=(4, 25),  # return window 3..6

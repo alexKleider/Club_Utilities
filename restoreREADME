@@ -34,6 +34,10 @@ Guide to Cloning the Repository and Restoring Backed up Data
     $ cp ../exclude .git/info/  # Copy exclude file into git repo.
     $ workon p37  # Activate the venv.[3]
     $ pip install -r requirements.txt  # Bring in dependencies.[4]
+        # Note: only docopt is needed.
+        # Others were brought in during the attempt to automate
+        # retrieval of the gmail contacts listing but have since
+        # been deleted.
     $ .utils.py ?
 
 
@@ -47,9 +51,31 @@ Otherwise you'll get a recusive backup!!!
 [2] The dot files have passwords redacted.  This will have to be
 corrected before emailing will work.  For the Club gmail account:
     $ echo rodandboat123 > ~/.pw.clubg
+See dot_files.py to help out with these security issues.
 
 [3] This assumes virtualenvwrapper has been installed and configured
-and the p37 venv has been created.
+and the p37 venv has been created. (The following is exerpted from 
+/home/alex/Notes/Installs/virtualenvwrapper.)
+https://medium.com/@gitudaniel/installing-virtualenvwrapper-for-python3-ad3dfea7c717
+    # apt install python3-pip
+    $ pip3 install --user virtualenvwrapper
+Note: listing of ~/.local/bin now yields:
+-rwxr-xr-x 1 alex alex   214 Oct 16 16:25 pbr
+-rwxr-xr-x 1 alex alex   241 Oct 16 16:25 virtualenv
+-rwxr-xr-x 1 alex alex   217 Oct 16 16:25 virtualenv-clone
+-rwxr-xr-x 1 alex alex  2210 Oct 16 16:25 virtualenvwrapper_lazy.sh
+-rwxr-xr-x 1 alex alex 41703 Oct 16 16:25 virtualenvwrapper.sh
+Edit ~/.bashrc
+export WORKON_HOME="$HOME/.virtualenvs"
+export VIRTUALENVWRAPPER_VIRTUALENV="$HOME/.local/bin/virtualenv"
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+source $HOME/.local/bin/virtualenvwrapper.sh
+    $ mkdir ~/.virtualenvs
+    $ source ~/.bashrc
+    $ mkvirtualenv -p python3.7 p37  # --python="/usr/bin/python3" p3
+    $ workon p37
+    $ workon    # without a param: lists available venvs.
+    $ deactivate
 
 [4] This only needs to be done once.
 
