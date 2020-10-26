@@ -587,7 +587,7 @@ content_types = dict(  # which_letter
         "subject": "This is a test.",
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
-        "post_scripts": (),
+        "post_scripts": ('forgive_duplicate',),
         "funcs": [member.testing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",

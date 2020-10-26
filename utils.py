@@ -24,7 +24,7 @@ Usage:
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
-  ./utils.py show_mailing_categories [-O -o <outfile>]
+  ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
   ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
@@ -95,8 +95,9 @@ Options:
             recent payments.  Input for thank_cmd.
             [default: Info/2thank.csv]
   -T  Present data in columns (a Table) rather than a long list.
-            Only used with the 'payables' command. May not have
-            much effect without setting -w to a high number.
+            Used with the 'payables' and 'show_mailing_categories
+            command. May not have much effect without setting -w
+            to a high number.
   -w <width>  Maximum number of characters per line in output.
                                     [default: 95]
   --which <letter>  Specifies type/subject of mailing.
@@ -825,8 +826,16 @@ def payables_cmd(args=args):
 
 
 def show_mailing_categories_cmd(args=args):
+    """
+    Needs to be rewritten to take advantage of the -T and -w <width>
+    options.
+    """
     ret = ["Possible choices for the '--which' option are: ", ]
-    ret.extend((("\t" + key) for key in content.content_types.keys()))
+    ret.extend(
+        helpers.tabulate(
+            [key for key in content.content_types.keys()],
+            separator='  '))
+#   ret.extend((("\t" + key) for key in content.content_types.keys()))
     output('\n'.join(ret))
 
 
@@ -1143,7 +1152,7 @@ def envelopes_cmd(args=args):
 
 def wip_cmd(args=args):
     """
-    Code under development temporarily housed here.
+    Code under development (work in progress) temporarily housed here.
     """
     spot = Club.APPLICANT_SPoT
     applicants = data.get_applicant_data(spot, Club.SPONSORS_SPoT)
