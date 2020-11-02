@@ -9,13 +9,13 @@ are not (for security reasons) kept in the repo or even on the
 backups (stored on the Club's Google Drive) so must be reconstituted
 each time a system is set up.
 This utility provides menu driven functionality to:
-1. copy these files from a working system into a directory that 
+1. copy these files from a working system into a directory that
 can then be copied (using scp) to the new system.
 2. save an original copy of the .msmtprc file on the new system
 preventing its loss when overwritten. Typically invoked when the
 directory created by the first option has been moved to the new
 installation but before it's files are copied into the user's
-home directory. 
+home directory.
 """
 
 import os
@@ -39,6 +39,7 @@ file_listing = """
 -rw------- 1 alex alex     9 May 27 11:51 .pw.easy
 -rw------- 1 alex alex     9 May 27 11:51 .pw.sonic
 """
+
 
 def _next_dot_file(file_listing=file_listing):
     for line in file_listing.split('\n'):
@@ -67,7 +68,7 @@ def _save_original_version(file_name, suffix):
 
 def rename_msmtprc(suffix):
     _save_original_version(os.path.expanduser('~/.msmtprc'), suffix)
-    
+
 
 def collect():
     collecting_dir = os.path.expanduser('~/{}'.format('Collector'))

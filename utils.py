@@ -483,7 +483,7 @@ def names_only_cmd(args=args):
     assign_default_files(club, args)
     print("Preparing listing of member and applicant names...")
     err_code = member.traverse_records(club.infile,
-                                       [member.add2names,],club)
+                                       [member.add2names, ],club)
     ret = ["Members and Applicants of the Bolinas Rod & Boat Club",
            "====================================================="]
     if args['-w']:

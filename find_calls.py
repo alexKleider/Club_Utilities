@@ -66,6 +66,7 @@ def all_defs():
                   .format(n, module))
     return result
 
+
 def split_datum(datum):
     module_name, func_name_w_line_n = datum.split('.')
     func_name, line_n = func_name_w_line_n.split('@')
@@ -94,7 +95,7 @@ def pformat(data):
             for entry in data[key]['references']:
                 res.append('    {}'.format(entry))
     return res
-        
+
 
 def main():
     """
@@ -121,21 +122,21 @@ def main():
                         called_or_refed.add(def_)
                         _ = res.setdefault(def_, {})
                         _ = res[def_].setdefault("calls", [])
-                        res[def_]["calls"].append("{}@{}"
-                                    .format(mod_name, line_n))
+                        res[def_]["calls"].append(
+                            "{}@{}" .format(mod_name, line_n))
                     if refed:
                         n_refs += 1
                         called_or_refed.add(def_)
                         _ = res.setdefault(def_, {})
                         _ = res[def_].setdefault("references", [])
-                        res[def_]["references"].append("{}@{}"
-                                    .format(mod_name, line_n))
+                        res[def_]["references"].append(
+                            "{}@{}".format(mod_name, line_n))
 
     n_no_refs = len(defs) - len(called_or_refed)
     no_refs = set(defs) - called_or_refed
     helpers.output('\n'.join(pformat(res)), '2ck_calls_joined')
     helpers.output(pprint.pformat(res, compact=True, width=70),
-                                  '2ck_calls_pformated')
+                   '2ck_calls_pformated')
     helpers.output('\n'.join(sorted(no_refs)), '2ck_unused')
     print("Found {} defs, {} calls, {} refs & {} with out either"
           .format(n_defs, n_calls, n_refs, n_no_refs))

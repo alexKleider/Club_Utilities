@@ -140,6 +140,7 @@ def indent(text, n_spaces):
         print("Should NOT get here!")
         assert(False)
 
+
 def expand_array(content, n):
     if len(content) > n:
         print("ERROR: too many lines in <content>")
@@ -219,7 +220,7 @@ def show_json(json, underlinechar=''):
     """
     Returns a human readable representation of json data
     as a list of lines (which can be '\n'.joined.)
-    If underlinechar is specified, each key is underlined and 
+    If underlinechar is specified, each key is underlined and
     preceeded by a blank line.
     """
     collector = []
@@ -264,7 +265,7 @@ def get_json(file_name, report=False):
     Reads 'file_name' and returns a dict.
     Provides optional reporting.
     """
-    with open (file_name, 'r') as f_obj:
+    with open(file_name, 'r') as f_obj:
         if report:
             print('Reading JSON file "{}".'.format(f_obj.name))
         return json.load(f_obj)
@@ -408,7 +409,7 @@ def output(data, destination=None, announce=True):
     Sends data (text) to (a file called) <destination>
     (which defaults to stdout.)
     """
-    if destination == None:
+    if destination is None:
         print(data)
     else:
         with open(destination, "w") as fileobj:

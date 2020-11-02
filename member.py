@@ -75,6 +75,7 @@ All is well.  "Trust me!"
 
 func_dict = {}
 
+
 def traverse_records(infile, custom_funcs, club):
     """
     Opens <infile> for dict_reading (and in the process
@@ -696,6 +697,7 @@ def add2list4web(record, club):
         club.by_n_meetings[s].append(line)
         # add metadata here (dates of meetings; sponsors)
 
+
 def add2names(record, club):
     """
     """
@@ -994,16 +996,16 @@ prerequisites = {
     get_bad_emails: [
         'club.bad_emails = []',
         ],
-#   dues_and_fees: [
-#       'club.null_dues = []',
-#       'club.members_owing = []',
-#       'club.members_zero_or_cr = []',
-#       'club.dues_balance = 0',
-#       'club.fees_balance = 0',
-#       'club.retiring = []',
-#       'club.applicants = []',
-#       'club.errors = []',
-#       ],
+    #   dues_and_fees: [
+    #       'club.null_dues = []',
+    #       'club.members_owing = []',
+    #       'club.members_zero_or_cr = []',
+    #       'club.dues_balance = 0',
+    #       'club.fees_balance = 0',
+    #       'club.retiring = []',
+    #       'club.applicants = []',
+    #       'club.errors = []',
+    #       ],
     populate_non0balance_func: [
         "club.errors = []",
         "club.non0balance = []",
@@ -1028,8 +1030,9 @@ prerequisites = {
 
 func_dict['rm_email_only_field'] = (
     rm_email_only_field,
-    ("first","last","phone","address","town","state","postal_code",
-     "country","email","dues","dock","kayak","mooring","status",
+    ("first", "last", "phone", "address", "town", "state",
+     "postal_code", "country", "email", "dues", "dock",
+     "kayak", "mooring", "status",
      )
     )
 
