@@ -446,7 +446,7 @@ def gather_sponsors(infile):
     return ret
 
 
-def extra_charges(club):
+def extra_charges(club, raw=False):
     """
     Returns a report of members with extra charges.
     Only client is extra_charges_cmd.
@@ -463,21 +463,23 @@ def extra_charges(club):
                                        json_file=club.json_file)
         # Just return file content:
         with open(club.infile, 'r') as f_object:
-            return(f_object.read())
+            return [line.strip() for line in f_object]
     extra_fees = gather_extra_fees_data(club.infile,
                                         json_file=club.json_file)
     by_name = extra_fees[club.NAME_KEY]
     by_category = extra_fees[club.CATEGORY_KEY]
     if club.presentation_format == 'table':  # Names /w fees in columns:
         res = present_fees_by_name(by_name)
-        ret = ["Extra fees by member:",
-               "=====================", ]
+        if raw:
+            ret = []
+        else:
+            ret = ["Extra fees by member:",
+                   "=====================", ]
         ret.extend(helpers.tabulate(res, down=True,
                    max_width=club.max_width, separator=' '))
-        return('\n'.join(ret))
+        return(ret)
     elif club.presentation_format == 'listings':
-        return('\n'.join(
-                    present_fees_by_category(extra_fees)))
+        return(present_fees_by_category(extra_fees, raw=raw))
     else:
         print(club.bad_format_warning)
         sys.exit()

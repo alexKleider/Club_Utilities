@@ -550,7 +550,21 @@ def report(club):
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
         report.extend(misc_stati)
+    club_ = club_setup4extra_charges()
+    club_.presentation_format = 'listings'
+    report.append("""
 
+
+For Docks and Yard Committee
+============================
+
+I continue to include the following listing of extra fees
+being charged to serve as a reminder to let me know if any
+changes are to be made before charges are applied for the
+next (July 1, 2021-June 30, 2022) membership year.
+
+""")
+    report.extend(data.extra_charges(club_, raw=True))
     try:
         with open(DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
             print('Opening file: {}'.format(fobj.name))
@@ -558,7 +572,6 @@ def report(club):
             report.append(addendum)
     except FileNotFoundError:
         print('report.addendum not found')
-        pass
     report.extend(
         ['', '',
          "Respectfully submitted by...\n\n",
@@ -765,10 +778,10 @@ def usps_cmd(args=args):
     return '\n'.join(res)
 
 
-def extra_charges_cmd(args=args):
+def club_setup4extra_charges(args=args):
     """
-    Returns a report of members with extra charges.
-    It also can create a json file: specified by the -j option.
+    Returns an instance of rbc.Club set up with what's needed
+    to run the data.extra.charges function.
     """
     club = Club
     club.infile = args["-i"]
@@ -786,7 +799,16 @@ Choose one of the following:        [default: table]
         'table' listing of names /w fees tabulated (=> 2 columns.)
         'listing' same format as Data/extra_fees.txt
         'listings' side by side lists (best use landscape mode.) """
-    output(data.extra_charges(club))
+    return club
+
+
+
+def extra_charges_cmd(args=args):
+    """
+    Returns a report of members with extra charges.
+    It also can create a json file: specified by the -j option.
+    """
+    output('\n'.join(data.extra_charges(club_setup4extra_charges())))
 
 
 def payables_cmd(args=args):
