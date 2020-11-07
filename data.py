@@ -54,6 +54,8 @@ def gather_membership_data(club):
                                         member.add2ms_by_status,
                                         member.increment_napplicants,
                                         member.add2malformed,
+                                        member.add2member_with_email_set,
+                                        member.add2applicant_with_email_set,
                                         ), club)
     if err_code:
         print("Error condition! #{}".format(err_code))
@@ -734,6 +736,7 @@ def ck_data(club,
     """
     ret = []
     ok = []
+    temp_list = []
     varying_amounts = []
     helpers.add_header2list("Report Regarding Data Integrity",
                             ret, underline_char='#', extra_line=True)
@@ -743,6 +746,26 @@ def ck_data(club,
     # club.gmail_by_name (string)   # club.g_by_email (set)
     # club.groups_by_name (set)     # club.g_by_group (set)
 
+
+    if club.g_by_group['applicant'] != club.applicant_with_email_set:
+        helpers.add_header2list("Applicant/Google 'applicant' Mismatch",
+                                temp_list, underline_char='-',
+                                extra_line=True)
+        for name in club.g_by_group['applicant'] ^ club.member_with_email_set:
+            temp_list.append("\t{}".format(name))
+    if club.g_by_group['LIST'] != club.member_with_email_set:
+        helpers.add_header2list("Member/Google 'LIST' Mismatch",
+                                temp_list, underline_char='-',
+                                extra_line=True)
+        for name in club.g_by_group['LIST'] ^ club.member_with_email_set:
+            temp_list.append("\t{}".format(name))
+    if temp_list:
+        helpers.add_header2list(
+            "Google Groups vs Member/Applicant Missmatch",
+            ret, underline_char='=', extra_line=True)
+        ret.extend(temp_list)
+    else:
+        ok.append("No Google Groups vs Member/Applicant Missmatch.")
     # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT)
     a_applicants = gather_applicant_data(

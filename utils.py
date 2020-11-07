@@ -249,6 +249,12 @@ if args["-p"] not in content.printers.keys():
 
 
 def assign_default_files(club, args):
+    """
+    Assigns the following attributes to <club>:
+        infile, and the following 'spot' file names:
+            applicant_spot, sponsor_spot,
+            extra_fees_spot, contacts_spot
+    """
     if args['-i']:
         club.infile = args['-i']
     else:
@@ -271,21 +277,17 @@ def assign_default_files(club, args):
         club.contacts_spot = Club.CONTACTS_SPoT
 
 
-def confirm_file_present(file_name):
+def confirm_file_present_and_up2date(file_name):
     """
+    Asks user to confirm that the file is current.
     Aborts the program if file_name doesn't exist.
+    Used for the gmail contacts.csv file.
     """
     if not os.path.exists(file_name):
         print("File '{}' expected but not found.".format(file_name))
         sys.exit()
-
-
-def confirm_file_up_to_date(file_name):
-    """
-    Asks user to confirm that the file is current.
-    Used for the gmail contacts.csv file.
-    """
-    response = input("Is file '{}' current? ".format(file_name))
+    response = input("Is file '{}' present and up to date? "
+                     .format(file_name))
     if response and response[0] in "Yy":
         return True
     else:
@@ -431,8 +433,7 @@ def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club()
     assign_default_files(club, args)
-    confirm_file_present(club.CONTACTS_SPoT)
-    confirm_file_up_to_date(club.CONTACTS_SPoT)
+    confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])))
 
 

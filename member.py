@@ -289,9 +289,8 @@ def add2email_data(record, club):
     email = record['email']
     if email:
         club.email_by_m[name] = email
-        if hasattr(club, 'ms_by_email'):
-            _ = club.ms_by_email.setdefault(email, [])
-            club.ms_by_email[email].append(name)
+        _ = club.ms_by_email.setdefault(email, [])
+        club.ms_by_email[email].append(name)
     else:
         club.without_email.append(name)
 
@@ -315,6 +314,16 @@ def add2ms_by_status(record, club):
 def add2demographics(record, club):
     club.demographics[member_name(record, club)] = (
         name_w_demographics(record, club))
+
+
+def add2member_with_email_set(record, club):
+    if is_member(record) and record['email']:
+        club.member_with_email_set.add(member_name(record, club))
+
+
+def add2applicant_with_email_set(record, club):
+    if is_applicant(record) and record['email']:
+        club.applicant_with_email_set.add(member_name(record, club))
 
 
 redacted = '''
@@ -946,7 +955,7 @@ prerequisites = {
     add2stati_by_m: [
         'club.stati_by_m = {}',
         ],
-    # Next one is being redacted:
+    # Next one is ??? being redacted?
     add2email_data: [
         'club.email_by_m = {}',
         'club.ms_by_email = {}',
@@ -960,6 +969,12 @@ prerequisites = {
     #       'club.napplicants = 0',
     #       'club.stati_by_m = {}',
     #       ],
+    add2member_with_email_set: [
+        'club.member_with_email_set = set()',
+        ],
+    add2applicant_with_email_set: [
+        'club.applicant_with_email_set = set()',
+        ],
     add2demographics: [
         'club.demographics = {}',
         ],
