@@ -1177,8 +1177,8 @@ def wip_cmd(args=args):
     """
     Code under development (work in progress) temporarily housed here.
     """
-    spot = Club.APPLICANT_SPoT
-    applicants = data.get_applicant_data(spot, Club.SPONSORS_SPoT)
+    applicants = data.get_applicant_data(Club.APPLICANT_SPoT,
+                                         Club.SPONSORS_SPoT)
     for key in applicants.keys():
         if applicants[key]['dates']:
             print("{}: Meeting dates {}"

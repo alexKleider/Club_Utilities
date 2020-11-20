@@ -9,6 +9,9 @@ Difficulty is how to account for every possible version of a json
 file.  So far only two forms work.
 This utility may be retired in the future in favour of a custom script
 for each category of json file used.
+
+Usage:
+    $ ./json_as_text.py FILE1 [FILE2...]
 """
 
 import json
@@ -21,11 +24,14 @@ if len(sys.argv) < 2:
 for f in sys.argv[1:]:
     collector = []
     components = f.split(".")
-    if ((len(components) != 2)
-            or (components[1] != 'json')):
-        print("Argument(s) malformed- must be ____.json")
+    if ((not len(components) > 1)
+            or (components[-1] != 'json')):
+        print("Unacceptable argument '{}'- must be a '...json' file"
+              .format(f))
         sys.exit()
-    out_file = ".".join((components[0], 'txt'))
+    components = components[:-1]
+    components.append('txt')
+    out_file = ".".join(components)
     with open(f, 'r') as f_obj:
         print('Loading JSON from "{}".'.format(f_obj.name))
         data = json.load(f_obj)

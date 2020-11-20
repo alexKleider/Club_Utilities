@@ -9,6 +9,8 @@
 # $ tar xvzf file.tar.gz
 
 STAMP=`date +%y-%m-%d`
+LAST=`head Info/last`
+echo "Last time data was archived was on $LAST"
 DATA_ARCHIVES='../Archives/Data/'
 TARFILE=${STAMP}.tar.gz
 mkdir $STAMP
@@ -34,6 +36,8 @@ echo "Moving $TARFILE into $DATA_ARCHIVES"
 mv $TARFILE $DATA_ARCHIVES
 echo "Deleting $STAMP"
 rm -r $STAMP
+echo "Storing date of this data archiving into file 'Info/last'.
+echo $STAMP > Info/last
 
 ### to 'untar':
 ###   $ tar xvzf file.tar.gz

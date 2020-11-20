@@ -28,7 +28,8 @@ import member
 from rbc import Club
 
 
-def get_fieldnames(csv_file):
+def get_fieldnames(csv_file: "name of csv file"
+        ) -> "list of the csv file's field names":
     with open(csv_file, 'r', newline='') as file_object:
         dict_reader = csv.DictReader(file_object, restkey='extra')
         return dict_reader.fieldnames
