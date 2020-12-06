@@ -216,6 +216,8 @@ def parse_applicant_line4dates(line,
                 bad_line_list.append(
                     "IndexError: {}".format(line))  # got none
             return
+    if len(parts) > 3:  # waste dates of induction and membership.
+        parts = parts[:3]
     return (name, parts)
 
 
