@@ -36,7 +36,7 @@ echo "Moving $TARFILE into $DATA_ARCHIVES"
 mv $TARFILE $DATA_ARCHIVES
 echo "Deleting $STAMP"
 rm -r $STAMP
-echo "Storing date of this data archiving into file 'Info/last'.
+echo "Storing date of this data archiving into file 'Info/last'."
 echo $STAMP > Info/last
 
 ### to 'untar':
