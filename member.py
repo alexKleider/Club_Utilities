@@ -34,6 +34,7 @@ STATUS_KEY_VALUES = {
     "m": "New Member",  # temporary until congratulatory letter.
     'r': "Retiring/Giving up Club Membership",
     's': "Secretary of the Club",  # not used under Rafferty
+    't': "Membership terminated",  # fees not paid
     "w": "Fees being waived",  # a rarely applied special status
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
@@ -150,6 +151,22 @@ def is_applicant(record):
     return False
 
 
+def is_new_applicant(record):
+    return set(('a', 'a0')) & get_status_set(record)
+
+
+def is_inductee(record):
+    '''
+    '''
+    return 'ai' in get_status_set(record)
+
+
+def is_waiting(record):
+    """
+    """
+    return 'aw' in get_status_set(record)
+
+
 def is_member(record):
     """
     Tries to determine if record is that of a member (based on
@@ -167,10 +184,22 @@ def is_member(record):
     return True
 
 
+def is_new_member(record):
+    """
+    """
+    return 'm' in get_status_set(record)
+
+
 def is_honorary_member(record):
     """
     """
     return 'h' in get_status_set(record)
+
+
+def is_terminated(record):
+    """
+    """
+    return 't' in get_status_set(record)
 
 
 def increment_napplicants(record, club):
@@ -775,7 +804,7 @@ def append_email(record, club):
 
 def file_letter(record, club):
     entry = club.letter.format(**record)
-    path2write = os.path.join(club.dir4letters,
+    path2write = os.path.join(club.MAILING_DIR,
                               "_".join((record["last"],
                                         record["first"])))
     with open(path2write, 'w') as file_obj:
@@ -1028,7 +1057,7 @@ prerequisites = {
     populate_name_set: [
         "club.name_set = set()",
         ],
-    append_email: [
+    std_mailing_func: [
         "club.json_data = []",
         ],
     db_apply_charges: [

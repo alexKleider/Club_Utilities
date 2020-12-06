@@ -42,6 +42,10 @@ class Club(object):
     # Used by utils.thank_cmd following which needs to be
     # stored in archives with date extension.
 
+    # Non repo directories:
+    NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
+                    "NonRepo", "Temp", "TestData")
+
     SEPARATOR = "|"   # } File APPLICANT_SPoT must be in a
     N_SEPARATORS = 3  # } specific format for it to be read
     #                 # } correctly. Number of meetings is

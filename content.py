@@ -405,6 +405,17 @@ Your wish to retire from Club membership has been noted.
 I know I speak for all members in saying we're sorry to see you go
 and wish you all the best in the future.""",
 
+    membership_termination="""
+Regretably the Club Executive Committee has been obliged to
+terminate your membership because of non payment of dues.
+
+Let me add my own personal sentiment of regret that you have
+chosen to leave the club.
+
+I've been asked that you return the club house key that you
+got from Ralph.  A stamped addressed envelope has been included
+for your convenience.""",
+
     cover_letter="""
 Enclosed you'll find minutes of the Bolinas Rod and Boat Club.""",
 
@@ -845,10 +856,9 @@ content_types = dict(  # which_letter
         "body": letter_bodies["covid_welcome"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record: (
-            True if
-            (record["status"] and 'a' in record["status"].split("|"))
-            else False)),
+        "test": (lambda record:
+            True if member.is_new_applicant(record)
+            else False),
         "e_and_or_p": "one_only",
         },
     awaiting_vacancy={
@@ -857,9 +867,8 @@ content_types = dict(  # which_letter
         "body": letter_bodies["awaiting_vacancy"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record: (True if (record["status"]
-                                 and 'aw' in record["status"].split("|"))
-                                 else False)),
+        "test": (lambda record: True if member.is_waiting(record)
+                                 else False),
         "e_and_or_p": "one_only",
         },
     request_inductee_payment={
@@ -870,7 +879,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             ),
         "funcs": (member.inductee_payment_f,),
-        "test": (lambda record: True if 'ai' in record["status"]
+        "test": (lambda record: True if member.is_inductee(record)
                  else False),
         "e_and_or_p": "one_only",
         },
@@ -882,7 +891,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             ),
         "funcs": (member.inductee_payment_f,),
-        "test": (lambda record: True if 'aw' in record["status"]
+        "test": (lambda record: True if member.is_waiting(record)
                  else False),
         "e_and_or_p": "one_only",
         },
@@ -894,7 +903,7 @@ content_types = dict(  # which_letter
             post_scripts["remittance"],
             ),
         "funcs": (member.inductee_payment_f,),
-        "test": (lambda record: True if 'ai' in record["status"]
+        "test": (lambda record: True if member.is_inductee(record)
                  else False),
         "e_and_or_p": "one_only",
         },
@@ -907,7 +916,7 @@ content_types = dict(  # which_letter
                          post_scripts["forgive_duplicate"],
                          ),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record: True if 'm' in record["status"]
+        "test": (lambda record: True if member.is_new_member(record)
                  else False),
         "e_and_or_p": "one_only",
         },
@@ -930,6 +939,17 @@ content_types = dict(  # which_letter
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True),
         "e_and_or_p": "one_only",
+        },
+
+    membership_termination={
+        "subject": "Sorry you're leaving us.",
+        "from": authors["membership"],
+        "body": letter_bodies["membership_termination"],
+        "post_scripts": (),
+        "funcs": (member.std_mailing_func,),
+        "test": (lambda record: True if member.is_terminated(record)
+                 else False),
+        "e_and_or_p": "usps",
         },
 
     cover_letter={

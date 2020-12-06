@@ -1043,7 +1043,7 @@ def send_emails_cmd(args=args):
         sys.exit(1)
     wait = mta.endswith('g')
     message = None
-    data = get_json(args['-j'], report=True)
+    data = helpers.get_json(args['-j'], report=True)
     emailer(data, mta, include_wait=wait)
 
 
