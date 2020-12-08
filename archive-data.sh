@@ -2,11 +2,17 @@
 
 # File: archive-data.sh
 
-# Archive club data files that are in the Mshp/Py directory but
-# excluded from the git repo.
-# A compressed tar file goes into '../Archives/Data'.
+# Archive the directories which are in the repo directory but not
+# part of it because they containing club data files.
+# The result is a compressed tar file which is added to the already
+# existing ones filed in '../Archives/Data'.
 # To extract:
 # $ tar xvzf file.tar.gz
+# To restore data, use restore.py giving it as a parameter the
+# tar.gz file of your choice.
+# Would like to rewrite this using Python so as to have the nonrepo
+# directories specified by rbc.Club.NONREPO_DIRS rather than being
+# hard coded.
 
 STAMP=`date +%y-%m-%d`
 LAST=`head Info/last`

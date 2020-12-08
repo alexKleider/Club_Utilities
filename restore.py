@@ -4,11 +4,12 @@
 
 """
 Usage:
-  restore.py src 
+  $ ./restore.py src 
 
 Requires one parameter, the name of a tar.gz file
 which is assumed to be one that has been generated
-by the archive_data.sh script.
+by the archive-data.sh script.  (Planning to replace
+it with archive_data.py.)
 Replaces the non-repo files under the repo directory.
 """
 
@@ -16,7 +17,7 @@ import os
 import sys
 import shutil
 import tarfile
-import rbc as club
+import rbc
 
 # First part just checks that there is a valid parameter
 # and assigns it to <target> (the full path of the gzip file) and
@@ -47,7 +48,7 @@ tar.extractall()
 tar.close()
 
 # Check that we got what is expected:
-expected_dirs = set(club.Club.NONREPO_DIRS)
+expected_dirs = set(rbc.Club.NONREPO_DIRS)
 existing_dirs = set(os.listdir(path='./{}'.format(holder_dir)))
 if not expected_dirs == existing_dirs:
     print("Expected and existing list of directories don't match!")
@@ -55,7 +56,7 @@ if not expected_dirs == existing_dirs:
     sys.exit()
 
 
-for folder in club.Club.NONREPO_DIRS:
+for folder in rbc.Club.NONREPO_DIRS:
     shutil.rmtree(folder)
     shutil.copytree(
         os.path.join(".", holder_dir, folder),
