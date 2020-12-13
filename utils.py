@@ -76,7 +76,7 @@ Options:
                 clubg     club's gmail account  [default: clubg]
                 akg       my gmail account
                 easy      my easydns account
-  -O  Show Options/commands/arguments.  Used for debuging.
+  -O  Show Options/commands/arguments.  Used for debugging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. [default: stdout]
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
@@ -210,6 +210,8 @@ import Pymail.send
 import Bashmail.send
 from rbc import Club
 
+VERSION = "1.1"
+
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   # } Seconds between
 MAX_TIME_TO_SLEEP = 5   # } email postings.
@@ -221,7 +223,7 @@ CSV = ".csv"   # } command.
 TEMP_FILE = "2print.temp"  # see <output> function
 DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
 
-args = docopt(__doc__, version="1.1")
+args = docopt(__doc__, version=VERSION)
 for arg in args:
     if type(args[arg]) == str:
         if args[arg] and (args[arg][0] == '='):

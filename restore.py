@@ -8,9 +8,9 @@ Usage:
 
 Requires one parameter, the name of a tar.gz file
 which is assumed to be one that has been generated
-by the archive-data.sh script.  (Planning to replace
-it with archive_data.py.)
-Replaces the non-repo files under the repo directory.
+by archive_data.py.
+Replaces data files which are kept in the repo directory but
+excluded from the repo itself.
 """
 
 import os

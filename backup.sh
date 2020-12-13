@@ -8,6 +8,11 @@
 # are the destination device/directory assigned in the
 # next line and the rsync command at the end of the script.
 
+# This utility backs up everything except what's in the git repo.
+# Keep in mind though that current data must first be archived
+# (use archive_data.py) and when setting up a new system that data
+# must be restored (using restore.py.)
+
 BACKUP="/home/alex/Mnt/Club"  #***  The ScanDisc thumb drive.
 # BACKUP="/media/alex/_EAGLE/Brbc"  #*** The Eagle HardDrive
 
@@ -17,7 +22,7 @@ LAST=`cat ${BACKUP}/last`
 #SRC="/home/alex/Club/Mshp/"  #***
 SRC="/home/alex/Git/Club/"  #***
 
-if [ -d ${DEST} ]; then  # This segment provides idempotency.
+if [ -d ${DEST} ]; then  # This segment provides idempotence.
   echo "Backup already done today. No backup until tomorrow."
   exit 1
 else
@@ -43,8 +48,8 @@ echo "Running rsync to update the copy..."
 rsync -av --exclude='Utils' --delete $SRC $DEST  #***
 # The excluded 'Utils' directory is backed up by git.
 # Within 'Utils' there are files/directories excluded from git:
-# These are archived by the archive_data.sh script which should
-# be run before this script.
+# These are archived by archive-data.py script which should
+# be run before doing the backup.
 
 echo "Updating the time stamp."
 echo $STAMP > ${BACKUP}/last

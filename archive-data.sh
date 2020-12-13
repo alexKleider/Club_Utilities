@@ -2,6 +2,8 @@
 
 # File: archive-data.sh
 
+### REDACTED ###  (in favour of archive_data.py)
+
 # Archive the directories which are in the repo directory but not
 # part of it because they containing club data files.
 # The result is a compressed tar file which is added to the already
@@ -43,7 +45,7 @@ mv $TARFILE $DATA_ARCHIVES
 echo "Deleting $STAMP"
 rm -r $STAMP
 echo "Storing date of this data archiving into file 'Info/last'."
-echo $STAMP > Info/last
+echo $STAMP >> Info/last
 
 ### to 'untar':
 ###   $ tar xvzf file.tar.gz
