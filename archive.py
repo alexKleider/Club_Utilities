@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# File: archive_data.py
+# File: archive.py
 
 """
 A rewrite of archive-data.sh primarily to utilize
@@ -12,8 +12,8 @@ Also replaces archive_mailing.sh.
 It's inverse is restore.py.
 
 Usage:
-    ./archive_data.py [-h | --version]
-    ./archive_data.py [(-o | -O) -q -m]
+    ./archive.py [-h | --version]
+    ./archive.py [(-o | -O) -q -m]
 
 Options:
   -h --help  Print this docstring.
@@ -67,19 +67,21 @@ def archive(destination_directory,
     new_path = os.path.join(destination_directory,
                             tar_file)
     if os.path.exists(new_path):
-        print("Tar file with today's date stamp already exists...")
+        print("Specified tar file already exists...")
         print("... '{}'.".format(new_path))
         return False
     try:
-        os.mkdir(targz_base_name)
+        os.mkdir(targz_base_name)  # create a temporary dir
     except FileExistsError:
         print("Temporary directory '{}' already exists."
               .format(targz_base_name))
         return False
     for source in sources:
         dest = os.path.join(targz_base_name, source)
+        if not args["--quiet"]:
+            print("source/dest are {}/{}".format(source, dest))
         if os.path.isfile(source):
-            shutil.copyfile(source, dest)
+            shutil.copy2(source, targz_base_name)
             ret = True
             if not args['--quiet']:
                 print("   Archiving file '{}'".format(source))
@@ -95,7 +97,7 @@ def archive(destination_directory,
     if ret:
         with tarfile.open(tar_file, "w:gz") as tar:
             tar.add(targz_base_name)
-        print("{} exists? {}".format(tar_file, os.path.isfile(tar_file)))
+#       print("{} exists? {}".format(tar_file, os.path.isfile(tar_file)))
         res = shutil.move(tar_file, destination_directory)
         if not (res == new_path):
             print("Archiving error!")
@@ -105,10 +107,26 @@ def archive(destination_directory,
 
 
 def archive_mail(sources=mailing_sources):
-    if sources:
-        if archive(mailing_destination, sources):
-            print("Mailing archived.")
-            args['mail_action'] = 'mail archived'
+    no_empties = [source for source in sources if (
+        os.path.isfile(source) or (
+        os.path.isdir(source) and os.listdir(source)))]
+    print("within archive_mail() archiving: {}"
+          .format(no_empties))
+    if no_empties:
+        if archive(mailing_destination, no_empties):
+            ans = input(
+                  "Mailing archived.  Delete mailings from data? ")
+            if ans and ans[0] in {'y', 'Y'}:
+                for source in sources:
+                    if os.path.isdir(source):
+                        shutil.rmtree(source)
+                    elif os.path.isfile(source):
+                        os.remove(source)
+                    else:
+                        print("Something not right in archive_mail!")
+            args['mail_action'] = 'mail'
+        else:
+            print("No mailing found to archive.")
     else:
         print("No mailing found to archive.")
 
@@ -147,15 +165,20 @@ def main():
                          .format(last_line))
     if not (response and response[0] in 'yY'):
         sys.exit()
-    archive_mail()
+
+    res = archive_mail()
+    if not args['--quiet']:
+        print("archive_mail() returns {}".format(res))
     if args['--mail_only']:
         return
+
     if archive(data_destination, sources=list_of_data_targets):
-        args['data_action'] = 'data archived'
-    description = '&'.join([text for text in (
+        args['data_action'] = 'data'
+    description = ' & '.join([text for text in (
         args['mail_action'], args['data_action']) if text])
     with open(info_file, action) as f:
-        f.write("{} {}".format(date_stamp, description))
+        f.write("{} {}".format(date_stamp,
+                               " {} archived".format(description)))
 
 
 if __name__ == '__main__':
