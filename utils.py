@@ -451,10 +451,11 @@ def show_cmd(args=args):
 
     ret = ["""FOR MEMBER USE ONLY
 
-THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS
-ROD & BOAT CLUB MEMBERSHIP CONTAINED HEREIN ARE NOT TO BE REPRODUCED
-OR DISTRIBUTED FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE
-BOARD OF THE BRBC.
+THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS ROD &
+BOAT CLUB MEMBERSHIP CONTAINED HEREIN ARE NOT TO BE REPRODUCED OR DISTRIBUTED
+FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE BOARD OF THE BRBC.
+
+Data maintained by the Membership Chair and posted here by Michael Rafferty.
     """]
     if club.members:
         helpers.add_header2list("Club Members ({} in number as of {})"
@@ -580,7 +581,7 @@ next (July 1, 2021-June 30, 2022) membership year.
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
          "for presentation {}."
-         .format(helpers.next_first_friday()),
+         .format(helpers.next_first_friday(exclude=True)),
          ])
     return report
 

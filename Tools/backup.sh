@@ -21,6 +21,7 @@ DEST=${BACKUP}/$STAMP
 LAST=`cat ${BACKUP}/last`
 #SRC="/home/alex/Club/Mshp/"  #***
 SRC="/home/alex/Git/Club/"  #***
+SRC=${CLUB}  #***
 
 if [ -d ${DEST} ]; then  # This segment provides idempotence.
   echo "Backup already done today. No backup until tomorrow."
@@ -35,8 +36,8 @@ echo "Creating $DEST directory.."
 mkdir $DEST
 
 # Make sure we save a copy of .git/info/exclude
-echo "..populating it with .git/info/exclude"
-cp .git/info/exclude ../
+echo "..save a copy of .git/info/exclude"
+cp .git/info/exclude ${CLUB}  #***
 
 # Copy what was previously backed up using hard links...
 echo "..creating (using hard links) a copy of previous backup"

@@ -158,7 +158,7 @@ If you have reason to believe this is in error, please let
 me know[1].
 
 My apologies for the confusion (caused by my ineptitude!)
-{{extra}}""".format(helpers.next_club_year()),
+{{extra}}""".format(helpers.club_year(which='next')),
 
 
 
@@ -175,7 +175,7 @@ year appears bellow.  (If you've any reason to believe that
 our accounting might be in error, please let us know[1].)
 If the total is zero (or negative) you're all paid up (or more
 than paid up) for the upcoming year and we thank you.
-{{extra}}""".format(helpers.next_club_year()),
+{{extra}}""".format(helpers.club_year(which='next')),
 
     # Send with June minutes:
     June_request="""
@@ -190,7 +190,7 @@ where they stand whether already paid up or not.
 in error, please let it be known[1].)
 
 Details are as follows:
-{{extra}}""".format(helpers.this_club_year()),
+{{extra}}""".format(helpers.club_year(which='this')),
 
     July_request="""
 The new ({}) Club year has begun. Please send in your dues
@@ -201,7 +201,7 @@ PO Box 248, Bolinas, CA 94924.
 in error, please let it be known[1].)
 
 Details are as follows:
-{{extra}}""".format(helpers.this_club_year()),
+{{extra}}""".format(helpers.club_year(which='this')),
 
     interim_request="""
 Club records indicate that you still have dues (and/or
@@ -267,7 +267,7 @@ because of financial hardship imposed by the pandemic, please let us
 know; the Executive Committee is very concerned about, and wants to
 consider, any such cases.
 
-Sincerely,""".format(helpers.this_club_year()),
+Sincerely,""".format(helpers.club_year(which='this')),
 
     bad_email="""
 Emails sent to you at

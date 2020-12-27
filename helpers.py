@@ -8,6 +8,7 @@ This file also appears in ~/PyLib (by means of a hard link.)
 """
 
 import os
+import sys
 import json
 import datetime
 import functools
@@ -21,7 +22,7 @@ this_year = today.year
 s = today.strftime(date_template)
 d = datetime.datetime.strptime(s, date_template)
 date = d.strftime(date_template)
-n_friday = 4
+N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
@@ -39,56 +40,61 @@ def useful_lines(stream, comment=None):
 
 
 def get_first_friday_of_month(date):
+    """
+    Returns a datetime.date object.
+    """
     year = date.year
     month = date.month
     for d in range(1, 8):  # range => 1..7 covering first week
-        first_friday = datetime.date(year, month, d)
-        if first_friday.weekday() == n_friday:
-            return first_friday
+        day = datetime.date(year, month, d)
+        if day.weekday() == N_FRIDAY:
+            return day
 
 
-def next_first_friday(today=datetime.date.today()):
-    n_friday = 4
+def next_first_friday(today=datetime.date.today(),
+                      exclude=False):
+    """
+    If <exclude> result will never be Jan 1
+    Jan 8th will be returned.
+    Returns a string (formated date.)
+    """
     year = today.year
     month = today.month
     date = get_first_friday_of_month(today)
-    if not (date < today):
-        return date.strftime(date_w_wk_day_template)
-        # date.strftime(format)
-    else:
-        pass
-    if month == 12:
-        month = 1
-        year = year + 1
-    else:
-        month = month + 1
-    date = get_first_friday_of_month(datetime.date(year, month, 1))
+    if exclude:
+        if date.month == 1 and date.day == 1:
+            date = date + datetime.timedelta(days=7)
+    if date < today:
+        if month == 12:
+            month = 1
+            year = year + 1
+        else:
+            month = month + 1
+        date = get_first_friday_of_month(
+            datetime.date(year, month, 1))
+        if exclude:
+            if date.month == 1 and date.day == 1:
+                date = date + datetime.timedelta(days=7)
     return date.strftime(date_w_wk_day_template)
-    # date.strftime(format)
-    print("ended with no return")
 
 
 # print("Setting the date to '{}'.".format(date))
 
-def this_club_year():
-    if month > 6:
-        return ("{}-{}".format(this_year, this_year + 1))
+
+def club_year(which='this', now=datetime.date.today()):
+    if which == 'last':
+        n = -1
+    elif which == 'this':
+        n = 0
+    elif which == 'next':
+        n = 1
     else:
-        return ("{}-{}".format(this_year - 1, this_year))
-
-
-def last_club_year():
-    if month > 6:
-        return ("{}-{}".format(this_year - 1, this_year))
+        print("Invalid parameter given to helpers.club_year()")
+        sys.exit()
+    if now.month > 6:
+        return "{}-{}".format(now.year + n, now.year + n+1)
     else:
-        return ("{}-{}".format(this_year - 2, this_year - 1))
-
-
-def next_club_year():
-    if month > 6:
-        return ("{}-{}".format(this_year + 1, this_year + 2))
-    else:
-        return ("{}-{}".format(this_year, this_year + 1))
+        return "{}-{}".format(now.year + n -1, now.year + n)
 
 
 def expand_date(date_string):
@@ -103,11 +109,22 @@ def expand_date(date_string):
                              date_string[-2:])
 
 
-def get_datestamp():
+def get_datestamp(date=None):
     """
     Returns a string depicting the current date (for postal letters.)
+    If <date> is provided it must be type datetime.datetime or
+    datetime.date.  If not provided, today's date is used.
     """
-    return date
+    if date:
+        if (isinstance(date,datetime.date) 
+            or isinstance(date, datetime.datetime)):
+            d = date
+        else:
+            print("helpers.get_datestamp got a bad argument")
+            sys.exit()
+    else:
+        d = datetime.date.today()
+    return d.strftime(date_template)
 
 
 def format_dollar_value(value):
