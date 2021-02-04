@@ -18,6 +18,45 @@ import helpers
 import datetime
 
 
+def test_script_location():
+    assert helpers.script_location() == (
+    "/home/alex/Git/Club/Utils"
+    )
+
+
+stream = [
+    "The quick brown fox",
+    "   jumped over the moon",
+    "    "
+    "# but of course this is rediculous!",
+    " # as is this.",
+    "        indented => unindented line",
+    ]
+
+
+def test_useful_lines():
+    expected = [
+    "The quick brown fox",
+    "jumped over the moon",
+    "# but of course this is rediculous!",
+    "# as is this.",
+    "indented => unindented line",
+        ]
+    assert [line for line in helpers.useful_lines(
+            stream)] == expected
+
+
+def test_useful_lines_without_comments():
+    expected = [
+    "The quick brown fox",
+    "jumped over the moon",
+    "indented => unindented line",
+        ]
+    assert [line for line in helpers.useful_lines(
+            stream, comment='#')
+            ] == expected
+
+
 @pytest.mark.parametrize("date_object, expected", [
     (datetime.date(2021, 1, 1), datetime.date(2021, 1, 1)),
     (datetime.date(2019, 1, 6), datetime.date(2019, 1, 4)),
@@ -28,6 +67,7 @@ import datetime
     (datetime.date(2021, 8, 8), datetime.date(2021, 8, 6)),
     (datetime.date(2021, 9, 9), datetime.date(2021, 9, 3)),
     (datetime.date(2021, 1, 10), datetime.date(2021, 1, 1)),
+    (None, helpers.get_first_friday_of_month()),
     ])
 def test_get_first_friday_of_month(date_object, expected):
     assert helpers.get_first_friday_of_month(date_object) == expected
@@ -58,17 +98,6 @@ def test_next_first_friday(date_object, exclude, expected):
                 today=date_object, exclude=exclude) == expected
 
 
-@pytest.mark.parametrize("test_input,expected", [
-    (-50,             "-$50.00"),
-    ( 48932.0451,      "$48,932.05"),
-    (-93448932.0451,  "-$93,448,932.05"),
-    ( 93448932.0451,   "$93,448,932.05"),
-    ( -3,             "-$3.00"),
-    ])
-def test_format_dollar_value(test_input, expected):
-    assert helpers.format_dollar_value(test_input) == expected
-
-
 @pytest.mark.parametrize("which, now, expected", [
     ("last", datetime.date(year=2020, month=4, day=3), "2018-2019"),
     ("this", datetime.date(year=2020, month=4, day=3), "2019-2020"),
@@ -94,9 +123,17 @@ def test_club_year(which, now, expected):
 def test_expand_date(date_string, expected):
     assert helpers.expand_date(date_string) == expected
 
-
-def test_get_datestamp_w_valid_dates():
-    pass
+@pytest.mark.parametrize("date_obj, expected", [
+    (datetime.date(1945, 7, 3), 'Jul 03, 1945'),
+    (datetime.date(1943, 7, 15), 'Jul 15, 1943'),
+    ])
+def test_get_datestamp_w_valid_datetime_params(date_obj, expected):
+    assert helpers.get_datestamp(date_obj) == expected
+'''
+def test_get_datestamp_w_valid_datetime_params():
+    assert (helpers.get_datestamp(datetime.date(1945,7,3)) == 
+            'Jul 03, 1945')
+'''
 
 
 def test_get_datestamp_fails_if_invalid_parameter_provided():
@@ -126,3 +163,87 @@ def test_get_datestamp_accepts_datetimedate():
         assert True
 
 
+@pytest.mark.parametrize("test_input,expected", [
+    (-50,             "-$50.00"),
+    ( 48932.0451,      "$48,932.05"),
+    (-93448932.0451,  "-$93,448,932.05"),
+    ( 93448932.0451,   "$93,448,932.05"),
+    ( -3,             "-$3.00"),
+    ])
+def test_format_dollar_value(test_input, expected):
+    assert helpers.format_dollar_value(test_input) == expected
+
+
+@pytest.mark.parametrize("text, n_spaces, expected", [
+    ("Jane Doe\n101 First St.\nAnyTown, USA",5,
+     "     Jane Doe\n     101 First St.\n     AnyTown, USA"),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"] ,5,
+     "     Jane Doe\n     101 First St.\n     AnyTown, USA"),
+    ])
+def test_indent(text, n_spaces, expected):
+    assert helpers.indent(text, n_spaces) == expected
+
+
+@pytest.mark.parametrize("content, n, expected", [
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 3,
+     ["Jane Doe", "101 First St.", "AnyTown, USA"]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 4,
+     ["Jane Doe", "101 First St.", "AnyTown, USA", ""]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 5,
+     ["", "Jane Doe", "101 First St.", "AnyTown, USA", ""]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 6,
+     ["", "Jane Doe", "101 First St.", "AnyTown, USA", "", ""]),
+    ])
+def test_expand_array(content, n, expected):
+    assert helpers.expand_array(content, n) == expected
+
+
+@pytest.mark.parametrize("content, n, expected", [
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 3,
+     "Jane Doe\n101 First St.\nAnyTown, USA"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA\n", 4,
+     "Jane Doe\n101 First St.\nAnyTown, USA\n"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 5,
+     "\nJane Doe\n101 First St.\nAnyTown, USA\n"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 6,
+     "\nJane Doe\n101 First St.\nAnyTown, USA\n\n"),
+    ])
+def test_expand_string(content, n, expected):
+    assert helpers.expand_string(content, n) == expected
+
+
+@pytest.mark.parametrize("content, n, expected", [
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 3,
+     ["Jane Doe", "101 First St.", "AnyTown, USA"]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 4,
+     ["Jane Doe", "101 First St.", "AnyTown, USA", ""]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 5,
+     ["", "Jane Doe", "101 First St.", "AnyTown, USA", ""]),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"], 6,
+     ["", "Jane Doe", "101 First St.", "AnyTown, USA", "", ""]),
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 3,
+     "Jane Doe\n101 First St.\nAnyTown, USA"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA\n", 4,
+     "Jane Doe\n101 First St.\nAnyTown, USA\n"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 5,
+     "\nJane Doe\n101 First St.\nAnyTown, USA\n"),
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 6,
+     "\nJane Doe\n101 First St.\nAnyTown, USA\n\n"),
+    ])
+def test_expand(content, n, expected):
+    assert helpers.expand(content, n) == expected
+
+
+if __name__ == '__main__':
+    b_day = datetime.date(year=1945, month=7, day=3)
+    stamp = helpers.get_datestamp(b_day)
+    print(stamp)
+    assert stamp == 'Jul 03, 1945'
+    assert helpers.get_datestamp(
+        datetime.date(1945, 7, 3)) == stamp
+
+    date_obj = datetime.date(1945, 7, 3)
+    expected = 'Jul 03, 1945'
+    assert helpers.get_datestamp(date_obj) == expected
+    print(
+    "'assert helpers.get_datestamp(date_obj) == expected' passes")

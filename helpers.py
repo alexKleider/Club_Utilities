@@ -27,7 +27,7 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
 def script_location():
-    return os.path.dirname(os.path.realpath(__file__))
+    return os.getcwd()
 
 
 def useful_lines(stream, comment=None):
@@ -39,10 +39,13 @@ def useful_lines(stream, comment=None):
             yield line
 
 
-def get_first_friday_of_month(date):
+def get_first_friday_of_month(date=None):
     """
+    Accepts a date or uses current date if None is provided.
     Returns a datetime.date object.
     """
+    if not date:
+        date = datetime.date.today()
     year = date.year
     month = date.month
     for d in range(1, 8):  # range => 1..7 covering first week
@@ -111,7 +114,7 @@ def expand_date(date_string):
 
 def get_datestamp(date=None):
     """
-    Returns a string depicting the current date (for postal letters.)
+    Returns a string (for postal letters,) in the format 'Jul 03, 1945'.
     If <date> is provided it must be type datetime.datetime or
     datetime.date.  If not provided, today's date is used.
     """
@@ -148,20 +151,28 @@ def indent(text, n_spaces):
     assert type(n_spaces) == int
     indentation = ' ' * n_spaces
     if isinstance(text, str):
-        return (indentation + text.replace(
-                            '\n', '\n' + indentation))
+#       print("String found")
+        lst = text.split('\n')
+#       for s in lst:
+#           print(s)
+        return '\n'.join([indentation + line for line in lst])
     elif isinstance(text, list):
-        print("Encountering a list...")
+#       print("List found")
         return '\n'.join([indentation + line for line in text])
     else:
-        print("Should NOT get here!")
+        print("helpers.indent(): Should NOT get here!")
         assert(False)
 
 
 def expand_array(content, n):
+    """
+    Assumes <content> is a sequence of <=n items.
+    Returns a sequence of n itmes by padding both ends with empty
+    strings.
+    """
     if len(content) > n:
         print("ERROR: too many lines in <content>")
-        print("    parameter of content.expand()!")
+        print("    parameter of helpers.expand_array()!")
         assert False
     a = [item for item in content]
     while n > len(a):
@@ -440,8 +451,8 @@ def main():
     print("'helpers.get_datestamp() returns '{}'."
           .format(date))
 
-    print("'this_club_year()' returns '{}'."
-          .format(this_club_year()))
+    print("'club_year(this)' returns '{}'."
+          .format(club_year("this")))
 
     addresses = [
         "Alex Kleider\nPO Box 277\nBolinas, CA 94924",
@@ -483,13 +494,14 @@ Bolinas, CA 94924""",
     assert(indented[1] == indented[2])
 
 
-def test_first_friday():
-    print(next_first_friday())
-    in_future = datetime.date(2010, 2, 20)
-    print(next_first_friday(today=datetime.date(2010, 2, 20)))
+def test_indent():
+    res1 = indent("Jane Doe\n101 First St.\nAnyTown, USA",5)
+    expected = (
+        "     Jane Doe\n     101 First St.\n     AnyTown, USA")
+    res2 = indent(["Jane Doe", "101 First St.", "AnyTown, USA"] ,5)
+    assert res1 == res2 == expected
 
 
 if __name__ == "__main__":
-    #   test_first_friday()
-    print("This year is {}.".format(this_year))
-    main()
+#   main()
+    test_indent()
