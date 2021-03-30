@@ -202,6 +202,7 @@ import random
 import json
 import subprocess
 from docopt import docopt
+import sys_globals as glbs
 import member
 import helpers
 import content
@@ -210,20 +211,13 @@ import Pymail.send
 import Bashmail.send
 from rbc import Club
 
-VERSION = "1.1"
-
-MSMTP_ACCOUNT = "gmail"
-MIN_TIME_TO_SLEEP = 1   # } Seconds between
-MAX_TIME_TO_SLEEP = 5   # } email postings.
-
 
 TEXT = ".txt"  # } Used by <extra_charges_cmd>
 CSV = ".csv"   # } command.
 
 TEMP_FILE = "2print.temp"  # see <output> function
-DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"
 
-args = docopt(__doc__, version=VERSION)
+args = docopt(__doc__, version=glbs.VERSION)
 for arg in args:
     if type(args[arg]) == str:
         if args[arg] and (args[arg][0] == '='):
@@ -570,7 +564,7 @@ next (July 1, 2021-June 30, 2022) membership year.
 """)
     report.extend(data.extra_charges(club_, raw=True))
     try:
-        with open(DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
+        with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
             print('Opening file: {}'.format(fobj.name))
             addendum = fobj.read()
             report.append(addendum)
@@ -1214,7 +1208,7 @@ def smtp_send(recipients, message):
     by a blank line and then the text of the email. The "From:" line
     should read as follows: "From: rodandboatclub@gmail.com"
     """
-    cmd_args = ["msmtp", "-a", MSMTP_ACCOUNT, ]
+    cmd_args = ["msmtp", "-a", glbs.MSMTP_ACCOUNT, ]
     for recipient in recipients:
         cmd_args.append(recipient)
     p = subprocess.run(cmd_args, stdout=subprocess.PIPE,

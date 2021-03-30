@@ -16,11 +16,10 @@ import os
 import csv
 import json
 import helpers
+import sys_globals as glbs
 from rbc import Club
 
 NO_EMAIL_KEY = 'no_email'
-SEPARATOR = '|'  # # Note: NOT the same as rvc.SEPARATOR
-WAIVED = "w"       # \ although its value happens to be the same.
 STATUS_KEY_VALUES = {
     "a0": "Application received",
     "a1": "Attended one meeting",
@@ -33,16 +32,23 @@ STATUS_KEY_VALUES = {
     "h": "Honorary Member",
     "m": "New Member",  # temporary until congratulatory letter.
     'r': "Retiring/Giving up Club Membership",
-    's': "Secretary of the Club",  # not used under Rafferty
     't': "Membership terminated",  # fees not paid
     "w": "Fees being waived",  # a rarely applied special status
+    'z1_pres': "President",
+    'z2_vp': "VicePresident",
+    'z3_sec': "Secretary of the Club",  # not used under Rafferty
+    'z4_treasurer': "Treasurer",
+    'z5_d_odd': "Director- term ends next odd year",
+    'z6_d_even': "Director- term ends next even year",
+    'zaa': "Application anticipated (interested)",
+    'zae': "Application expired or withdrawn",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
 SPECIAL_NOTICE_STATI = set(STATI[6:8])
 APPLICANT_STATI = STATI[:6]
 APPLICANT_SET = set(STATI[:6])
 MISCELANEOUS_STATI = "m|w|be"
-NON_MEMBER_SET = APPLICANT_SET | set("h")
+NON_MEMBER_SET = APPLICANT_SET | {"h", 't', 'zaa', 'zae'}  # bitwise OR
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
 MONEY_KEYS = ("dues", "dock", "kayak", "mooring")
@@ -137,8 +143,14 @@ def ck_number_of_fields(record, club=None):
 
 def get_status_set(record):
     if record['status']:
-        return set(record['status'].split(SEPARATOR))
-    return set()
+        return set(record['status'].split(glbs.SEPARATOR))
+        # above returns set of one empty string if status is empty
+    else: return set()
+
+
+def is_interested(record):
+    """has expressed an interest in joining"""
+    return 'zaa' in get_status_set(record)
 
 
 def is_applicant(record):
@@ -293,6 +305,18 @@ def add2email_by_m(record, club):
     email = record['email']
     if email:
         club.email_by_m[name] = email
+
+
+def ex_add2db_emails(record, club):
+    """
+    Populates club.ex_db_emails
+    """
+#   print("called ex_add2db_emails")
+    name = member_name(record, club)
+    email = record['email']
+    if not email:
+        email = NO_EMAIL_KEY
+    club.ex_db_emails[name] = email
 
 
 def add2ms_by_email(record, club):
@@ -729,6 +753,8 @@ def add2list4web(record, club):
         stati = get_status_set(record)
         status = stati & APPLICANT_SET
         assert len(status) == 1
+#       if 'a0' in status:
+#           print("{} found".format(member_name(record, club)))
         club.napplicants += 1
         s = status.pop()
         _ = club.by_n_meetings.setdefault(s, [])
@@ -959,6 +985,9 @@ def send_attachment(record, club):
 
 
 prerequisites = {
+    ex_add2db_emails: [
+        "club.ex_db_emails = {}",
+        ],
     ck_number_of_fields: [
         "club.errors = []",
         ],

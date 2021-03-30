@@ -29,6 +29,11 @@ class Club(object):
 
     # # Constants and Defaults...
     YEARLY_DUES = 100
+    # meetings are held on (the first[1]) Friday (of each month) and
+    # elections are held at the February meeting.
+    # [1] Second Friday if the first falls on January 1st.
+    ELECTION_MONTH = 2  # February
+    N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
 
     # Data bases used with default file names.
     MEMBERSHIP_SPoT = 'Data/memlist.csv'
@@ -46,12 +51,15 @@ class Club(object):
     NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
                     "NonRepo", "Temp", "TestData")
 
+    _2bredacted = """
     SEPARATOR = "|"   # } File APPLICANT_SPoT must be in a
     N_SEPARATORS = 3  # } specific format for it to be read
     #                 # } correctly. Number of meetings is
     #                 # } derived from N_SEPARATORS.
     # ## NOTE: this SEPARATOR although having the same value is NOT
     # ## the same as the one defined in member.py module.
+    """
+
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
 
@@ -71,7 +79,7 @@ class Club(object):
     KAYAK = 'Kayak'       # } as defined in the club's
     MOORING = 'moorings'  # } gmail contacts.
 
-    SECRETARY = "Michael Rafferty"
+    SECRETARY = "Ed Mann"
 
     # Intermediate &/or temporary files used:
     EXTRA_FEES_JSON = 'Data/extra_fees.json'

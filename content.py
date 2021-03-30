@@ -371,7 +371,7 @@ It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
 You will be receiving meeting minutes (via email) as prepared by
-our Club Secretary Michael Rafferty.
+our Club Secretary Ed Mann.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
 It is password protected; the password is 'fish' (a not very closely
@@ -913,7 +913,6 @@ content_types = dict(  # which_letter
         "body": letter_bodies["welcome2full_membership"],
         "post_scripts": (post_scripts["ref1_email_or_PO"],
                          post_scripts["covid19"],
-                         post_scripts["forgive_duplicate"],
                          ),
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if member.is_new_member(record)

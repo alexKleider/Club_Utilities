@@ -23,6 +23,7 @@ s = today.strftime(date_template)
 d = datetime.datetime.strptime(s, date_template)
 date = d.strftime(date_template)
 N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
+              # should instead use rbc.Club.N_FRIDAY???
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
@@ -31,6 +32,10 @@ def script_location():
 
 
 def useful_lines(stream, comment=None):
+    """
+    accepts a stream of lines and returns non blank lines that are not
+    comments
+    """
     for line in stream:
         line = line.strip()
         if comment and line.startswith(comment):
@@ -42,7 +47,8 @@ def useful_lines(stream, comment=None):
 def get_first_friday_of_month(date=None):
     """
     Accepts a date or uses current date if None is provided.
-    Returns a datetime.date object.
+    Returns a datetime.date object representing the
+    next first Friday of the month.
     """
     if not date:
         date = datetime.date.today()
@@ -52,6 +58,22 @@ def get_first_friday_of_month(date=None):
         day = datetime.date(year, month, d)
         if day.weekday() == N_FRIDAY:
             return day
+
+
+def get_next_election_date():
+    """
+    Returns a datetime.date object representing the
+    next time club elections are to be held.
+    Relies on rbc.Club.ELECTION_MONTH.
+    """
+    date = datetime.date.today()
+    year = date.year
+    month = date.month
+# Following is code from next_first_friday- needs modifying:
+#   for d in range(1, 8):  # range => 1..7 covering first week
+#       day = datetime.date(year, month, d)
+#       if day.weekday() == N_FRIDAY:
+#           return day
 
 
 def next_first_friday(today=datetime.date.today(),
@@ -242,6 +264,16 @@ def add_sub_list(sub_header, sub_list, main_list,
 def prepend2file_name(word, file_name):
     head, tail = os.path.split(file_name)
     return os.path.join(head, ''.join((word, tail)))
+
+
+def show_dict(d, extra_line=True):
+    lines = []
+    for key in d:
+        if extra_line:
+            lines.append("{}\n\t {}\n".format(key, d[key]))
+        else:
+            lines.append("{}: {}".format(key, d[key]))
+    return lines
 
 
 def show_json(json, underlinechar=''):
