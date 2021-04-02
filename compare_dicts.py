@@ -45,7 +45,8 @@ m_gmail_mismatch = compare_dicts(club.ex_db_emails,
                                  special_key=member.NO_EMAIL_KEY,
                                  special_key_listing=club.no_email)
 if m_gmail_mismatch:
-    print("\nThere are the following member DB/gmail disparities:")
+    print(
+        "\nThere are the following 'member DB' vs 'gmail' disparities:")
     print('\n'.join(m_gmail_mismatch))
 else:
     print("\nNo member DB/gmail missmatches.")
@@ -54,7 +55,8 @@ gmail_m_mismatch = compare_dicts(club.gmail_by_name,
                                  club.ex_db_emails,
                                  "gmail", "member data base")
 if gmail_m_mismatch:
-    print("\nThere are the following gmail/member DB disparities:")
+    print(
+        "\nThere are the following 'gmail' vs 'member DB' disparities:")
     print('\n'.join(gmail_m_mismatch))
 else:
     print("No gmail/member DB missmatches.")

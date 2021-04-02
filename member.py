@@ -21,19 +21,21 @@ from rbc import Club
 
 NO_EMAIL_KEY = 'no_email'
 STATUS_KEY_VALUES = {
-    "a0": "Application received",
+    "a-": "Application received without fee", #0
+    "a" : "Application complete",
+    "a0": "New Applicant welcomed",
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, membership pending payment of dues",
-    "aw": "Inducted, awaiting vacancy and then payment",
+    "aw": "Inducted, awaiting vacancy and then payment", #7
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
-    "h": "Honorary Member",
-    "m": "New Member",  # temporary until congratulatory letter.
-    'r': "Retiring/Giving up Club Membership",
-    't': "Membership terminated",  # fees not paid
-    "w": "Fees being waived",  # a rarely applied special status
+    "h" : "Honorary Member",                             #10
+    "m" : "New Member",  # temporary until congratulatory letter.
+    'r' : "Retiring/Giving up Club Membership",
+    't' : "Membership terminated",  # fees not paid
+    "w" : "Fees being waived",  # a rarely applied special status
     'z1_pres': "President",
     'z2_vp': "VicePresident",
     'z3_sec': "Secretary of the Club",  # not used under Rafferty
@@ -44,9 +46,9 @@ STATUS_KEY_VALUES = {
     'zae': "Application expired or withdrawn",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
-SPECIAL_NOTICE_STATI = set(STATI[6:8])
-APPLICANT_STATI = STATI[:6]
-APPLICANT_SET = set(STATI[:6])
+SPECIAL_NOTICE_STATI = set(STATI[8:10])
+APPLICANT_STATI = STATI[:8]
+APPLICANT_SET = set(APPLICANT_STATI)
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | {"h", 't', 'zaa', 'zae'}  # bitwise OR
 
@@ -164,7 +166,7 @@ def is_applicant(record):
 
 
 def is_new_applicant(record):
-    return set(('a', 'a0')) & get_status_set(record)
+    return 'a-' in get_status_set(record)
 
 
 def is_inductee(record):
@@ -349,19 +351,17 @@ def add2email_data(record, club):
 
 
 def add2stati_by_m(record, club):
-    if not record["status"]:
-        return
-    club.stati_by_m[
-        member_name(record, club)] = get_status_set(record)
+    if record["status"]:
+        club.stati_by_m[member_name(record, club)] = (
+            get_status_set(record)  )
 
 
 def add2ms_by_status(record, club):
-    if not record['status']:
-        return
-    stati = get_status_set(record)
-    for status in stati:
-        _ = club.ms_by_status.setdefault(status, [])
-        club.ms_by_status[status].append(member_name(record, club))
+    if record['status']:
+        stati = get_status_set(record)
+        for status in stati:
+            _ = club.ms_by_status.setdefault(status, [])
+            club.ms_by_status[status].append(member_name(record, club))
 
 
 def add2demographics(record, club):
@@ -730,22 +730,26 @@ def name_w_demographics(record, club):
     return line
 
 
-def add2list4web(record, club):
+def add2lists(record, club):
     """
-    Populates club.members, club.stati, club.applicants,
-    club.inductees and club.errors (initially empty lists)
-    and increments club.nmembers, club.napplicants
-    and club.ninductees (initially set to 0.)
+    Populates club.members (if web=True),
+              club.stati, club.applicants,
+              club.inductees and
+              club.errors (initially empty lists)
+    and increments club.nmembers,
+                   club.napplicants and
+                   club.ninductees (initially set to 0.)
     <club> is an instance of rbc.Club.
     """
     line = name_w_demographics(record, club)
     if is_member(record):
         first_letter = record['last'][:1]
-        if first_letter != club.first_letter:
-            club.first_letter = first_letter
-            club.members.append("")
+        if club.for_web:
+            if first_letter != club.first_letter:
+                club.first_letter = first_letter
+                club.members.append("")
+            club.members.append(line)
         club.nmembers += 1
-        club.members.append(line)
     if is_honorary_member(record):
         club.honorary.append(line)
         club.nhonorary += 1
@@ -1043,7 +1047,7 @@ prerequisites = {
     add2malformed: [
         'club.malformed = []',
         ],
-    add2list4web: [
+    add2lists: [
         """club.pattern = ("{first} {last}  [{phone}]  {address}, " +
                     "{town}, {state} {postal_code} [{email}]")""",
         'club.members = []',

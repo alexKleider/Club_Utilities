@@ -436,21 +436,21 @@ def ck_data_cmd(args=args):
 def show_cmd(args=args):
     club = Club()
     assign_default_files(club, args)
+    club.for_web = True
     print("Preparing membership listings...")
     err_code = member.traverse_records(
         club.infile,
-        [member.add2list4web,
-         ],
+        [member.add2lists, ],
         club)
-
     ret = ["""FOR MEMBER USE ONLY
 
 THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS ROD &
 BOAT CLUB MEMBERSHIP CONTAINED HEREIN ARE NOT TO BE REPRODUCED OR DISTRIBUTED
 FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE BOARD OF THE BRBC.
 
-Data maintained by the Membership Chair and posted here by Michael Rafferty.
-    """]
+Data maintained by the Membership Chair and posted here by Secretary {}.
+""".format(club.SECRETARY)]
+
     if club.members:
         helpers.add_header2list("Club Members ({} in number as of {})"
                                 .format(club.nmembers, helpers.date),
@@ -506,6 +506,14 @@ def report(club):
                                         member.increment_nmembers,
                                         member.increment_napplicants,
                                         ], club)
+    applicant_data_by_name = data.get_applicant_data(
+            club.applicant_spot,
+            sponsor_file=club.sponsor_file)
+
+    applicants_by_status = data.get_applicants_by_status(
+        applicant_data_by_name)
+
+    redacted = '''
     ap_set_by_status = (
         data.gather_applicant_data(
             club.applicant_spot,
@@ -516,9 +524,18 @@ def report(club):
     for key in ap_listing:          # } error checking only;
         if key[0] == 'a':           # } not required if data match.
             # Only deal with applicants.
-            if len(ap_listing[key]) != len(ap_set_by_status[key]):
+            try:
+                len_listing = len(ap_listing[key])
+            except KeyError:
+                print("No '{}' key in ap_listing".format(key))
+            try:
+                len_set = len(ap_set_by_status[key])
+            except KeyError:
+                print("No '{}' key in ap_set_by_status".format(key))
+            if  len_listing != len_set:
                 print("!!! {} != {} !!!"
                       .format(ap_listing[key], ap_set_by_status[key]))
+    '''  # end of part with a bug to be stamped out!
 
     report = []
     helpers.add_header2list("Membership Report (prepared {})"
@@ -528,12 +545,12 @@ def report(club):
     report.append('Club membership currently stands at {}.'
                   .format(club.nmembers))
 
-    if ap_set_by_status:
+    if applicants_by_status:
         helpers.add_header2list(
             "Applicants ({} in number, with meeting dates & sponsors listed)"
             .format(club.napplicants),
             report, underline_char='=', extra_line=True)
-        report.extend(member.show_by_status(ap_set_by_status))
+        report.extend(member.show_by_status(applicants_by_status))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
                   .format(len(club.ms_by_status['r'])))
@@ -706,10 +723,78 @@ def show_stati(club):
 
 def report_cmd(args=args):
     club = Club()
-    collect_stati_data(club)
-    setup4stati(club)
+    assign_default_files(club, args=args)
+    club.for_web = False
     print("Preparing Membership Report ...")
-    output('\n'.join(report(club)))
+    err_code = member.traverse_records(
+        club.infile,
+        [member.add2lists,
+         member.add2ms_by_status,
+        ],
+        club)
+    report = []
+    helpers.add_header2list("Membership Report (prepared {})"
+                            .format(helpers.date),
+                            report, underline_char='=')
+    report.append('')
+    report.append('Club membership currently stands at {}.'
+                  .format(club.nmembers))
+
+    if club.by_n_meetings:
+        header = ("Applicants ({} in number, "
+                  .format(club.napplicants) +
+                  "with meeting dates & sponsors listed)")
+        helpers.add_header2list(header, report, underline_char='=')
+        # ####
+        club.sponsors = data.get_sponsors(club.sponsor_spot)
+        club.meeting_dates = data.get_meeting_dates(
+                                    club.applicant_spot)
+        report.extend(member.show_by_status(club.by_n_meetings, club=club))
+    if 'r' in club.ms_by_status:
+        header = ('Members ({} in number) retiring from the Club:'
+                  .format(len(club.ms_by_status['r'])))
+        report.append('')
+        helpers.add_header2list(header, report, underline_char='=')
+        for name in club.ms_by_status['r']:
+            report.append(name)
+
+    misc_stati = member.show_by_status(
+        club.ms_by_status, stati2show="m|w|be|ba".split('|'))
+    if misc_stati:
+        header = "Miscelaneous Info"
+        helpers.add_header2list(header, report, underline_char='=')
+        report.extend(misc_stati)
+    club_ = club_setup4extra_charges()
+    club_.presentation_format = 'listings'
+    report.append("""
+
+
+For Docks and Yard Committee
+============================
+
+I continue to include the following listing of extra fees
+being charged to serve as a reminder to let me know if any
+changes are to be made before charges are applied for the
+next (July 1, 2021-June 30, 2022) membership year.
+
+""")
+    report.extend(data.extra_charges(club_, raw=True))
+    try:
+        with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
+            print('Opening file: {}'.format(fobj.name))
+            addendum = fobj.read()
+            report.append(addendum)
+    except FileNotFoundError:
+        print('report.addendum not found')
+    report.extend(
+        ['', '',
+         "Respectfully submitted by...\n\n",
+         "Alex Kleider, Membership Chair,",
+         "for presentation {}."
+         .format(helpers.next_first_friday(exclude=True)),
+         ])
+    output("\n".join(report))
+    print("...results sent to {}.".format(args['-o']))
 
 
 def stati_cmd(args=args):

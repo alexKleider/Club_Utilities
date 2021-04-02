@@ -309,8 +309,9 @@ fee) you must attend a minimum of three meetings with in the six
 month period beginning the date your application was received.
 '''
 
-The three meetings within six month rule has also been suspended
-so not to worry for now about your application expiring.
+Meetings are now being held virtually. The Club Secretary will be
+sending you announcements.
+
 Stay safe and let's all hope for more social times in the future!""",
 
     awaiting_vacancy="""
@@ -480,8 +481,10 @@ the check in order to prevent any confusion.""",
     (uc_anna@sbcglobal.net.)""",
 
     covid19="""Because of the current pandemic, the Club is closed
-    and meetings are suspended. Let's hope for an early
-    return to 'buisness as usual.' Stay safe; Stay well.""",
+    and in person meetings are suspended. Virtual meetings are still
+    bing held and you'll be receiving notices.
+    Let's hope for an early return to 'buisness as usual.'
+    Stay safe; Stay well.""",
 
     forgive_duplicate="""This may be a duplication of an email
     already sent in which case please forgive.""",

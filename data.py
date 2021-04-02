@@ -202,7 +202,8 @@ def parse_applicant_data_line(line):
     returns a key/value pair:
     key is "last, first" name
     value is a tuple of status possibly followed by dates (if
-    application is active.) Status can be any of the first 5 or
+    application is active.)
+    Status can be any of the first 5 or
     last 2 listed STATUS_KEY_VALUES
     Fails if encounters an invalid line!!!
     ...or should we just return None???
@@ -214,11 +215,11 @@ def parse_applicant_data_line(line):
     names = parts[0].split()
     key = "{}, {}".format(names[1], names[0]) 
     if parts[-1].startswith("Appl"):
-        return (key, ("zae"))
-    if l == 1:
+        return (key, ("zae"))  # see members.STATUS_KEY_VALUES
+    elif l == 1:               # for meanings
         return key, ("zaa")
     elif l == 2:
-        return key, ("a0")
+        return key, ("a-")
     elif l == 3:
         return key, ("a0")
     elif l == 4:
@@ -237,36 +238,67 @@ def parse_applicant_data_line(line):
 def parse_sponsor_data_line(line):
     """
     Assumes blank and commented lines have already been removed.
-    returns a key/value pair:
+    returns a tuple: (key/value pair)
     key is "last, first" name
     value is a tuple of sponsors ('first last')
     Fails if encounters an invalid line!!!
     """
-    sponsored, sponsors = tuple([item.strip() for item in line.split(":")])
+    parts = line.split(":")
+    sponsored = parts[0].strip()
     names = sponsored.split()
     name = '{}, {}'.format(names[1], names[0])
-    key, value = name, tuple(
-                    [item.strip() for item in sponsors.split(",")])
+    part2 = parts[1]
+    sponsors = tuple([
+        sponsor.strip() for sponsor in parts[1].split(", ")])
+    ret = name, sponsors
+#   print("Parse line returning {}".format(repr(ret)))
+    return ret
+# above replaces ?buggy? following code
+    parts = line.split(":")
+    sponsored = parts[0].strip()
+    names = sponsored.split()
+    name = '{}, {}'.format(names[1], names[0])
+    sponsors = tuple([
+        sponsor.strip() for sponsor in parts[1].split(", ")])
+    key, value = name, sponsors
     return (key, value)
 
 
 def get_sponsor_data(spot):
     """
-    Returns a dict of applicants and their sponsors.
+    Returns a dict: keys are '2nd, 1st' names,
+                    values are tuples of sponsors.
     """
     ret = {}
     with open(spot, 'r') as src:
-        for name, sponsors in helpers.useful_lines(scr, comment='#'):
+#       lines = [
+#           line for line in helpers.useful_lines(src, comment='#')]
+#       for line in lines:
+        for line in helpers.useful_lines(src, comment='#'):
+#           print("Line is '{}".format(line))
+            tup = parse_sponsor_data_line(line)
+#           print("tup is {}".format(repr(tup)))
+            (name, sponsors) = (tup[0], tup[1])
+            ret[name] = sponsors
+    return ret
+# Above replaces the following ?buggy? code
+    ret = {}
+    with open(spot, 'r') as src:
+        for name, sponsors in parse_sponsor_data_line(
+                            helpers.useful_lines(src, comment='#')):
             ret[name] = sponsors
     return ret
 
 
 def get_applicant_data(spot, sponsor_file=None):
     """
-    Returns a dict keyed by member names ("last, first").
+    Reads spot, the applicant data file +/- the sponsor file.
+    Returns a dict keyed by applicant names ("last, first").
     Values are dicts keyed by
         "status" (value is one of the first 5 or last 2 
             listed keys in STATUS_KEY_VALUES
+            Be ware of the last 2: not on path for membership
+            and not expected to be in the member DB.
         "dates" (value a string of dates) and (if 'sponsor_file)
         "sponsors" (value a tuple of strings- names of sponsors.
     UNDER DEVELOPMENT_ TO REPLACE gather_applicant_data().
@@ -279,13 +311,28 @@ def get_applicant_data(spot, sponsor_file=None):
             sponsored_members = sponsors.keys()
         for line in helpers.useful_lines(src, comment='#'):
             key, value = parse_applicant_data_line(line)
+            print("app_data: {} {}".format(key, repr(value)))
+            if isinstance(value, tuple): val = value[0]
+            elif isinstance(value, str): val = value
+            else: assert False
+            if val.startswith('z'):
+                continue
             ret[key] = {'status': value[0]}
             if len(value) > 1:  # active applicant
                 ret[key]['dates'] = value[1:]
         for applicant in ret.keys():
             if 'dates' in ret[applicant].keys():
-                ret[applicant]["sponsors"] = sponsors[applicant]
+                ret[applicant]["sponsors"] = sponsors[applicant] #F
                 # will fail if sponsors aren't available
+    return ret
+
+
+def get_applicants_by_status(applicant_data):
+    ret = {}
+    for name in applicant_data.keys():
+        status = applicant_data[name]['status']
+        _ = ret.setdefault(status, [])
+        ret[status].append(name)
     return ret
 
 
