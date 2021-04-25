@@ -32,6 +32,7 @@ from rbc import Club
 def get_fieldnames(csv_file: "name of csv file"
         ) -> "list of the csv file's field names":
     with open(csv_file, 'r', newline='') as file_object:
+        print('DictReading file "{}"...'.format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         return dict_reader.fieldnames
 
@@ -50,8 +51,9 @@ def gather_membership_data(club):
     both 'email' collectors.
     """
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-                                       (member.ex_add2db_emails,
-                                        member.add2email_data,
+                                       (member.add2db_emails,
+#                                       member.add2email_data,
+                                        member.add2email_by_m,
                                         member.add2fee_data,
                                         member.add2stati_by_m,
                                         member.add2ms_by_status,
@@ -108,17 +110,15 @@ def gather_contacts_data(club):
         g_by_name: keyed by "name" /w values indexed as follows:
           ["email"] => email
           ["groups"] => set of group memberships
-        g_by_email: keyed by email /w values each a set of "names".
         g_by_group: keyed by group membership /w values
         each a set of "names" of contacts sharing that group membership.
     """
     club.gmail_by_name = dict()  # => string
     club.groups_by_name = dict()  # => set
 
-    club.g_by_email = dict()  # >set of names
     club.g_by_group = dict()  # >set of names
 
-    # Traverse contacts.csv => g_by_email and g_by_name
+    # Traverse contacts.csv => g_by_name
     with open(club.CONTACTS_SPoT, 'r', encoding='utf-8') as file_obj:
         google_reader = csv.DictReader(file_obj)
         print('DictReading Google contacts file "{}".'.format(
@@ -126,8 +126,6 @@ def gather_contacts_data(club):
         for g_rec in google_reader:
             g_dict = get_gmail_record(g_rec)
 
-            _ = club.g_by_email.setdefault(g_dict["g_email"], set())
-            club.g_by_email[g_dict["g_email"]].add(g_dict["gname"])
 
             club.gmail_by_name[g_dict['gname']] = g_dict['g_email']
             club.groups_by_name[g_dict['gname']] = g_dict['groups']
@@ -142,6 +140,7 @@ def parse_applicant_line4dates(line,
                                expired_applicant_list=None,
                                former_applicant_list=None):
     """
+    !!Expect redaction in favour of parse_applicant_data_line!!
     Takes a line from the applicant SPoT file and returns either
     None (if not a valid applicant line) or
     a tuple: first element is the name and meeting dates make up
@@ -161,8 +160,8 @@ def parse_applicant_line4dates(line,
         if bad_line_list is not None:
             bad_line_list.append(line)
         return
-    if parts and not parts[-1]:       # } neutilizes empty field
-        parts = parts[:-1]  # } after trailing SEPARATOR
+    if parts and not parts[-1]:  # Get rid of empty field
+        parts = parts[:-1]       # if trailing SEPARATOR.
     if parts and parts[-1].startswith("Application"):
         if expired_applicant_list is not None:
             expired_applicant_list.append(name)
@@ -199,12 +198,15 @@ def parse_applicant_line4dates(line,
 def parse_applicant_data_line(line):
     """
     Assumes blank and commented lines have already been removed.
-    returns a key/value pair:
-    key is "last, first" name
-    value is a tuple of status possibly followed by dates (if
-    application is active.)
-    Status can be any of the first 5 or
-    last 2 listed STATUS_KEY_VALUES
+    Returns None if no longer an applicant, for applicants:
+    Returns a 2 tuple: (for subsequent use as a key/value pair)
+    t1 is "last, first" name
+    t2 is a tuple the first item of which is status possibly
+    followed by dates (if application is active.)
+    Status can be any of those listed in the if elif listing:
+    Notice absence of:
+        'a' which is distinguished from 'a0' only re welcoming letter
+        'aw' which has to do with vacancy, they'll show up as 'm'
     Fails if encounters an invalid line!!!
     ...or should we just return None???
     """
@@ -215,32 +217,34 @@ def parse_applicant_data_line(line):
     names = parts[0].split()
     key = "{}, {}".format(names[1], names[0]) 
     if parts[-1].startswith("Appl"):
-        return (key, ("zae"))  # see members.STATUS_KEY_VALUES
+        ret = (key, ("zae",))  # see members.STATUS_KEY_VALUES
     elif l == 1:               # for meanings
-        return key, ("zaa")
+        ret = key, ("zaa",)
     elif l == 2:
-        return key, ("a-")
+        ret = key, ("a-",)
     elif l == 3:
-        return key, ("a0")
+        ret = key, ("a0",)
     elif l == 4:
-        return key, ("a1", parts[3])
+        ret = key, ("a1", parts[3])
     elif l == 5:
-        return key, ("a2", parts[3], parts[4])
+        ret = key, ("a2", parts[3], parts[4])
     elif l == 6:
-        return key, ("a3", parts[3], parts[4], parts[5])
+        ret = key, ("a3", parts[3], parts[4], parts[5])
     elif l == 7:
-        return key, ("ai", parts[3], parts[4], parts[5])
+        ret = key, ("ai", parts[3], parts[4], parts[5])
     elif l == 8:
-        return key, ("m")
+        ret = key, ("m")
+        ret = None
     else: assert(False)
+    return ret
 
 
 def parse_sponsor_data_line(line):
     """
     Assumes blank and commented lines have already been removed.
-    returns a tuple: (key/value pair)
-    key is "last, first" name
-    value is a tuple of sponsors ('first last')
+    returns a 2 tuple: (for subsequent use as a key/value pair)
+    t1 is "last, first" name
+    t2 is a tuple of sponsors ('first last')
     Fails if encounters an invalid line!!!
     """
     parts = line.split(":")
@@ -271,6 +275,7 @@ def get_sponsor_data(spot):
     """
     ret = {}
     with open(spot, 'r') as src:
+        print('Reading file "{}"...'.format(src.name))
 #       lines = [
 #           line for line in helpers.useful_lines(src, comment='#')]
 #       for line in lines:
@@ -284,6 +289,7 @@ def get_sponsor_data(spot):
 # Above replaces the following ?buggy? code
     ret = {}
     with open(spot, 'r') as src:
+        print('Reading file "{}"...'.format(src.name))
         for name, sponsors in parse_sponsor_data_line(
                             helpers.useful_lines(src, comment='#')):
             ret[name] = sponsors
@@ -305,25 +311,24 @@ def get_applicant_data(spot, sponsor_file=None):
     """
     ret = {}
     with open(spot, 'r') as src:
-        print("Reading {}...".format(src.name))
+        print('Reading file "{}"...'.format(src.name))
         if sponsor_file:
             sponsors = get_sponsor_data(sponsor_file)
             sponsored_members = sponsors.keys()
         for line in helpers.useful_lines(src, comment='#'):
-            key, value = parse_applicant_data_line(line)
-            print("app_data: {} {}".format(key, repr(value)))
-            if isinstance(value, tuple): val = value[0]
-            elif isinstance(value, str): val = value
-            else: assert False
-            if val.startswith('z'):
+            res = parse_applicant_data_line(line)  # Returns None
+            if res: key, value = res               # if no longer
+            else: continue                         # an applicant.
+#           print("app_data: {} {}".format(key, repr(value)))
+            status = value[0]
+            if status.startswith('z'):
                 continue
-            ret[key] = {'status': value[0]}
+            ret[key] = {'status': status}
             if len(value) > 1:  # active applicant
                 ret[key]['dates'] = value[1:]
         for applicant in ret.keys():
-            if 'dates' in ret[applicant].keys():
-                ret[applicant]["sponsors"] = sponsors[applicant] #F
-                # will fail if sponsors aren't available
+            if sponsor_file and 'dates' in ret[applicant].keys():
+                ret[applicant]["sponsors"] = sponsors[applicant]
     return ret
 
 
@@ -356,7 +361,7 @@ def gather_applicant_data(in_file,
     expired_applications = []
     applicants = {}
     with open(in_file, 'r') as f_obj:
-        print('Reading file "{}".'.format(f_obj.name))
+        print('Reading file "{}"...'.format(f_obj.name))
         for line in f_obj:
             status = ''
             parts = [part.strip() for part in line.split(
@@ -433,6 +438,7 @@ def get_sponsors(infile):
     """
     ret = {}
     with open(infile, 'r') as source:
+        print('Reading file "{}"...'.format(source.name))
         for line in helpers.useful_lines(source, comment='#'):
             parts = line.split(':')
             names = parts[0].split()
@@ -473,7 +479,7 @@ def get_meeting_dates(infile):
     return ret
 
 
-def gather_extra_fees_data(in_file, json_file=None):
+def gather_extra_fees_data(extra_fees_spot, json_file=None):
     """
     Reads in_file and returns a dict with keys:
         Club.NAME_KEY: a dict keyed by name with
@@ -500,12 +506,13 @@ def gather_extra_fees_data(in_file, json_file=None):
         )
     categories = [key for key in by_category.keys()]
 
-    with open(in_file, 'r') as f_obj:
-        print('Reading file "{}".'.format(f_obj.name))
+    with open(extra_fees_spot, 'r') as f_obj:
+        print('Reading file "{}"...'.format(f_obj.name))
         category = ""
         for line in helpers.useful_lines(f_obj, comment='#'):
             category_change = False
-            if line[-1] == ':':  # category change
+            if line[-1] == ':':  # line ending in ':' means
+                                 # there's been acategory change
                 words = line[:-1].split()
                 for word in words:
                     if word in categories:
@@ -513,6 +520,7 @@ def gather_extra_fees_data(in_file, json_file=None):
                         category_change = True
                         continue
             else:  # Expect a name with fee for current category...
+#               print("line: {}".format(line))
                 parts = line.split(':')
                 fee = int(parts[1])
                 names = parts[0].split()
@@ -562,12 +570,12 @@ def extra_charges(club, raw=False):
     print('Retrieving input data from "{}"'.format(club.infile))
     if club.presentation_format == 'listing':
         if club.json_file:   # do we want a json file..
-            _ = gather_extra_fees_data(club.infile,
+            _ = gather_extra_fees_data(club.extra_fees_spot,
                                        json_file=club.json_file)
         # Just return file content:
         with open(club.infile, 'r') as f_object:
             return [line.strip() for line in f_object]
-    extra_fees = gather_extra_fees_data(club.infile,
+    extra_fees = gather_extra_fees_data(club.extra_fees_spot,
                                         json_file=club.json_file)
     by_name = extra_fees[club.NAME_KEY]
     by_category = extra_fees[club.CATEGORY_KEY]
@@ -592,7 +600,7 @@ def extra_charges(club, raw=False):
 def present_fees_by_name(extra_fees, raw=False):
     """
     Param would typically be the returned value of
-    gather_extra_fees_data(infile)
+    gather_extra_fees_data(extra_fees_spot)
     or its NAME_KEY value.
     Returns a text listing with or (if raw=True) without a header.
     """
@@ -616,7 +624,7 @@ def present_fees_by_category(extra_fees, raw=False,
                              ):
     """
     Param would typically be the returned value of
-    gather_extra_fees_data(infile)
+    gather_extra_fees_data(extra_fees_spot)
     or its CATEGORY_KEY value.
     Returns a text listing with or (if raw=True) without a header.
     Last parameter (not yet implemented) changes the default of
@@ -782,10 +790,10 @@ def ck_data(club,
     varying_amounts = []
     helpers.add_header2list("Report Regarding Data Integrity",
                             ret, underline_char='#', extra_line=True)
-    # Collect data from csv files ==> club attributes
+    # Collect data from csv files ==> club attributes:
     gather_membership_data(club)
     gather_contacts_data(club)  # Sets up and populates:
-    # club.gmail_by_name (string)   # club.g_by_email (set)
+    # club.gmail_by_name (string)
     # club.groups_by_name (set)     # club.g_by_group (set)
 
 
@@ -814,7 +822,7 @@ def ck_data(club,
     else:
         ok.append("No Google Groups vs Member/Applicant Missmatch.")
     # Collect data from custom files ==> local variables
-    extra_fees_info = gather_extra_fees_data(club.EXTRA_FEES_SPoT)
+    extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
     a_applicants = gather_applicant_data(
                                 club.APPLICANT_SPoT)["applicants"]
 
@@ -826,77 +834,6 @@ def ck_data(club,
         print("Found Malformed Records.")
         helpers.add_sub_list("Malformed Records", club.malformed, ret)
 
-    # Catch problem cases & change from set to one name for each email.
-    dangling_m_emails = []  # email without a name ?is it possible??
-    shared_m_emails = []  # email owned by more than one person
-    for m_email in club.ms_by_email:
-        n_emails = len(club.ms_by_email[m_email])
-        if n_emails == 0:
-            print(
-                "Adding an email with no associated member name.")
-            dangling_m_emails.append(m_email)
-        elif n_emails == 1:
-            club.ms_by_email[m_email] = club.ms_by_email[m_email].pop()
-        else:
-            names = "; ".join(sorted(
-                [name for name in club.ms_by_email[m_email]]))
-            shared_m_emails.append("{} <== [{}]".format(
-                                                m_email, names))
-    if dangling_m_emails:
-        print("Found Dangling Member Emails")
-        helpers.add_sub_list("Dangling Member Email(s)",
-                             dangling_m_emails, ret)
-        remove_unwanted_items(club.ms_by_email, dangling_m_emails,
-                              ignore_keyerror=False)
-
-    # Deal with <shared_m_emails> (with <shared_g_emails>) later.
-
-    # Deal with (gmail) CONTACTS data
-    # Catch problem cases & set ==> one name for each email.
-    # ## NOTE: Seems to not be picking up contacts  ####
-    # ## entered twice with differing emails.       ####
-    dangling_g_emails = []
-    shared_g_emails = []
-    for g_email in club.g_by_email:
-        n_emails = len(club.g_by_email[g_email])
-        if n_emails == 0:
-            dangling_g_emails.append(g_email)
-        elif n_emails == 1:
-            club.g_by_email[g_email] = club.g_by_email[g_email].pop()
-        else:
-            names = "; ".join(sorted(
-                [name for name in club.g_by_email[g_email]]))
-            shared_g_emails.append("{} <== [{}]".format(
-                                            g_email, names))
-    if dangling_g_emails:
-        print("Found Dangling Contact Emails")
-        helpers.add_sub_list("Dangling Contact Email(s)",
-                             dangling_g_emails, ret)
-        remove_unwanted_items(club.g_by_email, dangling_g_emails,
-                              ignore_keyerror=False)
-
-    # Now deal with both <shared_m_emails> and <shared_g_emails>:
-    if shared_m_emails or shared_g_emails:
-        if shared_m_emails == shared_g_emails:
-            helpers.add_sub_list(
-                "Shared Emails (in both Membership Data & Gmail)",
-                shared_m_emails, ret)
-        elif shared_m_emails:
-            print("Found Shared Member Emails")
-            helpers.add_sub_list(
-                "Shared Member Email(s)", shared_m_emails, ret)
-            remove_unwanted_items(club.ms_by_email,
-                                  first_parts_only(shared_m_emails),
-                                  ignore_keyerror=False)
-        elif shared_g_emails:
-            print("Found Shared Contact Emails")
-            helpers.add_sub_list(
-                "Shared Contact Email(s)", shared_g_emails, ret)
-            remove_unwanted_items(club.g_by_email,
-                                  first_parts_only(shared_g_emails),
-                                  ignore_keyerror=False)
-        else:
-            assert(False)
 
     # Compare gmail vs memlist emails and then memlist vs gmail
     # now that both listings have names rather than sets of names:
@@ -906,29 +843,11 @@ def ck_data(club,
     emails_missing_from_contacts = []
     common_emails = []
 
-    for m_email in club.ms_by_email:
-        m_name = club.ms_by_email[m_email]  # member name
-        try:
-            g = club.g_by_email[m_email]  # contact name
-        except KeyError:
-            emails_missing_from_contacts.append(
-                "{} ({})".format(m_email, m_name))
-
     if emails_missing_from_contacts:
         helpers.add_sub_list("Emails Missing from Google Contacts",
                              emails_missing_from_contacts, ret)
     else:
         ok.append("No emails missing from gmail contacts.")
-
-    for g_email in club.g_by_email:
-        g = club.g_by_email[g_email]  # contact name
-        try:
-            m = club.ms_by_email[g_email]  # member name
-        except KeyError:
-            print(
-                "KeyError: {} (in g_by_email but not in ms_by_email"
-                .format(g_email))
-            non_member_contacts.append("{} ({})".format(g_email, g))
 
     # Compare results gleened from  files:
     # 'extra_fees_info' and 'a_applicants
@@ -1079,10 +998,10 @@ def ck_data(club,
 
 def restore_fees(club):
     """
-    Leaves a new list of records in club.new_db:
+    Sets up and leaves a new list of records in club.new_db:
     Dues and relevant fees are applied to each member's record.
     Also populates the following:
-        <club.name_set>   a set used as a check
+        <club.name_set>   
         <club.errors>
     The <club.errors> list is populated by names that are found
     in the <fees_json_file> but not in the <membership_csv_file>.
@@ -1094,10 +1013,12 @@ def restore_fees(club):
     print(
         "  1st check that no one is still owing ...")
     club.errors = []
+    club.new_db = []
     club.non0balance = {}
     club.name_set = set()
-    by_name = gather_extra_fees_data(club.infile)[Club.NAME_KEY]
-    club.extra_fee_names = set([key for key in by_name.keys()])
+    club.by_name = gather_extra_fees_data(club.extra_fees_spot
+                                         )[Club.NAME_KEY]
+    club.extra_fee_names = set([key for key in club.by_name.keys()])
     err_code = member.traverse_records(club.infile, (
         member.populate_non0balance_func,
         member.populate_name_set_func,
@@ -1167,7 +1088,7 @@ def test_extras():
     return data_listed(data)
 
 #   return
-    extra_fees_data = gather_extra_fees_data(EXTRA_FEES_SPoT)
+    extra_fees_data = gather_extra_fees_data(club.extra_fees_spot)
     ret.append("\nmemlist compared to extra_fees file by Category:")
     ret.extend(compare(club.fee_by_category,
                extra_fees_data[Club.CATEGORY_KEY]))

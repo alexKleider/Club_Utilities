@@ -27,6 +27,14 @@ N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 
+def str_add(*args):
+    total = 0
+    for arg in args:
+        if arg == '': arg = 0
+        total += int(arg)
+    return str(total)
+
+
 def script_location():
     return os.getcwd()
 
@@ -274,6 +282,67 @@ def show_dict(d, extra_line=True):
         else:
             lines.append("{}: {}".format(key, d[key]))
     return lines
+
+
+def compare_dicts(dict1, dict2,
+                  specified_value=None):
+    """
+    Compares two dictionaries and returns any instances in which a key
+    in one yields a value different from the same key in the other, or
+    a key in the first is not present in the second.
+    Can optionally provide for a listing of all dict1 keys that have a
+    <specified_value> but such keys are NOT checked against dict2.
+    """
+    ret = {"no_entry": [],  # keys appearing in dict1 but not dict2
+           "value_mismatch": [],  # same key, differing values
+          }
+    if specified_value:
+        ret[specified_value] = []
+    for key1 in dict1:
+        val1 = dict1[key1]
+        if specified_value and val1==specified_value:
+            ret[specified_value].append(key1)
+        else:
+            try:
+                val2 = dict2[key1]
+            except KeyError:
+                ret["no_entry"].append("{}: {}"
+                           .format(key1, val1))
+            else:
+                if val1 != val2:
+                    ret.append["value_mismatch"](
+                        "{}: {} != {}"
+                        .format(key1, val1, val2))
+    return ret
+
+def display_mismatches(mismatches,
+                       message=None,
+                       display_special=False):
+    ret = []
+    mismatch = False
+    if mismatches["no_entry"]:
+        mismatch = True
+        ret.append(
+            "The following key/value pairs are lacking:")
+        for line in mismatches["no_entry"]:
+            ret.append('\t{}'.format(line))
+    if mismatches["value_mismatch"]:
+        mismatch = True
+        ret.append(
+            "Inconsistemt values for following keys:")
+        for line in m_gmail_mismatchs["value_mismatch"]:
+            ret.append('\t{}'.format(line))
+    if (len(mismatches) == 3   # there was a "specified_value"
+        and display_special):  # and it is to be displayed...
+        specified_value = (set(mismatches.keys()) -
+                           {"no_entry", "value_mismatch"}).pop()
+        if message:
+            ret.append(message)
+        else:
+            ret.append("Keys with value '{}':".format(specified_value))
+        for line in mismatches[specified_value]:
+            ret.append('\t{}'.format(line))
+    return ret
 
 
 def show_json(json, underlinechar=''):

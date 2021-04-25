@@ -163,7 +163,7 @@ My apologies for the confusion (caused by my ineptitude!)
 
 
     # Send with March, April, and May minutes:
-    early_request="""
+    first_notice="""
 This is a reminder that annual Club dues will be due in June.
 That is still a ways out but some might like to know in advance
 in order to be able to budget appropriately.  Advance warning
@@ -694,10 +694,10 @@ content_types = dict(  # which_letter
             ) else False,
         "e_and_or_p": "one_only",
         },
-    early_request={
+    first_notice={
         "subject": "Bolinas R&B Club fees coming due",
         "from": authors["membership"],
-        "body": letter_bodies["early_request"],
+        "body": letter_bodies["first_notice"],
         "post_scripts": (
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],
@@ -705,10 +705,10 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_member(record) and
-            member.not_paid_up(record) and
-            not ('w' in record["status"])
-            and not ('r' in record['status'])
+            (member.is_member(record) or
+             member.is_inductee(record)) and
+            # member.not_paid_up(record) and
+            not member.is_non_fee_paying(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -845,7 +845,7 @@ content_types = dict(  # which_letter
         "subject": "Welcome to the Club",
         "from": authors["membership"],
         "body": letter_bodies["new_applicant_welcome"],
-        "post_scripts": (),
+        "post_scripts": (post_scripts["covid19"],),
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if
                  (record["status"]

@@ -23,7 +23,7 @@ NO_EMAIL_KEY = 'no_email'
 STATUS_KEY_VALUES = {
     "a-": "Application received without fee", #0
     "a" : "Application complete",
-    "a0": "New Applicant welcomed",
+    "a0": "Applicant (no meetings yet)",  # welcomed
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
     "a3": "Attended three (or more) meetings",
@@ -51,6 +51,7 @@ APPLICANT_STATI = STATI[:8]
 APPLICANT_SET = set(APPLICANT_STATI)
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | {"h", 't', 'zaa', 'zae'}  # bitwise OR
+NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
 MONEY_KEYS = ("dues", "dock", "kayak", "mooring")
@@ -117,8 +118,18 @@ def member_name(record, club):
     Returns a string formated as defined by club.PATTERN.
     Default <PATTERN> is "{last}, {first}"...
     (see Club.__init__() in rbc.py)
+    !! Plan to replace the above with functions  !!
+    !! get_first_last() and get_last_first().    !!
     """
     return club.PATTERN.format(**record)
+
+
+def get_last_first(record):
+    return "{last}, {first}".format(**record)
+
+
+def get_first_last(record):
+    return "{first} {last}".format(**record)
 
 
 def report_error(report, club):
@@ -166,13 +177,22 @@ def is_applicant(record):
 
 
 def is_new_applicant(record):
-    return 'a-' in get_status_set(record)
+    """
+    Hasn't yet attended any meetings
+    """
+    stati = get_status_set(record)
+    if stati & {'a0', 'a-', 'a'}:
+        return True
+    else: return False
 
 
 def is_inductee(record):
     '''
     '''
-    return 'ai' in get_status_set(record)
+    stati = get_status_set(record)
+    if stati & {'ai', 'aw'}:
+        return True
+    else: return False
 
 
 def is_waiting(record):
@@ -196,6 +216,28 @@ def is_member(record):
     if 'm' in stati:
         return True
     return True
+
+
+def is_non_fee_paying(record):
+    """
+    """
+    if NON_FEE_PAYING_STATI & get_status_set(record):
+        return True
+
+def is_dues_paying(record):
+    if is_non_fee_paying(record):
+        return False
+    if is_member(record):
+        return True
+    stati = get_status_set(record)
+    if 'ai' in stati:
+        return True
+
+
+def is_inductee(record):
+    """
+    """
+    return 'ai' in get_status_set(record)
 
 
 def is_new_member(record):
@@ -303,22 +345,28 @@ def get_zeros_and_nulls(record, club):
 # # Beginning of 'add2' functions:
 
 def add2email_by_m(record, club):
+    """
+    Populates dict- club.email_by_name.
+    """
     name = member_name(record, club)
     email = record['email']
     if email:
         club.email_by_m[name] = email
 
 
-def ex_add2db_emails(record, club):
+def add2db_emails(record, club):
     """
-    Populates club.ex_db_emails
+    Populates club.db_emails
+    'ex' for experimental
+    db_emails is a dict with all members included but
+    with a special key for those without email
     """
-#   print("called ex_add2db_emails")
+#   print("called add2db_emails")
     name = member_name(record, club)
     email = record['email']
     if not email:
         email = NO_EMAIL_KEY
-    club.ex_db_emails[name] = email
+    club.db_emails[name] = email
 
 
 def add2ms_by_email(record, club):
@@ -334,6 +382,7 @@ def add2ms_by_email(record, club):
     club.ms_by_email[email].append(name)
 
 
+redacted = '''
 def add2email_data(record, club):
     """
     Populates club.email_by_m  and (if it
@@ -348,7 +397,7 @@ def add2email_data(record, club):
         club.ms_by_email[email].append(name)
     else:
         club.without_email.append(name)
-
+'''
 
 def add2stati_by_m(record, club):
     if record["status"]:
@@ -377,33 +426,6 @@ def add2member_with_email_set(record, club):
 def add2applicant_with_email_set(record, club):
     if is_applicant(record) and record['email']:
         club.applicant_with_email_set.add(member_name(record, club))
-
-
-redacted = '''
-def add2status_data(record, club):
-    """
-    Populates club.ms_by_status: lists of members keyed by status.
-    Also populates club.stati_my_m if attribute exists...
-    and increments club.napplicants if attribute exists.
-    BEING REDACTED in favour of add2stati_by_m, add2ms_by_status
-    and increment_napplicants.
-    """
-    if not record["status"]:
-        return
-#   if is_applicant(record) and hasattr(club, "napplicants"):
-#       club.napplicants += 1
-    name = club.PATTERN.format(**record)
-    for status in get_status_set(record):
-        _ = club.ms_by_status.setdefault(status, [])
-        if status == 'be':
-            club.ms_by_status[status].append(name +
-                " ({})".format(record['email']))
-        else:
-            club.ms_by_status[status].append(name)
-        if hasattr(club, 'stati_by_m'):
-            _ = club.stati_by_m.setdefault(name, set())
-            club.stati_by_m[name].add(status)
-'''
 
 
 def add2fee_data(record, club):
@@ -780,23 +802,47 @@ def populate_non0balance_func(record, club):
     with values keyed by MONEY_KEYS.
     """
     total = 0
-    name = record.name()
+    name = member_name(record, club)
     for key in MONEY_KEYS:
         try:
             money = int(record[key])
         except ValueError:
             money = 0
         if money:
-            _ = club.non0balance.get(name, {})
+            _ = club.non0balance.setdefault(name, {})
             club.non0balance[name][key] = money
 
 
-def populate_name_set(record, club):
-    club.name_set.add(name(record))
+def populate_name_set_func(record, club):
+    club.name_set.add(member_name(record, club))
 
 
 def add_dues_fees2new_db_func(record, club):
-    pass
+    """
+    Prerequisites: 
+        club.extra_fee_names: a dict-
+            key: sting- "last, first" name
+            value: list of tuples- (category, amount)
+        club.extra_fee_names: set of keys of above dict.
+        club.new_db: list of records, created by traverse_records
+    Each record processed is duplicated, dues/fees added (if provided)
+    and then added to club.new_db.
+    """
+    new_record = {}
+    for key in record.keys():
+        new_record[key] = record[key]
+    if is_dues_paying(record):
+        new_record['dues'] = helpers.str_add(
+            club.YEARLY_DUES,
+            new_record['dues'])
+        name = get_last_first(record)
+        if name in club.extra_fee_names:
+            for (category, amount) in club.by_name[name]:
+                category = category.lower()
+                new_record[category] = helpers.str_add(
+                    amount,
+                    new_record[category])
+    club.new_db.append(new_record)
 
 
 # #### Next group of methods deal with sending out mailings. #######
@@ -988,9 +1034,10 @@ def send_attachment(record, club):
                        )
 
 
-prerequisites = {
-    ex_add2db_emails: [
-        "club.ex_db_emails = {}",
+prerequisites = {   # collectors needed by the
+                    # various traversing functions
+    add2db_emails: [
+        "club.db_emails = {}",
         ],
     ck_number_of_fields: [
         "club.errors = []",
@@ -1018,11 +1065,11 @@ prerequisites = {
         'club.stati_by_m = {}',
         ],
     # Next one is ??? being redacted?
-    add2email_data: [
-        'club.email_by_m = {}',
-        'club.ms_by_email = {}',
-        'club.without_email = []',
-        ],
+#   add2email_data: [
+#       'club.email_by_m = {}',
+#       'club.ms_by_email = {}',
+#       'club.without_email = []',
+#       ],
     add2ms_by_status: [
         'club.ms_by_status = {}',
         ],
@@ -1085,9 +1132,9 @@ prerequisites = {
     #       ],
     populate_non0balance_func: [
         "club.errors = []",
-        "club.non0balance = []",
+        "club.non0balance = {}",
         ],
-    populate_name_set: [
+    populate_name_set_func: [
         "club.name_set = set()",
         ],
     std_mailing_func: [
@@ -1102,6 +1149,9 @@ prerequisites = {
     #   add2status_data: [
     #       'club.ms_by_status = {}',
     #       ],
+    add_dues_fees2new_db_func: [
+        'club.new_db = []',
+        ]
     }
 
 

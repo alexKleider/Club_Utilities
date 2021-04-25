@@ -2,6 +2,12 @@
 
 # File: Tests/data_test.py
 
+"""
+Have so far written tests for:
+    parse_applicant_data_line
+    parse_sponsor_data_line
+"""
+
 # Must first add the parent directory of the
 # currently running script to the system path:
 import os
@@ -15,22 +21,6 @@ import data
 import rbc
 import sys_globals as glbs
 import pytest
-
-redacted = """
-def test_gather_sponsors():
-    info = data.gather_sponsors(rbc.Club.SPONSORS_SPoT)
-    collected = {}
-    with open(rbc.Club.SPONSORS_SPoT, 'r') as f_obj:
-        for line in f_obj:
-            line = line.strip()
-            if line:
-                components = line.split(':')
-                sponsored = components[0]
-                first, last = sponsored.strip().split()
-                sponsors = components[1].strip()
-                collected["{}, {}".format(last, first)] = sponsors
-    assert info == collected
-"""  # end of redaction
 
 @pytest.mark.parametrize("line, expected", [
 ("John Ford             | 171006 | 171006 | ?????? | ?????? | ?????? | ?????? | ?????? |",

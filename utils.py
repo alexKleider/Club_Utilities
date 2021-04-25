@@ -492,110 +492,6 @@ def names_only_cmd(args=args):
     output('\n'.join(ret))
 
 
-def report(club):
-    """
-    Prepare a "Membership Report".
-    Automatically dated, it reports:
-    Number of members & Number of applicants and provides an
-    applicant role call (/w dates of meetings attended.)
-    Checks both the applicant SPoT and the main data base.
-    """
-    err_code = member.traverse_records(club.infile,
-                                       [member.add2stati_by_m,
-                                        member.add2ms_by_status,
-                                        member.increment_nmembers,
-                                        member.increment_napplicants,
-                                        ], club)
-    applicant_data_by_name = data.get_applicant_data(
-            club.applicant_spot,
-            sponsor_file=club.sponsor_file)
-
-    applicants_by_status = data.get_applicants_by_status(
-        applicant_data_by_name)
-
-    redacted = '''
-    ap_set_by_status = (
-        data.gather_applicant_data(
-            club.applicant_spot,
-            include_dates=True,
-            sponsor_file=club.sponsor_file)["applicants"]
-            )
-    ap_listing = club.ms_by_status  # } This segment is for
-    for key in ap_listing:          # } error checking only;
-        if key[0] == 'a':           # } not required if data match.
-            # Only deal with applicants.
-            try:
-                len_listing = len(ap_listing[key])
-            except KeyError:
-                print("No '{}' key in ap_listing".format(key))
-            try:
-                len_set = len(ap_set_by_status[key])
-            except KeyError:
-                print("No '{}' key in ap_set_by_status".format(key))
-            if  len_listing != len_set:
-                print("!!! {} != {} !!!"
-                      .format(ap_listing[key], ap_set_by_status[key]))
-    '''  # end of part with a bug to be stamped out!
-
-    report = []
-    helpers.add_header2list("Membership Report (prepared {})"
-                            .format(helpers.date),
-                            report, underline_char='=')
-    report.append('')
-    report.append('Club membership currently stands at {}.'
-                  .format(club.nmembers))
-
-    if applicants_by_status:
-        helpers.add_header2list(
-            "Applicants ({} in number, with meeting dates & sponsors listed)"
-            .format(club.napplicants),
-            report, underline_char='=', extra_line=True)
-        report.extend(member.show_by_status(applicants_by_status))
-    if 'r' in club.ms_by_status:
-        header = ('Members ({} in number) retiring from the Club:'
-                  .format(len(club.ms_by_status['r'])))
-        report.append('')
-        helpers.add_header2list(header, report, underline_char='=')
-        for name in club.ms_by_status['r']:
-            report.append(name)
-
-    misc_stati = member.show_by_status(
-        club.ms_by_status, stati2show="m|w|be|ba".split('|'))
-    if misc_stati:
-        header = "Miscelaneous Info"
-        helpers.add_header2list(header, report, underline_char='=')
-        report.extend(misc_stati)
-    club_ = club_setup4extra_charges()
-    club_.presentation_format = 'listings'
-    report.append("""
-
-
-For Docks and Yard Committee
-============================
-
-I continue to include the following listing of extra fees
-being charged to serve as a reminder to let me know if any
-changes are to be made before charges are applied for the
-next (July 1, 2021-June 30, 2022) membership year.
-
-""")
-    report.extend(data.extra_charges(club_, raw=True))
-    try:
-        with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
-            print('Opening file: {}'.format(fobj.name))
-            addendum = fobj.read()
-            report.append(addendum)
-    except FileNotFoundError:
-        print('report.addendum not found')
-    report.extend(
-        ['', '',
-         "Respectfully submitted by...\n\n",
-         "Alex Kleider, Membership Chair,",
-         "for presentation {}."
-         .format(helpers.next_first_friday(exclude=True)),
-         ])
-    return report
-
 
 def collect_stati_data(club):
     err_code = member.traverse_records(
@@ -764,6 +660,7 @@ def report_cmd(args=args):
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
         report.extend(misc_stati)
+    redact = '''
     club_ = club_setup4extra_charges()
     club_.presentation_format = 'listings'
     report.append("""
@@ -779,6 +676,8 @@ next (July 1, 2021-June 30, 2022) membership year.
 
 """)
     report.extend(data.extra_charges(club_, raw=True))
+    '''
+
     try:
         with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
             print('Opening file: {}'.format(fobj.name))
@@ -793,6 +692,10 @@ next (July 1, 2021-June 30, 2022) membership year.
          "for presentation {}."
          .format(helpers.next_first_friday(exclude=True)),
          ])
+    report.extend(
+        ['',
+         'PS Zoom ID: 527 109 8273; Password: 999620',
+        ])
     output("\n".join(report))
     print("...results sent to {}.".format(args['-o']))
 
@@ -1002,7 +905,7 @@ def setup4new_db(club):
     club.infile = args['-i']
     club.outfile = args['-o']
     club.extra_fees_spot = args['-X']
-    club.owing_only = args['--oo']
+#   club.owing_only = args['--oo']  # Why?! Plan 2 delete.
     if not club.infile:
         club.infile = club.MEMBERSHIP_SPoT
 #   print('club.outfile set to {}'.format(club.outfile))
@@ -1052,10 +955,12 @@ def dict_write(f, fieldnames, iterable):
             dict_writer.writerow(record)
 
 
+redacted = '''
 def new_db_cmd():
     """
     One time use only:
-    Eliminates 'email_only' field from data base.
+    Eliminated 'email_only' field from data base.
+    Already done so can redact this.
     """
     if args['-F'] and args['-F'] in member.func_dict:
         func, fieldnames = member.func_dict[args['-F']]
@@ -1072,6 +977,7 @@ def new_db_cmd():
     dict_write(club.outfile, fieldnames,
                member.modify_data(club.infile, func, club)
                )
+'''
 
 
 def display_emails_cmd(args=args):
@@ -1196,21 +1102,21 @@ def restore_fees_cmd(args=args):
     club = Club()
     setup4new_db(club)
     data.restore_fees(club)  # Populates club.new_db & club.errors
-    data.save_db(club.new_db, club.outfile, club.field_names)
+    data.save_db(club.new_db, club.outfile, club.fieldnames)
     if club.errors:
         output('\n'.join(
                ['Note the following irregularities:',
                 '==================================', ]
                + club.errors), destination=args['-e'])
 
-    if club.still_owing:
-        pass
+#   if club.still_owing:
+#       pass
     if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
             file_obj.write(club.errors)
             print('Wrote errors to "{}".'.format(file_obj.name))
-    if ret:
-        sys.exit(ret)
+#   if ret:
+#       sys.exit(ret)
 
 
 def fee_intake_totals_cmd(args=args):
