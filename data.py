@@ -308,6 +308,8 @@ def get_applicant_data(spot, sponsor_file=None):
         "dates" (value a string of dates) and (if 'sponsor_file)
         "sponsors" (value a tuple of strings- names of sponsors.
     UNDER DEVELOPMENT_ TO REPLACE gather_applicant_data().
+    Will probably want to change "dates" value to a tuple (vs string
+    of dates) to be consistent with "sponsors".
     """
     ret = {}
     with open(spot, 'r') as src:
@@ -333,6 +335,10 @@ def get_applicant_data(spot, sponsor_file=None):
 
 
 def get_applicants_by_status(applicant_data):
+    """
+    Param is what's returned by get_applicant_data.
+    Returns a dict keyed by status, value: a list of applicants
+    """
     ret = {}
     for name in applicant_data.keys():
         status = applicant_data[name]['status']
@@ -341,6 +347,7 @@ def get_applicants_by_status(applicant_data):
     return ret
 
 
+redacted = '''
 def gather_applicant_data(in_file,
                           include_dates=False,
                           sponsor_file=None):
@@ -428,6 +435,7 @@ def gather_applicant_data(in_file,
             # i.e. keys = sorted([key for key in data["applicants"]])
             "bad_lines": bad_lines,  # for error checking
             }
+'''
 
 
 def get_sponsors(infile):
@@ -686,67 +694,7 @@ def present_fees_by_category(extra_fees, raw=False,
     return header + res
 
 
-def present_expired(list_of_expired_applications, raw=False):
-    """
-    Returns a list of strings which can be "\n".join(ed).
-    It's expected that the parameter will be the the following:
-    gather_applicant_data(APPLICANT_SPoT)["expired"]
-    which is just a list of last_first names.
-    """
-    if raw:
-        ret = []
-    else:
-        ret = ["Applicants whos applications have expired:",
-               "=========================================="]
-    for name in list_of_expired_applications:
-        ret.append(name)
-    return ret
-
-
-def present_applicants(applicants_keyed_by_status, raw=False):
-    """
-    Returns a list of strings which can be "\n".join(ed).
-    It's expected that the parameter will be the the following:
-    gather_applicant_data(APPLICANT_SPoT)["applicants"]
-    which is a dict keyed by status /w each value => set
-    of last_first names.
-    """
-    if raw:
-        ret = []
-    else:
-        ret = ["Applicants by status:",
-               "====================="]
-    keys = sorted([key for key in applicants_keyed_by_status])
-    for key in keys:
-        if not raw:
-            ret.append("")
-        ret.append("{}:".format(key))
-        values = sorted(list(applicants_keyed_by_status[key]))
-        for value in values:
-            ret.append("{}".format(value))
-    return ret
-
-
-def remove_unwanted_items(dictionary, list_of_keys,
-                          ignore_keyerror=True):
-    """
-    Rids the dictionary of listed keys.
-    Key errors are ignored.
-    """
-    for key in list_of_keys:
-        if ignore_keyerror:
-            try:
-                del dictionary[key]
-            except KeyError:
-                pass
-        else:
-            del dictionary[key]
-
-
-def first_parts_only(sequence):
-    return [item.split(' ')[0] for item in sequence]
-
-
+redacted = '''
 def ck_applicants(
         club,  # provides data from memlist and gmail
         applicants):  # gather_applicant_data(SPoT, "applicants")
@@ -762,7 +710,7 @@ def ck_applicants(
     m_applicants = club.ms_by_status
     a_applicants = applicants
     g_applicants = club.m_by_group["applicant"]
-
+'''
 
 
 def ck_data(club,
@@ -823,8 +771,8 @@ def ck_data(club,
         ok.append("No Google Groups vs Member/Applicant Missmatch.")
     # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
-    a_applicants = gather_applicant_data(
-                                club.APPLICANT_SPoT)["applicants"]
+    a_applicants = get_applicants_by_status(
+        get_applicant_data(club.APPLICANT_SPoT))
 
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
@@ -897,7 +845,9 @@ def ck_data(club,
 #   if temp_ret:
 #       ret.append("\nNon Applicant Stati: {}"
 #           .format(','.join(temp_ret)))
-    if a_applicants != club.ms_by_status:
+    a_applicantsets = helpers.lists2sets(a_applicants)
+    ms_by_statusets = helpers.lists2sets(club.ms_by_status)
+    if a_applicantsets != ms_by_statusets:
         ret.append("\nApplicant problem:")
         ret.append("The following data from applicant SPoT-")
         ret.extend(helpers.show_dict(a_applicants, extra_line=False))
@@ -1118,42 +1068,6 @@ def test_list_mooring():
     return list_mooring_data(Club.EXTRA_FEES_SPoT)
 
 
-def test_applicant_presentations():
-    ret = []
-    data = gather_applicant_data(Club.APPLICANT_SPoT)
-    ret.extend(present_applicants(data["applicants"]))
-    ret.append("\n\n")
-    ret.extend(present_expired(data["expired"]))
-    return ret
-
-
-def test_applicants_incl_expired():
-    expired = present_expired(
-        gather_applicant_data(Club.APPLICANT_SPoT)["expired"])
-    applicants = present_applicants(
-        gather_applicant_data(Club.APPLICANT_SPoT)["applicants"])
-    ret = ["\nExpired Applications..."]
-    ret.extend(expired)
-    ret.append("\nApplicants...")
-    ret.extend(applicants)
-    return ret
-
-
-def ck_all():
-    n = 0
-    for test_routine in (
-            test_applicant_presentations,  # #1
-            test_applicants_incl_expired,  # #2
-            test_extras,                   # #3
-            test_ck_data,                  # #4
-            ):
-        pass
-
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
-#   test_list_mooring()
-#   applicants = gather_applicant_data(APPLICANT_SPoT)
-#   print(repr(applicants))
-#   ck_all()
-#   test_ck_data("2check")

@@ -52,6 +52,25 @@ def useful_lines(stream, comment=None):
             yield line
 
 
+def lists2sets(dict_with_iterable_values):
+    ret = {}
+    for key in dict_with_iterable_values:
+        ret[key] = set(dict_with_iterable_values[key])
+    return ret
+
+
+def remove_unwanted_items(dictionary, unwanted_keys):
+    """
+    Returns a dictionary without unwanted keys.
+    """
+    ret = {}
+    unwanted = set(unwanted_keys)
+    for key in dictionary:
+        if not key in unwanted:
+            ret[key] = dictionary[key]
+    return ret
+
+
 def get_first_friday_of_month(date=None):
     """
     Accepts a date or uses current date if None is provided.
