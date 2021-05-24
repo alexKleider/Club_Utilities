@@ -177,7 +177,7 @@ def main():
     description = ' & '.join([text for text in (
         args['mail_action'], args['data_action']) if text])
     with open(info_file, action) as f:
-        f.write("{} {}".format(date_stamp,
+        f.write("\n{} {}".format(date_stamp,
                                " {} archived".format(description)))
 
 

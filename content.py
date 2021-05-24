@@ -662,8 +662,9 @@ content_types = dict(  # which_letter
             ),
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
-        "test": lambda record: False if ('r' in record['status']
-                                         ) else True,
+        "test": lambda record: True if (
+            member.is_dues_paying(record)
+            ) else: False,
         "e_and_or_p": "one_only",
         },
     thank={
@@ -688,9 +689,8 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_member(record) and
-            member.not_paid_up(record) and
-            not ('w' in record["status"])
+            member.is_dues_paying(record) and
+            member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -705,10 +705,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            (member.is_member(record) or
-             member.is_inductee(record)) and
-            # member.not_paid_up(record) and
-            not member.is_non_fee_paying(record)
+            member.is_dues_paying(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -724,10 +721,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_member(record) and
-            not ('r' in record["status"]) and
-            not ('w' in record["status"])
-            and not ('r' in record['status'])
+            member.is_dues_paying(record)
             ) else False,
         "e_and_or_p": "one_only",
         },
@@ -742,7 +736,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_fee_paying_member(record) and
+            member.is_dues_paying(record) and
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
@@ -758,7 +752,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_fee_paying_member(record) and
+            member.is_dues_paying(record) and
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
@@ -774,7 +768,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_fee_paying_member(record) and
+            member.is_duespaying(record) and
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
@@ -790,7 +784,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_fee_paying_member(record) and
+            member.is_dues_paying(record)
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "both",
@@ -805,12 +799,10 @@ content_types = dict(  # which_letter
             ),
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
-        "test": (lambda record: True if
-                 (member.is_member(record) and
-                  member.not_paid_up(record) and
-                  not ('w' in record["status"])
-                  and not ('r' in record['status'])
-                  ) else False),
+        "test": (lambda record: True if (
+            member.is_dues_paying(record) and
+            member.not_paid_up(record)
+            ) else False),
         "e_and_or_p": "both",
         },
     covid_final_notice={
@@ -823,11 +815,9 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": (lambda record: True if
-                 (member.is_member(record) and
-                  member.dues_owing(record) and
-                  not ('w' in record["status"])
-                  and not ('r' in record['status'])
-                  ) else False),
+            (member.is_dues_paying(record) and
+            member.dues_owing(record)
+            ) else False),
         "e_and_or_p": "both",
         },
     bad_email={

@@ -22,7 +22,7 @@ from rbc import Club
 NO_EMAIL_KEY = 'no_email'
 STATUS_KEY_VALUES = {
     "a-": "Application received without fee", #0
-    "a" : "Application complete",
+    "a" : "Application complete but not yet acknowledged",  # not yet welcomed
     "a0": "Applicant (no meetings yet)",  # welcomed
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
@@ -181,7 +181,7 @@ def is_new_applicant(record):
     Hasn't yet attended any meetings
     """
     stati = get_status_set(record)
-    if stati & {'a0', 'a-', 'a'}:
+    if stati & {'a'}:
         return True
     else: return False
 
@@ -223,6 +223,7 @@ def is_non_fee_paying(record):
     """
     if NON_FEE_PAYING_STATI & get_status_set(record):
         return True
+
 
 def is_dues_paying(record):
     if is_non_fee_paying(record):
@@ -289,16 +290,6 @@ def has_valid_email(record, club=None):
 
 def letter_returned(record, club=None):
     return 'ba' in get_status_set(record)
-
-
-def is_fee_paying_member(record, club=None):
-    """
-    """
-    return (is_member(record)
-            and get_status_set(record).isdisjoint(
-                set(('h', 'r', 'w'))
-                )
-            )
 
 
 def get_usps(record, club):
@@ -1106,7 +1097,7 @@ prerequisites = {   # collectors needed by the
         'club.errors = []',
         ],
     add2names: [
-        'club.pattern = ("{last}, {first} ({phone})")',
+        'club.pattern = ("{last}, {first} {phone}")',
         'club.names = []',
         'club.errors = []',
         ],

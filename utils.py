@@ -114,8 +114,8 @@ Commands:
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
     names_only: Returns a listing of members and applicants- names
-        only, without any demographics. If -w is 0, it's a single
-        column, otherwise output is in tabular.
+        and phone numbers only, without any other demographics.
+        If -w is 0, output is a single column, otherwise tabular.
     report: Prepares a 'Membership Report".
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
@@ -480,6 +480,7 @@ def names_only_cmd(args=args):
     club = Club()
     assign_default_files(club, args)
     print("Preparing listing of member and applicant names...")
+#   print("'-w' is set to {}".format(args['-w']))
     err_code = member.traverse_records(club.infile,
                                        [member.add2names, ],club)
     ret = ["Members and Applicants of the Bolinas Rod & Boat Club",

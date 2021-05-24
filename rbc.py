@@ -49,7 +49,8 @@ class Club(object):
 
     # Non repo directories:
     NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
-                    "NonRepo", "Temp", "TestData")
+                    "NonRepo", "Temp", #"TestData")
+                    )
 
     _2bredacted = """
     SEPARATOR = "|"   # } File APPLICANT_SPoT must be in a

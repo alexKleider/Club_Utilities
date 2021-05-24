@@ -578,12 +578,12 @@ def extra_charges(club, raw=False):
     print('Retrieving input data from "{}"'.format(club.infile))
     if club.presentation_format == 'listing':
         if club.json_file:   # do we want a json file..
-            _ = gather_extra_fees_data(club.extra_fees_spot,
+            _ = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
                                        json_file=club.json_file)
         # Just return file content:
         with open(club.infile, 'r') as f_object:
             return [line.strip() for line in f_object]
-    extra_fees = gather_extra_fees_data(club.extra_fees_spot,
+    extra_fees = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
                                         json_file=club.json_file)
     by_name = extra_fees[club.NAME_KEY]
     by_category = extra_fees[club.CATEGORY_KEY]
