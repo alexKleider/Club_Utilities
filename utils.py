@@ -1114,7 +1114,7 @@ def restore_fees_cmd(args=args):
 #       pass
     if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
-            file_obj.write(club.errors)
+            file_obj.write('\n'.join(club.errors))
             print('Wrote errors to "{}".'.format(file_obj.name))
 #   if ret:
 #       sys.exit(ret)

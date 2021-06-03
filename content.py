@@ -6,7 +6,7 @@
 A module to support the utils.py prepare_mailing command.
 (... and also the emailing command.)
 
-Rather than importing functions, they are refered to by
+Rather than importing functions, they are referred to by
 name and depend on a dict within the utils.Membership class
 with those names as keys and the methods as values.
 
@@ -283,7 +283,7 @@ Thanks,""",
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
 
-Please come and enjoy the meetings held on the first Fiday of
+Please come and enjoy the meetings held on the first Friday of
 each month. Meetings are scheduled to begin at 7:30 pm (except
 for the February special dinner meeting which begins at 6pm.)
 
@@ -300,7 +300,7 @@ but unfortunately all meetings have been suspended during the
 pandemic.
 
 '''
-Please come and enjoy the meetings held on the first Fiday of
+Please come and enjoy the meetings held on the first Friday of
 each month. Meetings are scheduled to begin at 7:30 pm (except
 for the February special dinner meeting which begins at 6pm.)
 
@@ -321,7 +321,7 @@ approved your application for Club membership.
 Unfortunately there is not currently a vacancy (since club
 bylaws specify that membership must not be over 200.)
 
-But don't dispair!  You are certainly welcome to enjoy most
+But don't despair!  You are certainly welcome to enjoy most
 if not all of the privileges of membership until a vacancy
 occurs at which time I will send you a request for payment of
 dues and once paid you will become a full fledged member!
@@ -383,7 +383,7 @@ made.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
-having this access to spend time on the balconey enjoying views of
+having this access to spend time on the balcony enjoying views of
 the lagoon and Bolinas Ridge.  Please be sure to lock up upon
 leaving.
 
@@ -392,7 +392,7 @@ certain conditions are met.)  More information can be found on the web
 site: "Rules and Forms" and under that "Club Rentals".
 
 Most important of all, come to meetings and other functions to enjoy
-the comraderie!""",
+the camaraderie!""",
 
     expired_application="""
 It's been more than six months since your membership application has
@@ -407,7 +407,7 @@ I know I speak for all members in saying we're sorry to see you go
 and wish you all the best in the future.""",
 
     membership_termination="""
-Regretably the Club Executive Committee has been obliged to
+Regrettably the Club Executive Committee has been obliged to
 terminate your membership because of non payment of dues.
 
 Let me add my own personal sentiment of regret that you have
@@ -482,8 +482,8 @@ the check in order to prevent any confusion.""",
 
     covid19="""Because of the current pandemic, the Club is closed
     and in person meetings are suspended. Virtual meetings are still
-    bing held and you'll be receiving notices.
-    Let's hope for an early return to 'buisness as usual.'
+    being held and you'll be receiving notices.
+    Let's hope for an early return to 'business as usual.'
     Stay safe; Stay well.""",
 
     forgive_duplicate="""This may be a duplication of an email
@@ -587,12 +587,12 @@ authors = dict(  # from
 #       #     'both' email and usps,
 #       #     'email' email only,
 #       #     'usps' mail only,
-#       #  or 'one_only' email if available, othewise usps.
+#       #  or 'one_only' email if available, otherwise usps.
 #   # One of the following becomes the 'which' attribute
 #   # of a Membership instance.
 
 content_types = dict(  # which_letter
-    # ## If a 'salutation' key/value is provied for any of the
+    # ## If a 'salutation' key/value is provided for any of the
     # ## following, the value will be used as the salutation
     # ## instead of a 'Dear {first} {last},' line.
     # ## The first 4 listed values for each are used for first
@@ -664,7 +664,7 @@ content_types = dict(  # which_letter
                   member.std_mailing_func),
         "test": lambda record: True if (
             member.is_dues_paying(record)
-            ) else: False,
+            ) else False,
         "e_and_or_p": "one_only",
         },
     thank={
@@ -784,7 +784,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_dues_paying(record)
+            member.is_dues_paying(record) and
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "both",
@@ -1126,7 +1126,7 @@ def prepare_email_template(which_letter):
 
 def contents():
     """
-    Provides a way of getting a quick glimps
+    Provides a way of getting a quick glimpse
     of the various contents provided.
     Typical usage:
         print('\n'.join(contents()))
