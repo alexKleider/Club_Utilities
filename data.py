@@ -745,30 +745,30 @@ def ck_data(club,
     # club.groups_by_name (set)     # club.g_by_group (set)
 
 
-    if club.g_by_group['applicant'] != club.applicant_with_email_set:
-        helpers.add_header2list("Applicant/Google 'applicant' Mismatch",
-                                temp_list, underline_char='-',
-                                extra_line=True)
-        for name in (club.g_by_group['applicant']
-                     ^ club.member_with_email_set):
-            temp_list.append("\t{}".format(name))
-    if club.g_by_group['LIST'] != club.member_with_email_set:
-        helpers.add_header2list("Member/Google 'LIST' Mismatch",
-                                temp_list, underline_char='-',
-                                extra_line=True)
-        # '^' is the bitwise OR operator
-        for name in club.g_by_group['LIST'] ^ club.member_with_email_set:
-            if name == "Crichfield, Jason":
-                print(name)
-            temp_list.append("\t{}".format(name))
-            print("Adding {} to GG vs MA missmatch".format(name))
-    if temp_list:
+    ## First check that google groups match club data:
+    # Deal with applicants...
+    applicant_missmatches = helpers.check_sets(
+        club.g_by_group['applicant'],
+        club.applicant_with_email_set,
+        "Applicant(s) in Google Contacts not in Member Listing",
+        "Applicant(s) in Member Listing not in Google Contacts"
+        )
+    # Deal with members...
+    member_missmatches = helpers.check_sets(
+        club.g_by_group['LIST'],
+        club.member_with_email_set,
+        "Member(s) in Google Contacts not in Member Listing",
+        "Member(s) in Member Listing not in Google Contacts"
+        )
+
+    if applicant_missmatches or member_missmatches:
         helpers.add_header2list(
-            "Google Groups vs Member/Applicant Missmatch",
+            "Missmatch: Gmail groups vs Club data",
             ret, underline_char='=', extra_line=True)
-        ret.extend(temp_list)
+        ret.extend(member_missmatches + applicant_missmatches)
     else:
         ok.append("No Google Groups vs Member/Applicant Missmatch.")
+
     # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
     a_applicants = get_applicants_by_status(
@@ -797,46 +797,11 @@ def ck_data(club,
     else:
         ok.append("No emails missing from gmail contacts.")
 
-    # Compare results gleened from  files:
-    # 'extra_fees_info' and 'a_applicants
-    #   for key in a_applicants:
-    #       print(key)
-    #       for entry in a_applicants[key]:
-    #           print(repr(entry))
-
-    # Check that gmail contacts' "groups" match membership data:
-    #  Following code could be refactored, perhaps /w Walrus!! ##
-    m_applicants = set()
-    for key in club.ms_by_status:
-        if key in member.APPLICANT_SET:
-            for entry in club.ms_by_status[key]:
-                m_applicants.add(entry)
-    # The following should be checked for equivalence and    ###
-    # if different, they need to be reported in the output-  ###
-    # left here for time being until Data can be corrected.  ###
-    if m_applicants == set(
-            club.g_by_group[club.APPLICANT_GROUP]):
-        ok.append("Gmail groups match Club data.")
-    else:
-        helpers.add_header2list(
-            "Mismatch: Gmail groups vs Club data",
-            ret, underline_char='=')
-        helpers.add_header2list("Gmail groups", ret,
-                                underline_char='-')
-        ret.extend(sorted(list(
-            club.g_by_group[club.APPLICANT_GROUP])))
-        helpers.add_header2list("Club status", ret,
-                                underline_char='-')
-        ret.extend(sorted(list(m_applicants)))
-        # print(
-        # "The following two (sorted) sets should be the same- They're NOT!")
-        # print(sorted(list(m_applicants)))
-        # print(sorted(list(club.g_by_group[APPLICANT_GROUP])))
-        # print()
 
     g_members = club.g_by_group[club.MEMBER_GROUP]
     g_applicants = club.g_by_group[club.APPLICANT_GROUP]
-    keys = [key for key in club.ms_by_status.keys()]
+#   keys = [key for sorted(key in club.ms_by_status.keys())]
+    keys = sorted(club.ms_by_status.keys(), reverse=True)
 #   temp_ret = []
     for key in keys:
         if not (key in member.APPLICANT_SET):

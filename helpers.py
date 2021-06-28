@@ -71,6 +71,28 @@ def remove_unwanted_items(dictionary, unwanted_keys):
     return ret
 
 
+def check_sets(s1, s2,
+               header_in1st_not2nd="In 1st but not 2nd set:",
+               header_in2nd_not1st="In 2nd but not 1st set:"):
+    """
+    Returns a listing of the differences between two sets.
+    """
+    ret = []
+    in1st_not2nd = s1 - s2
+    in2nd_not1st = s2 - s1
+    if in1st_not2nd:
+        add_header2list(header_in1st_not2nd,
+                        ret, underline_char='-',
+                        extra_line=True)
+        ret.extend(sorted(in1st_not2nd))
+    if in2nd_not1st:
+        add_header2list(header_in2nd_not1st,
+                        ret, underline_char='-',
+                        extra_line=True)
+        ret.extend(sorted(in2nd_not1st))
+    return ret
+
+
 def get_first_friday_of_month(date=None):
     """
     Accepts a date or uses current date if None is provided.
@@ -295,11 +317,11 @@ def prepend2file_name(word, file_name):
 
 def show_dict(d, extra_line=True):
     lines = []
-    for key in d:
+    for key in sorted(d.keys()):
         if extra_line:
-            lines.append("{}\n\t {}\n".format(key, d[key]))
+            lines.append("{}\n\t {}\n".format(key, sorted(d[key])))
         else:
-            lines.append("{}: {}".format(key, d[key]))
+            lines.append("{}: {}".format(key, sorted(d[key])))
     return lines
 
 

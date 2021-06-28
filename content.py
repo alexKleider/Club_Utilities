@@ -1028,9 +1028,17 @@ printers = dict(
         to=(5, 30),  # recipient window 12..16
         re=2,  # lines below bottom window
         ),
-    HL2170=dict(
+    HL2170=dict(  # large envelopes, Cavin Rd usb printer
         indent=3,
         top=1,  # blank lines at top
+        frm=(5, 25),  # return window
+        date=4,  # between windows
+        to=(7, 29),  # recipient window
+        re=3,  # below windows => fold
+        ),
+    loft=dict(
+        indent=0,
+        top=0,  # blank lines at top
         frm=(5, 25),  # return window
         date=4,  # between windows
         to=(7, 29),  # recipient window

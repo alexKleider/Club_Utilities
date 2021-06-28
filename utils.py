@@ -46,7 +46,7 @@ Options:
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
   -d   Include details: fee inconsistency for ck_data,
-  -dir <mail_dir>  The directory to be created and/or read
+  --dir <mail_dir>  The directory (to be created and/or read)
                     containing letters for batch printing.
   -e <error_file>  Specify name of a file to which an error report
             can be written.  [default: stdout]
@@ -153,7 +153,7 @@ Commands:
         '-p <printer>' specifies printer to be used for letters.
         '-i <infile>' membership data csv file.
         '-j <json_file>' where to dump prepared emails.
-        '---dir <mail_dir>' where to file letters.
+        '--dir <mail_dir>' where to file letters.
     thank:  Reads the file specified by -t <thank>, applies payments
         specified there in to the -i <infile> and prepares thank you
         letter/email acknowledging receipt of payment and showing
