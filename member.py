@@ -27,12 +27,13 @@ STATUS_KEY_VALUES = {
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
     "a3": "Attended three (or more) meetings",
-    "ai": "Inducted, membership pending payment of dues",
-    "aw": "Inducted, awaiting vacancy and then payment", #7
+    "ai": "Inducted, needs to be notified",
+    "ad": "Inducted & notified, membership pending payment of dues",
+    "aw": "Inducted, awaiting vacancy and then payment", #7 > #8
+    "am": "New Member",  # temporary until congratulatory letter.
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
-    "h" : "Honorary Member",                             #10
-    "m" : "New Member",  # temporary until congratulatory letter.
+    "h" : "Honorary Member",                             #10 > #12
     'r' : "Retiring/Giving up Club Membership",
     't' : "Membership terminated",  # fees not paid
     "w" : "Fees being waived",  # a rarely applied special status
@@ -46,8 +47,10 @@ STATUS_KEY_VALUES = {
     'zae': "Application expired or withdrawn",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
-SPECIAL_NOTICE_STATI = set(STATI[8:10])
-APPLICANT_STATI = STATI[:8]
+SPECIAL_NOTICE_STATI = set(                        # 'b' for bad!
+    [status for status in STATI if status.startswith('b')])
+APPLICANT_STATI = [                               # 'a' for bad!
+    status for status in STATI if status.startswith('a')]
 APPLICANT_SET = set(APPLICANT_STATI)
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | {"h", 't', 'zaa', 'zae'}  # bitwise OR
@@ -244,7 +247,7 @@ def is_inductee(record):
 def is_new_member(record):
     """
     """
-    return 'm' in get_status_set(record)
+    return 'am' in get_status_set(record)
 
 
 def is_honorary_member(record):
@@ -635,6 +638,8 @@ def get_statement_dict(record):
         if record[key]:
             ret[key] = int(record[key])
             ret['total'] += ret[key]
+
+
     return ret
 
 

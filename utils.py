@@ -928,8 +928,9 @@ def thank_cmd(args=args):
                             club)
     # To implememnt: maintain a record of those thanked...
     club.statement_data_keys = club.statement_data.keys()
+    # FOR DEBUGGING: print(club.statement_data)
     prepare4mailing(club)
-    club.input_file_name = club.thank_file
+#   club.input_file_name = club.thank_file
     member.prepare_mailing(club)  # => thank_func,
     # Done with thanking; Must now update DB.
     setup4new_db(club)
