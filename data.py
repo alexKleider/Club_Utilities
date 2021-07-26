@@ -198,7 +198,8 @@ def parse_applicant_line4dates(line,
 def parse_applicant_data_line(line):
     """
     Assumes blank and commented lines have already been removed.
-    Returns None if no longer an applicant, for applicants:
+    Returns None if no longer an applicant or if line is invalid.
+    For applicants:
     Returns a 2 tuple: (for subsequent use as a key/value pair)
     t1 is "last, first" name
     t2 is a tuple the first item of which is status possibly
@@ -206,21 +207,20 @@ def parse_applicant_data_line(line):
     Status can be any of those listed in the if elif listing:
     Notice absence of:
         'a' which is distinguished from 'a0' only re welcoming letter
-        'aw' which has to do with vacancy, they'll show up as 'm'
-    Fails if encounters an invalid line!!!
-    ...or should we just return None???
+        'aw' which has to do with vacancy: not clear if people can be
+        considered for membership if there is no vacancy.
     """
     parts = line.split(glbs.SEPARATOR)
-    if not parts[-1]: parts = parts[:-1]  # trailing separator?
+    if not parts[-1]: parts = parts[:-1]  # lose trailing separator
     parts = [part.strip() for part in parts]
-    l = len(parts)
+    l = len(parts)  # of dates listed
     names = parts[0].split()
     key = "{}, {}".format(names[1], names[0]) 
     if parts[-1].startswith("Appl"):
         ret = (key, ("zae",))  # see members.STATUS_KEY_VALUES
     elif l == 1:               # for meanings
         ret = key, ("zaa",)
-    elif l == 2:
+    elif l == 2:               # one date listed
         ret = key, ("a-",)
     elif l == 3:
         ret = key, ("a0",)

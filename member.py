@@ -34,6 +34,7 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
     "h" : "Honorary Member",                             #10 > #12
+    'm' : "Former member wishing to continue receiving minutes"
     'r' : "Retiring/Giving up Club Membership",
     't' : "Membership terminated",  # fees not paid
     "w" : "Fees being waived",  # a rarely applied special status
@@ -53,7 +54,7 @@ APPLICANT_STATI = [                               # 'a' for bad!
     status for status in STATI if status.startswith('a')]
 APPLICANT_SET = set(APPLICANT_STATI)
 MISCELANEOUS_STATI = "m|w|be"
-NON_MEMBER_SET = APPLICANT_SET | {"h", 't', 'zaa', 'zae'}  # bitwise OR
+NON_MEMBER_SET = APPLICANT_SET | {"h", "m", 't', 'zaa', 'zae'}  # bitwise OR
 NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
@@ -216,8 +217,6 @@ def is_member(record):
     stati = get_status_set(record)
     if stati.intersection(set(NON_MEMBER_SET)):
         return False
-    if 'm' in stati:
-        return True
     return True
 
 
