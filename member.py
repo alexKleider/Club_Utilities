@@ -34,7 +34,7 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
     "h" : "Honorary Member",                             #10 > #12
-    'm' : "Former member wishing to continue receiving minutes"
+    'm' : "Former member continuing to receive minutes",
     'r' : "Retiring/Giving up Club Membership",
     't' : "Membership terminated",  # fees not paid
     "w" : "Fees being waived",  # a rarely applied special status
@@ -227,6 +227,12 @@ def is_non_fee_paying(record):
         return True
 
 
+def is_minutes_only(record):
+    """
+    """
+    return 'm' in get_status_set(record)
+
+
 def is_dues_paying(record):
     if is_non_fee_paying(record):
         return False
@@ -275,6 +281,13 @@ def increment_nmembers(record, club):
     """
     if is_member(record):
         club.nmembers += 1
+
+
+def increment_nminutes_only(record, club):
+    """
+    """
+    if is_minutes_only(record):
+        club.nminutes_only += 1
 
 
 def is_member_or_applicant(record, club=None):
@@ -374,23 +387,6 @@ def add2ms_by_email(record, club):
     _ = club.ms_by_email.setdefault(email, [])
     club.ms_by_email[email].append(name)
 
-
-redacted = '''
-def add2email_data(record, club):
-    """
-    Populates club.email_by_m  and (if it
-    exists)   club.ms_by_email.
-    BEING REDACTED in favour of add2email_by_m and add2ms_by_email
-    """
-    name = member_name(record, club)
-    email = record['email']
-    if email:
-        club.email_by_m[name] = email
-        _ = club.ms_by_email.setdefault(email, [])
-        club.ms_by_email[email].append(name)
-    else:
-        club.without_email.append(name)
-'''
 
 def add2stati_by_m(record, club):
     if record["status"]:
@@ -539,6 +535,10 @@ def rm_email_only_field(record, club):
     """
     A one time use function:
     removes the "email_only" field of the record.
+    This field no longer exists in the data base-
+    it's implied by the presence of something in the 'email' field.
+    It was used to modify the data base to its present form and will
+    never be used again- should be redacted.
     """
     new_record = {}
     for key in club.new_fieldnames:
@@ -1042,6 +1042,9 @@ prerequisites = {   # collectors needed by the
         ],
     increment_napplicants: [
         "club.napplicants = 0",
+        ],
+    increment_nminutes_only: [
+        "club.nminutes_only = 0",
         ],
     get_usps: [
         'club.usps_only = []',
