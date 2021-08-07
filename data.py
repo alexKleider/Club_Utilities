@@ -748,22 +748,23 @@ def ck_data(club,
     ## First check that google groups match club data:
     # Deal with applicants...
     applicant_missmatches = helpers.check_sets(
-        club.g_by_group['applicant'],
+        club.g_by_group[club.APPLICANT_GROUP],
         club.applicant_with_email_set,
         "Applicant(s) in Google Contacts not in Member Listing",
         "Applicant(s) in Member Listing not in Google Contacts"
         )
     # Deal with members...
     member_missmatches = helpers.check_sets(
-        club.g_by_group['LIST'],
+        club.g_by_group[club.MEMBER_GROUP],
         club.member_with_email_set,
         "Member(s) in Google Contacts not in Member Listing",
         "Member(s) in Member Listing not in Google Contacts"
         )
     special_status_missmatches = helpers.check_sets(
-        club.g_by_group['minutes only'],
+        club.g_by_group[club.MINUTES_ONLY_GROUP],
         set(club.ms_by_status['m']),
-        "'minutes only' doesn't match membership listing",
+        "{} doesn't match membership listing"
+            .format(club.MINUTES_ONLY_GROUP),
         "'m' status (minutes only) not reflected in google contacts"
         )
 

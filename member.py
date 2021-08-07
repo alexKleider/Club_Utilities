@@ -34,9 +34,9 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
     "h" : "Honorary Member",                             #10 > #12
-    'm' : "Former member continuing to receive minutes",
+    'm' : "Inactive member (continuing to receive minutes)",
     'r' : "Retiring/Giving up Club Membership",
-    't' : "Membership terminated",  # fees not paid
+    't' : "Membership terminated (probably none payment of fees)",
     "w" : "Fees being waived",  # a rarely applied special status
     'z1_pres': "President",
     'z2_vp': "VicePresident",
@@ -261,6 +261,12 @@ def is_honorary_member(record):
     return 'h' in get_status_set(record)
 
 
+def is_inactive_member(record):
+    """
+    """
+    return 'm' in get_status_set(record)
+
+
 def is_terminated(record):
     """
     """
@@ -478,7 +484,11 @@ def apply_credit2statement(statement, credit):
     credit is used to modify statement- both are dicts
     """
     for key in credit.keys():
-        statement[key] -= credit[key]
+        try:
+            statement[key] -= credit[key]
+        except KeyError:
+            print('credit key is "{}"'.format(key))
+            raise
 
 
 def apply_credit2record(statement, record):
@@ -499,7 +509,12 @@ def thank_func(record, club):
     if name in club.statement_data_keys:
         payment = club.statement_data[name]['total']
         statement_dict = get_statement_dict(record)
-        apply_credit2statement(statement_dict, club.statement_data[name])
+        try:
+            apply_credit2statement(statement_dict, club.statement_data[name])
+        except KeyError:
+            print("error processing {}"
+                .format(record['first'] + record['last']))
+            raise
         record['extra'] = get_statement(statement_dict)
         record['payment'] = payment
         q_mailing(record, club)
@@ -749,7 +764,7 @@ def name_w_demographics(record, club):
 
 def add2lists(record, club):
     """
-    Populates club.members (if web=True),
+    Populates club.members, club.honorary, club.inactive, (if web=True)
               club.stati, club.applicants,
               club.inductees and
               club.errors (initially empty lists)
@@ -770,6 +785,9 @@ def add2lists(record, club):
     if is_honorary_member(record):
         club.honorary.append(line)
         club.nhonorary += 1
+    if is_inactive_member(record):
+        club.inactive.append(line)
+        club.ninactive +=1
     if is_applicant(record):
         stati = get_status_set(record)
         status = stati & APPLICANT_SET
@@ -1099,6 +1117,8 @@ prerequisites = {   # collectors needed by the
         'club.nmembers = 0',
         'club.honorary = []',
         'club.nhonorary = 0',
+        'club.inactive = []',
+        'club.ninactive = 0',
         'club.by_n_meetings = {}',
         'club.napplicants = 0',
         'club.errors = []',

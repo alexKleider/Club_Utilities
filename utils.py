@@ -244,7 +244,7 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
-def assign_default_files(club, args):
+def assign_default_file_names(club, args):
     """
     Assigns the following attributes to <club>:
         infile, and the following 'spot' file names:
@@ -428,14 +428,14 @@ media = dict(  # keep the classes in a dict
 def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club()
-    assign_default_files(club, args)
+    assign_default_file_names(club, args)
     confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])))
 
 
 def show_cmd(args=args):
     club = Club()
-    assign_default_files(club, args)
+    assign_default_file_names(club, args)
     club.for_web = True
     print("Preparing membership listings...")
     err_code = member.traverse_records(
@@ -459,10 +459,14 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
         ret.extend(club.members)
     if club.honorary:
         helpers.add_header2list(
-            "Honorary Club Members"
-            .format(club.nhonorary, helpers.date),
-            ret, underline_char='=', extra_line=True)
+            "Honorary Club Members", ret,
+            underline_char='=', extra_line=True)
         ret.extend(club.honorary)
+    if club.inactive:
+        helpers.add_header2list(
+            "Inactive Club Member(s)", ret,
+            underline_char='=', extra_line=True)
+        ret.extend(club.inactive)
     if club.by_n_meetings:
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
@@ -478,7 +482,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
 
 def names_only_cmd(args=args):
     club = Club()
-    assign_default_files(club, args)
+    assign_default_file_names(club, args)
     print("Preparing listing of member and applicant names...")
 #   print("'-w' is set to {}".format(args['-w']))
     err_code = member.traverse_records(club.infile,
@@ -620,7 +624,7 @@ def show_stati(club):
 
 def report_cmd(args=args):
     club = Club()
-    assign_default_files(club, args=args)
+    assign_default_file_names(club, args=args)
     club.for_web = False
     print("Preparing Membership Report ...")
     err_code = member.traverse_records(
@@ -931,7 +935,7 @@ def thank_cmd(args=args):
     # FOR DEBUGGING: print(club.statement_data)
     prepare4mailing(club)
 #   club.input_file_name = club.thank_file
-    member.prepare_mailing(club)  # => thank_func,
+    member.prepare_mailing(club)  # => thank_func
     # Done with thanking; Must now update DB.
     setup4new_db(club)
     dict_write(club.outfile,

@@ -71,9 +71,10 @@ class Club(object):
                      }
     # # Should use the above to check data integrity!! ####
     # # Yet to be implemented. ###
-    APPLICANT_GROUP = "applicant"  # } These are specific to
-    MEMBER_GROUP = "LIST"          # } the gmail contacts csv:
-    OFFICER_GROUP = 'Officers'     # } CONTACTS_SPoT
+    APPLICANT_GROUP = "applicant"           # } These are
+    MEMBER_GROUP = "LIST"                   # } specific to the
+    OFFICER_GROUP = 'Officers'              # } gmail contacts csv:
+    MINUTES_ONLY_GROUP = 'minutes only'     # } CONTACTS_SPoT
     DOCK_FEE = 75
     KAYAK_FEE = 70
     DOCK = 'DockUsers'    # } These are the 'groups'
