@@ -761,11 +761,11 @@ def ck_data(club,
         "Member(s) in Member Listing not in Google Contacts"
         )
     special_status_missmatches = helpers.check_sets(
-        club.g_by_group[club.MINUTES_ONLY_GROUP],
+        club.g_by_group[club.INACTIVE_GROUP],
         set(club.ms_by_status['m']),
         "{} doesn't match membership listing"
-            .format(club.MINUTES_ONLY_GROUP),
-        "'m' status (minutes only) not reflected in google contacts"
+            .format(club.INACTIVE_GROUP),
+        "'m' status (inactive) not reflected in google contacts"
         )
 
 
@@ -825,6 +825,7 @@ def ck_data(club,
     ms_by_statusets = helpers.lists2sets(club.ms_by_status)
     if a_applicantsets != ms_by_statusets:
         ret.append("\nApplicant problem:")
+        ret.append("(OK to ignore if only 'ai' vs 'ad')")
         ret.append("The following data from applicant SPoT-")
         ret.extend(helpers.show_dict(a_applicants, extra_line=False))
         ret.append("- does not match the following membership SPot-")

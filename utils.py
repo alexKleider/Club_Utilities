@@ -687,6 +687,7 @@ next (July 1, 2021-June 30, 2022) membership year.
         with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
             print('Opening file: {}'.format(fobj.name))
             addendum = fobj.read()
+            report.append("\n\n")
             report.append(addendum)
     except FileNotFoundError:
         print('report.addendum not found')

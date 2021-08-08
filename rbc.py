@@ -74,7 +74,7 @@ class Club(object):
     APPLICANT_GROUP = "applicant"           # } These are
     MEMBER_GROUP = "LIST"                   # } specific to the
     OFFICER_GROUP = 'Officers'              # } gmail contacts csv:
-    MINUTES_ONLY_GROUP = 'minutes only'     # } CONTACTS_SPoT
+    INACTIVE_GROUP = 'inactive'             # } CONTACTS_SPoT
     DOCK_FEE = 75
     KAYAK_FEE = 70
     DOCK = 'DockUsers'    # } These are the 'groups'
