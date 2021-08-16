@@ -923,6 +923,27 @@ def setup4new_db(club):
     club.fieldnames = data.get_fieldnames(club.infile)
 
 
+def dict_write(f, fieldnames, iterable):
+    """
+    Writes all records received from <iterable> into a new csv
+    file named <f>.  <fieldnames> defines the record keys.
+    Code writen in such a way that <iterable> could be
+    a generator function. (See member.modify_data.)
+    """
+    with open(f, 'w',
+              newline=''  # recommended option if file object
+             ) as outfile_obj:
+        print("Opening {} for output...".format(outfile_obj.name))
+        dict_writer = csv.DictWriter(outfile_obj,
+                                     fieldnames,
+                                     lineterminator='\n'
+#                                    dialect='unix'
+                                    )
+        dict_writer.writeheader()
+        for record in iterable:
+            dict_writer.writerow(record)
+
+
 def thank_cmd(args=args):
     club = Club()
     club.thank_file = args["-t"]
@@ -945,21 +966,6 @@ def thank_cmd(args=args):
                                   member.credit_payment_func,
                                   club)
                )
-
-
-def dict_write(f, fieldnames, iterable):
-    """
-    Writes all records received from <iterable> into a new csv
-    file named <f>.  <fieldnames> defines the record keys.
-    Code writen in such a way that <iterable> could be
-    a generator function. (See member.modify_data.)
-    """
-    with open(f, 'w') as outfile_obj:
-        print("Opening {} for output...".format(outfile_obj.name))
-        dict_writer = csv.DictWriter(outfile_obj, fieldnames)
-        dict_writer.writeheader()
-        for record in iterable:
-            dict_writer.writerow(record)
 
 
 redacted = '''

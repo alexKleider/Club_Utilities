@@ -579,7 +579,7 @@ def modify_data(csv_in_file_name, func, club):
     csv file named <csv_in_file_name>.
     <club> provides a method of passing values prn.
     """
-    with open(csv_in_file_name, 'r') as file_obj:
+    with open(csv_in_file_name, 'r', newline='') as file_obj:
         reader = csv.DictReader(file_obj)
         for rec in reader:
             yield func(rec, club)

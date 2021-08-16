@@ -119,7 +119,8 @@ def gather_contacts_data(club):
     club.g_by_group = dict()  # >set of names
 
     # Traverse contacts.csv => g_by_name
-    with open(club.CONTACTS_SPoT, 'r', encoding='utf-8') as file_obj:
+    with open(club.CONTACTS_SPoT, 'r',
+        encoding='utf-8', newline='') as file_obj:
         google_reader = csv.DictReader(file_obj)
         print('DictReading Google contacts file "{}".'.format(
                                                     file_obj.name))
@@ -195,48 +196,75 @@ def parse_applicant_line4dates(line,
     return (name, parts)
 
 
-def parse_applicant_data_line(line):
+
+def applicant_data_line2record(line):
+    """
+    Assumes a valid line from the Data/applicant.txt file.
+    If parsing fails, None is returned.
+    Otherwise a dict is returned with keys listed in 
+    Club.APPLICANT_DATA_FIELD_NAMES
+    """
+    ret = {}
+    for key in applicant_data_field_names:
+        ret[key] = ''
+    return ret
+
+def parse_applicant_data_line(line, app_dates=False,
+                                    last_dates=False):
     """
     Assumes blank and commented lines have already been removed.
-    Returns None if no longer an applicant or if line is invalid.
-    For applicants:
+    Returns None if line is invalid.
     Returns a 2 tuple: (for subsequent use as a key/value pair)
     t1 is "last, first" name
     t2 is a tuple the first item of which is status possibly
-    followed by dates (if application is active.)
+    followed by dates[1].
     Status can be any of those listed in the if elif listing:
     Notice absence of:
         'a' which is distinguished from 'a0' only re welcoming letter
         'aw' which has to do with vacancy: not clear if people can be
         considered for membership if there is no vacancy.
+    [1] dates listed always include dates counting towards membership.
+    if <app_dates> then dates application was recieved and fee paid
+    will precede and if <last_dates> dates of induction and fee
+    payment will follow those three dates.
     """
     parts = line.split(glbs.SEPARATOR)
-    if not parts[-1]: parts = parts[:-1]  # lose trailing separator
+    while not parts[-1]:  # lose trailing empty fields
+        parts = parts[:-1]
     parts = [part.strip() for part in parts]
-    l = len(parts)  # of dates listed
+    l = len(parts)
+    ndates = l - 1  # of dates listed
     names = parts[0].split()
     key = "{}, {}".format(names[1], names[0]) 
+    if app_dates:
+        dates = tuple(parts[1:])
+    else:
+        dates = []
+        for date in parts[3:]:
+            if len(dates) < 3:
+                dates.append(date)
+        dates = tuple(dates)
     if parts[-1].startswith("Appl"):
-        ret = (key, ("zae",))  # see members.STATUS_KEY_VALUES
+        status = "zae"  # see members.STATUS_KEY_VALUES
+        dates = ()
     elif l == 1:               # for meanings
-        ret = key, ("zaa",)
+        status = "zaa"
     elif l == 2:               # one date listed
-        ret = key, ("a-",)
+        status = "a-"
     elif l == 3:
-        ret = key, ("a0",)
+        status = "a0"
     elif l == 4:
-        ret = key, ("a1", parts[3])
+        status = "a1"
     elif l == 5:
-        ret = key, ("a2", parts[3], parts[4])
+        status = "a2"
     elif l == 6:
-        ret = key, ("a3", parts[3], parts[4], parts[5])
+        status = "a3"
     elif l == 7:
-        ret = key, ("ai", parts[3], parts[4], parts[5])
+        status = "ai"
     elif l == 8:
-        ret = key, ("m")
-        ret = None
+        status = "m"
     else: assert(False)
-    return ret
+    return key, (status,) + dates
 
 
 def parse_sponsor_data_line(line):
@@ -296,7 +324,7 @@ def get_sponsor_data(spot):
     return ret
 
 
-def get_applicant_data(spot, sponsor_file=None):
+def get_applicant_data(spot, sponsor_file=None, all_dates=False):
     """
     Reads spot, the applicant data file +/- the sponsor file.
     Returns a dict keyed by applicant names ("last, first").
@@ -305,11 +333,11 @@ def get_applicant_data(spot, sponsor_file=None):
             listed keys in STATUS_KEY_VALUES
             Be ware of the last 2: not on path for membership
             and not expected to be in the member DB.
-        "dates" (value a string of dates) and (if 'sponsor_file)
-        "sponsors" (value a tuple of strings- names of sponsors.
-    UNDER DEVELOPMENT_ TO REPLACE gather_applicant_data().
-    Will probably want to change "dates" value to a tuple (vs string
-    of dates) to be consistent with "sponsors".
+        "dates" (value a tuple of dates[1]) and (if 'sponsor_file)
+        "sponsors" (value a 2 tuple of strings- names of sponsors.
+    [1] by default only (first 3) meetings attended are listed.
+    If <all_dates> then all 7 dates are included:
+    App rcv'd, App fee rcv', 1st..3rd meetings, Exec appr'd, Fees paid
     """
     ret = {}
     with open(spot, 'r') as src:
@@ -694,24 +722,6 @@ def present_fees_by_category(extra_fees, raw=False,
     return header + res
 
 
-redacted = '''
-def ck_applicants(
-        club,  # provides data from memlist and gmail
-        applicants):  # gather_applicant_data(SPoT, "applicants")
-    """
-    The 'club' parameter assumes gather_membership_data
-    and gather_contacts_data functions have been run in order to
-    populate the following club attributes:
-        club.ms_by_status
-        club.m_by_group
-    and also that the client has run the gather_applicant_data
-    function to provide the 'applicants' parameter.
-    """
-    m_applicants = club.ms_by_status
-    a_applicants = applicants
-    g_applicants = club.m_by_group["applicant"]
-'''
-
 
 def ck_data(club,
             fee_details=False):
@@ -821,9 +831,11 @@ def ck_data(club,
 #   if temp_ret:
 #       ret.append("\nNon Applicant Stati: {}"
 #           .format(','.join(temp_ret)))
+    a_applicants = helpers.keys_removed(a_applicants, ('m',))
     a_applicantsets = helpers.lists2sets(a_applicants)
-    ms_by_statusets = helpers.lists2sets(club.ms_by_status)
-    if a_applicantsets != ms_by_statusets:
+    ms_by_status_sets = helpers.lists2sets(club.ms_by_status)
+#   ms_by_status_sets = member.filter_out_stati(ms_by_status_sets, 'm')
+    if a_applicantsets != ms_by_status_sets:
         ret.append("\nApplicant problem:")
         ret.append("(OK to ignore if only 'ai' vs 'ad')")
         ret.append("The following data from applicant SPoT-")
@@ -963,7 +975,7 @@ def restore_fees(club):
 
 
 def save_db(new_db, outfile, key_list):
-    with open(outfile, 'w') as file_obj:
+    with open(outfile, 'w', newline='') as file_obj:
         writer = csv.DictWriter(file_obj, fieldnames=key_list)
         writer.writeheader()
         for record in new_db:
@@ -1048,3 +1060,21 @@ def test_list_mooring():
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
+
+redacted = '''
+def ck_applicants(
+        club,  # provides data from memlist and gmail
+        applicants):  # gather_applicant_data(SPoT, "applicants")
+    """
+    The 'club' parameter assumes gather_membership_data
+    and gather_contacts_data functions have been run in order to
+    populate the following club attributes:
+        club.ms_by_status
+        club.m_by_group
+    and also that the client has run the gather_applicant_data
+    function to provide the 'applicants' parameter.
+    """
+    m_applicants = club.ms_by_status
+    a_applicants = applicants
+    g_applicants = club.m_by_group["applicant"]
+'''

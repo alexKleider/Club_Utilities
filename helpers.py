@@ -59,15 +59,15 @@ def lists2sets(dict_with_iterable_values):
     return ret
 
 
-def remove_unwanted_items(dictionary, unwanted_keys):
+def keys_removed(a_dict, iterable_of_keys):
     """
-    Returns a dictionary without unwanted keys.
+    Returns a dict devoid of specified keys.
     """
     ret = {}
-    unwanted = set(unwanted_keys)
-    for key in dictionary:
+    unwanted = set(iterable_of_keys)
+    for key in a_dict:
         if not key in unwanted:
-            ret[key] = dictionary[key]
+            ret[key] = a_dict[key]
     return ret
 
 

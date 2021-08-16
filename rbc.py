@@ -38,6 +38,7 @@ class Club(object):
     # Data bases used with default file names.
     MEMBERSHIP_SPoT = 'Data/memlist.csv'
     APPLICANT_SPoT = "Data/applicants.txt"
+    APPLICANT_CSV = "Data/applicants.csv"
     SPONSORS_SPoT = "Data/sponsors.txt"
     EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
     CONTACTS_SPoT = os.path.expanduser(      # } File to which google
@@ -63,6 +64,12 @@ class Club(object):
 
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
+
+    APPLICANT_DATA_FIELD_NAMES = ("Name", "status", 
+        "app_rcvd", "fee_rcvd", 
+        "First", "Second", "Third",
+        "approved", "dues_paid",
+        "Sponsor1", "Sponsor2",)
 
     # # Google Contact Groups in use:
     GOOGLE_GROUPS = {"applicant," "DockUsers", "Kayak",

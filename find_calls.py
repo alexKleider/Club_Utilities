@@ -18,19 +18,21 @@ PAT = re.compile(EXPR)
 MODULE_NAMES = ("content",
                 "data",
                 "helpers",
+                "interface",
                 "member",
                 "rbc",
+                "sys_globals.py",
                 "utils",
                 )
 
 
-def call_found(func_name, line, refed):
+def call_found(func_name, line, refed=None):
     """
-    Returns True is finc_name is called in line.
+    Returns True if finc_name is called in line.
     Returns False if it is declared in line.
     Returns None if its name does not appear in the line.
-    If func_name is neither defined or called but is referenced,
-    it will be appended to refed if it is an empty list.
+    If <refed> is an empty list: functions that are referenced but
+    neither defined nor called will be added.
     """
     if func_name in line:
         index = line.find(func_name)
