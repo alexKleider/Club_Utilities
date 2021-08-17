@@ -196,6 +196,18 @@ def parse_applicant_line4dates(line,
     return (name, parts)
 
 
+def move_date_listing_into_record(dates, record):
+    try:
+        record["app_rcvd"] = dates[0]
+        record["fee_rcvd"] = dates[1]
+        record["1st"] = dates[2]
+        record["2nd"] = dates[3]
+        record["3rd"] = dates[4]
+        record["approved"] = dates[5]
+        record["dues_paid"] = dates[6]
+    except IndexError:
+        return
+
 
 def applicant_data_line2record(line):
     """
@@ -205,8 +217,46 @@ def applicant_data_line2record(line):
     Club.APPLICANT_DATA_FIELD_NAMES
     """
     ret = {}
-    for key in applicant_data_field_names:
+    for key in Club.APPLICANT_DATA_FIELD_NAMES:
         ret[key] = ''
+    parts = line.split(glbs.SEPARATOR)
+    while not parts[-1]:  # lose trailing empty fields
+        parts = parts[:-1]
+    parts = [part.strip() for part in parts]
+    names = parts[0].split()
+#   key = "{}, {}".format(names[1], names[0]) 
+    ret['first'] = names[0]
+    ret['last'] = names[1]
+    dates = parts[1:]
+    l = len(dates)
+    if parts[-1].startswith("Appl"):
+        dates = dates[:-1]  # waste the text
+        _status = "zae"  # see members.STATUS_KEY_VALUES
+        l -= 1
+    else:
+        _status = ''
+    if l == 0:               # for meanings
+        status = "zaa"
+    elif l == 1:               # one date listed
+        status = "a-"
+    elif l == 2:
+        status = "a0"
+    elif l == 3:
+        status = "a1"
+    elif l == 4:
+        status = "a2"
+    elif l == 5:
+        status = "a3"
+    elif l == 6:
+        status = "ai"
+    elif l == 7:
+        status = "m"
+    else: assert(False)
+    move_date_listing_into_record(dates, ret)
+    if _status:
+        ret['status'] = _status
+    else:
+        ret['status'] = status
     return ret
 
 def parse_applicant_data_line(line, app_dates=False,

@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, os.path.split(sys.path[0])[0])
 
 import pytest
+import helpers
 import member
 
 d1 = {'a': [1,2,3,4],
@@ -20,5 +21,5 @@ expected = {'a': [1,2,3,4],
 
 
 def test_keys_removed():
-    assert member.keys_removed(d1, 'b') == expected
+    assert helpers.keys_removed(d1, 'b') == expected
 

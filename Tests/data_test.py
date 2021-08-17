@@ -22,6 +22,31 @@ import rbc
 import sys_globals as glbs
 import pytest
 
+
+@pytest.mark.parametrize("line, expected", [
+('Kent Khtikian: Jack Siedman, Don Murch',
+    ('Khtikian, Kent', ('Jack Siedman', 'Don Murch'))),
+('Andrew Kleinberg:  Rudi Ferris, Ralph Camiccia',
+    ('Kleinberg, Andrew', ('Rudi Ferris', 'Ralph Camiccia'))),
+('Jen Hatch:  Kimberly Goosherst, Shervin Kheradpir',
+    ('Hatch, Jen', ('Kimberly Goosherst', 'Shervin Kheradpir'))),
+('Hector Mora-Lopez: Ed Mann, Esra Connor',
+    ('Mora-Lopez, Hector', ('Ed Mann', 'Esra Connor'))),
+('July Guzman:  Kirsten Walker, William Norton',
+    ('Guzman, July', ('Kirsten Walker', 'William Norton'))),
+('Marco Garcia:  Kirsten Walker, Albert Foreman',
+    ('Garcia, Marco', ('Kirsten Walker', 'Albert Foreman'))),
+('Sam Schow:  Rudi Ferris, Joel Booth',
+    ('Schow, Sam', ('Rudi Ferris', 'Joel Booth'))),
+('Jason Crichfield: Joseph Ferraro, Ralph Camiccia',
+    ('Crichfield, Jason', ('Joseph Ferraro', 'Ralph Camiccia'))),
+('Matthew Lundy: Ralph Camiccia, Rudi Ferris',
+    ('Lundy, Matthew', ('Ralph Camiccia', 'Rudi Ferris'))),
+])
+def test_parse_sponsor_data_line(line, expected):
+    assert data.parse_sponsor_data_line(line) == expected
+
+
 @pytest.mark.parametrize("line, expected", [
 ("Jason Crichfield      | 210427 | 210427 | 210604 | 210702 |",
     ("Crichfield, Jason", ('a2', '210604', '210702'))),
@@ -84,28 +109,25 @@ def test_parse_applicant_data_line(line, expected):
     ])
 def test_parse_applicant_data_line4all_dates(line, expected):
     assert data.parse_applicant_data_line(
-            line, all_dates=True) == expected
+            line, app_dates=True, last_dates=True) == expected
 
 
 @pytest.mark.parametrize("line, expected", [
-('Kent Khtikian: Jack Siedman, Don Murch',
-    ('Khtikian, Kent', ('Jack Siedman', 'Don Murch'))),
-('Andrew Kleinberg:  Rudi Ferris, Ralph Camiccia',
-    ('Kleinberg, Andrew', ('Rudi Ferris', 'Ralph Camiccia'))),
-('Jen Hatch:  Kimberly Goosherst, Shervin Kheradpir',
-    ('Hatch, Jen', ('Kimberly Goosherst', 'Shervin Kheradpir'))),
-('Hector Mora-Lopez: Ed Mann, Esra Connor',
-    ('Mora-Lopez, Hector', ('Ed Mann', 'Esra Connor'))),
-('July Guzman:  Kirsten Walker, William Norton',
-    ('Guzman, July', ('Kirsten Walker', 'William Norton'))),
-('Marco Garcia:  Kirsten Walker, Albert Foreman',
-    ('Garcia, Marco', ('Kirsten Walker', 'Albert Foreman'))),
-('Sam Schow:  Rudi Ferris, Joel Booth',
-    ('Schow, Sam', ('Rudi Ferris', 'Joel Booth'))),
-('Jason Crichfield: Joseph Ferraro, Ralph Camiccia',
-    ('Crichfield, Jason', ('Joseph Ferraro', 'Ralph Camiccia'))),
-('Matthew Lundy: Ralph Camiccia, Rudi Ferris',
-    ('Lundy, Matthew', ('Ralph Camiccia', 'Rudi Ferris'))),
+("Camille Porter        | 210402 | 210402 | 210402 | 210507 | 210604 | 210702 | 210722 |",
+    {"first": "Camille", "last": "Porter", "status": 'm', 'app_rcvd': '210402', 'fee_rcvd': '210402',
+    '1st': '210402', '2nd': '210507', '3rd': '210604', 'approved': '210702', 'dues_paid': '210722',
+    'Sponsor1': '', 'Sponsor2': ''}),
+#("Tony Onorato          | 210506 | 210506 | 210507 | 210604 | 210702 | 210806 |",
+#("Gabriel Bider         | 210504 | 210504 | 210507 | 210702 | 210806 |",
+#("Jason Crichfield      | 210427 | 210427 | 210604 | 210702 |",
+#("Daniel Speirn         | 210702 | 210702 | 210702 |",
+#("Sandy Monteko-Sherman | 210801 | 210801 |",
+#("Joe Shmo              | 210801",
+#("Herbert Tully         | 200214 | 200214 | 200306 | 201204 | Application withdrawn (Remick)",
+#("Joseph Nowicki        | 190705 | 190705 | 190705 | Application expired.",
+#("John Ford             | 171006 | 171006 | ?????? | ?????? | ?????? | ?????? | ?????? |",
+#("Wiki Newcomb          | 171006 | 171006 | ?????? | ?????? | ?????? | ?????? | ??????",
 ])
-def test_parse_sponsor_data_line(line, expected):
-    assert data.parse_sponsor_data_line(line) == expected
+def test_applicant_data_line2record(line, expected):
+    assert data.applicant_data_line2record(line) == expected
+

@@ -65,9 +65,9 @@ class Club(object):
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
 
-    APPLICANT_DATA_FIELD_NAMES = ("Name", "status", 
+    APPLICANT_DATA_FIELD_NAMES = ("first", "last", "status", 
         "app_rcvd", "fee_rcvd", 
-        "First", "Second", "Third",
+        "1st", "2nd", "3rd",
         "approved", "dues_paid",
         "Sponsor1", "Sponsor2",)
 
