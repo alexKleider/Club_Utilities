@@ -1115,7 +1115,8 @@ def restore_fees_cmd(args=args):
     club = Club()
     setup4new_db(club)
     data.restore_fees(club)  # Populates club.new_db & club.errors
-    data.save_db(club.new_db, club.outfile, club.fieldnames)
+    helpers.save_db(club.new_db, club.outfile, club.fieldnames,
+                 report="New membership DB")
     if club.errors:
         output('\n'.join(
                ['Note the following irregularities:',

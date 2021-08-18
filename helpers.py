@@ -9,6 +9,7 @@ This file also appears in ~/PyLib (by means of a hard link.)
 
 import os
 import sys
+import csv
 import json
 import datetime
 import functools
@@ -69,6 +70,29 @@ def keys_removed(a_dict, iterable_of_keys):
         if not key in unwanted:
             ret[key] = a_dict[key]
     return ret
+
+
+def save_db(new_db, outfile, key_list, report=None):
+    """
+    Saves data in <new_db> (a dict) onto a csv file <outfile>
+    with the keys specified by <key_list>.
+    Report of data being sent to a file can be augmented by <report>.
+    """
+    with open(outfile, 'w', newline='') as file_obj:
+        writer = csv.DictWriter(file_obj,
+                                fieldnames=key_list,
+                                dialect='unix',
+                                quoting=csv.QUOTE_MINIMAL,
+                                )
+        writer.writeheader()
+        for record in new_db:
+            writer.writerow(record)
+        if not report:
+            report = ''
+        else:
+            report = ' ({})'.format(report)
+        print("Data{} sent to file '{}'."
+              .format(report, file_obj.name))
 
 
 def check_sets(s1, s2,
@@ -386,9 +410,9 @@ def display_mismatches(mismatches,
     return ret
 
 
-def show_json(json, underlinechar=''):
+def show_json_data(json_data, underlinechar=''):
     """
-    Returns a human readable representation of json data
+    Returns a human readable representation of json_data data
     as a list of lines (which can be '\n'.joined.)
     If underlinechar is specified, each key is underlined and
     preceeded by a blank line.
@@ -396,30 +420,25 @@ def show_json(json, underlinechar=''):
     collector = []
     indent = 0
 
-    def collect(json, indent=indent, collector=collector):
-        if isinstance(json, dict):
+    def collect(json_data, indent=indent, collector=collector):
+        if isinstance(json_data, dict):
             # if keys need to be sorted change code by replaceing the
             # next line with:
-            # for key in sorted(json.keys()):
-            for key in json:
+            # for key in sorted(json_data.keys()):
+            for key in json_data:
                 if underlinechar:
                     collector.extend(['', key, underlinechar*len(key)])
                 else:
                     collector.append(key)
-                collect(json[key], indent=indent+2)
-        elif isinstance(json, list):
-            for item in json:
+                collect(json_data[key], indent=indent+2)
+        elif isinstance(json_data, list):
+            for item in json_data:
                 collect(item, indent, collector)
         else:
-            collector.append(' '*indent+str(json))
+            collector.append(' '*indent+str(json_data))
 
-    collect(json, indent=indent, collector=collector)
+    collect(json_data, indent=indent, collector=collector)
     return collector
-
-
-def test_show_json():
-    data = {"Chadwick, Michael": [["Mooring", 114]], "Churchman, Josh": [["Mooring", 114]], "Cowman, Tim": [["Mooring", 114]], "Differding, Gary": [["Mooring", 114]], "Ferraro, Joseph": [["Mooring", 138]], "Mann, Ed": [["Mooring", 114]], "Murch, Don": [["Mooring", 152]], "O'Connor, Daniel": [["Mooring", 138]], "O'Neil, Terry": [["Mooring", 132]], "Rodoni, Fred": [["Mooring", 114]], "Smith, Thornton": [["Mooring", 138]], "Swanson, Eric": [["Mooring", 126]], "Bettini, Rick": [["Dock", 75]], "Buckenmeyer, Robert": [["Dock", 75]], "Dixon, Rupert": [["Dock", 75]], "Ferlinghetti, Leonardo": [["Dock", 75]], "Finney, Scott": [["Dock", 75]], "Heffelfinger, Robert": [["Dock", 75]], "Krakauer, George": [["Dock", 75]], "Krieger, Nicholas": [["Dock", 75]], "Light, Mike": [["Dock", 75]], "MacDonald, Bob": [["Dock", 75]], "Martinelli, Chris": [["Dock", 75]], "McPhail, Jeff": [["Dock", 75], ["Kayak", 70]], "Norton, William": [["Dock", 75]], "O'Connor, Nick": [["Dock", 75]], "Smith, Peter": [["Dock", 75]], "Vantress, John": [["Dock", 75]], "Walker, Kirsten": [["Dock", 75]], "Barth, Doug": [["Kayak", 70]], "Cirincione-Coles, Kathryn": [["Kayak", 70]], "Griffith, Melinda": [["Kayak", 70]], "Martin, Monica": [["Kayak", 70]], "Mott, James": [["Kayak", 70]], "Pedemonte, Richard": [["Kayak", 70]], "Read, Don": [["Kayak", 70]], "Sawyer, Aenor": [["Kayak", 70]], "Straton, Joe": [["Kayak", 70]], "Thompson, Randall": [["Kayak", 70]], "Tremp, Dieter": [["Kayak", 70]]}
-    print('\n'.join(show_json(data)))
 
 
 def dump2json_file(data, json_file, verbose=True):
@@ -636,14 +655,12 @@ Bolinas, CA 94924""",
     assert(indented[1] == indented[2])
 
 
-def test_indent():
-    res1 = indent("Jane Doe\n101 First St.\nAnyTown, USA",5)
-    expected = (
-        "     Jane Doe\n     101 First St.\n     AnyTown, USA")
-    res2 = indent(["Jane Doe", "101 First St.", "AnyTown, USA"] ,5)
-    assert res1 == res2 == expected
+def test_show_json_data():
+    data = {"Chadwick, Michael": [["Mooring", 114]], "Churchman, Josh": [["Mooring", 114]], "Cowman, Tim": [["Mooring", 114]], "Differding, Gary": [["Mooring", 114]], "Ferraro, Joseph": [["Mooring", 138]], "Mann, Ed": [["Mooring", 114]], "Murch, Don": [["Mooring", 152]], "O'Connor, Daniel": [["Mooring", 138]], "O'Neil, Terry": [["Mooring", 132]], "Rodoni, Fred": [["Mooring", 114]], "Smith, Thornton": [["Mooring", 138]], "Swanson, Eric": [["Mooring", 126]], "Bettini, Rick": [["Dock", 75]], "Buckenmeyer, Robert": [["Dock", 75]], "Dixon, Rupert": [["Dock", 75]], "Ferlinghetti, Leonardo": [["Dock", 75]], "Finney, Scott": [["Dock", 75]], "Heffelfinger, Robert": [["Dock", 75]], "Krakauer, George": [["Dock", 75]], "Krieger, Nicholas": [["Dock", 75]], "Light, Mike": [["Dock", 75]], "MacDonald, Bob": [["Dock", 75]], "Martinelli, Chris": [["Dock", 75]], "McPhail, Jeff": [["Dock", 75], ["Kayak", 70]], "Norton, William": [["Dock", 75]], "O'Connor, Nick": [["Dock", 75]], "Smith, Peter": [["Dock", 75]], "Vantress, John": [["Dock", 75]], "Walker, Kirsten": [["Dock", 75]], "Barth, Doug": [["Kayak", 70]], "Cirincione-Coles, Kathryn": [["Kayak", 70]], "Griffith, Melinda": [["Kayak", 70]], "Martin, Monica": [["Kayak", 70]], "Mott, James": [["Kayak", 70]], "Pedemonte, Richard": [["Kayak", 70]], "Read, Don": [["Kayak", 70]], "Sawyer, Aenor": [["Kayak", 70]], "Straton, Joe": [["Kayak", 70]], "Thompson, Randall": [["Kayak", 70]], "Tremp, Dieter": [["Kayak", 70]]}
+    print('\n'.join(show_json_data(data)))
 
 
 if __name__ == "__main__":
-#   main()
-    test_indent()
+    print("Module helpers compiles without error.")
+    main()
+    test_show_json_data()

@@ -234,10 +234,20 @@ def test_expand(content, n, expected):
     assert helpers.expand(content, n) == expected
 
 
-if __name__ == '__main__':
+indented = "     Jane Doe\n     101 First St.\n     AnyTown, USA"
+@pytest.mark.parametrize ("source, indent_n, expected", [
+    ("Jane Doe\n101 First St.\nAnyTown, USA", 5,
+        indented),
+    (["Jane Doe", "101 First St.", "AnyTown, USA"] ,5,
+        indented),
+    ])
+def test_indent(source, indent_n, expected):
+    assert helpers.indent(source, indent_n) == expected
+
+
+def test_get_datestamp():
     b_day = datetime.date(year=1945, month=7, day=3)
     stamp = helpers.get_datestamp(b_day)
-    print(stamp)
     assert stamp == 'Jul 03, 1945'
     assert helpers.get_datestamp(
         datetime.date(1945, 7, 3)) == stamp
@@ -245,5 +255,4 @@ if __name__ == '__main__':
     date_obj = datetime.date(1945, 7, 3)
     expected = 'Jul 03, 1945'
     assert helpers.get_datestamp(date_obj) == expected
-    print(
-    "'assert helpers.get_datestamp(date_obj) == expected' passes")
+

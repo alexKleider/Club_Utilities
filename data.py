@@ -989,15 +989,7 @@ def restore_fees(club):
                 "\t{} listed as paying fee(s) but not a member."
                 .format(name))
 
-
-def save_db(new_db, outfile, key_list):
-    with open(outfile, 'w', newline='') as file_obj:
-        writer = csv.DictWriter(file_obj, fieldnames=key_list)
-        writer.writeheader()
-        for record in new_db:
-            writer.writerow(record)
-        print("Updated membership data is in file '{}'."
-              .format(file_obj.name))
+# save_db moved to helpers
 
 
 def data_listed(data, underline_char='=', inline=False):

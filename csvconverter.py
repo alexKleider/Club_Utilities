@@ -12,29 +12,30 @@ converts the information into a csv file
 
 import sys
 import csv
-import utils
+import helpers
 import data
 import rbc
 
 EXCLUDED_STATI = {'m', 'zae'}
 
+
+def data2write(a_dict_w_dict_values,
+               test_key, excluded):
+    for key in a_dict_w_dict_values.keys():
+        if not a_dict_w_dict_values[key][test_key] in excluded:
+            yield a_dict_w_dict_values[key]
+
+
 club = rbc.Club()
 applicant_data = data.get_applicant_data(club.APPLICANT_SPoT,
                                          club.SPONSORS_SPoT)
 applicant_keys = sorted(applicant_data.keys())
-#print("\nApplicant Data")
-#for key in applicant_data.keys():
-#    print("{}: {}\n".format(key, applicant_data[key]))
-#sys.exit()
 
-
-with open(club.APPLICANT_CSV, 'w', newline='') as fileobj:
-    dict_writer = csv.DictWriter(fileobj,
-                                 rbc.Club.APPLICANT_DATA_FIELD_NAMES, 
-                                 dialect='unix',
-                                 quoting=csv.QUOTE_MINIMAL)
-    dict_writer.writeheader()
-    for key in applicant_keys:
-        if not applicant_data[key]['status'] in EXCLUDED_STATI:
-            dict_writer.writerow(applicant_data[key])
+helpers.save_db(data2write(applicant_data,
+                           'status',
+                           EXCLUDED_STATI,
+                           ),
+                club.APPLICANT_CSV,
+                club. APPLICANT_DATA_FIELD_NAMES,  #
+                report='applicants in csv format')
 
