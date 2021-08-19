@@ -19,7 +19,7 @@ Usage:
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O -D -M -B --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -D -M -B -s stati --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -70,7 +70,7 @@ Options:
                     If not specified, all stati are reported.
                     | --mode <any string beginning with 'applic'>:
                     only applicants are reported
-                    | --mode <member.SEPARATOR separated list of
+                    | --mode <glbs.SEPARATOR> separated list of
                     stati>: only report stati listed.
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account  [default: clubg]
@@ -87,7 +87,7 @@ Options:
   -p <printer>  Deals with printer variablility; ensures correct
         alignment of text when printing letters. [default: X6505_e1]
   -s <stati>     Report only the stati listed (separated by
-            member.SEPARATOR.
+            glbs.SEPARATOR.
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --separator <separator>  A string. [default: \f]
   --subject <subject>  The subject line of an email.
@@ -119,7 +119,7 @@ Commands:
     report: Prepares a 'Membership Report".
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
-            shown) or a member.SEPARATOR separated set of stati
+            shown) or a glbs.SEPARATOR separated set of stati
             (indicating which stati to show.)
         May also include any combination of -D, -M, -S to
         include adress/demographics, meeting dates &/or sponsors
@@ -535,7 +535,7 @@ def setup4stati(club):
         if 'applic' in whch2show:
             club.stati2show = set(member.APPLICANT_STATI)
         else:
-            club.stati2show = set(whch2show.split(member.SEPARATOR))
+            club.stati2show = set(whch2show.split(glbs.SEPARATOR))
     else:
         club.stati2show = set(member.STATI)
     if not club.stati2show.issubset(member.STATI):
@@ -546,6 +546,8 @@ def setup4stati(club):
     if club.include_dates:
         club.meeting_dates = data.get_meeting_dates(
                                     club.applicant_spot)
+    else:
+        print("club.include_dates not set")
 
 
 def show_stati(club):
@@ -597,9 +599,12 @@ def show_stati(club):
                 if hasattr(club, 'meeting_dates'):
                     if club.meeting_dates[applicant]:
                         ret.append('\tDates(s) attended: {}'.
-                                   format(club.meeting_dates[applicant]))
-                    # else:
-                    #     ret.append('\tNo meetings yet.')
+                                   format(', '.join(
+                                       club.meeting_dates[applicant])))
+                    else:
+                        ret.append('\tNo meetings yet.')
+                else:
+                    print("No club attribute meeting_dates")
                 if hasattr(club, 'sponsors'):
                     ret.append('\tSponsors: {}'.
                                format(club.sponsors[applicant]))
@@ -1181,15 +1186,22 @@ def wip_cmd(args=args):
     """
     applicants = data.get_applicant_data(Club.APPLICANT_SPoT,
                                          Club.SPONSORS_SPoT)
-    for key in applicants.keys():
-        if applicants[key]['dates']:
-            print("{}: Meeting dates {}"
-                  .format(key, applicants[key]['dates']))
+    ret = []
+    for key in sorted(applicants.keys()):
+        if applicants[key]['status'] in {'m', 'zae'}:
+            continue
+        dates = []
+        for date_key in Club.MEETING_DATE_NAMES:
+            if applicants[key][date_key]:
+                dates.append(applicants[key][date_key])
+        if dates:
+            ret.append("{}: {}"
+                       .format(key, ', '.join(dates)))
         else:
-            print("{}: No meetings attended to date."
-                  .format(key))
-        print("\tsponsors are {}".format(applicants[key]['sponsors']))
-    return
+            ret.append("{}: no meetings to date".format(key))
+    print("Meeting dates are:")
+    print("==================")
+    print("\n".join(ret))
 
 
 # # Plan to redact the next two functions in favour of using

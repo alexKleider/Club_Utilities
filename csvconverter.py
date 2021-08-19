@@ -19,7 +19,7 @@ import rbc
 EXCLUDED_STATI = {'m', 'zae'}
 
 
-def data2write(a_dict_w_dict_values,
+def filtered_data(a_dict_w_dict_values,
                test_key, excluded):
     for key in a_dict_w_dict_values.keys():
         if not a_dict_w_dict_values[key][test_key] in excluded:
@@ -31,10 +31,10 @@ applicant_data = data.get_applicant_data(club.APPLICANT_SPoT,
                                          club.SPONSORS_SPoT)
 applicant_keys = sorted(applicant_data.keys())
 
-helpers.save_db(data2write(applicant_data,
-                           'status',
-                           EXCLUDED_STATI,
-                           ),
+helpers.save_db(filtered_data(applicant_data,
+                              'status',
+                              EXCLUDED_STATI,
+                              ),
                 club.APPLICANT_CSV,
                 club. APPLICANT_DATA_FIELD_NAMES,  #
                 report='applicants in csv format')

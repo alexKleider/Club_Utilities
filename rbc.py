@@ -70,6 +70,7 @@ class Club(object):
         "1st", "2nd", "3rd",
         "approved", "dues_paid",
         "Sponsor1", "Sponsor2",)
+    MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
     # # Google Contact Groups in use:
     GOOGLE_GROUPS = {"applicant," "DockUsers", "Kayak",

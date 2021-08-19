@@ -507,26 +507,18 @@ def get_sponsors(infile):
 
 def get_meeting_dates(infile):
     """
-    Returns a dict keyed by member name with each value
-    being a list of dates of meetings attended.
+    <infile> must be in the format of rbc.Club.APPLICANT_SPoT.
+    Returns a dict keyed by member name ('{last}, {first}')
+    with each value being a list of dates of meetings attended.
     """
+    appl_data = get_applicant_data(infile)
     ret = {}
-    with open(infile, 'r') as file_obj:
-        print("Reading {}...".format(file_obj.name))
-        for line in file_obj:
-            res = parse_applicant_line4dates(line)
-            #                                 ,
-            #                                 bad_line_list,
-            #                                 expired_applicant_list,
-            #                                 former_applicant_list)
-            if res:
-                ret[res[0]] = ', '.join(
-                    [helpers.expand_date(date) for date in res[1]])
-
-    # if sponsor_file:
-    #    sponsors = gather_sponsors(sponsor_file)
-    #    for key in sponsors:
-    #        ret[key]['sponsors'] = sponsors[key]
+    for key in appl_data.keys():
+        dates = []
+        for date_key in Club.MEETING_DATE_NAMES:
+            if appl_data[key][date_key]:
+                dates.append(appl_data[key][date_key])
+        ret[key] = dates
     return ret
 
 
