@@ -61,17 +61,22 @@ Options:
   -F <function>  Name of function to apply. (new_db command)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
-  -D   include demographic data  } These pertain
-  -M   include meeting dates     } to applicant
-  -B   include backers/sponsors  } reports.
+  -I <included>  Specify what's to be included by specifying the key
+          of the f-string to use. (See members.fstrings)
+  -D   include demographic data  (see also -l option)
+  -M   include meeting dates     }  These pertain to
+  -B   include backers/sponsors  } applicant reports.
   -j <json>  Specify a json formated file (whether for input or output
               depends on context.)
+  -l  Long format for demographics (phone & email as well as address)
+  -m  Maximum data  Same as including -DMB. See also -I
   --mode <mode>   In stati command signals stati to show:
                     If not specified, all stati are reported.
                     | --mode <any string beginning with 'applic'>:
                     only applicants are reported
                     | --mode <glbs.SEPARATOR> separated list of
                     stati>: only report stati listed.
+        (See -s <stati>: the two should be amalgamated.)
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account  [default: clubg]
                 akg       my gmail account
@@ -88,6 +93,7 @@ Options:
         alignment of text when printing letters. [default: X6505_e1]
   -s <stati>     Report only the stati listed (separated by
             glbs.SEPARATOR.
+            (See also --mode <mode>: the two should be amalgamated.)
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --separator <separator>  A string. [default: \f]
   --subject <subject>  The subject line of an email.
@@ -99,7 +105,7 @@ Options:
             command. May not have much effect without setting -w
             to a high number.
   -w <width>  Maximum number of characters per line in output.
-                                    [default: 95]
+            [default: 140]
   --which <letter>  Specifies type/subject of mailing.
   -x <file>  Used by commands not in use. (Expect redaction)
   -X <fees_spot>  Extra Fees data file.
@@ -165,8 +171,7 @@ Commands:
         has its own way of implementing them. Check the
         Notes/emailREADME for details.  Note that not all
         combinations of mta and emailer are working but the following
-        does: "--mta clubg --emailer python".
-    within the ./Notes directory (./Notes/msmtprc.)
+        does: "--mta clubg --emailer python". (./Notes/Mail/msmtprc.)
     print_letters: Sends the files contained in the directory
         specified by the --dir parameter.  Depricated in favour of
         simply using the lpr utility: $ lpr ./Data/MailDir/*
@@ -435,13 +440,18 @@ def ck_data_cmd(args=args):
 
 def show_cmd(args=args):
     club = Club()
+    club.format = member.fstrings['first_last_w_all_data']
     assign_default_file_names(club, args)
     club.for_web = True
     print("Preparing membership listings...")
     err_code = member.traverse_records(
         club.infile,
-        [member.add2lists, ],
+        [member.add2lists,
+        ],
         club)
+    club.app_data = data.get_applicant_data(club.applicant_spot,
+                                            club.sponsor_spot)
+
     ret = ["""FOR MEMBER USE ONLY
 
 THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS ROD &
@@ -474,7 +484,8 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
         # ####
         club.sponsors = data.get_sponsors(club.sponsor_spot)
         club.meeting_dates = data.get_meeting_dates(
-                                    club.applicant_spot)
+                                data.get_applicant_data(
+                                    club.applicant_spot))
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
     output("\n".join(ret))
     print("...results sent to {}.".format(args['-o']))
@@ -542,10 +553,12 @@ def setup4stati(club):
         print('Invalid <--mode> parameter provided.')
         sys.exit()
     if club.include_sponsors:
-        club.sponsors = data.get_sponsors(club.sponsor_file)
-    if club.include_dates:
-        club.meeting_dates = data.get_meeting_dates(
-                                    club.applicant_spot)
+        sponsor_file = club.sponsor_file
+    else:
+        sponsor_file = None
+    if club.include_dates or club.include_sponsors:
+        app_data = data.get_applicant_data(club.applicant_spot,
+                                           sponsor_file)
     else:
         print("club.include_dates not set")
 
@@ -629,6 +642,7 @@ def show_stati(club):
 
 def report_cmd(args=args):
     club = Club()
+    club.format = member.fstrings['first_last_w_all_data']
     assign_default_file_names(club, args=args)
     club.for_web = False
     print("Preparing Membership Report ...")
@@ -638,6 +652,8 @@ def report_cmd(args=args):
          member.add2ms_by_status,
         ],
         club)
+    club.app_data = data.get_applicant_data(club.applicant_spot,
+                                            club.sponsor_spot)
     report = []
     helpers.add_header2list("Membership Report (prepared {})"
                             .format(helpers.date),
@@ -651,10 +667,9 @@ def report_cmd(args=args):
                   .format(club.napplicants) +
                   "with meeting dates & sponsors listed)")
         helpers.add_header2list(header, report, underline_char='=')
-        # ####
-        club.sponsors = data.get_sponsors(club.sponsor_spot)
-        club.meeting_dates = data.get_meeting_dates(
-                                    club.applicant_spot)
+        # ####  collect applicant data:
+        club.ap_data = data.get_applicant_data(club.applicant_spot,
+                                          club.sponsor_spot)
         report.extend(member.show_by_status(club.by_n_meetings, club=club))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
@@ -670,23 +685,6 @@ def report_cmd(args=args):
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
         report.extend(misc_stati)
-    redact = '''
-    club_ = club_setup4extra_charges()
-    club_.presentation_format = 'listings'
-    report.append("""
-
-
-For Docks and Yard Committee
-============================
-
-I continue to include the following listing of extra fees
-being charged to serve as a reminder to let me know if any
-changes are to be made before charges are applied for the
-next (July 1, 2021-June 30, 2022) membership year.
-
-""")
-    report.extend(data.extra_charges(club_, raw=True))
-    '''
 
     try:
         with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
@@ -700,8 +698,10 @@ next (July 1, 2021-June 30, 2022) membership year.
         ['', '',
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
-         "for presentation {}."
-         .format(helpers.next_first_friday(exclude=True)),
+         "for presentation {}\n".format(
+             helpers.next_first_friday(exclude=True))+
+         "(or next board meeting, which ever comes first.)"
+,
          ])
     report.extend(
         ['',
@@ -713,6 +713,9 @@ next (July 1, 2021-June 30, 2022) membership year.
 
 def stati_cmd(args=args):
     club = Club()
+    club.format = member.fstrings['first_last_w_all_data']
+    assign_default_file_names(club, args=args)
+    club.for_web = False
     collect_stati_data(club)
     setup4stati(club)
     print("Preparing 'Stati' Report ...")

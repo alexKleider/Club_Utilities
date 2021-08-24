@@ -412,7 +412,7 @@ def display_mismatches(mismatches,
 
 def show_json_data(json_data, underlinechar=''):
     """
-    Returns a human readable representation of json_data data
+    Returns a human readable representation of <json_data> data
     as a list of lines (which can be '\n'.joined.)
     If underlinechar is specified, each key is underlined and
     preceeded by a blank line.

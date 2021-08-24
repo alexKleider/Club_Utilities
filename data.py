@@ -339,8 +339,10 @@ def parse_sponsor_data_line(line):
 
 def get_sponsor_data(spot):
     """
+    <spot> is name of file (usual default: rbc.Club.SPONSORS_SPoT.
     Returns a dict: keys are '2nd, 1st' names,
                     values are tuples of sponsors.
+    Used by get_applicant_data (if sponsor_file is specified.)
     """
     ret = {}
     with open(spot, 'r') as src:
@@ -354,7 +356,7 @@ def get_sponsor_data(spot):
 
 def get_applicant_data(spot, sponsor_file=None):
     """
-    Reads spot, the applicant data file +/- the sponsor file.
+    Reads SPoT(s): the applicant data file +/- the sponsor file.
     Returns a dict keyed by applicant names ("last, first").
     Values are records (dicts) with fields as defined by
     rbc.Club.APPLICANT_DATA_FIELD_NAMES.
@@ -380,7 +382,11 @@ def get_applicant_data(spot, sponsor_file=None):
 def get_applicants_by_status(applicant_data):
     """
     Param is what's returned by get_applicant_data.
-    Returns a dict keyed by status, value: a list of applicants
+    Returns a dict keyed by status; values are each
+    a list of applicant ('last, first') names.
+    Note: also possible to get applicants by status from the main data
+    base- this function uses data supplied by get_applicant_data which
+    uses the applicant data files (rather than the main data base.)
     """
     ret = {}
     for name in applicant_data.keys():
@@ -389,96 +395,6 @@ def get_applicants_by_status(applicant_data):
         ret[status].append(name)
     return ret
 
-
-redacted = '''
-def gather_applicant_data(in_file,
-                          include_dates=False,
-                          sponsor_file=None):
-    """
-    Reads the in_file (APPLIANT_SPoT) and returns a dict With keys:
-        "expired": list of applicants who've let applications expire.
-        "applicants": a dict keyed by status =>
-                lists of applicants (+/- meeting dates)
-                    (+ sponsors if <sponsor_file> is set to a file name.)
-        "bad_lines": lines not interpretable (for error checking.)
-    """
-    if sponsor_file:
-        include_sponsors = True
-        sponsors = gather_sponsors(sponsor_file)
-    else:
-        include_sponsors = False
-    bad_lines = []
-    expired_applications = []
-    applicants = {}
-    with open(in_file, 'r') as f_obj:
-        print('Reading file "{}"...'.format(f_obj.name))
-        for line in f_obj:
-            status = ''
-            parts = [part.strip() for part in line.split(
-                                    glbs.SEPARATOR)]
-            if not parts:
-                bad_lines.append(line)
-                continue
-            names = parts[0].split()
-            if len(names) == 2:
-                name = ", ".join((names[1], names[0]))
-                parts = parts[1:]
-                if not parts:
-                    status = 'zaa'
-            else:
-                bad_lines.append(line)
-                continue
-            try:
-                if parts and not parts[-1]:       # } neutilizes empty field
-                    parts = parts[:-1]  # } after trailing SEPARATOR
-            except IndexError:
-                print("IndexError in {}".format(line))
-                sys.exit()
-            if parts and parts[-1].startswith("Application"):
-                expired_applications.append(name)
-                continue
-            if len(parts) < 2:  # application received; fee paid
-                bad_lines.append(line)
-#               print("len(parts) is < 2 (before deleting first 2)")
-                continue
-            else:
-                parts = parts[2:]
-                nparts = len(parts)
-#               print("len(parts): {}".format(l))
-            if not status:
-                if nparts == 5:
-                    if parts[nparts-1] == 'aw':
-                        status = 'aw'
-                        parts = parts[:-1]
-                    else:
-                        continue  # no longer an appliant
-                if not status:
-                    try:
-                        status = member.APPLICANT_STATI[nparts]
-                    except IndexError:
-                        bad_lines.append(
-                            "IndexError: {}".format(line))  # got none
-                        continue
-                _ = applicants.setdefault(status, [])
-                line2add = name
-                if include_dates:
-                    line2add = "{}: {}".format(name, parts)
-                if include_sponsors:
-                    line2add = "{}: [{}]".format(name, sponsors[name])
-                if include_dates and include_sponsors:
-                    line2add = ("{}: {}; [{}]"
-                                .format(name, parts, sponsors[name]))
-            applicants[status].append(line2add)
-
-    for key in applicants:
-        applicants[key] = sorted(applicants[key])
-    return {"expired": expired_applications,  # just a list
-            "applicants": applicants,  # lists keyed by status:
-            # client will want to sort the keys.
-            # i.e. keys = sorted([key for key in data["applicants"]])
-            "bad_lines": bad_lines,  # for error checking
-            }
-'''
 
 
 def get_sponsors(infile):
@@ -505,19 +421,28 @@ def get_sponsors(infile):
     return ret
 
 
-def get_meeting_dates(infile):
+def list_of_dates(applicant_datum):
     """
-    <infile> must be in the format of rbc.Club.APPLICANT_SPoT.
+    Returns a list if meeting dates.
+    """
+    dates = []
+    for date_key in Club.MEETING_DATE_NAMES:
+        if applicant_datum[date_key]:
+            dates.append(applicant_datum[date_key])
+    return dates
+
+
+def get_meeting_dates(applicant_data):
+    """
+    <applicant_data> is a dict of records as returned by the
+    function get_applicant_data (which in turn reads a file
+    in the format of rbc.Club.APPLICANT_SPoT.)
     Returns a dict keyed by member name ('{last}, {first}')
     with each value being a list of dates of meetings attended.
     """
-    appl_data = get_applicant_data(infile)
     ret = {}
-    for key in appl_data.keys():
-        dates = []
-        for date_key in Club.MEETING_DATE_NAMES:
-            if appl_data[key][date_key]:
-                dates.append(appl_data[key][date_key])
+    for key in applicant_data.keys():
+        dates = list_of_dates(applicant_data[key])
         ret[key] = dates
     return ret
 

@@ -18,6 +18,7 @@ import json
 import helpers
 import sys_globals as glbs
 from rbc import Club
+import data
 
 NO_EMAIL_KEY = 'no_email'
 STATUS_KEY_VALUES = {
@@ -69,10 +70,24 @@ MONEY_HEADERS = {
     "total":   "    TOTAL.........",
     }
 demographic_f = (
-    "{first} {last}, {address}, {town}, {state}, {postal_code}")
+    "{first} {last}  {address}, {town}, {state} {postal_code}")
 demographic_f_w_phone_and_email = (
-    "{first} {last} [{phone}] {address}, {town}, {state}, " +
+    "{first} {last} [{phone}] {address}, {town}, {state} " +
     "{postal_code} [{email}]")
+demographic_f_last_first = (
+    "{last}, {first}  {address}, {town}, {state} {postal_code}")
+demographic_f_last_first_w_phone_and_email = (
+    "{last}, {first} [{phone}] {address}, {town}, {state} " +
+    "{postal_code} [{email}]")
+fstrings = {
+        'first_last': "{first} {last}",
+        "last_first": "{last}, {first}",
+        'first_last_w_address_only': demographic_f, 
+        'first_last_w_all_data': demographic_f_w_phone_and_email,
+        'last_first_w_address_only': demographic_f_last_first,
+        'last_first_w_all_data':
+                    demographic_f_last_first_w_phone_and_email,
+    }
 
 # The following is no longer used...
 # we get around the problem in a different way..
@@ -405,12 +420,15 @@ def add2ms_by_status(record, club):
         stati = get_status_set(record)
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
-            club.ms_by_status[status].append(member_name(record, club))
+            club.ms_by_status[status].append(
+                    club.format.format(**record))
 
 
 def add2demographics(record, club):
-    club.demographics[member_name(record, club)] = (
-        name_w_demographics(record, club))
+    if is_applicant(record):
+        key = member_name(record, club)
+        print(key)   # DEBUG
+        club.demographics[key] = (club.format.format(**record))
 
 
 def add2member_with_email_set(record, club):
@@ -586,6 +604,8 @@ def modify_data(csv_in_file_name, func, club):
 
 
 def get_name_key_from_line(line):
+    """
+    """
     parts = line.split()
     return "{1}, {0}".format(*parts)
 
@@ -598,10 +618,9 @@ def show_by_status(by_status,
     Returns a list of strings (which can be '\n'.join(ed))
     consisting of Keys as headers with values listed beneath each key.
     Second parameter can be used to restrict which stati to display.
+    If club is specified, its <ap_data> (applicant data) attribute is
+    used to add dates and/or sponsors.
     """
-    if club:
-        date_keys = club.meeting_dates.keys()
-        sponsor_keys = club.sponsors.keys()
     ret = []
     for status in sorted(by_status.keys()):
         if status in stati2show:
@@ -609,14 +628,21 @@ def show_by_status(by_status,
                                     ret, underline_char='-')
             for line in by_status[status]:
                 ret.append(line)
-                if club:
+                if hasattr(club, 'app_data'):
+                    app_keys = club.app_data.keys()
                     key = get_name_key_from_line(line)
-                    if key in date_keys:
-                        if club.meeting_dates[key]:
-                            ret.append("\tDate(s) attended: {}".format(
-                                            club.meeting_dates[key]))
-                    if key in sponsor_keys:
-                        ret.append("\tSponsors: {}".format(club.sponsors[key]))
+                    if key in app_keys:
+                        # create a line of dates
+                        date_listing = data.list_of_dates(
+                                        club.app_data[key])
+                        if date_listing:
+                            ret.append("\tDate(s) attended: {}"
+                                    .format(
+                                    ', '.join(date_listing)))
+                        else:
+                            ret.append("\tNo meetings attended.")
+                        ret.append("\tSponsors: {Sponsor1}, {Sponsor2}"
+                                   .format(**club.app_data[key]))
     return ret
 
 
@@ -773,7 +799,8 @@ def add2lists(record, club):
                    club.ninductees (initially set to 0.)
     <club> is an instance of rbc.Club.
     """
-    line = name_w_demographics(record, club)
+#   line = name_w_demographics(record, club)
+    line = fstrings['first_last_w_all_data'].format(**record)
     if is_member(record):
         first_letter = record['last'][:1]
         if club.for_web:
@@ -786,6 +813,7 @@ def add2lists(record, club):
         club.honorary.append(line)
         club.nhonorary += 1
     if is_inactive_member(record):
+        print(line)   # DEBUG
         club.inactive.append(line)
         club.ninactive +=1
     if is_applicant(record):
