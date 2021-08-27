@@ -259,8 +259,7 @@ Club records indicate that you have not yet paid Club dues for the
 current ({}) membership year.  If you no longer wish to be a
 member, no further action is necessary (although we would like to hear
 explicitly if that is your choice,) otherwise, please send in payment
-which must be received before the end of this month if you are to
-remain a member.
+which must be received soon if you are to remain a member.
 {{extra}}
 If you would like to remain a member but are unable to make payment
 because of financial hardship imposed by the pandemic, please let us
@@ -818,7 +817,7 @@ content_types = dict(  # which_letter
             (member.is_dues_paying(record) and
             member.dues_owing(record)
             ) else False),
-        "e_and_or_p": "both",
+        "e_and_or_p": "one_only",
         },
     bad_email={
         "subject": "non-working email",

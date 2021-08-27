@@ -434,6 +434,7 @@ def list_of_dates(applicant_datum):
 
 def get_meeting_dates(applicant_data):
     """
+    ## to be redacted ##
     <applicant_data> is a dict of records as returned by the
     function get_applicant_data (which in turn reads a file
     in the format of rbc.Club.APPLICANT_SPoT.)

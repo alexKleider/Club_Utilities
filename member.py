@@ -254,7 +254,7 @@ def is_dues_paying(record):
     if is_member(record):
         return True
     stati = get_status_set(record)
-    if 'ai' in stati:
+    if 'ai' in stati or 'ad' in stati:
         return True
 
 
@@ -420,14 +420,14 @@ def add2ms_by_status(record, club):
         stati = get_status_set(record)
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
-            club.ms_by_status[status].append(
-                    club.format.format(**record))
+            club.ms_by_status[status].append(member_name(record,
+                                             club))
 
 
 def add2demographics(record, club):
-    if is_applicant(record):
+#   if is_applicant(record):
         key = member_name(record, club)
-        print(key)   # DEBUG
+#       print(key)   # DEBUG
         club.demographics[key] = (club.format.format(**record))
 
 

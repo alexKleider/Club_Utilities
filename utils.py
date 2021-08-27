@@ -206,6 +206,7 @@ import time
 import random
 import json
 import subprocess
+import logging
 from docopt import docopt
 import sys_globals as glbs
 import member
@@ -481,9 +482,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
-        # ####
-        club.sponsors = data.get_sponsors(club.sponsor_spot)
-        club.meeting_dates = data.get_meeting_dates(
+        club.ap_records = data.get_meeting_dates(
                                 data.get_applicant_data(
                                     club.applicant_spot))
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
@@ -506,18 +505,6 @@ def names_only_cmd(args=args):
                                       separator=' ')
     ret.extend(club.names)
     output('\n'.join(ret))
-
-
-
-def collect_stati_data(club):
-    err_code = member.traverse_records(
-        club.infile,
-        [member.add2stati_by_m,
-         member.add2demographics,
-         member.add2ms_by_status,
-         member.increment_napplicants,
-         ],
-        club)
 
 
 def assign_applicant_files(club):
@@ -552,15 +539,6 @@ def setup4stati(club):
     if not club.stati2show.issubset(member.STATI):
         print('Invalid <--mode> parameter provided.')
         sys.exit()
-    if club.include_sponsors:
-        sponsor_file = club.sponsor_file
-    else:
-        sponsor_file = None
-    if club.include_dates or club.include_sponsors:
-        app_data = data.get_applicant_data(club.applicant_spot,
-                                           sponsor_file)
-    else:
-        print("club.include_dates not set")
 
 
 def show_stati(club):
@@ -576,7 +554,6 @@ def show_stati(club):
         +/- special_notices_by_m
     See client: stati_cmd() (+/- show_cmd and others?)
     """
-    print("Using show_stati function (in utils.py)")
     if not club.ms_by_status:
         return ["Found No Entries with 'Status' Content."]
     ret = []
@@ -589,6 +566,14 @@ def show_stati(club):
         special_notice_members = set(club.special_notices_by_m.keys())
     else:
         special_notice_members = None
+    if club.include_sponsors: 
+        sponsor_file = club.sponsor_spot
+    else:
+        sponsor_file = None
+    if club.include_dates or club.include_sponsors:
+        ap_records = data.get_applicant_data(club.applicant_spot,
+                                          sponsor_file)
+        ap_record_keys = set(ap_records.keys())
     for status in stati2show:
         if hasattr(club, 'napplicants'):
             applicant_header = ("Applicants ({} in number)"
@@ -596,6 +581,10 @@ def show_stati(club):
         else:
             applicant_header = "Applicants"
         if status.startswith('a'):
+            # Doing stuff here only for applicants but much of it
+            # needs to be done for everyone who is a status holder.
+            # Probably need to move some of the code out of the if
+            # clause.                   DEBUG
             if not applicant_header_written:
                 helpers.add_header2list(
                     applicant_header,
@@ -609,24 +598,31 @@ def show_stati(club):
                     ret.append(club.demographics[applicant])
                 else:
                     ret.append(applicant)
-                if hasattr(club, 'meeting_dates'):
-                    if club.meeting_dates[applicant]:
+                ## DEBUG ##
+                if applicant in ap_record_keys:
+                    dates = data.list_of_dates(ap_records[applicant])
+                    if dates:
                         ret.append('\tDates(s) attended: {}'.
-                                   format(', '.join(
-                                       club.meeting_dates[applicant])))
+                                   format(', '.join(dates)))
                     else:
                         ret.append('\tNo meetings yet.')
+                    if club.include_sponsors:
+                        ret.append('\tSponsors: {Sponsor1}, {Sponsor2}'.
+                                   format(**ap_records[applicant]))
+                    else:
+                        print("club.include_sponsors segment skipped")
                 else:
-                    print("No club attribute meeting_dates")
-                if hasattr(club, 'sponsors'):
-                    ret.append('\tSponsors: {}'.
-                               format(club.sponsors[applicant]))
+                    print("applicant not in ap_records")
         else:
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],
                                     ret, underline_char='=')
             for status_holder in sorted(club.ms_by_status[status]):
                 if hasattr(club, 'demographics'):
-                    ret.append(club.demographics[status_holder])
+                    try:
+                        ret.append(club.demographics[status_holder])
+                    except KeyError:
+                        logging.error(
+                                "No entry for %s!"%status_holder)
 #                   line = (club.demographics[status_holder])
 #                   if (special_notice_members and
 #                       status_holder in special_notice_members
@@ -668,7 +664,7 @@ def report_cmd(args=args):
                   "with meeting dates & sponsors listed)")
         helpers.add_header2list(header, report, underline_char='=')
         # ####  collect applicant data:
-        club.ap_data = data.get_applicant_data(club.applicant_spot,
+        club.ap_records = data.get_applicant_data(club.applicant_spot,
                                           club.sponsor_spot)
         report.extend(member.show_by_status(club.by_n_meetings, club=club))
     if 'r' in club.ms_by_status:
@@ -716,8 +712,18 @@ def stati_cmd(args=args):
     club.format = member.fstrings['first_last_w_all_data']
     assign_default_file_names(club, args=args)
     club.for_web = False
-    collect_stati_data(club)
     setup4stati(club)
+    funcs2execute = [
+        member.add2stati_by_m,
+        member.add2ms_by_status,
+        member.increment_napplicants,
+        ]
+    if club.include_addresses:
+        funcs2execute.append(member.add2demographics)
+    err_code = member.traverse_records(
+        club.infile,
+        funcs2execute,
+        club)
     print("Preparing 'Stati' Report ...")
     output('\n'.join(show_stati(club)))
 
