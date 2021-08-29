@@ -813,7 +813,7 @@ def add2lists(record, club):
         club.honorary.append(line)
         club.nhonorary += 1
     if is_inactive_member(record):
-        print(line)   # DEBUG
+#       print(line)   # DEBUG
         club.inactive.append(line)
         club.ninactive +=1
     if is_applicant(record):

@@ -20,6 +20,7 @@ Usage:
   ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O -D -M -B -s stati --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
@@ -130,6 +131,9 @@ Commands:
         May also include any combination of -D, -M, -S to
         include adress/demographics, meeting dates &/or sponsors
         for applicants.
+    create_applicant_csv:  Output is a csv file containing data
+        relevant to current applicants: first & last names, status,
+        up to three meeting dates and the two sponsors.
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with a 'be' or an 's'
@@ -634,6 +638,33 @@ def show_stati(club):
                 else:
                     ret.append(status_holder)
     return ret
+
+
+def create_applicant_csv_cmd(args=args):
+
+    EXCLUDED_STATI = {'m', 'zae'}
+
+
+    def filtered_data(a_dict_w_dict_values,
+                   test_key, excluded):
+        for key in a_dict_w_dict_values.keys():
+            if not a_dict_w_dict_values[key][test_key] in excluded:
+                yield a_dict_w_dict_values[key]
+
+
+    club = Club()
+    applicant_data = data.get_applicant_data(club.APPLICANT_SPoT,
+                                             club.SPONSORS_SPoT)
+    applicant_keys = sorted(applicant_data.keys())
+
+    helpers.save_db(filtered_data(applicant_data,
+                                  'status',
+                                  EXCLUDED_STATI,
+                                  ),
+                    club.APPLICANT_CSV,
+                    club. APPLICANT_DATA_FIELD_NAMES,  #
+                    report='applicants in csv format')
+    
 
 
 def report_cmd(args=args):
@@ -1287,6 +1318,8 @@ if __name__ == "__main__":
         report_cmd()
     elif args["stati"]:
         stati_cmd()
+    elif args["create_applicant_csv"]:
+        create_applicant_csv_cmd()
     elif args["zeros"]:
         zeros_cmd()
     elif args["usps"]:

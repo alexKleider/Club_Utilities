@@ -1,0 +1,8 @@
+With in this Notes/Docopt directory are the following files which
+consist of the respective sections of the docopt relevant parts of
+the utils.py docstring. They'll have to be updated as code changes.
+
+    usage
+    options
+    commands
+
