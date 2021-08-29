@@ -84,7 +84,9 @@ Options:
                 easy      my easydns account
   -O  Show Options/commands/arguments.  Used for debugging.
   -o <outfile>  Specify destination. Choices are stdout, printer, or
-                the name of a file. [default: stdout]
+                the name of a file. Exception: create_applicant_csv
+                command only accepts a file name and it must end in
+                ".csv".   [default: stdout]
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
   -P <params>  This option will probably be redacted since old
@@ -133,7 +135,8 @@ Commands:
         for applicants.
     create_applicant_csv:  Output is a csv file containing data
         relevant to current applicants: first & last names, status,
-        up to three meeting dates and the two sponsors.
+        up to three meeting dates and the two sponsors. If -o outfile
+        is explicitly specified it must end in ".csv".
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with a 'be' or an 's'
@@ -261,26 +264,27 @@ def assign_default_file_names(club, args):
             applicant_spot, sponsor_spot,
             extra_fees_spot, contacts_spot
     """
-    if args['-i']:
+
+    if args['-i']:    # in file
         club.infile = args['-i']
     else:
         club.infile = Club.MEMBERSHIP_SPoT
-    if args['-A']:
+    if args['-A']:    # applicant SPOT
         club.applicant_spot = args['-A']
     else:
         club.applicant_spot = Club.APPLICANT_SPoT
-    if args['-S']:
+    if args['-S']:    # sponsor SPOT
         club.sponsor_spot = args['-S']
     else:
         club.sponsor_spot = Club.SPONSORS_SPoT
-    if args['-X']:
-        club.extra_fees_spot = args['-X']
-    else:
-        club.extra_fees_spot = Club.EXTRA_FEES_SPoT
-    if args['-C']:
+    if args['-C']:    # contacts SPOT
         club.contacts_spot = args['-C']
     else:
         club.contacts_spot = Club.CONTACTS_SPoT
+    if args['-X']:    # extra fees SPOT
+        club.extra_fees_spot = args['-X']
+    else:
+        club.extra_fees_spot = Club.EXTRA_FEES_SPoT
 
 
 def confirm_file_present_and_up2date(file_name):
@@ -642,20 +646,30 @@ def show_stati(club):
 
 def create_applicant_csv_cmd(args=args):
 
-    EXCLUDED_STATI = {'m', 'zae'}
-
 
     def filtered_data(a_dict_w_dict_values,
                    test_key, excluded):
-        for key in a_dict_w_dict_values.keys():
+        for key in sorted(a_dict_w_dict_values.keys()):
             if not a_dict_w_dict_values[key][test_key] in excluded:
                 yield a_dict_w_dict_values[key]
 
 
+    EXCLUDED_STATI = {'m', 'zae'}
+
     club = Club()
-    applicant_data = data.get_applicant_data(club.APPLICANT_SPoT,
-                                             club.SPONSORS_SPoT)
-    applicant_keys = sorted(applicant_data.keys())
+    assign_default_file_names(club, args)
+    if args['-o'] in {"stdout", "printer"}:
+        args['-o'] = None
+    club.applicant_csv = args['-o']
+    if not club.applicant_csv:
+        club.applicant_csv = club.APPLICANT_CSV
+    if not club.applicant_csv.endswith('.csv'):
+        print("Applicant csv file name must end in '.csv'!")
+        print("'{}' doesn't qualify!".format(club.applicant_csv))
+        sys.exit()
+    applicant_data = data.get_applicant_data(club.applicant_spot,
+                                             club.sponsor_spot)
+    applicant_keys = sorted(applicant_data.keys())  # sort names
 
     helpers.save_db(filtered_data(applicant_data,
                                   'status',
