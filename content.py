@@ -243,6 +243,20 @@ Please pay promptly; we'd hate to loose you as a member.
 Details follow.
 {extra}""",
 
+    expiration_extended="""
+Club records indicate that your dues (+/- other fees) have
+as yet not been paid.  Club Bylaws dictate that membership is
+terminated if dues are not paid by Sept. 1st but the Club Executive
+Committee has decided to extend a grace period until the end of this
+month.
+(If you've any reason to believe that our accounting might be in
+error, please let us know[1].)
+
+Please pay promptly; we'd hate to loose you as a member.
+
+Details follow.
+{extra}""",
+
     # Penalties are not levied! Don't send!
     penalty_notice="""
 The deadline for Club Dues payment has passed and records indicate
@@ -776,6 +790,22 @@ content_types = dict(  # which_letter
         "subject": "Membership soon to expire",
         "from": authors["membership"],
         "body": letter_bodies["final_warning"],
+        "post_scripts": (
+            post_scripts["remittance"],
+            post_scripts["ref1_email_or_PO"],
+            ),
+        "funcs": (member.assign_statement2extra_func,
+                  member.std_mailing_func),
+        "test": lambda record: True if (
+            member.is_dues_paying(record) and
+            member.not_paid_up(record)
+            ) else False,
+        "e_and_or_p": "both",
+        },
+    expiration_extended={
+        "subject": "Membership expiration extended",
+        "from": authors["membership"],
+        "body": letter_bodies["expiration_extended"],
         "post_scripts": (
             post_scripts["remittance"],
             post_scripts["ref1_email_or_PO"],

@@ -946,7 +946,8 @@ def q_mailing(record, club):
     elif club.which["e_and_or_p"] == "email":
         append_email(record, club)
     elif club.which["e_and_or_p"] == "both":
-        append_email(record, club)
+        if record['email']:
+            append_email(record, club)
         file_letter(record, club)
     elif club.which["e_and_or_p"] == 'one_only':
         if record['email']:
