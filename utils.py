@@ -35,7 +35,7 @@ Usage:
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
-  ./utils.py wip [-O -o 2check]
+  ./utils.py wip [-O -o <outfile>]
   ./utils.py new_db -F function [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
 Options:
@@ -582,6 +582,8 @@ def show_stati(club):
         ap_records = data.get_applicant_data(club.applicant_spot,
                                           sponsor_file)
         ap_record_keys = set(ap_records.keys())
+    else:
+        ap_record_keys = ()
     for status in stati2show:
         if hasattr(club, 'napplicants'):
             applicant_header = ("Applicants ({} in number)"
@@ -607,7 +609,7 @@ def show_stati(club):
                 else:
                     ret.append(applicant)
                 ## DEBUG ##
-                if applicant in ap_record_keys:
+                if ap_record_keys and applicant in ap_record_keys:
                     dates = data.list_of_dates(ap_records[applicant])
                     if dates:
                         ret.append('\tDates(s) attended: {}'.
@@ -619,7 +621,7 @@ def show_stati(club):
                                    format(**ap_records[applicant]))
                     else:
                         print("club.include_sponsors segment skipped")
-                else:
+                elif ap_record_keys:
                     print("applicant not in ap_records")
         else:
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],

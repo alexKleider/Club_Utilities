@@ -259,8 +259,12 @@ def send(emails, mta, report_progress=True,
             for attachment in attachments:
                 attach(attachment, msg)
 
-            s.send_message(msg)
-            del msg
+            try:
+                s.send_message(msg)
+            except SMTPDataError:
+                print("FAILURE sending email #{} to {}"
+                      .format(n, email['To']))
+                continue
             if include_wait:
                 pause()
     except:
