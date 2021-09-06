@@ -14,7 +14,7 @@ letters (which can be prepared using the 'prepare_mailing' command.)
 Consult the README file for further info.
 
 Usage:
-  ./utils.py [ ? | --help | --version]
+  ./utils.py [-O] [ ? | --help | --version]
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
@@ -30,7 +30,6 @@ Usage:
   ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
-  ./utils.py print_letters --dir <mail_dir> [-O --separator <separator> -o outfile]
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
@@ -98,7 +97,6 @@ Options:
             glbs.SEPARATOR.
             (See also --mode <mode>: the two should be amalgamated.)
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
-  --separator <separator>  A string. [default: \f]
   --subject <subject>  The subject line of an email.
   -t <2thank>  A csv file in same format as memlist.csv showing
             recent payments.  Input for thank_cmd.
@@ -179,9 +177,6 @@ Commands:
         Notes/emailREADME for details.  Note that not all
         combinations of mta and emailer are working but the following
         does: "--mta clubg --emailer python". (./Notes/Mail/msmtprc.)
-    print_letters: Sends the files contained in the directory
-        specified by the --dir parameter.  Depricated in favour of
-        simply using the lpr utility: $ lpr ./Data/MailDir/*
     restore_fees: Use this command to populate each member's record
         with what they will owe for the next club year. Respects any
         existing credits. Best done after all dues and fees have been
@@ -1107,36 +1102,6 @@ def send_emails_cmd(args=args):
     message = None
     data = helpers.get_json(args['-j'], report=True)
     emailer(data, mta, include_wait=wait)
-
-
-def print_letters_cmd(args=args):
-    """
-    Depricated in favour of simply using 'lpr' cmd.
-    """
-    successes = []
-    failures = []
-    for letter_name in os.listdir(args["--dir"]):
-        path_name = os.path.join(mail_dir, letter_name)
-        completed = subprocess.run(["lpr", path_name])
-        if completed.returncode:
-            failures.append("Problem ({}) printing '{}'."
-                            .format(completed.returncode, path_name))
-        else:
-            successes.append("{}".format(path_name))
-    if successes:
-        successes = ("Following letters printed successfully:\n"
-                     + successes)
-    else:
-        successes = ["No file was printed successfully."]
-    if failures:
-        failures = ("Following letters failed to print:\n"
-                    + failures)
-    else:
-        failures = ["All files printed successfully."]
-    successes = '\n'.join(successes)
-    failures = '\n'.join(failures)
-    report = successes + args['--separator'] + failures
-    output(report)
 
 
 def emailing_cmd(args=args):
