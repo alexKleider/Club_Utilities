@@ -48,6 +48,15 @@ class Club(object):
     # Used by utils.thank_cmd following which needs to be
     # stored in archives with date extension.
 
+    # Intermediate &/or temporary files used:
+    EXTRA_FEES_JSON = 'Data/extra_fees.json'
+    EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
+    TEMP_MEMBERSHIP_SPoT = 'Data/new_memlist.csv'
+    OUTPUT2READ = 'Data/2read.txt'  # } generally goes to stdout.
+    MAILING_DIR = 'Data/MailingDir'
+    JSON_FILE_NAME4EMAILS = 'Data/emails.json'
+    ERRORS_FILE = 'errors.txt'
+
     # Non repo directories:
     NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
                     "NonRepo", "Temp", #"TestData")
@@ -90,14 +99,9 @@ class Club(object):
     MOORING = 'moorings'  # } gmail contacts.
 
     SECRETARY = "Ed Mann"
-
-    # Intermediate &/or temporary files used:
-    EXTRA_FEES_JSON = 'Data/extra_fees.json'
-    EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
-    TEMP_MEMBERSHIP_SPoT = 'Data/new_memlist.csv'
-    OUTPUT2READ = 'Data/2read.txt'  # } generally goes to stdout.
-    MAILING_DIR = 'Data/MailingDir'
-    JSON_FILE_NAME4EMAILS = 'Data/emails.json'
+    
+    # Miscelaneous 
+    DEFAULT_FORMAT = 'listings'
     PATTERN = '{last}, {first}'
     PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
                    ' {state}, {postal_code} [{email}]')
@@ -197,3 +201,10 @@ class Club(object):
 # ## They are implemented elsewhere: mostly in data.py
 # ##
 # ###  End of Club class declaration.
+
+if __name__ == "__main__":
+    print("rbc.py compiles OK")
+else:
+    def print(*args, **kwargs):
+        pass
+

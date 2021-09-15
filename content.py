@@ -1237,3 +1237,7 @@ Membership"""
 if __name__ == "__main__":
     # main()
     print('\n'.join(contents()))
+    print("content.py compiles OK")
+else:
+    def print(*args, **kwargs):
+        pass

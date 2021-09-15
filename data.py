@@ -986,21 +986,7 @@ def test_list_mooring():
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
+else:
+    def print(*args, **kwargs):
+        pass
 
-redacted = '''
-def ck_applicants(
-        club,  # provides data from memlist and gmail
-        applicants):  # gather_applicant_data(SPoT, "applicants")
-    """
-    The 'club' parameter assumes gather_membership_data
-    and gather_contacts_data functions have been run in order to
-    populate the following club attributes:
-        club.ms_by_status
-        club.m_by_group
-    and also that the client has run the gather_applicant_data
-    function to provide the 'applicants' parameter.
-    """
-    m_applicants = club.ms_by_status
-    a_applicants = applicants
-    g_applicants = club.m_by_group["applicant"]
-'''

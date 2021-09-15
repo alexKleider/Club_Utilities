@@ -664,3 +664,7 @@ if __name__ == "__main__":
     print("Module helpers compiles without error.")
     main()
     test_show_json_data()
+else:
+    def print(*args, **kwargs):
+        pass
+

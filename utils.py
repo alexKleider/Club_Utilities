@@ -41,7 +41,7 @@ Options:
   -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
   -A <app_spot>  Applicant data file.
-  --bcc <bcc>   Comma separated listing of bcc recipients
+  --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
   -c <content>  The name of a file containing the body of an email.
   -C <contacts_spot>  Contacts data file.
@@ -57,12 +57,14 @@ Options:
             'table' listing of names /w fees tabulated (=> 2 columns.)
             'listing' same format as Data/extra_fees.txt
             'listings' side by side lists (best use landscape mode.)
-        [default: table]
+        [default: listings]
   -F <function>  Name of function to apply. (new_db command)
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -I <included>  Specify what's to be included by specifying the key
           of the f-string to use. (See members.fstrings)
+          ## Note: not used anywhere that I can currently see!! ##
+          ##    Tue 07 Sep 2021 06:14:43 PM PDT                 ##
   -D   include demographic data  (see also -l option)
   -M   include meeting dates     }  These pertain to
   -B   include backers/sponsors  } applicant reports.
@@ -85,7 +87,7 @@ Options:
   -o <outfile>  Specify destination. Choices are stdout, printer, or
                 the name of a file. Exception: create_applicant_csv
                 command only accepts a file name and it must end in
-                ".csv".   [default: stdout]
+                ".csv".   [default: 2check]
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
   -P <params>  This option will probably be redacted since old
@@ -236,20 +238,41 @@ except ValueError:
     print(
         "Value of '-w' command line argument must be an integer.")
     sys.exit()
-if args['-O']:
-    print("Arguments are...")
-    res = sorted(["{}: {}".format(key, args[key]) for key in args])
-    ret = helpers.tabulate(res, max_width=max_width, separator='   ')
-    print('\n'.join(ret))
-    response = input("...end of arguments. Continue? ")
-    if response and response[0] in 'yY':
-        pass
-    else:
-        sys.exit()
-
 if args["-p"] not in content.printers.keys():
     print("Invalid '-p' parameter! '{}'".format(args['-p']))
     sys.exit()
+
+
+def set_default_args(args):
+    """
+    This is run only when utils is driven by curses interface.
+    """
+    MEMBERSHIP_SPoT = 'Data/memlist.csv'
+    APPLICANT_SPoT = "Data/applicants.txt"
+    APPLICANT_CSV = "Data/applicants.csv"
+    SPONSORS_SPoT = "Data/sponsors.txt"
+    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
+    CONTACTS_SPoT = os.path.expanduser(      # } File to which google
+                '~/Downloads/contacts.csv')  # } exports the data.
+    RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
+    THANK_FILE = 'Info/2thank.csv'
+    args['-A'] = Club.APPLICANT_SPoT
+    args['-C'] = Club.CONTACTS_SPoT
+    args['--dir'] = Club.MAILING_DIR
+    args['-e'] = Club.ERRORS_FILE
+    args['-f'] = Club.DEFAULT_FORMAT
+    args['-i'] = Club.MEMBERSHIP_SPoT
+    args['-D'] = True
+    args['-M'] = True
+    args['-B'] = True
+    args['-j'] = Club.JSON_FILE_NAME4EMAILS
+    args['-l'] = True
+    args['-m'] = True
+    args['-i'] = Club.MEMBERSHIP_SPoT
+    args['-o'] = '2check.txt'
+    args['-S'] = Club.SPONSORS_SPoT
+    args['-T'] = True
+    args['-X'] = Club.EXTRA_FEES_SPoT
 
 
 def assign_default_file_names(club, args):
@@ -438,7 +461,8 @@ def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club()
     assign_default_file_names(club, args)
-    confirm_file_present_and_up2date(club.CONTACTS_SPoT)
+    if confirm:
+        confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])))
 
 
@@ -871,7 +895,7 @@ def payables_cmd(args=args):
     club = Club()
     club.still_owing = []
     club.advance_payments = []
-    output = []
+    ret = []
     err_code = member.traverse_records(infile,
                                        member.get_payables,
                                        club)
@@ -879,20 +903,21 @@ def payables_cmd(args=args):
         helpers.add_header2list(
             "Members owing ({} in number)"
             .format(len(club.still_owing)),
-            output, underline_char='=', extra_line=True)
+            ret, underline_char='=', extra_line=True)
         if args['-T']:
             tabulated = helpers.tabulate(club.still_owing,
                                          max_width=max_width,
                                          separator='  ')
-            output.extend(tabulated)
+            ret.extend(tabulated)
         else:
-            output.extend(club.still_owing)
+            ret.extend(club.still_owing)
     if club.advance_payments:
-        output.append("\n")
-        output.extend(["Members with a Credit",
+        ret.append("\n")
+        ret.extend(["Members with a Credit",
                        "---------------------"])
-        output.extend(club.advance_payments)
-    return '\n'.join(output)
+        ret.extend(club.advance_payments)
+    print('\n'.join(ret))
+    output('\n'.join(ret))
 
 
 def show_mailing_categories_cmd(args=args):
@@ -1085,7 +1110,8 @@ def send_emails_cmd(args=args):
     Sends emails prepared by prepare_mailing_cmd.
     See also content.authors_DOCSTRING.
     """
-    ck_lesssecureapps_setting()
+    if confirm:
+        ck_lesssecureapps_setting()
     mta = args["--mta"]
     emailer = args["--emailer"]
     if emailer == "python":
@@ -1278,7 +1304,18 @@ def mutt_send(recipient, subject, body, attachments=None):
 
 
 if __name__ == "__main__":
+    confirm = True
+
     #   print(args)
+    if args['-O']:
+        print("Arguments are...")
+        res = sorted(["{}: {}".format(key, args[key]) for key in args])
+        ret = helpers.tabulate(res, max_width=max_width, separator='   ')
+        print('\n'.join(ret))
+        if confirm:
+            response = input("...end of arguments. Continue? ")
+            if not (response and response[0] in 'yY'):
+                sys.exit()
 
     if args["?"]:
         doc_lines = __doc__.split('\n')
@@ -1313,7 +1350,7 @@ if __name__ == "__main__":
         extra_charges_cmd()
     elif args["payables"]:
         print("Preparing listing of payables...")
-        output(payables_cmd())
+        payables_cmd()
     elif args['show_mailing_categories']:
         show_mailing_categories_cmd()
     elif args["prepare_mailing"]:
@@ -1330,10 +1367,6 @@ if __name__ == "__main__":
         print("Sending emails...")
         send_emails_cmd()
         print("Done sending emails.")
-    elif args["print_letters"]:
-        print("Printing letters ...")
-        print_letters_cmd()
-        print("Done printing letters.")
     elif args['emailing']:
         emailing_cmd()
     elif args['restore_fees']:
@@ -1364,6 +1397,12 @@ if __name__ == "__main__":
         print("Try ./utils.py ?           # brief!  or ...")
         print("    ./utils.py -h          # for more detail  or ...")
         print("    ./utils.py -h | pager  # to catch it all.")
+
+else:
+    confirm = False
+    set_default_args(args)
+    def print(*args, **kwargs):
+        pass
 
 NOTE = """
 emailing_cmd()

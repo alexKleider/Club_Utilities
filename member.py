@@ -1226,3 +1226,7 @@ def setup_required_attributes(custom_funcs, club):
 
 if __name__ == "__main__":
     print("member.py compiles OK.")
+else:
+    def print(*args, **kwargs):
+        pass
+
