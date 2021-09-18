@@ -10,13 +10,22 @@ Have begun in earnest (Sept 2021)
 """
 
 import curses as cur
+from curses.textpad import Textbox
 import utils as u
 
-WIDTH = 30
-HEIGHT = 10
 KEY_RETURN = 10
 ESC = 27
-QUIT = 137  # Q)uit (ascii for lower case "q")
+QUIT = {113, 81}  # Q)uit (ascii for upper & lower case Q/q)
+
+cmds = {
+        'ck_data': u.ck_data_cmd,
+        'payables': u.payables_cmd,
+        'show': u.show_cmd,
+        'report': u.report_cmd,
+        'stati': u.stati_cmd,
+        }
+cmd_names = sorted(cmds.keys())
+ncmd_names = len(cmd_names)
 
 options = {
         'ck_data': ('-d', '-i', '-A', '-S', '-X', '-C', '-o', ),
@@ -34,9 +43,10 @@ options = {
 
 # The following are globals:
 highlight = 0
-cmd_name = None
-ncmd_name = None
+cmd_name = ''
+ncmd_name = -1  # cmd_names[ncmd_name] == the current command
 invalid_choice = False  
+aborting = False
 
 
 def option_listing(cmd):
@@ -52,62 +62,110 @@ def option_listing(cmd):
     return ret
 
 
+def option_keys(cmd):
+    return(options[cmd])
+
+
+def option_dict(cmd):
+    """
+    Provides a dict version.
+    (See <option_listing> above.)
+    """
+    ret = {}
+    for item in options[cmd]:
+        ret[item] = u.args[item]
+    return ret
+
+
 def get_noptions(cmd):
     return len(options[cmd])
 
 
 def print_menu(m_win, choices, hlight):
-        x = y = 2
-        m_win.box()
-        m_win.addstr(1,x,
-                     "Up & Down arrows to edit, <esc> when done: ",
-                     cur.A_BOLD)
-        for n, choice in enumerate(choices, 1):
-            if hlight == n:  # Highlight the present choice
-                m_win.addstr(y,x, "{}".format(choice),
-                        cur.A_REVERSE)
-            else:
-                m_win.addstr(y,x, "{}".format(choice))
-            y += 1
-        m_win.clrtoeol()
-        m_win.refresh()
+    x = y = 2
+    m_win.box()
+    m_win.addstr(1,x,
+    "Up & Down arrows to select, <enter> to edit, <esc> when done: ",
+                 cur.A_BOLD)
+    for n, choice in enumerate(choices, 1):
+        if hlight == n:  # Highlight the present choice
+            m_win.addstr(y,x, "{}".format(choice),
+                    cur.A_REVERSE)
+        else:
+            m_win.addstr(y,x, "{}".format(choice))
+        y += 1
+    m_win.clrtoeol()
+    m_win.refresh()
 
-def main(scr):
-    global highlight
-    global cmd_name
-    global ncmd_name
-    global invalid_choice
+
+def tofrotext(option):
+    """
+    None|True|False to/from text
+    """
+    if option == "None":
+        return  None
+    if option == "False":
+        return  False
+    if option == "True":
+        return  True
+    if option == None:
+        return "None"
+    if option == False:
+        return  "False"
+    if option == True:
+        return  "True"
+    assert isinstance(option, str)
+    return option
+
+
+def edited_option(scr, option, y):
+    """
+    <y> = ncnds + noptions + 8
+    """
+    option = tofrotext(option)
+    scr.addstr(y,0, "Edit the text then Ctrl-G to exit",
+               cur.A_BOLD)
+    scr.refresh()
+    # create the text box with border around the outside
+    tb_border = cur.newwin(3,52,y+1,9)
+    tb_border.box()
+    tb_border.refresh()
+    tb_body = cur.newwin(1,50,y+2,10)
+    tb = Textbox(tb_body)
+    for ch in option:  # insert starting text
+        tb.do_command(ch)
+    tb.edit()  # start the editor running, Ctrl-G ends
+    s2 = tb.gather()  # fetch the contents
+    scr.clear()  # clear the screen
+    return tofrotext(s2)
+
+
+def get_chosen_cmd_index(scr):
     scr.clear()
     maxy, maxx = scr.getmaxyx()
 
     # decide which command to execute:
-    scr.addstr("Welcome to the Bolinas Rod & Boat Club Utilities")
-    scr.clrtoeol()
+    scr.addstr(0,0,
+               "Welcome to the Bolinas Rod & Boat Club Utilities",
+               cur.A_REVERSE)
     scr.addstr(1,0, "Available commands are as follows:", cur.A_BOLD)
-    scr.clrtoeol()
-    cmds = {
-            'ck_data': u.ck_data_cmd,
-            'payables': u.payables_cmd,
-            'show': u.show_cmd,
-            'report': u.report_cmd,
-            'stati': u.stati_cmd,
-            }
-    cmd_names = sorted(cmds.keys())
-    ncmd_names = len(cmd_names)
     # present user with a listing of commands available...
     for n, cmd_name in enumerate(cmd_names, 1):
         scr.addstr(n+1, 4, 
                    "{}: {}".format(n, cmd_name))
-        scr.clrtoeol()
     scr.addstr(2+ncmd_names,0, 'Choose command #: ', cur.A_BOLD)
-    scr.clrtoeol(); scr.refresh()
     while True:
+        c = scr.getch()
+        scr.addstr(cur.LINES-4,10, "{}".format(c))
+        scr.refresh()
         try:
-            ncmd_name = int(chr(scr.getch()))-1  ## WHAT if non integer?  DEBUG
+            ncmd_name = int(chr(c))-1  ## WHAT if non integer?  DEBUG
         except ValueError:
             scr.addstr(2+ncmd_names,0,
-                       'Invalid choice- try again: ',
+                       'Must choose an integer between 1 and {}: '
+                       .format(ncmd_names),
                        cur.A_BOLD)
+            invalid_choice = True
             scr.clrtoeol()
             scr.refresh()
         else:
@@ -115,48 +173,60 @@ def main(scr):
             and (ncmd_name < ncmd_names)):  # }  choice
                 scr.addstr(2+ncmd_names,0, '    ')
                 scr.clrtoeol()
+                invalid_choice = False
                 break
             else:
                 scr.addstr(2+ncmd_names,0,
-                           'Invalid choice- try again: ',
+                           'Invalid choice- integer out of range: ',
                            cur.A_BOLD)
                 scr.clrtoeol()
                 scr.refresh()
+                invalid_choice = True
+        scr.addstr(cur.LINES-4,10, "{}".format(c))
+    return ncmd_name
 
+
+def main(scr):
+    global highlight
+    global cmd_name
+    global ncmd_name
+    global invalid_choice
+    global aborting
+
+    maxy, maxx = scr.getmaxyx()
+    cmd_name = cmd_names[get_chosen_cmd_index(scr)]
     # we've established which command to run (so set up for it...)
-    cmd_name = cmd_names[ncmd_name]
     cmd_func = cmds[cmd_name]
     n_options = get_noptions(cmd_name)
-    # Notify user of choice made:
-    scr.addstr(3+ncmd_names, 0,
-               "You've chosen to execute '{}' command ..."
-               .format(cmd_name))
-    scr.clrtoeol(); scr.refresh()
-    # may want to change options so
     # initialize option changing application data:
     opt_win = cur.newwin(n_options+3, maxx,
                          4+ncmd_names,0)
     opt_win.keypad(True)
     highlight = 1
     choice = 1
-    choice_fmt = "Edit option %d. %s\n"
-    scr.addstr(4+ncmd_names, 0,
-               "...but first select, edit & confirm options:")
-    scr.clrtoeol()
-    scr.addstr(cur.LINES-1,0,
-               "Here's where we'll print character pressed")
+    announcement = "Character last pressed: "
+    scr.addstr(cur.LINES-5,0, announcement)
     scr.clrtoeol()
     scr.refresh()
 
     # event loop:
     while True:
-        scr.addstr(5+ncmd_names,1,
-                "Up & Down arrows to edit, <esc> when done: ",
-                cur.A_BOLD)
-        scr.clrtoeol(); scr.refresh()
+        # Notify user of choice made:
+        scr.addstr(2+ncmd_names, 0,
+                   "You've chosen to execute '{}' command ..."
+                   .format(cmd_name))
+        scr.clrtoeol()
+        scr.addstr(3+ncmd_names, 0,
+                   "...but first select, edit & confirm options:")
+        scr.refresh()
+
+        cur.curs_set(0)
         print_menu(opt_win, option_listing(cmd_name),
                    highlight)
         c = opt_win.getch()
+        cur.curs_set(1)
+        scr.addstr(cur.LINES-4,10, "{}".format(c))
+        scr.refresh()
         cy, cx = opt_win.getyx()
         if c == cur.KEY_UP:
             if highlight == 1:
@@ -171,37 +241,61 @@ def main(scr):
             else: highlight += 1
             opt_win.move(highlight,0)
         elif c in (KEY_RETURN, cur.KEY_ENTER):
-#           elif c == KEY_RETURN:
             choice = highlight  # <choice> has been made
             scr.addstr(cur.LINES-2,0,
-                    choice_fmt%(choice, 
+                    "Edit option %d. %s\n"%(choice, 
                     option_listing(cmd_name)[choice-1]))
             scr.clrtoeol()
-            # edit the chosen option here
-            scr.getch()
+            # Edit the chosen option here
+            chosen_option = u.args[option_keys(cmd_name)[choice-1]]
+            scr.addstr(cur.LINES-5,0, "Option to edit is: {}"
+                    .format(str(chosen_option)))
+#           scr.getch()
+#           cur.curs_set(1)
+            y_off_set = 8 + ncmd_names + n_options
+            scr.addstr(y_off_set, 0,
+                    "Editing command '{}' options..."
+                    .format(cmd_name))
+            revised_option = edited_option(scr,
+                    chosen_option,
+                    y_off_set + 1)
+            u.args[option_keys(cmd_name)[choice-1]] = revised_option
+#           cur.curs_set(0)
+#           scr.getch()
+            scr.addstr(cur.LINES-4,10, "{}".format(revised_option))
+            scr.refresh()
         elif c == ESC:  # escape character
             scr.addstr(cur.LINES-1,0,
                "Finished editing options!! (any key to continue)")
             scr.clrtoeol()
+#           scr.getch()
+            scr.addstr(cur.LINES-4,10, "{}".format(c))
             scr.refresh()
-            scr.getch()
             break
-        else:
-            scr.addstr(cur.LINES-1,0,
-                       "Character pressed:%3d"%c)
-            scr.clrtoeol()
-            scr.refresh()
+        scr.refresh()
 
-    scr.addstr(3+ncmd_names, 0,
-               "About to execute '{}' command ..."
+    y_below_menu = 8+ncmd_names+get_noptions(cmd_name)
+    scr.addstr(y_below_menu, 0,
+               "About to execute '{}' command...."
                .format(cmd_name))
-    scr.clrtoeol(); scr.getch()
-    cmd_func()
+    scr.addstr(1+y_below_menu, 0,
+               "<Esc> to abort or any other key to continue ... ")
+#   cur.curs_set(1)
+    scr.clrtoeol(); c = scr.getch()
+    scr.addstr(cur.LINES-4,10, "{}".format(c))
+    scr.refresh()
+    if not c == ESC:
+        cmd_func()
+    else:
+        aborting = True
 
 cur.wrapper(main)
 
 # outside of curses reporting:
+print("Finished with 'curses interface'.")
 if invalid_choice:
     print("Your choice ({}) is out of range.".format(ncmd_name))
+elif aborting:
+    print("Aborted running '{}' command".format(cmd_name))
 else:
     print("Ran '{}' command".format(cmd_name))

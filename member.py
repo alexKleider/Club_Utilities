@@ -45,7 +45,7 @@ STATUS_KEY_VALUES = {
     'z4_treasurer': "Treasurer",
     'z5_d_odd': "Director- term ends next odd year",
     'z6_d_even': "Director- term ends next even year",
-    'zaa': "Application anticipated (interested)",
+    'zaa': "Expressed and interest in joining",
     'zae': "Application expired or withdrawn",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
