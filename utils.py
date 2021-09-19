@@ -63,6 +63,7 @@ Options:
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -I <included>  Specify what's to be included by specifying the key
           of the f-string to use. (See members.fstrings)
+          ## Still needs to be implemented to replace '-l' option
           ## Note: not used anywhere that I can currently see!! ##
           ##    Tue 07 Sep 2021 06:14:43 PM PDT                 ##
   -D   include demographic data  (see also -l option)
