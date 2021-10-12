@@ -345,7 +345,7 @@ def get_sponsor_data(spot):
     Used by get_applicant_data (if sponsor_file is specified.)
     """
     ret = {}
-    with open(spot, 'r') as src:
+    with open(spot.strip(), 'r') as src:
         print('Reading file "{}"...'.format(src.name))
         for line in helpers.useful_lines(src, comment='#'):
             tup = parse_sponsor_data_line(line)

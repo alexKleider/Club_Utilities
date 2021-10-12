@@ -19,7 +19,7 @@ Usage:
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O -D -M -B -s stati --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -D -M -B -m -s stati --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
@@ -27,7 +27,7 @@ Usage:
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
-  ./utils.py thank [-t <2thank> -O -p <printer> -i <infile> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
+  ./utils.py thank [-t <2thank> -O -p <printer> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
@@ -40,18 +40,18 @@ Usage:
 Options:
   -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
-  -A <app_spot>  Applicant data file.
+  -A <app_spot>   Applicant data file.
   --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
-  -c <content>  The name of a file containing the body of an email.
-  -C <contacts_spot>  Contacts data file.
+  -c <content>   The name of a file containing the body of an email.
+  -C <contacts_spot>   Contacts data file.
   -d   Include details: fee inconsistency for ck_data,
-  --dir <mail_dir>  The directory (to be created and/or read)
-                    containing letters for batch printing.
-  -e <error_file>  Specify name of a file to which an error report
-            can be written.  [default: stdout]
-  --emailer <emailer>  Use bash (via smtp or mutt) or python to send
-                    emails.  [default: python]
+  --dir <mail_dir>   The directory (to be created and/or read)
+                     containing letters for batch printing.
+  -e <error_file>   Specify name of a file to which an
+            error report can be written.  [default: stdout]
+  --emailer <emailer>  Use bash (via smtp or mutt) or python
+                    to send emails.  [default: python]
   -f <format>  Specify output format of 'extra_charges' command.
         Possible choices are:
             'table' listing of names /w fees tabulated (=> 2 columns.)
@@ -67,47 +67,47 @@ Options:
           ## Note: not used anywhere that I can currently see!! ##
           ##    Tue 07 Sep 2021 06:14:43 PM PDT                 ##
   -D   include demographic data  (see also -l option)
-  -M   include meeting dates     }  These pertain to
-  -B   include backers/sponsors  } applicant reports.
-  -j <json>  Specify a json formated file (whether for input or output
-              depends on context.)
+  -M   include meeting dates- pertains to applicant report(s)
+  -B   include backers/sponsors- pertains to applicant report(s)
+  -j <json>  Specify a json formated file
+              (whether for input or output depends on context.)
   -l  Long format for demographics (phone & email as well as address)
   -m  Maximum data  Same as including -DMB. See also -I
   --mode <mode>   In stati command signals stati to show:
-                    If not specified, all stati are reported.
-                    | --mode <any string beginning with 'applic'>:
-                    only applicants are reported
-                    | --mode <glbs.SEPARATOR> separated list of
-                    stati>: only report stati listed.
+            If not specified, all stati are reported.
+            | --mode <any string beginning with 'applic'>:
+            only applicants are reported
+            | --mode <<glbs.SEPARATOR> separated list of stati>:
+            only listed stati are reported.
         (See -s <stati>: the two should be amalgamated.)
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account  [default: clubg]
                 akg       my gmail account
                 easy      my easydns account
   -O  Show Options/commands/arguments.  Used for debugging.
-  -o <outfile>  Specify destination. Choices are stdout, printer, or
-                the name of a file. Exception: create_applicant_csv
-                command only accepts a file name and it must end in
-                ".csv".   [default: 2check]
+  -o <outfile>  Specify destination.
+            Choices are stdout, printer, or the name of a file.
+            NOTE: the create_applicant_csv command only accepts
+            a file name which must end in ".csv".  [default: 2check]
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
-  -P <params>  This option will probably be redacted since old
-            methods of mailing are no longer used.
+  -P <params>  This option will probably be redacted
+            since old methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Deals with printer variablility; ensures correct
         alignment of text when printing letters. [default: X6505_e1]
-  -s <stati>     Report only the stati listed (separated by
-            glbs.SEPARATOR.
-            (See also --mode <mode>: the two should be amalgamated.)
+  -s <stati>   Report only the stati listed.
+        (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
+        (See also --mode <mode>: the two should be amalgamated.)
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --subject <subject>  The subject line of an email.
-  -t <2thank>  A csv file in same format as memlist.csv showing
-            recent payments.  Input for thank_cmd.
+  -t <2thank>   Input for thank_cmd. It must be a csv file in same
+        format as memlist.csv showing recent payments.
             [default: Info/2thank.csv]
   -T  Present data in columns (a Table) rather than a long list.
-            Used with the 'payables' and 'show_mailing_categories
-            command. May not have much effect without setting -w
-            to a high number.
+        Used with the 'payables' and 'show_mailing_categories'
+        commands. May not have much effect if the -w option value
+        is not a high number.
   -w <width>  Maximum number of characters per line in output.
             [default: 140]
   --which <letter>  Specifies type/subject of mailing.
