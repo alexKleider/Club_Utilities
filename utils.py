@@ -40,6 +40,7 @@ Usage:
 Options:
   -h --help  Print this docstring. Best piped through pager.
   --version  Print version.
+  -a <app_csv>  csv version of applicant data file.
   -A <app_spot>   Applicant data file.
   --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
@@ -66,7 +67,7 @@ Options:
           ## Still needs to be implemented to replace '-l' option
           ## Note: not used anywhere that I can currently see!! ##
           ##    Tue 07 Sep 2021 06:14:43 PM PDT                 ##
-  -D   include demographic data  (see also -l option)
+  -D   include demographic data  (see also -I & -l options)
   -M   include meeting dates- pertains to applicant report(s)
   -B   include backers/sponsors- pertains to applicant report(s)
   -j <json>  Specify a json formated file
@@ -244,66 +245,67 @@ if args["-p"] not in content.printers.keys():
     sys.exit()
 
 
-def set_default_args(args):
+def set_default_args_4curses(args):
     """
-    This is run only when utils is driven by curses interface.
+    Run when utils is driven by curses interface.
     """
-    MEMBERSHIP_SPoT = 'Data/memlist.csv'
-    APPLICANT_SPoT = "Data/applicants.txt"
-    APPLICANT_CSV = "Data/applicants.csv"
     SPONSORS_SPoT = "Data/sponsors.txt"
     EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
     CONTACTS_SPoT = os.path.expanduser(      # } File to which google
                 '~/Downloads/contacts.csv')  # } exports the data.
     RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
     THANK_FILE = 'Info/2thank.csv'
+    args['-a'] = Club.APPLICANT_CSV
     args['-A'] = Club.APPLICANT_SPoT
     args['-C'] = Club.CONTACTS_SPoT
     args['--dir'] = Club.MAILING_DIR
     args['-e'] = Club.ERRORS_FILE
     args['-f'] = Club.DEFAULT_FORMAT
     args['-i'] = Club.MEMBERSHIP_SPoT
+    args['-I'] = member.fstrings['first_last_w_all_data']
     args['-D'] = True
     args['-M'] = True
     args['-B'] = True
     args['-j'] = Club.JSON_FILE_NAME4EMAILS
     args['-l'] = True
     args['-m'] = True
-    args['-i'] = Club.MEMBERSHIP_SPoT
+#   args['--mode'] = ''  # used by stati command
+#   args['--mta'] = 'clubg'  # default set by docopt
     args['-o'] = '2check.txt'
+#   args['-O'] = False   # Not used by curses interface
+    args['--oo'] = False
+#   args['-p'] = 'X6505_e1'  # default set by docopt
+#   args['-s'] = ''  # to be deprecated in favour of --mode
     args['-S'] = Club.SPONSORS_SPoT
+#   args['--subject'] = ''  # subject line of an email
+    args['-t'] = Club.THANK_FILE
     args['-T'] = True
+#   args['-w'] = 140  # default set by docopt
+#   args['--which'] = ''  # a mandatory option
     args['-X'] = Club.EXTRA_FEES_SPoT
 
 
-def assign_default_file_names(club, args):
+def assign_f_names2attributes(club, args):
     """
     Assigns the following attributes to <club>:
         infile, and the following 'spot' file names:
             applicant_spot, sponsor_spot,
             extra_fees_spot, contacts_spot
     """
+    if args['-i']: club.infile = args['-i']
+    else: club.infile = Club.MEMBERSHIP_SPoT
 
-    if args['-i']:    # in file
-        club.infile = args['-i']
-    else:
-        club.infile = Club.MEMBERSHIP_SPoT
-    if args['-A']:    # applicant SPOT
-        club.applicant_spot = args['-A']
-    else:
-        club.applicant_spot = Club.APPLICANT_SPoT
-    if args['-S']:    # sponsor SPOT
-        club.sponsor_spot = args['-S']
-    else:
-        club.sponsor_spot = Club.SPONSORS_SPoT
-    if args['-C']:    # contacts SPOT
-        club.contacts_spot = args['-C']
-    else:
-        club.contacts_spot = Club.CONTACTS_SPoT
-    if args['-X']:    # extra fees SPOT
-        club.extra_fees_spot = args['-X']
-    else:
-        club.extra_fees_spot = Club.EXTRA_FEES_SPoT
+    if args['-A']: club.applicant_spot = args['-A']
+    else: club.applicant_spot = Club.APPLICANT_SPoT
+
+    if args['-S']: club.sponsor_spot = args['-S']
+    else: club.sponsor_spot = Club.SPONSORS_SPoT
+
+    if args['-C']: club.contacts_spot = args['-C']
+    else: club.contacts_spot = Club.CONTACTS_SPoT
+
+    if args['-X']: club.extra_fees_spot = args['-X']
+    else: club.extra_fees_spot = Club.EXTRA_FEES_SPoT
 
 
 def confirm_file_present_and_up2date(file_name):
@@ -336,11 +338,13 @@ def output(data, destination=args["-o"], announce_write=True):
     elif destination == 'printer':
         with open(TEMP_FILE, "w") as fileobj:
             fileobj.write(data)
-            print('Data written to temp file "{}".'.format(fileobj.name))
+            if announce_write:
+                print('Data written to temp file "{}".'.format(fileobj.name))
             subprocess.run(["lpr", TEMP_FILE])
             subprocess.run(["rm", TEMP_FILE])
-            print('Temp file "{}" deleted after printing.'
-                  .format(fileobj.name))
+            if announce_write:
+                print('Temp file "{}" deleted after printing.'
+                      .format(fileobj.name))
     else:
         with open(destination, "w") as fileobj:
             fileobj.write(data)
@@ -461,7 +465,7 @@ media = dict(  # keep the classes in a dict
 def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club()
-    assign_default_file_names(club, args)
+    assign_f_names2attributes(club, args)
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])))
@@ -470,7 +474,7 @@ def ck_data_cmd(args=args):
 def show_cmd(args=args):
     club = Club()
     club.format = member.fstrings['first_last_w_all_data']
-    assign_default_file_names(club, args)
+    assign_f_names2attributes(club, args)
     club.for_web = True
     print("Preparing membership listings...")
     err_code = member.traverse_records(
@@ -520,7 +524,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
 
 def names_only_cmd(args=args):
     club = Club()
-    assign_default_file_names(club, args)
+    assign_f_names2attributes(club, args)
     print("Preparing listing of member and applicant names...")
 #   print("'-w' is set to {}".format(args['-w']))
     err_code = member.traverse_records(club.infile,
@@ -679,7 +683,7 @@ def create_applicant_csv_cmd(args=args):
     EXCLUDED_STATI = {'m', 'zae'}
 
     club = Club()
-    assign_default_file_names(club, args)
+    assign_f_names2attributes(club, args)
     if args['-o'] in {"stdout", "printer"}:
         args['-o'] = None
     club.applicant_csv = args['-o']
@@ -706,7 +710,7 @@ def create_applicant_csv_cmd(args=args):
 def report_cmd(args=args):
     club = Club()
     club.format = member.fstrings['first_last_w_all_data']
-    assign_default_file_names(club, args=args)
+    assign_f_names2attributes(club, args=args)
     club.for_web = False
     print("Preparing Membership Report ...")
     err_code = member.traverse_records(
@@ -777,7 +781,7 @@ def report_cmd(args=args):
 def stati_cmd(args=args):
     club = Club()
     club.format = member.fstrings['first_last_w_all_data']
-    assign_default_file_names(club, args=args)
+    assign_f_names2attributes(club, args=args)
     club.for_web = False
     setup4stati(club)
     funcs2execute = [
@@ -1050,31 +1054,6 @@ def thank_cmd(args=args):
                )
 
 
-redacted = '''
-def new_db_cmd():
-    """
-    One time use only:
-    Eliminated 'email_only' field from data base.
-    Already done so can redact this.
-    """
-    if args['-F'] and args['-F'] in member.func_dict:
-        func, fieldnames = member.func_dict[args['-F']]
-    else:
-        print("Not a valid function parameter.")
-        print("Must be one of the following:")
-        for f in member.func_dict.keys():
-            print("\t{}".format(f))
-        print("Terminating")
-        sys.exit()
-    club = Club()
-    setup4new_db(club)
-    club.new_fieldnames = fieldnames
-    dict_write(club.outfile, fieldnames,
-               member.modify_data(club.infile, func, club)
-               )
-'''
-
-
 def display_emails_cmd(args=args):
     records = helpers.get_json(args['-j'], report=True)
     all_emails = []
@@ -1305,6 +1284,7 @@ def mutt_send(recipient, subject, body, attachments=None):
 
 
 if __name__ == "__main__":
+    using_curses = False
     confirm = True
 
     #   print(args)
@@ -1399,11 +1379,12 @@ if __name__ == "__main__":
         print("    ./utils.py -h          # for more detail  or ...")
         print("    ./utils.py -h | pager  # to catch it all.")
 
-else:
+else:  # Using curses interface.
+    using_curses = True
     confirm = False
-    set_default_args(args)
-    def print(*args, **kwargs):
-        pass
+    set_default_args_4curses(args)
+#   def print(*args, **kwargs):
+#       pass
 
 NOTE = """
 emailing_cmd()

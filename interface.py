@@ -445,12 +445,12 @@ def main(scr):
             scr.clrtoeol()
             scr.refresh()
         elif c == ESC:  # escape character
-            y_offset += 2
+            scr.clear()
             ch = show(scr, 
                ["Finished editing options!!",
                 "About to execute '{}' command."
                 .format(gbls.cmd_name)],
-               y_offset, 0,
+               OPT_WIN_Y, 0,
                "<Esc> to abort or any other key to continue ... ")
             break
 
