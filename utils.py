@@ -468,7 +468,8 @@ def ck_data_cmd(args=args):
     assign_f_names2attributes(club, args)
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
-    output("\n".join(data.ck_data(club, fee_details=args['-d'])))
+    output("\n".join(data.ck_data(club, fee_details=args['-d'])),
+           args["-o"])
 
 
 def show_cmd(args=args):
@@ -518,7 +519,8 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
                                 data.get_applicant_data(
                                     club.applicant_spot))
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
-    output("\n".join(ret))
+    output("\n".join(ret),
+           args["-o"])
     print("...results sent to {}.".format(args['-o']))
 
 
@@ -536,7 +538,8 @@ def names_only_cmd(args=args):
                                       max_width=int(args['-w']),
                                       separator=' ')
     ret.extend(club.names)
-    output('\n'.join(ret))
+    output('\n'.join(ret),
+           args["-o"])
 
 
 def assign_applicant_files(club):
@@ -774,7 +777,8 @@ def report_cmd(args=args):
         ['',
          'PS Zoom ID: 527 109 8273; Password: 999620',
         ])
-    output("\n".join(report))
+    output("\n".join(report),
+           args["-o"])
     print("...results sent to {}.".format(args['-o']))
 
 
@@ -796,7 +800,7 @@ def stati_cmd(args=args):
         funcs2execute,
         club)
     print("Preparing 'Stati' Report ...")
-    output('\n'.join(show_stati(club)))
+    output('\n'.join(show_stati(club)), args['-o'])
 
 
 def zeros_cmd(args=args):
@@ -815,7 +819,7 @@ def zeros_cmd(args=args):
     res.extend(["\nZeros:",
                "======", ])
     res.extend(club.zeros)
-    output('\n'.join(res))
+    output('\n'.join(res), args['-o'])
 
 
 def usps_cmd(args=args):
@@ -885,7 +889,8 @@ def extra_charges_cmd(args=args):
     Returns a report of members with extra charges.
     It also can create a json file: specified by the -j option.
     """
-    output('\n'.join(data.extra_charges(club_setup4extra_charges())))
+    output('\n'.join(data.extra_charges(club_setup4extra_charges())),
+            args['-o'])
 
 
 def payables_cmd(args=args):
@@ -922,7 +927,7 @@ def payables_cmd(args=args):
                        "---------------------"])
         ret.extend(club.advance_payments)
     print('\n'.join(ret))
-    output('\n'.join(ret))
+    output('\n'.join(ret), args['-o'])
 
 
 def show_mailing_categories_cmd(args=args):
@@ -936,7 +941,7 @@ def show_mailing_categories_cmd(args=args):
             [key for key in content.content_types.keys()],
             separator='  '))
 #   ret.extend((("\t" + key) for key in content.content_types.keys()))
-    output('\n'.join(ret))
+    output('\n'.join(ret), args['-o'])
 
 
 def prepare4mailing(club):
@@ -997,7 +1002,6 @@ def setup4new_db(club):
     club.infile = args['-i']
     club.outfile = args['-o']
     club.extra_fees_spot = args['-X']
-#   club.owing_only = args['--oo']  # Why?! Plan 2 delete.
     if not club.infile:
         club.infile = club.MEMBERSHIP_SPoT
 #   print('club.outfile set to {}'.format(club.outfile))
@@ -1040,9 +1044,7 @@ def thank_cmd(args=args):
                             club)
     # To implememnt: maintain a record of those thanked...
     club.statement_data_keys = club.statement_data.keys()
-    # FOR DEBUGGING: print(club.statement_data)
     prepare4mailing(club)
-#   club.input_file_name = club.thank_file
     member.prepare_mailing(club)  # => thank_func
     # Done with thanking; Must now update DB.
     setup4new_db(club)
@@ -1155,14 +1157,10 @@ def restore_fees_cmd(args=args):
                 '==================================', ]
                + club.errors), destination=args['-e'])
 
-#   if club.still_owing:
-#       pass
     if club.errors and args["-e"]:
         with open(args["-e"], 'w') as file_obj:
             file_obj.write('\n'.join(club.errors))
             print('Wrote errors to "{}".'.format(file_obj.name))
-#   if ret:
-#       sys.exit(ret)
 
 
 def fee_intake_totals_cmd(args=args):
@@ -1179,7 +1177,7 @@ def fee_intake_totals_cmd(args=args):
         fees_taken_in = club.fee_totals()
     fees_taken_in.append(" ")
     res = '\n'.join(fees_taken_in)
-    output(res)
+    output(res, args['-o'])
     if club.invalid_lines and errorfile:
         print('Writing possible errors to "{}".'
               .format(errorfile))
@@ -1287,7 +1285,6 @@ if __name__ == "__main__":
     using_curses = False
     confirm = True
 
-    #   print(args)
     if args['-O']:
         print("Arguments are...")
         res = sorted(["{}: {}".format(key, args[key]) for key in args])
@@ -1325,7 +1322,7 @@ if __name__ == "__main__":
         print("Preparing a csv file listing showing members who")
         print("receive meeting minutes by mail. i.e. don't have (or")
         print("haven't provided) an email address (to the Club.)")
-        output(usps_cmd())
+        output(usps_cmd(), args['-o'])
     elif args["extra_charges"]:
         print("Selecting members with extra charges:")
         extra_charges_cmd()
@@ -1343,7 +1340,7 @@ if __name__ == "__main__":
         thank_cmd()
 #       print("...finished preparing thank you emails and/or letters.")
     elif args['display_emails']:
-        output(display_emails_cmd())
+        output(display_emails_cmd(), args['-o'])
     elif args["send_emails"]:
         print("Sending emails...")
         send_emails_cmd()
@@ -1355,9 +1352,9 @@ if __name__ == "__main__":
     elif args['fee_intake_totals']:
         fee_intake_totals_cmd()
     elif args["labels"]:
-        print("Printing labels from '{}' to '{}'"
-              .format(args['-i'], args['-o']))
-        output(labels_cmd())
+#       print("Printing labels from '{}' to '{}'"
+#             .format(args['-i'], args['-o']))
+        output(labels_cmd(), args['-o'])
     elif args["envelopes"]:
         # destination is specified within Club
         # method print_custom_envelopes() which is called
