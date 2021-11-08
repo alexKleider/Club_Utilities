@@ -388,11 +388,11 @@ You will be receiving meeting minutes (via email) as prepared by
 our Club Secretary Ed Mann.
 
 As you may know, the Club has its own web site: 'rodandboatclub.com'.
-It is password protected; the password is 'fish' (a not very closely
-guarded secret.)  By clicking on the "Membership" tab, you can find
-all your fellow members along with contact information.  If you see
-any inaccuracies there, please make it known[1] so corrections can be
-made.
+It is password protected; the password (a not so very closely guarded
+secret) is 'fish'.  By clicking on the "Membership" tab, you can find
+a listing of all your fellow members along with contact information.
+If you see any inaccuracies there, please make it known[1] so
+corrections can be made.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of

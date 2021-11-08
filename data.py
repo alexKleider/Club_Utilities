@@ -28,6 +28,7 @@ import member
 import sys_globals as glbs
 from rbc import Club
 
+DEBUGGING_FILE = 'debug.txt'
 
 def get_fieldnames(csv_file: "name of csv file"
         ) -> "list of the csv file's field names":
@@ -135,67 +136,6 @@ def gather_contacts_data(club):
                 _ = club.g_by_group.setdefault(key, set())
                 club.g_by_group[key].add(g_dict["gname"])
 
-
-redactedAug18_2021 = '''
-def parse_applicant_line4dates(line,
-                               bad_line_list=None,
-                               expired_applicant_list=None,
-                               former_applicant_list=None):
-    """
-    !!Expect redaction in favour of parse_applicant_data_line!!
-    Takes a line from the applicant SPoT file and returns either
-    None (if not a valid applicant line) or
-    a tuple: first element is the name and meeting dates make up
-    the remaining elements.
-    Also adds to lists if provided.
-    """
-    parts = [part.strip() for part in line.split(
-                            glbs.SEPARATOR)]
-    if not parts and bad_line_list is not None:
-        bad_line_list.append(line)
-        return
-    names = parts[0].split()
-    if len(names) == 2:
-        name = ", ".join((names[1], names[0]))
-        parts = parts[1:]
-    else:
-        if bad_line_list is not None:
-            bad_line_list.append(line)
-        return
-    if parts and not parts[-1]:  # Get rid of empty field
-        parts = parts[:-1]       # if trailing SEPARATOR.
-    if parts and parts[-1].startswith("Application"):
-        if expired_applicant_list is not None:
-            expired_applicant_list.append(name)
-        return
-    if len(parts) < 2:  # application received; fee paid
-        if bad_line_list is not None:
-            bad_line_list.append(line)
-        return
-    else:
-        parts = parts[2:]
-        nparts = len(parts)
-    status = ''
-    if nparts == 5:
-        if parts[nparts-1] == 'aw':
-            status = 'aw'
-            parts = parts[:-1]
-        else:
-            if former_applicant_list is not None:
-                former_applicant_list.append(line)
-            return  # no longer an appliant
-    if not status:
-        try:
-            status = member.APPLICANT_STATI[nparts]
-        except IndexError:
-            if bad_line_list is not None:
-                bad_line_list.append(
-                    "IndexError: {}".format(line))  # got none
-            return
-    if len(parts) > 3:  # waste dates of induction and membership.
-        parts = parts[:3]
-    return (name, parts)
-'''
 
 def move_date_listing_into_record(dates, record):
     try:
@@ -675,6 +615,7 @@ def ck_data(club,
     any discrepencies between what's billed each year vs what is
     still owed; expected after payments begin to come in.
     """
+    print("Entering data.ck_data")
     ret = []
     ok = []
     temp_list = []
@@ -690,8 +631,15 @@ def ck_data(club,
 
     ## First check that google groups match club data:
     # Deal with applicants...
+# if get a KeyError such as the following:
+#     File "/home/alex/Git/Club/Utils/data.py", line ???, in ck_data
+#       applicant_set = club.g_by_group[club.APPLICANT_GROUP]
+#   KeyError: 'applicant'
+# ... check that the contacts.cvs file came from the Club's gmail
+# account, not another!!!
+    applicant_set = club.g_by_group[club.APPLICANT_GROUP]
     applicant_missmatches = helpers.check_sets(
-        club.g_by_group[club.APPLICANT_GROUP],
+        applicant_set,
         club.applicant_with_email_set,
         "Applicant(s) in Google Contacts not in Member Listing",
         "Applicant(s) in Member Listing not in Google Contacts"
@@ -754,22 +702,14 @@ def ck_data(club,
 
     g_members = club.g_by_group[club.MEMBER_GROUP]
     g_applicants = club.g_by_group[club.APPLICANT_GROUP]
-#   keys = [key for sorted(key in club.ms_by_status.keys())]
     keys = sorted(club.ms_by_status.keys(), reverse=True)
-#   temp_ret = []
     for key in keys:
         if not (key in member.APPLICANT_SET):
             val = (club.ms_by_status.pop(key))
-#           temp_ret.append(key)
-#   if temp_ret:
-#       ret.append("\nNon Applicant Stati: {}"
-#           .format(','.join(temp_ret)))
     a_applicants = helpers.keys_removed(a_applicants,
                                         ('m', 'zae'))
     a_applicantsets = helpers.lists2sets(a_applicants)
     ms_by_status_sets = helpers.lists2sets(club.ms_by_status)
-#   ms_by_status_sets = helpers.keys_removed(ms_by_status_sets,
-#                                            ('m', 'zae'))
     if a_applicantsets != ms_by_status_sets:
         ret.append("\nApplicant problem:")
         ret.append("The following data from applicant SPoT-")
@@ -833,10 +773,16 @@ def ck_data(club,
             print(sorted(file_keys))
             ret.append("\nFees problem (by name):")
             ret.append("extra_fees_info[club.NAME_KEY]:")
-            ret.append(repr(extra_fees_info[club.NAME_KEY]))
+            sorted_keys = sorted(
+                [key for key in extra_fees_info[club.NAME_KEY].keys()])
+            for key in sorted_keys:
+                ret.append("{}: {}".format(key, extra_fees_info[club.NAME_KEY][key]))
+#           ret.append(repr(extra_fees_info[club.NAME_KEY]))
             ret.append("###  !=  ###")
             ret.append("club.fee_category_by_m:")
-            ret.append(repr(club.fee_category_by_m))
+            for key, value in club.fee_category_by_m.items():
+                ret.append("{}: {}".format(key, repr(value)))
+#           ret.append(repr(club.fee_category_by_m))
     else:
         ok.append("No fees by name problem.")
 
@@ -852,20 +798,6 @@ def ck_data(club,
             "Fee Disparities: probably some have paid",
             ret, underline_char='-', extra_line=True)
         ret.extend(varying_amounts)
-#   if True:
-    if False:
-        ret.append("\nFees problem (by fee category):")
-        ret.append("extra_fees_info[club.CATEGORY_KEY]:")
-        ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
-        ret.append("###  !=  ###")
-        ret.append("club.ms_by_fee_category:")
-        ret.append(repr(club.ms_by_fee_category))
-        ret.append("\nFees problem (by name):")
-        ret.append("extra_fees_info[club.NAME_KEY]:")
-        ret.append(repr(extra_fees_info[club.NAME_KEY]))
-        ret.append("###  !=  ###")
-        ret.append("club.fee_category_by_m:")
-        ret.append(repr(club.fee_category_by_m))
     return ret
 
 
@@ -944,6 +876,7 @@ def compare(data1, data2, underline_char='=', inline=False):
     return ret
 
 
+could_be_redacted = '''
 def test_extras():
     club = Club()
     ret = []
@@ -960,6 +893,7 @@ def test_extras():
     ret.append("\nmemlist compared to extra_fees file by Name:")
     ret.extend(compare(club.fee_by_name,
                extra_fees_data[Club.NAME_KEY], inline=True))
+'''
 
 
 def test_ck_data():

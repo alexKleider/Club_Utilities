@@ -11,8 +11,8 @@ import curses as cur
 from curses.textpad import Textbox
 import utils as u
 
-DEBUG = True  # set to False in production
 DEBUG = False  # set to False in production
+DEBUG = True  # set to False in production
 KEY_RETURN = 10
 ESC = 27
 QUIT = {113, 81}  # Q)uit (set of ascii for upper & lower case Q/q)
@@ -441,9 +441,9 @@ def main(scr):
             u.args[gbls.opts_by_cmd[
                 gbls.cmd_name][ord_opt-1]] = revised_option
             y_offset += 2
-            scr.addstr(y_offset,0, "{}".format(revised_option))
-            scr.clrtoeol()
-            scr.refresh()
+#           scr.addstr(y_offset,0, "{}".format(revised_option))
+#           scr.clrtoeol()
+#           scr.refresh()
         elif c == ESC:  # escape character
             scr.clear()
             ch = show(scr, 
@@ -468,3 +468,21 @@ elif gbls.aborting:
 else:
     print("Running '{}' command".format(gbls.cmd_name))
     gbls.cmds[gbls.cmd_name]()
+
+textbox_keystrokes = '''
+Keystroke  Ord  Action 
+=========  ===  ==================================================================
+Control-A   1   Go to left edge of window.
+Control-B   2   Cursor left, wrapping to previous line if appropriate.
+Control-D   3   Delete character under cursor.
+Control-E   4   Go to right edge (stripspaces off) or end of line (stripspaces on).
+Control-F   5   Cursor right, wrapping to next line when appropriate.
+Control-G   6   Terminate, returning the window contents.
+Control-H   7   Delete character backward.
+Control-J   8   Terminate if the window is 1 line, otherwise insert newline.
+Control-K   9   If line is blank, delete it, otherwise clear to end of line.
+Control-L       Refresh screen.
+Control-N       Cursor down; move down one line.
+Control-O       Insert a blank line at cursor location.
+Control-P       Cursor up; move up one line.
+'''
