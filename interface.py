@@ -4,6 +4,10 @@
 
 """
 Curses interface to the 'utils.py' utility.
+Provides a listing of available commands and when one is chosen,
+provides a listing of the options (and their defaults) available
+for that command.  Each option can be selected (in which case a
+description is provided) and the default can be modified.
 """
 
 import sys
@@ -11,20 +15,20 @@ import curses as cur
 from curses.textpad import Textbox
 import utils as u
 
-DEBUG = False  # set to False in production
 DEBUG = True  # set to False in production
+DEBUG = False  # set to True for testing
 KEY_RETURN = 10
 ESC = 27
-QUIT = {113, 81}  # Q)uit (set of ascii for upper & lower case Q/q)
-TOP_LINE = 2
-ANNOUNCE_LEN = 2
-OPT_WIN_Y = TOP_LINE + ANNOUNCE_LEN
+QUIT = {113, 81}  # Q)uit (set of ascii ord for "Q" & "q")
+TOP_LINE = 2  # blank margin at top of screen
+ANNOUNCE_LEN = 2  # lines needed to announce commands available
+OPT_WIN_Y = TOP_LINE + ANNOUNCE_LEN  # where to place option window
 
-# The following are globals:
-class Gbls(object):
+
+class Gbls(object):  # container for global values
 
     instances = 0
-    debug = DEBUG
+#   debug = DEBUG
 
     def __init__(self):
         self.instances += 1
@@ -33,7 +37,7 @@ class Gbls(object):
                     "Only one set of globals allowed.")
         self.highlight = 0
         self.cmd_name = ''
-        self.ncmd_name = -1
+        self.cmd_ord = -1
         self.invalid_choice = False  
         self.aborting = False
 
@@ -45,19 +49,20 @@ class Gbls(object):
                 'stati': u.stati_cmd,
                 }
         self.cmd_names = sorted(self.cmds.keys())
-        self.ncmd_names = len(self.cmd_names)
-        # gbls.cmd_names[gbls.ncmd_name] is the current command
+        self.n_cmds = len(self.cmd_names)
+        # gbls.cmd_names[gbls.cmd_ord] is the current command
 
 gbls = Gbls()
 
 
 def debug(scr, msgs, prompt="... any key to continue", debug=DEBUG):
     """
-    If debug is set to True: Writes <msgs> (a string or list
-    of strings) to the bottom of the <scr>een.
-    If <prompt> is not an empty string, it's appended to <msgs>.
+    If debug is set to True: Writes <msgs> (a string or list of
+    strings) to the bottom of the <scr>een.  If <prompt> is not an
+    empty string, it's appended to <msgs>.  Waits for an input.
     Does nothing if not debug.
     """
+    # very much like "show" except that writes to bottom of screen
     if debug:
         if isinstance(msgs, str):
             msgs = [msgs]
@@ -94,12 +99,14 @@ def show(scr, lines, y=1, x=1, prompt=""):
         return 
 
 
-def parse4usage(filename):
+def parse4usage(filename=u.__file__, gbls=gbls):
     """
     Returns a dict keyed by command name.
     Each value is a listing of the possible options for that command.
     Gets its data by parsing the 'Usage:' part of <filename> which
     is expected to be "utils.py" (as a SPoL.)
+    Second parameter not currently referenced but should perhaps store
+    the result in <gbls> rather than returning it.
     Saved into gbls.opts_by_cmd
     """
     ret = {}
@@ -133,7 +140,7 @@ def parse4usage(filename):
     return ret
 
 
-def parse4opt_descriptors(filename, gbls):
+def parse4opt_descriptors(filename=u.__file__, gbls=gbls):
     """
     Returns a dict keyed by option. If both long and short options
     are provided they each have their (identical) entry.
@@ -141,6 +148,8 @@ def parse4opt_descriptors(filename, gbls):
     (These can be '\n\t'.joined.)
     Gets its data by parsing the 'Options:' part of <filename> which
     is expected to be "utils.py" (as a SPoL.)
+    Second parameter not currently referenced but should perhaps store
+    the result in <gbls> rather than returning it.
     """
     ret = {}
     short_long = []
@@ -287,7 +296,7 @@ def edited_option(scr, option, y=8,x=2):
     tb.edit()  # start the editor running, Ctrl-G ends
     s2 = tb.gather()  # fetch the contents
     scr.clear()  # clear the screen
-    return tofrotext(s2)
+    return tofrotext(s2.strip())
 
 
 def collect_show_return_ch(scr,row):
@@ -316,36 +325,36 @@ def get_chosen_cmd_index(scr, gbls):
     for n, cmd_name in enumerate(gbls.cmd_names, 1):
         scr.addstr(n+1, 4, 
                    "{}: {}".format(n, cmd_name))
-    scr.addstr(2+gbls.ncmd_names,0, 'Choose command #: ', cur.A_BOLD)
+    scr.addstr(2+gbls.n_cmds,0, 'Choose command #: ', cur.A_BOLD)
     while True:
         c = collect_show_return_ch(scr,cur.LINES-4)
         try:
-            gbls.ncmd_name = int(chr(c))-1
+            gbls.cmd_ord = int(chr(c))-1
         except ValueError:  # not an integer
-            scr.addstr(2+gbls.ncmd_names,0,
+            scr.addstr(2+gbls.n_cmds,0,
                        'Must choose an integer between 1 and {}: '
-                       .format(gbls.ncmd_names),
+                       .format(gbls.n_cmds),
                        cur.A_BOLD)
             gbls.invalid_choice = True
             scr.clrtoeol()
             scr.refresh()
         else:
-            if ((gbls.ncmd_name >= 0)                 # }  valid
-            and (gbls.ncmd_name < gbls.ncmd_names)):  # }  choice
-                scr.addstr(2+gbls.ncmd_names,0, '    ')
+            if ((gbls.cmd_ord >= 0)                 # }  valid
+            and (gbls.cmd_ord < gbls.n_cmds)):  # }  choice
+                scr.addstr(2+gbls.n_cmds,0, '    ')
                 scr.clrtoeol()
                 gbls.invalid_choice = False
                 break
             else:
-                scr.move(2+gbls.ncmd_names,0)
+                scr.move(2+gbls.n_cmds,0)
                 scr.clrtoeol()
-                scr.addstr(2+gbls.ncmd_names,0,
+                scr.addstr(2+gbls.n_cmds,0,
                            'Invalid choice- integer out of range: ',
                            cur.A_BOLD)
                 scr.refresh()
                 gbls.invalid_choice = True
     scr.clear(); scr.refresh()
-    return gbls.ncmd_name
+    return gbls.cmd_ord
 
 
 gbls.opt_descriptors = parse4opt_descriptors('utils.py', gbls)
@@ -354,7 +363,7 @@ gbls.ordered_opt_descriptor_keys = sorted(
         gbls.set_of_opt_descriptor_keys,
         key=lambda s: s.lstrip('-'))
 
-gbls.opts_by_cmd = parse4usage('utils.py')
+gbls.opts_by_cmd = parse4usage()
 gbls.set_of_option_listings_by_cmd_name_keys = set(
         gbls.opts_by_cmd.keys())
 gbls.ordered_option_listings_by_cmd_name_keys = sorted(
