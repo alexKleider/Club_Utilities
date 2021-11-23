@@ -275,28 +275,38 @@ def tofrotext(value):
     return value
 
 
-def edited_option(scr, option, y=8,x=2):
+def edited_text(scr, text, y,x, w=50,
+            prompt="Edit the text then Ctrl-G to exit"):
     """
     Provides the editing capability:
-    Returns the edited (or not) version of option.
-    Editing window begins on line <y> of the <scr>een.
+    Returns the edited (or not) version of text.
+    Editing window begins at (y,x) of the <scr>een,
+    consists of 3 rows and is w+2 characters wide.
+    Text to be edited appears on line y+1 beginning in column x+1
+    within a 'bordered' window with room for w characters or as many
+    as are in text, which ever is the greater.
+    The <prompt> overwrites the box border in bold.
     """
-    option = tofrotext(option)
-    scr.addstr(y,0, "Edit the text then Ctrl-G to exit",
+#   scr.
+#   scr.refresh()
+    if l:=len(text) > w: w = l
+    # create the text box with border around the outside
+    tb_border = cur.newwin(3,w+2,y,x)
+    tb_border.box()
+    # place promt on line above the box
+    tb_border.refresh()
+    scr.addstr(y,x+2, prompt,
                cur.A_BOLD)
     scr.refresh()
-    # create the text box with border around the outside
-    tb_border = cur.newwin(3,52,y+1,9)
-    tb_border.box()
-    tb_border.refresh()
-    tb_body = cur.newwin(1,50,y+2,10)
+    tb_body = cur.newwin(1,w,y+1,x+1)
     tb = Textbox(tb_body)
-    for ch in option:  # insert starting text
+    for ch in text:  # insert starting text
         tb.do_command(ch)
     tb.edit()  # start the editor running, Ctrl-G ends
     s2 = tb.gather()  # fetch the contents
     scr.clear()  # clear the screen
-    return tofrotext(s2.strip())
+#   return s2
+    return s2.strip()
 
 
 def collect_show_return_ch(scr,row):
@@ -421,7 +431,7 @@ def main(scr):
             option_value = option_w_value.split(':')[1].strip()
             y_offset = OPT_WIN_Y + n_opts + 3
             show(scr,
-                ["Edit option %s (description follows)"%(option_w_value),],
+                ["Editing option %s."%(option_w_value),],
                 y = y_offset)
             # Edit the chosen option here
             debug(scr, ["index is '{}'".format(ord_opt-1),
@@ -440,10 +450,14 @@ def main(scr):
                     y_offset, 0)
             debug(scr, ["Option to edit is: {}"
                     .format(str(chosen_option_value)),])
+            scr.addstr(y_offset,2, "Option description:", cur.A_BOLD)
+#           show(scr, "Option description:", y=y_offset)
             y_offset += len(opt_descript) + 2
-            revised_option = edited_option(scr,
+            chosen_option_value = tofrotext(chosen_option_value)
+            revised_option = edited_text(scr,
                     chosen_option_value,
-                    y_offset)
+                    y_offset, 5)
+            revised_option = tofrotext(revised_option)
             debug(scr,[name for name in gbls.cmd_names])
             debug(scr,str(ord_cmd-1))
             debug(scr,[opt for opt in gbls.opts_by_cmd['stati']])
