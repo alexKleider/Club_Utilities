@@ -42,6 +42,7 @@ class Gbls(object):  # container for global values
         self.aborting = False
 
         self.cmds = { # functions keyed by cmd name
+                # add more functions in future
                 'ck_data': u.ck_data_cmd,
                 'payables': u.payables_cmd,
                 'show': u.show_cmd,
@@ -78,10 +79,18 @@ def debug(scr, msgs, prompt="... any key to continue", debug=DEBUG):
         return scr.getch()  # there's an implied refresh
 
 
-def show(scr, lines, y=1, x=1, prompt=""):
+def show(scr, lines, y=1, x=1, prompt="", attr=None):
     """
     Writes <lines> onto <scr> beginning at (y,x).
-    If <prompt>, will wait for and return ord of next char pressed.
+    <lines> can be a string or an array of strings.
+    If <prompt>, it must be a string which will be appended to lines
+    and then ... wait for and return ord of next char pressed.
+    <attr> can be one or more cur.A_<attributes>
+    If more than one: use bitwise OR (|) to join them.
+    The most commonly used attributes of curses. i.e. curses.A_NORMAL:
+    A_NORMAL, A_BOLD, A_REVERSE, A_UNDERLINE, A_BLINK
+    Note: clears the row from x (but not before x) to end of the row
+    before writing each line
     """
     if isinstance(lines, str):
         lines = [lines]
@@ -90,16 +99,16 @@ def show(scr, lines, y=1, x=1, prompt=""):
     for line in lines:
         scr.move(y, x)
         scr.clrtoeol()
-        scr.addstr(y, x, line)
+        if attr: scr.addstr(y, x, line, attr)
+        else: scr.addstr(y, x, line)
         y += 1
     if prompt:
         return scr.getch()
     else:
         scr.refresh()
-        return 
 
 
-def parse4usage(filename=u.__file__, gbls=gbls):
+def parse4opts_by_cmd(filename=u.__file__, gbls=gbls):
     """
     Returns a dict keyed by command name.
     Each value is a listing of the possible options for that command.
@@ -373,7 +382,7 @@ gbls.ordered_opt_descriptor_keys = sorted(
         gbls.set_of_opt_descriptor_keys,
         key=lambda s: s.lstrip('-'))
 
-gbls.opts_by_cmd = parse4usage()
+gbls.opts_by_cmd = parse4opts_by_cmd()
 gbls.set_of_option_listings_by_cmd_name_keys = set(
         gbls.opts_by_cmd.keys())
 gbls.ordered_option_listings_by_cmd_name_keys = sorted(
