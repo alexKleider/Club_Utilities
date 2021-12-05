@@ -44,6 +44,10 @@ Options:
   -A <app_spot>   Applicant data file.
   --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
+        If a single string "sponsors" is specified, then one assumes
+        the recipient is an appliacant and copies will be sent to
+        sponsors. Implementation of this feature is still underway-
+        implementation within the "--which" option vs the command line level.
   -c <content>   The name of a file containing the body of an email.
   -C <contacts_spot>   Contacts data file.
   -d   Include details: fee inconsistency for ck_data,
@@ -222,7 +226,6 @@ import data
 import Pymail.send
 import Bashmail.send
 from rbc import Club
-
 
 TEXT = ".txt"  # } Used by <extra_charges_cmd>
 CSV = ".csv"   # } command.
@@ -947,6 +950,8 @@ def show_mailing_categories_cmd(args=args):
 def prepare4mailing(club):
     """
     Set up configuration in an instance of rbc.Club.
+    ## Need to implement sending of copies to       ##
+    ## sponsors if "-cc sponsors" option is chosen. ##
     """
     club.owing_only = False
     if args['--oo']:
@@ -955,6 +960,8 @@ def prepare4mailing(club):
         club.which = content.content_types["thank"]
     else:
         club.which = content.content_types[args["--which"]]
+        if "-cc" in clib.which.keys():
+            pass  # collect applicant/sponsor data
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
@@ -986,6 +993,8 @@ def prepare_mailing_cmd(args=args):
     See description under 'Commands' heading in the docstring.
     Sets up an instance of rbc.Club with necessary attributes and
     then calls member.prepare_mailing.
+    ## Need to implement sending of copies to       ##
+    ## sponsors if "-cc sponsors" option is chosen. ##
     """
     # ***** Set up configuration in an instance of # Club:
     club = Club()

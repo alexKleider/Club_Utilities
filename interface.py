@@ -110,6 +110,7 @@ def show(scr, lines, y=1, x=1, prompt="", attr=None):
 
 def parse4opts_by_cmd(filename=u.__file__, gbls=gbls):
     """
+    ## Should move the parsing functions into the utils module. ##
     Returns a dict keyed by command name.
     Each value is a listing of the possible options for that command.
     Gets its data by parsing the 'Usage:' part of <filename> which
@@ -151,6 +152,7 @@ def parse4opts_by_cmd(filename=u.__file__, gbls=gbls):
 
 def parse4opt_descriptors(filename=u.__file__, gbls=gbls):
     """
+    ## Should move the parsing functions into the utils module. ##
     Returns a dict keyed by option. If both long and short options
     are provided they each have their (identical) entry.
     Each value is a list of strings describing the option.
