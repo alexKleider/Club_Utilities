@@ -122,7 +122,7 @@ def traverse_records(infile, custom_funcs, club):
         custom_funcs = [custom_funcs]  # place it into a list.
     setup_required_attributes(custom_funcs, club)
     with open(infile, 'r', newline='') as file_object:
-        print("DictReading {}".format(file_object.name))
+        print("DictReading {}...".format(file_object.name))
         dict_reader = csv.DictReader(file_object)
         # fieldnames is used by get_usps and restore_fees cmds.
         club.fieldnames = dict_reader.fieldnames
@@ -132,6 +132,16 @@ def traverse_records(infile, custom_funcs, club):
                 custom_func(record, club)
 
 
+## following is not yet used but should be!!
+def format_record(record, f_str="{last}, {first}"):
+    """
+    Retrieves a string representation of a record.
+    Default is to return the name in last, first format.
+    """
+    return f_str.format(**record)
+
+#### Expect to redact the following 3 functions: ####
+
 def member_name(record, club):
     """
     Returns a string formated as defined by club.PATTERN.
@@ -139,6 +149,7 @@ def member_name(record, club):
     (see Club.__init__() in rbc.py)
     !! Plan to replace the above with functions  !!
     !! get_first_last() and get_last_first().    !!
+    Or better still: pass a formatting string to the function
     """
     return club.PATTERN.format(**record)
 
@@ -180,10 +191,11 @@ def get_status_set(record):
     else: return set()
 
 
+nolongercare = '''
 def is_interested(record):
     """has expressed an interest in joining"""
     return 'zaa' in get_status_set(record)
-
+'''
 
 def is_applicant(record):
     """
@@ -542,6 +554,7 @@ def thank_func(record, club):
 
 
 #  update_db_re_payment_func(record, club):
+notused = '''
 def db_credit_payment(record, club):
     """
     Checks if record is in the club.statement_data dict and if so
@@ -555,7 +568,7 @@ def db_credit_payment(record, club):
     if name in club.statement_data_keys:
         apply_credit2record(club.statement_data[name], new_record)
     club.dict_writer.writerow(new_record)
-
+'''
 
 def db_apply_charges(record, club):
     pass
@@ -707,6 +720,7 @@ def get_statement(statement_dict, club=None):
     return '\n'.join(ret)
 
 
+notused = '''
 def get_statement_data(statement_data, club=None):
     """
     Returns an array of strings:  a statement for each record/member.
@@ -721,7 +735,7 @@ def get_statement_data(statement_data, club=None):
             ret.append(line)
             ret.append(statement)
     return '\n'.join(ret)
-
+'''
 
 def assign_statement2extra_func(record, club=None):
     """
@@ -912,11 +926,15 @@ def append_email(record, club):
         'attachments': [],
         'body': body,
     }
-    if club.cc:
-        email['Cc'] = club.cc
-    if club.bcc:
-        email['Bcc'] = club.bcc
-    club.json_data.append(email)
+    if club.cc_sponsors:
+        name_key = member_name(record, club)
+        if name_key in club.sponsor_data.keys():
+            email['Cc'] = ','.join(club.sponsor_data[name_key])
+        if club.cc:
+            email['Cc'] = club.cc
+        if club.bcc:
+            email['Bcc'] = club.bcc
+        club.json_data.append(email)
 
 
 def file_letter(record, club):
@@ -1044,12 +1062,14 @@ def inductee_payment_f(record, club):
         q_mailing(record, club)
 
 
+redactyesno = '''
 def test_func(record, club=None):
     """
     Can be used as a prototype or can be used for testing.
     Populates record["extra"]
     """
     pass
+'''
 
 #  ### ... end of mailing functions.  ###
 
@@ -1226,7 +1246,10 @@ def setup_required_attributes(custom_funcs, club):
 
 if __name__ == "__main__":
     print("member.py compiles OK.")
+    
+    temporarilyredacted = '''
 else:
     def print(*args, **kwargs):
         pass
+'''
 

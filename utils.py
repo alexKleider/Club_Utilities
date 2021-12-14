@@ -23,7 +23,7 @@ Usage:
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -w <width> -f <format> -i <infile> -o <outfile> -j <jsonfile>]
+  ./utils.py extra_charges [-O -w <width> -f <format> -X <fees_spot> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -93,7 +93,7 @@ Options:
   -o <outfile>  Specify destination.
             Choices are stdout, printer, or the name of a file.
             NOTE: the create_applicant_csv command only accepts
-            a file name which must end in ".csv".  [default: 2check]
+            a file name which must end in ".csv".
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
   -P <params>  This option will probably be redacted
@@ -108,7 +108,6 @@ Options:
   --subject <subject>  The subject line of an email.
   -t <2thank>   Input for thank_cmd. It must be a csv file in same
         format as memlist.csv showing recent payments.
-            [default: Info/2thank.csv]
   -T  Present data in columns (a Table) rather than a long list.
         Used with the 'payables' and 'show_mailing_categories'
         commands. May not have much effect if the -w option value
@@ -150,6 +149,7 @@ Commands:
     extra_charges: Reports on members paying extra charges (for
         kayak storage, mooring &/or dock usage.)
         | -f <format>  -specify listing, listings or table format.
+                (Has a default: see -f option description.)
         | -w <width>  -specify maxm # of chars per line in output.
         | -j <json_file>  -creat a json file. (This was
         but is no longer required by the restore_fees_cmd.)
@@ -189,10 +189,12 @@ Commands:
         with what they will owe for the next club year. Respects any
         existing credits. Best done after all dues and fees have been
         paid. (Will abort if any dues or fees are still outstanding.)
-        Results are either placed into a file specified by the '-o'
-        option (if provided) or placed into a file named as a
+        Results are *[either placed into a file specified by the '-o'
+        option (if provided) or]* placed into a file named as a
         concatination of "new_" and the input file. One can then
         mannually check the new file and rename it if all is well.
+        *[]* Since a new data base is created, the name of the
+        output file is fixed and the '-o' option is ignored!!!
     emailing: Initially developed to allow sending of attachments.
         Since attachments are now possible using the send_mailing
         command (at least with emailer python) this command will
@@ -288,29 +290,6 @@ def set_default_args_4curses(args):
     args['-X'] = Club.EXTRA_FEES_SPoT
 
 
-def assign_f_names2attributes(club, args):
-    """
-    Assigns the following attributes to <club>:
-        infile, and the following 'spot' file names:
-            applicant_spot, sponsor_spot,
-            extra_fees_spot, contacts_spot
-    """
-    if args['-i']: club.infile = args['-i']
-    else: club.infile = Club.MEMBERSHIP_SPoT
-
-    if args['-A']: club.applicant_spot = args['-A']
-    else: club.applicant_spot = Club.APPLICANT_SPoT
-
-    if args['-S']: club.sponsor_spot = args['-S']
-    else: club.sponsor_spot = Club.SPONSORS_SPoT
-
-    if args['-C']: club.contacts_spot = args['-C']
-    else: club.contacts_spot = Club.CONTACTS_SPoT
-
-    if args['-X']: club.extra_fees_spot = args['-X']
-    else: club.extra_fees_spot = Club.EXTRA_FEES_SPoT
-
-
 def confirm_file_present_and_up2date(file_name):
     """
     Asks user to confirm that the file is current.
@@ -352,7 +331,7 @@ def output(data, destination=args["-o"], announce_write=True):
         with open(destination, "w") as fileobj:
             fileobj.write(data)
             if announce_write:
-                print('Data written to "{}".'.format(fileobj.name))
+                print('...data written to "{}".'.format(fileobj.name))
 
 
 # Medium specific classes:
@@ -467,8 +446,7 @@ media = dict(  # keep the classes in a dict
 
 def ck_data_cmd(args=args):
     print("Checking for data consistency...")
-    club = Club()
-    assign_f_names2attributes(club, args)
+    club = Club(args)
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])),
@@ -476,18 +454,17 @@ def ck_data_cmd(args=args):
 
 
 def show_cmd(args=args):
-    club = Club()
-    club.format = member.fstrings['first_last_w_all_data']
-    assign_f_names2attributes(club, args)
-    club.for_web = True
     print("Preparing membership listings...")
+    club = Club(args)
+    data.populate_sponsor_data(club)
+    data.populate_applicant_data(club)
+    club.format = member.fstrings['first_last_w_all_data']
+    club.for_web = True
     err_code = member.traverse_records(
         club.infile,
         [member.add2lists,
         ],
         club)
-    club.app_data = data.get_applicant_data(club.applicant_spot,
-                                            club.sponsor_spot)
 
     ret = ["""FOR MEMBER USE ONLY
 
@@ -518,18 +495,12 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
-        club.ap_records = data.get_meeting_dates(
-                                data.get_applicant_data(
-                                    club.applicant_spot))
         ret.extend(member.show_by_status(club.by_n_meetings, club=club))
-    output("\n".join(ret),
-           args["-o"])
-    print("...results sent to {}.".format(args['-o']))
+    output("\n".join(ret), club.outfile)
 
 
 def names_only_cmd(args=args):
-    club = Club()
-    assign_f_names2attributes(club, args)
+    club = Club(args)
     print("Preparing listing of member and applicant names...")
 #   print("'-w' is set to {}".format(args['-w']))
     err_code = member.traverse_records(club.infile,
@@ -688,8 +659,7 @@ def create_applicant_csv_cmd(args=args):
 
     EXCLUDED_STATI = {'m', 'zae'}
 
-    club = Club()
-    assign_f_names2attributes(club, args)
+    club = Club(args)
     if args['-o'] in {"stdout", "printer"}:
         args['-o'] = None
     club.applicant_csv = args['-o']
@@ -714,19 +684,18 @@ def create_applicant_csv_cmd(args=args):
 
 
 def report_cmd(args=args):
-    club = Club()
-    club.format = member.fstrings['first_last_w_all_data']
-    assign_f_names2attributes(club, args=args)
-    club.for_web = False
     print("Preparing Membership Report ...")
+    club = Club(args=args)
+    data.populate_sponsor_data(club)
+    data.populate_applicant_data(club)
+    club.format = member.fstrings['first_last_w_all_data']
+    club.for_web = False
     err_code = member.traverse_records(
         club.infile,
         [member.add2lists,
          member.add2ms_by_status,
         ],
         club)
-    club.app_data = data.get_applicant_data(club.applicant_spot,
-                                            club.sponsor_spot)
     report = []
     helpers.add_header2list("Membership Report (prepared {})"
                             .format(helpers.date),
@@ -735,14 +704,14 @@ def report_cmd(args=args):
     report.append('Club membership currently stands at {}.'
                   .format(club.nmembers))
 
+#   for line in report:
+#       print(line)
     if club.by_n_meetings:
         header = ("Applicants ({} in number, "
                   .format(club.napplicants) +
                   "with meeting dates & sponsors listed)")
         helpers.add_header2list(header, report, underline_char='=')
         # ####  collect applicant data:
-        club.ap_records = data.get_applicant_data(club.applicant_spot,
-                                          club.sponsor_spot)
         report.extend(member.show_by_status(club.by_n_meetings, club=club))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
@@ -761,14 +730,15 @@ def report_cmd(args=args):
 
     try:
         with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
-            print('Opening file: {}'.format(fobj.name))
             addendum = fobj.read()
-            report.append("\n\n")
-            report.append(addendum)
+            if addendum:
+                print('Opening file: {}'.format(fobj.name))
+                report.append("\n\n")
+                report.append(addendum)
     except FileNotFoundError:
         print('report.addendum not found')
     report.extend(
-        ['', '',
+        ['',
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
          "for presentation {}\n".format(
@@ -780,15 +750,12 @@ def report_cmd(args=args):
         ['',
          'PS Zoom ID: 527 109 8273; Password: 999620',
         ])
-    output("\n".join(report),
-           args["-o"])
-    print("...results sent to {}.".format(args['-o']))
+    output("\n".join(report), club.outfile)
 
 
 def stati_cmd(args=args):
-    club = Club()
+    club = Club(args)
     club.format = member.fstrings['first_last_w_all_data']
-    assign_f_names2attributes(club, args=args)
     club.for_web = False
     setup4stati(club)
     funcs2execute = [
@@ -810,10 +777,7 @@ def zeros_cmd(args=args):
     """
     Reports those with zero vs NIL in fees field.
     """
-    infile = args['-i']
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    club = Club()
+    club = Club(args)
     err_code = member.traverse_records(
         infile, [member.get_zeros_and_nulls, ], club)
     res = ["Nulls:",
@@ -834,7 +798,7 @@ def usps_cmd(args=args):
     infile = args['-i']
     if not infile:
         infile = Club.MEMBERSHIP_SPoT
-    club = Club()
+    club = Club(args)
     club.usps_only = []
     err_code = member.traverse_records(infile, [
                 member.get_usps,
@@ -866,12 +830,9 @@ def club_setup4extra_charges(args=args):
     """
     Returns an instance of rbc.Club set up with what's needed
     to run the data.extra.charges function.
+    ## Should probably not use -i as argument for extra fees file ##
     """
-    club = Club
-    club.infile = args["-i"]
-    if not club.infile:
-        club.infile = club.EXTRA_FEES_SPoT
-    club.json_file = args['-j']
+    club = Club(args)
     try:
         club.max_width = int(args['-w'])
     except TypeError:
@@ -956,28 +917,41 @@ def prepare4mailing(club):
     club.owing_only = False
     if args['--oo']:
         club.owing_only = True
+    club.bcc = args['--bcc']
+    if args['--cc']:
+        (club.cc_sponsors, club.ccs) = helpers.clarify_cc(
+                                args['--cc'], 'sponsors')
+    else:
+        (club.cc_sponsors, club.ccs) = (False, [])
     if not args['--which']:
         club.which = content.content_types["thank"]
     else:
         club.which = content.content_types[args["--which"]]
-        if "-cc" in clib.which.keys():
-            pass  # collect applicant/sponsor data
+        if "cc" in club.which.keys():
+            (cc_sponsors, cced) = helpers.clarify_cc(club.which['cc'])
+            club.cc_sponsors = club.cc_sponsors or cc_sponsors
+            club.ccs = set(club.ccs + cced)  # remove duplicates
+    if club.cc_sponsors:  # collect applicant/sponsor data
+            club.sponsor_data = data.get_sponsor_data(
+                                club.SPONSORS_SPoT)
+            club.sponsored = sponsor_data.keys()
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
                                                   club.lpr)
     if not args["-i"]:
-        args["-i"] = club.MEMBERSHIP_SPoT
-    club.input_file_name = args['-i']
+        club.input_file_name = club.MEMBERSHIP_SPoT
+    else:
+        club.input_file_name = args['-i']
     if not args["-j"]:
-        args["-j"] = club.JSON_FILE_NAME4EMAILS
-    club.json_file_name = args["-j"]
+        club.json_file_name = club.JSON_FILE_NAME4EMAILS
+    else:
+        club.json_file_name = args["-j"]
     if not args["--dir"]:
-        args["--dir"] = club.MAILING_DIR
-    club.mail_dir = args["--dir"]
+        club.mail_dir = club.MAILING_DIR
+    else:
+        club.mail_dir = args["--dir"]
     club.attachment = args['ATTACHMENTS']
-    club.cc = args['--cc']
-    club.bcc = args['--bcc']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'.".format(args["--dir"]))
@@ -1008,17 +982,13 @@ def prepare_mailing_cmd(args=args):
 
 
 def setup4new_db(club):
-    club.infile = args['-i']
-    club.outfile = args['-o']
-    club.extra_fees_spot = args['-X']
-    if not club.infile:
-        club.infile = club.MEMBERSHIP_SPoT
+    """
+    Clients are thank_cmd & restore_fees_cmd
+    Over rides output file name and 
+    """
+    # over ride output file name:
+    club.outfile = helpers.prepend2file_name('new_', club.infile)
 #   print('club.outfile set to {}'.format(club.outfile))
-    if club.outfile == 'stdout' or not club.outfile:
-        club.outfile = helpers.prepend2file_name('new_', club.infile)
-#   print('club.outfile set to {}'.format(club.outfile))
-    if not club.extra_fees_spot:
-        club.extra_fees_spot = club.EXTRA_FEES_SPoT
     club.fieldnames = data.get_fieldnames(club.infile)
 
 
@@ -1044,10 +1014,7 @@ def dict_write(f, fieldnames, iterable):
 
 
 def thank_cmd(args=args):
-    club = Club()
-    club.thank_file = args["-t"]
-    if not club.thank_file:
-        club.thank_file = Club.THANK_FILE
+    club = Club(args)
     member.traverse_records(club.thank_file,
                             [member.add2statement_data, ],
                             club)
@@ -1056,7 +1023,8 @@ def thank_cmd(args=args):
     prepare4mailing(club)
     member.prepare_mailing(club)  # => thank_func
     # Done with thanking; Must now update DB.
-    setup4new_db(club)
+    setup4new_db(club)  # over rides output file name
+                        # & collects field names => club.fieldnames
     dict_write(club.outfile,
                club.fieldnames,
                member.modify_data(club.infile,
@@ -1245,7 +1213,7 @@ def wip_cmd(args=args):
 # # used when gmail is the MTA.
 
 
-'''
+notused = '''
 def smtp_send(recipients, message):
     """
     Send email, as defined in <message>,
@@ -1305,6 +1273,10 @@ if __name__ == "__main__":
                 sys.exit()
 
     if args["?"]:
+        ## How much of this is in common with parsing docstring for
+        ## the curses interface module?  ?refactoring is in order??
+        ## See the parse4opt... functions in (curses) interface.py.
+        ## Use docoptparser.py module??
         doc_lines = __doc__.split('\n')
         for n in range(len(doc_lines)):
             if doc_lines[n] == "Usage:":
@@ -1312,7 +1284,7 @@ if __name__ == "__main__":
             if doc_lines[n] == "Options:":
                 oline = n
                 break
-        print('\n'.join(doc_lines[uline:oline - 1]))
+        print('\n'.join(doc_lines[uline:(oline-1)]))
     elif args["ck_data"]:
         ck_data_cmd()
     elif args["show"]:

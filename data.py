@@ -123,7 +123,7 @@ def gather_contacts_data(club):
     with open(club.CONTACTS_SPoT, 'r',
         encoding='utf-8', newline='') as file_obj:
         google_reader = csv.DictReader(file_obj)
-        print('DictReading Google contacts file "{}".'.format(
+        print('DictReading Google contacts file "{}"...'.format(
                                                     file_obj.name))
         for g_rec in google_reader:
             g_dict = get_gmail_record(g_rec)
@@ -138,16 +138,17 @@ def gather_contacts_data(club):
 
 
 def move_date_listing_into_record(dates, record):
-    try:
-        record["app_rcvd"] = dates[0]
-        record["fee_rcvd"] = dates[1]
-        record["1st"] = dates[2]
-        record["2nd"] = dates[3]
-        record["3rd"] = dates[4]
-        record["approved"] = dates[5]
-        record["dues_paid"] = dates[6]
-    except IndexError:
-        return
+    for key, index in (('app_rcvd',  0),
+                       ('fee_rcvd',  1),
+                       ('1st',       2),
+                       ('2nd',       3),
+                       ('3rd',       4),
+                       ('inducted',  5),
+                       ('dues_paid', 6)):
+        try:
+            record[key] = dates[index]
+        except IndexError:
+            record[key] = None
 
 
 def applicant_data_line2record(line):
@@ -200,99 +201,28 @@ def applicant_data_line2record(line):
         ret['status'] = status
     return ret
 
-def parse_applicant_data_line(line, app_dates=False,
-                                    last_dates=False):
+
+def populate_applicant_data(club):
     """
-    Assumes blank and commented lines have already been removed.
-    Returns None if line is invalid.
-    Returns a 2 tuple: (for subsequent use as a key/value pair)
-    t1 is "last, first" name
-    t2 is a tuple the first item of which is status possibly
-    followed by dates[1].
-    Status can be any of those listed in the if elif listing:
-    Notice absence of:
-        'a' which is distinguished from 'a0' only re welcoming letter
-        'aw' which has to do with vacancy: not clear if people can be
-        considered for membership if there is no vacancy.
-    [1] dates listed always include dates counting towards membership.
-    if <app_dates> then dates application was recieved and fee paid
-    will precede and if <last_dates> dates of induction and fee
-    payment will follow those three dates.
+    Reads applicant data file populating attributes:
+        club.applicant_data
+    Note: sponsor data, if already collected, is included.
     """
-    parts = line.split(glbs.SEPARATOR)
-    while not parts[-1]:  # lose trailing empty fields
-        parts = parts[:-1]
-    parts = [part.strip() for part in parts]
-    l = len(parts)
-    ndates = l - 1  # of dates listed
-    names = parts[0].split()
-    key = "{}, {}".format(names[1], names[0]) 
-    if app_dates:
-        dates = tuple(parts[1:])
-    else:
-        dates = []
-        for date in parts[3:]:
-            if len(dates) < 3:
-                dates.append(date)
-        dates = tuple(dates)
-    if parts[-1].startswith("Appl"):
-        status = "zae"  # see members.STATUS_KEY_VALUES
-        dates = ()
-    elif l == 1:               # for meanings
-        status = "zaa"
-    elif l == 2:               # one date listed
-        status = "a-"
-    elif l == 3:
-        status = "a0"
-    elif l == 4:
-        status = "a1"
-    elif l == 5:
-        status = "a2"
-    elif l == 6:
-        status = "a3"
-    elif l == 7:
-        status = "ai"
-    elif l == 8:
-        status = "m"
-    else: assert(False)
-    return key, (status,) + dates
+    sponsors = hasattr(club, 'sponsors_by_applicant')
+    if sponsors: sponsored = club.sponsors_by_applicant.keys()
+    club.applicant_data = {}
+    with open(club.applicant_spot, 'r') as stream:
+        print('Reading file "{}"...'.format(stream.name))
+        for line in helpers.useful_lines(stream, comment='#'):
+            rec = applicant_data_line2record(line)
+            name = member.get_last_first(rec)
+            rec = applicant_data_line2record(line)
+            if sponsors and name in sponsored:
+                rec["sponsors"] = club.sponsors_by_applicant[name]
+            club.applicant_data[name] = rec
 
 
-def parse_sponsor_data_line(line):
-    """
-    Assumes blank and commented lines have already been removed.
-    returns a 2 tuple: (for subsequent use as a key/value pair)
-    t1 is "last, first" name
-    t2 is a tuple of sponsors ('first last')
-    Fails if encounters an invalid line!!!
-    """
-    parts = line.split(":")
-    sponsored = parts[0].strip()
-    names = sponsored.split()
-    name = '{}, {}'.format(names[1], names[0])
-    part2 = parts[1]
-    sponsors = tuple([
-        sponsor.strip() for sponsor in parts[1].split(", ")])
-    ret = name, sponsors
-    return ret
-
-
-def get_sponsor_data(spot):
-    """
-    <spot> is name of file (usual default: rbc.Club.SPONSORS_SPoT.
-    Returns a dict: keys are '2nd, 1st' names,
-                    values are tuples of sponsors.
-    Used by get_applicant_data (if sponsor_file is specified.)
-    """
-    ret = {}
-    with open(spot.strip(), 'r') as src:
-        print('Reading file "{}"...'.format(src.name))
-        for line in helpers.useful_lines(src, comment='#'):
-            tup = parse_sponsor_data_line(line)
-            (name, sponsors) = (tup[0], tup[1])
-            ret[name] = sponsors
-    return ret
-
+### Expect to redact the following in favour of the above. ###
 
 def get_applicant_data(spot, sponsor_file=None):
     """
@@ -328,6 +258,9 @@ def get_applicants_by_status(applicant_data):
     base- this function uses data supplied by get_applicant_data which
     uses the applicant data files (rather than the main data base.)
     """
+    #### Want to refactor so 'club' is a parameter along with  ####
+    #### a format string which defaults to "{first} {last}".   ####
+    # def get_applicants_by_status(club, fmt_str='{first} {last'}):
     ret = {}
     for name in applicant_data.keys():
         status = applicant_data[name]['status']
@@ -335,30 +268,103 @@ def get_applicants_by_status(applicant_data):
         ret[status].append(name)
     return ret
 
+def parse_sponsor_data_line(line):
+    """
+    Assumes blank and commented lines have already been removed.
+    returns a 2 tuple: (for subsequent use as a key/value pair)
+    t1 is "last, first" name
+    t2 is a tuple of sponsors ('last, first')
+    Fails if encounters an invalid line!!!
+    """
+    parts = line.split(":")
+    sponsored = parts[0].strip()
+    names = sponsored.split()
+    name = '{}, {}'.format(names[1], names[0])
+    part2 = parts[1]
+    sponsors = tuple([
+        helpers.tofro_first_last(sponsor.strip())
+        for sponsor in parts[1].split(", ")])
+    return (name, sponsors)
 
 
-def get_sponsors(infile):
+def populate_sponsor_data(club):
     """
-    Read file typified by Data/sponsors.txt
-    and return a dict keyed by 'last, first' names
-    with each value a list of sponsors.
+    Reads sponsor & membership data files populating attributes:
+        club.sponsors_by_applicant, 
+        club.emails by sponsor,
+        club.sponsor_set.
+    All names (whether keys or values) are formated "last, first".
     """
-    ret = {}
-    with open(infile, 'r') as source:
-        print('Reading file "{}"...'.format(source.name))
-        for line in helpers.useful_lines(source, comment='#'):
+    club.sponsor_set = set()  # eschew duplicates!
+    club.sponsor_emails = dict()
+    club.sponsors_by_applicant = dict()
+#   if not hasattr(club, 'sponsor_spot'):
+#       print("Assigning default sponsor_spot.")
+#       club.sponsor_spot = club.SPONSORS_SPoT
+#   else:
+#       print("sponsor_spot already assigned to {}."
+#               .format(club.sponsor_spot))
+#   if not hasattr(club, 'infile'):
+#       club.infile = club.MEMBERSHIP_SPoT
+    with open(club.sponsor_spot, 'r') as stream:
+        print('Reading file "{}"...'.format(stream.name))
+        for line in helpers.useful_lines(stream, comment='#'):
             parts = line.split(':')
-            names = parts[0].split()
+            names = parts[0].split()  # applicant 1st and 2nd names
             name = "{}, {}".format(names[1], names[0])
             try:
                 sponsors = parts[1].split(',')
             except IndexError:
                 print("IndexError: {} sponsors???".format(name))
                 sys.exit()
-            sponsors = ', '.join(
-                [sponsor.strip() for sponsor in sponsors])
+            # sponsors: ['first1 last1', 'first2 last2']
+            sponsors = [helpers.tofro_first_last(name)
+                        for name in sponsors]
+            for sponsor in sponsors:
+                club.sponsor_set.add(sponsor)
+            club.sponsors_by_applicant[name] = sponsors
+            # key: applicant name
+            # value: list of two sponsors in "last, first" format.
+    with open(club.infile, 'r') as stream:
+        dictreader = csv.DictReader(stream)
+        for record in dictreader:
+            name = member.member_name(record, club)
+            if name in club.sponsor_set:
+                club.sponsor_emails[name] = record['email']
+
+
+## Plan to redact the following in favour of the above function.
+def get_sponsor_data(spot):
+    """
+    <spot> is name of file (usual default: rbc.Club.SPONSORS_SPoT.
+    Returns a dict: keys are '2nd, 1st' names,
+                    values are tuples of sponsors.
+    Used by get_applicant_data (if sponsor_file is specified.)
+    Also used when sponsors are to be 'cc'ed emails to applicants
+    """
+    ret = {}
+    with open(spot.strip(), 'r') as src:
+        print('Reading file "{}"...'.format(src.name))
+        for line in helpers.useful_lines(src, comment='#'):
+            tup = parse_sponsor_data_line(line)
+            (name, sponsors) = (tup[0], tup[1])
             ret[name] = sponsors
     return ret
+
+redacted = '''
+def get_emails(list_of_members, file_name=Club.MEMBERSHIP_SPoT):
+    """
+    <list_of_members> is a list in '{last}, {first}' format.
+    Returns a dict keyed by members of the list with their email
+    address as a value for each.
+    """
+    ret = dict()
+    with open(file_name, 'r') as stream:
+        d_reader = csv.DictReader(stream)
+        for record in d_reader:
+            pass
+    return ret
+'''
 
 
 def list_of_dates(applicant_datum):
@@ -448,7 +454,7 @@ def gather_extra_fees_data(extra_fees_spot, json_file=None):
             Club.CATEGORY_KEY: by_category,
             }
 
-
+redacted = '''
 def gather_sponsors(infile):
     """
     Read file typified by Data/sponsors.txt
@@ -464,7 +470,7 @@ def gather_sponsors(infile):
             sponsors = parts[1].strip()
             ret[name] = sponsors
     return ret
-
+'''
 
 def extra_charges(club, raw=False):
     """
@@ -875,34 +881,14 @@ def compare(data1, data2, underline_char='=', inline=False):
     ret.append("... end of listings")
     return ret
 
-
-could_be_redacted = '''
-def test_extras():
-    club = Club()
-    ret = []
-    gather_membership_data(club)
-    data = club.fee_by_category
-#   print("\n".join(data_listed(data)))
-    return data_listed(data)
-
-#   return
-    extra_fees_data = gather_extra_fees_data(club.extra_fees_spot)
-    ret.append("\nmemlist compared to extra_fees file by Category:")
-    ret.extend(compare(club.fee_by_category,
-               extra_fees_data[Club.CATEGORY_KEY]))
-    ret.append("\nmemlist compared to extra_fees file by Name:")
-    ret.extend(compare(club.fee_by_name,
-               extra_fees_data[Club.NAME_KEY], inline=True))
-'''
-
-
+redacted = '''
 def test_ck_data():
     club = Club
     return ck_data(club)
 #   print("Call to ck_integrity has returned...")
 #   print(res)
 #   return res
-
+'''
 
 def list_mooring_data(extra_fees_spot):
     extra_fees_data = gather_extra_fees_data(extra_fees_spot)
@@ -913,14 +899,11 @@ def list_mooring_data(extra_fees_spot):
         ["{0} - {1}".format(*datum) for datum in mooring_data])
 
 
-def test_list_mooring():
-    return list_mooring_data(Club.EXTRA_FEES_SPoT)
-
-
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
+    redacted = '''
 else:
     def print(*args, **kwargs):
         pass
-
+'''

@@ -57,19 +57,13 @@ class Club(object):
     JSON_FILE_NAME4EMAILS = 'Data/emails.json'
     ERRORS_FILE = 'errors.txt'
 
+    STDOUT = 'output2check.txt'
+
     # Non repo directories:
     NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
                     "NonRepo", "Temp", #"TestData")
                     )
 
-    _2bredacted = """
-    SEPARATOR = "|"   # } File APPLICANT_SPoT must be in a
-    N_SEPARATORS = 3  # } specific format for it to be read
-    #                 # } correctly. Number of meetings is
-    #                 # } derived from N_SEPARATORS.
-    # ## NOTE: this SEPARATOR although having the same value is NOT
-    # ## the same as the one defined in member.py module.
-    """
 
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
@@ -77,7 +71,7 @@ class Club(object):
     APPLICANT_DATA_FIELD_NAMES = ("first", "last", "status", 
         "app_rcvd", "fee_rcvd", 
         "1st", "2nd", "3rd",
-        "approved", "dues_paid",
+        "inducted", "dues_paid",
         "Sponsor1", "Sponsor2",)
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
@@ -107,17 +101,61 @@ class Club(object):
                    ' {state}, {postal_code} [{email}]')
     # # ...end of Constants and Defaults.
 
-    def __init__(self, params=None):
+    def __init__(self, args=None, params=None):
         """
+        <args> are the command line arguments provided by docopts.
         <params> was necessary in the past when using labels or
         envelopes but is expected to be redacted since these are
         no longer used. Each instance needed to know the format
         of the media.
         """
-        self.infile = Club.MEMBERSHIP_SPoT
+        if args:  # args from docopt
+            # the body of this if statement replaces the need for
+            # <utils.file_name_args2attributes(self, params)>
+            if args['-i']: self.infile = args['-i']
+            else: self.infile = Club.MEMBERSHIP_SPoT
+
+            if args['-A']: self.applicant_spot = args['-A']
+            else: self.applicant_spot = Club.APPLICANT_SPoT
+
+            if args['-S']: self.sponsor_spot = args['-S']
+            else: self.sponsor_spot = Club.SPONSORS_SPoT
+
+            if args['-C']: self.contacts_spot = args['-C']
+            else: self.contacts_spot = Club.CONTACTS_SPoT
+
+            if args['-X']: self.extra_fees_spot = args['-X']
+            else: self.extra_fees_spot = Club.EXTRA_FEES_SPoT
+
+            if args['-j']: self.json_file = args['-j']
+            else: self.json_file = Club.EXTRA_FEES_SPoT
+
+            if args['-t']: self.thank_file = args['-t']
+            else: self.thank_file = Club.THANK_FILE
+
+            if args['-o']: self.outfile = args['-o']
+            else: self.outfile = Club.STDOUT
+
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check
         self.first_letter = ''               # } ordering.
+
+
+    def __repr__(self):
+        attrs = [
+                 'sponsor_spot',
+                 'sponsors_by_applicant',
+                 'PATTERN',
+                 ]
+        ret = []
+        print('About to build attribute listing ...')
+        for attr in attrs:
+            if hasattr(self, attr):
+                ret.append("{}::{}".format(attr, getattr(self, attr)))
+            else:
+                ret.append("{}::??".format(attr))
+        return ','.join(ret)
+
 
     def fee_totals(self, infile=RECEIPTS_FILE):
         """
@@ -204,6 +242,7 @@ class Club(object):
 
 if __name__ == "__main__":
     print("rbc.py compiles OK")
+    sys.exit()
 else:
     def print(*args, **kwargs):
         pass

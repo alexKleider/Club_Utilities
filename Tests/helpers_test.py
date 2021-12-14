@@ -256,3 +256,31 @@ def test_get_datestamp():
     expected = 'Jul 03, 1945'
     assert helpers.get_datestamp(date_obj) == expected
 
+
+@pytest.mark.parametrize("source, expected", [
+    ("sponsors", (True, [])),
+    ('alex@kleider.ca,sponsors', (True, ['alex@kleider.ca'])),
+    ('alex@kleider.ca,akleider@sonic.net',
+        (False, ['alex@kleider.ca', 'akleider@sonic.net']))
+    ])
+def test_clarify__cc_wo_keyword(source, expected):
+    assert helpers.clarify_cc(source) == expected
+
+
+@pytest.mark.parametrize("source, keyword, expected", [
+    ("sponsors", "sponsors", (True, [])),
+    ('alex@kleider.ca,sponsors', "sponsors", (True, ['alex@kleider.ca'])),
+    ('alex@kleider.ca,akleider@sonic.net', 'sponsors',
+        (False, ['alex@kleider.ca', 'akleider@sonic.net']))
+    ])
+def test_clarify__cc_w_keyword(source, keyword, expected):
+    assert helpers.clarify_cc(source, keyword) == expected
+
+
+@pytest.mark.parametrize("source, expected", [
+    ("Alex Kleider", "Kleider, Alex"),
+    ("Kleider, Alex", "Alex Kleider"),
+    ])
+def test_tofro_first_last(source, expected):
+    assert helpers.tofro_first_last(source) == expected
+

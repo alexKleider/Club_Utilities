@@ -35,10 +35,10 @@ def str_add(*args):
         total += int(arg)
     return str(total)
 
-
+notused = '''
 def script_location():
     return os.getcwd()
-
+'''
 
 def useful_lines(stream, comment=None):
     """
@@ -132,7 +132,7 @@ def get_first_friday_of_month(date=None):
         if day.weekday() == N_FRIDAY:
             return day
 
-
+notused = '''
 def get_next_election_date():
     """
     Returns a datetime.date object representing the
@@ -147,7 +147,7 @@ def get_next_election_date():
 #       day = datetime.date(year, month, d)
 #       if day.weekday() == N_FRIDAY:
 #           return day
-
+'''
 
 def next_first_friday(today=datetime.date.today(),
                       exclude=False):
@@ -195,6 +195,7 @@ def club_year(which='this', now=datetime.date.today()):
         return "{}-{}".format(now.year + n -1, now.year + n)
 
 
+redact = '''
 def expand_date(date_string):
     if len(date_string) == 6:
         year = '20{}'.format(date_string[:2])
@@ -205,7 +206,7 @@ def expand_date(date_string):
         return 'BAD DATE'
     return '{}-{}-{}'.format(year, date_string[-4:-2],
                              date_string[-2:])
-
+'''
 
 def get_datestamp(date=None):
     """
@@ -349,6 +350,7 @@ def show_dict(d, extra_line=True):
     return lines
 
 
+couldberedacted = '''
 def compare_dicts(dict1, dict2,
                   specified_value=None):
     """
@@ -379,7 +381,9 @@ def compare_dicts(dict1, dict2,
                         "{}: {} != {}"
                         .format(key1, val1, val2))
     return ret
+'''
 
+redacted = '''
 def display_mismatches(mismatches,
                        message=None,
                        display_special=False):
@@ -408,7 +412,7 @@ def display_mismatches(mismatches,
         for line in mismatches[specified_value]:
             ret.append('\t{}'.format(line))
     return ret
-
+'''
 
 def show_json_data(json_data, underlinechar=''):
     """
@@ -606,6 +610,36 @@ def output(data, destination=None, announce=True):
             if announce:
                 print('Data written to "{}".'.format(fileobj.name))
 
+def clarify_cc(s, word2remove='sponsors'):
+    """
+    Assumes <s> is a string /w or /wo commas (but no blank spaces.)
+    Splits the string on the commas(",") and looks for <word2remove>.
+    Returns a 2-tuple:
+        1st item is Boolean depending on presence of <word2remove>.
+        2nd item is a list (possibly empty) of any other entries...
+    (expect a listing of email addresses or an empty list.)
+    """
+    removed = False
+    res = s.split(',')
+    if word2remove in res:
+        res.remove(word2remove)
+        removed = True
+    return (removed, res)
+
+
+def tofro_first_last(name):
+    """
+    Parameter <name> is parsed and 
+    if of the form "John Doe", "Doe, John" is returned,
+    if of the form "Doe, John", "John Doe" is returned.
+    """
+    if ', ' in name:
+        last, first = name.split(', ')
+        return f"{first} {last}"
+    else:
+        first, last = name.split()
+        return f"{last}, {first}"
+
 
 def main():
     print("The month is '{}'.".format(month))
@@ -664,6 +698,7 @@ if __name__ == "__main__":
     print("Module helpers compiles without error.")
     main()
     test_show_json_data()
+    sys.exit()
 else:
     def print(*args, **kwargs):
         pass

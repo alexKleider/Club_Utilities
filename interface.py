@@ -377,6 +377,8 @@ def get_chosen_cmd_index(scr, gbls):
     scr.clear(); scr.refresh()
     return gbls.cmd_ord
 
+## In the next 8 or more lines we parse the utils.py docstring-
+## Should this be done in its own module docoptparser.py???
 
 gbls.opt_descriptors = parse4opt_descriptors('utils.py', gbls)
 gbls.set_of_opt_descriptor_keys = set(gbls.opt_descriptors.keys())

@@ -3,7 +3,11 @@
 # File: find_calls.py
 
 """
-Get a listing of all function calls in each module.
+Study function definitions, calls and assignments.
+
+Definitions are sent to 
+Calls are sent to 
+Assignments are sent to 
 """
 
 import re
@@ -21,9 +25,15 @@ MODULE_NAMES = ("content",
                 "interface",
                 "member",
                 "rbc",
-                "sys_globals.py",
+                "sys_globals",
                 "utils",
                 )
+
+# output file names..
+DEFS = '2ck_defs'
+CALLS = '2ck_calls'
+CALLSf = '2ck_calls_formatted'
+UNUSED = '2ck_unused'
 
 
 def call_found(func_name, line, refed=None):
@@ -45,6 +55,10 @@ def call_found(func_name, line, refed=None):
 
 
 def all_defs():
+    """
+    Returns a listing of the names of all functions/methods defined.
+    Prints a warning if there are duplicates.
+    """
     result = []
     for module in MODULE_NAMES:
         ret = []
@@ -55,9 +69,11 @@ def all_defs():
                 m = PAT.search(line)
                 if m:
                     if m.group(1).endswith('_'):
+                        # not sure about need to eliminate trailing
+                        # underscore???
                         pass
                     else:
-                        ret.append("{}.{}@{}"
+                        ret.append("{}.{} @ {}"
                                    .format(module,
                                            m.group(1),
                                            line_n))
@@ -108,7 +124,9 @@ def main():
     n_calls = 0
     n_refs = 0
     called_or_refed = set()
-    helpers.output('\n'.join(defs), "2ck_defs_joined")
+    helpers.output('\n'.join(defs), DEFS)
+    print("Listing of functions (& methods) defined sent to '{}'"
+            .format(DEFS))
     for mod_name in MODULE_NAMES:
         with open("{}.py".format(mod_name), 'r') as module:
             line_n = 0
@@ -125,21 +143,27 @@ def main():
                         _ = res.setdefault(def_, {})
                         _ = res[def_].setdefault("calls", [])
                         res[def_]["calls"].append(
-                            "{}@{}" .format(mod_name, line_n))
+                            "{} @ {}" .format(mod_name, line_n))
                     if refed:
                         n_refs += 1
                         called_or_refed.add(def_)
                         _ = res.setdefault(def_, {})
                         _ = res[def_].setdefault("references", [])
                         res[def_]["references"].append(
-                            "{}@{}".format(mod_name, line_n))
+                            "{} @ {}".format(mod_name, line_n))
 
     n_no_refs = len(defs) - len(called_or_refed)
     no_refs = set(defs) - called_or_refed
-    helpers.output('\n'.join(pformat(res)), '2ck_calls_joined')
+    helpers.output('\n'.join(pformat(res)), CALLS)
+    print("Listing of function (& method) calls sent to '{}'"
+          .format(CALLS))
     helpers.output(pprint.pformat(res, compact=True, width=70),
-                   '2ck_calls_pformated')
-    helpers.output('\n'.join(sorted(no_refs)), '2ck_unused')
+                   CALLSf)
+    print("Formatted listing of function (& method) calls sent to '{}'"
+          .format(CALLSf))
+    helpers.output('\n'.join(sorted(no_refs)), UNUSED)
+    print("Listing of unused functions (& methods) sent to '{}'"
+          .format(UNUSED))
     print("Found {} defs, {} calls, {} refs & {} with out either"
           .format(n_defs, n_calls, n_refs, n_no_refs))
 

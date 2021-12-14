@@ -49,3 +49,6 @@ for f in sys.argv[1:]:
     with open(out_file, 'w') as f_obj:
         print('Writing to file "{}".'.format(f_obj.name))
         f_obj.write("\n".join(collector))
+        
+
+
