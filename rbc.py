@@ -59,9 +59,13 @@ class Club(object):
 
     STDOUT = 'output2check.txt'
 
-    # Non repo directories:
-    NONREPO_DIRS = ("Data", "Exclude", "Info", "Mydata",
-                    "NonRepo", "Temp", #"TestData")
+    # Non repo directories (used by archive.py:)
+    NONREPO_DIRS = ("Data",
+                    "Exclude",
+                    "Info",
+                    "Mydata",
+                    "NonRepo",
+                    "Temp",
                     )
 
 
@@ -128,13 +132,27 @@ class Club(object):
             else: self.extra_fees_spot = Club.EXTRA_FEES_SPoT
 
             if args['-j']: self.json_file = args['-j']
-            else: self.json_file = Club.EXTRA_FEES_SPoT
+            else: self.json_file = Club.JSON_FILE_NAME4EMAILS
+
+            if args["--dir"]: self.mail_dir = args["--dir"]
+            else: self.mail_dir = self.MAILING_DIR
 
             if args['-t']: self.thank_file = args['-t']
             else: self.thank_file = Club.THANK_FILE
 
             if args['-o']: self.outfile = args['-o']
             else: self.outfile = Club.STDOUT
+
+            if args["--cc"]: self.cc = args["--cc"]
+            else: self.cc = ''
+
+            if args["--bcc"]: self.bcc = args["--bcc"]
+            else: self.bcc = ''
+
+            if args['ATTACHMENTS']:
+                self.attachment = args['ATTACHMENTS']
+            else:
+                self.attachment = None
 
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check
@@ -145,7 +163,6 @@ class Club(object):
         attrs = [
                  'sponsor_spot',
                  'sponsors_by_applicant',
-                 'PATTERN',
                  ]
         ret = []
         print('About to build attribute listing ...')

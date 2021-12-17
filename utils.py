@@ -75,6 +75,7 @@ Options:
   -M   include meeting dates- pertains to applicant report(s)
   -B   include backers/sponsors- pertains to applicant report(s)
   -j <json>  Specify a json formated file
+              Used mainly but not exclusively for emails.
               (whether for input or output depends on context.)
   -l  Long format for demographics (phone & email as well as address)
   -m  Maximum data  Same as including -DMB. See also -I
@@ -450,7 +451,7 @@ def ck_data_cmd(args=args):
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])),
-           args["-o"])
+           club.outfile)
 
 
 def show_cmd(args=args):
@@ -914,10 +915,15 @@ def prepare4mailing(club):
     ## Need to implement sending of copies to       ##
     ## sponsors if "-cc sponsors" option is chosen. ##
     """
+    club.cc_sponsors = False
     club.owing_only = False
     if args['--oo']:
         club.owing_only = True
     club.bcc = args['--bcc']
+    # Note: sponsors may be specified either by including "sponsors"
+    # as an argument (or possibly part of, comma separated) of the
+    # "-cc" option  or by specifying it in the "--which" part (see the
+    # content.py file.)
     if args['--cc']:
         (club.cc_sponsors, club.ccs) = helpers.clarify_cc(
                                 args['--cc'], 'sponsors')
@@ -932,33 +938,27 @@ def prepare4mailing(club):
             club.cc_sponsors = club.cc_sponsors or cc_sponsors
             club.ccs = set(club.ccs + cced)  # remove duplicates
     if club.cc_sponsors:  # collect applicant/sponsor data
-            club.sponsor_data = data.get_sponsor_data(
-                                club.SPONSORS_SPoT)
-            club.sponsored = sponsor_data.keys()
+        data.populate_sponsor_data(club)
+        data.populate_applicant_data(club)
+        # provides the following:
+        #    club.sponsor_set (set)
+        #    club.sponsor_emails (dict)
+        #    club.sponsors_by_applicant (dict)
+        #    club.applicant_data (dict with keys:
+        #      first, last, status,  
+        #      app_rcvd, fee_rcvd, 1st, 2nd, 3rd, inducted, dues_paid
+        #      (un fulfilled meeting dates are entered as None)
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
                                                   club.lpr)
-    if not args["-i"]:
-        club.input_file_name = club.MEMBERSHIP_SPoT
-    else:
-        club.input_file_name = args['-i']
-    if not args["-j"]:
-        club.json_file_name = club.JSON_FILE_NAME4EMAILS
-    else:
-        club.json_file_name = args["-j"]
-    if not args["--dir"]:
-        club.mail_dir = club.MAILING_DIR
-    else:
-        club.mail_dir = args["--dir"]
-    club.attachment = args['ATTACHMENTS']
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
-        print("Checking for directory '{}'.".format(args["--dir"]))
+        print("Checking for directory '{}'.".format(club.mail_dir))
         club.check_mail_dir(club.mail_dir)
     if club.which["e_and_or_p"] in ("both", "email", "one_only"):
-        print("Checking for file '{}'.".format(club.json_file_name))
-        club.check_json_file(club.json_file_name)
+        print("Checking for file '{}'.".format(club.json_file))
+        club.check_json_file(club.json_file)
         club.json_data = []
 
 
@@ -971,7 +971,7 @@ def prepare_mailing_cmd(args=args):
     ## sponsors if "-cc sponsors" option is chosen. ##
     """
     # ***** Set up configuration in an instance of # Club:
-    club = Club()
+    club = Club(args)
     prepare4mailing(club)
     # ***** Done with configuration & checks ...
     member.prepare_mailing(club)  # Populates club.mail_dir
@@ -1321,6 +1321,9 @@ if __name__ == "__main__":
         thank_cmd()
 #       print("...finished preparing thank you emails and/or letters.")
     elif args['display_emails']:
+        # displaying emails does not involve rbc.Club so must 
+        # deal with ouput file here:
+        if not args['-o']: args['-o'] = Club.STDOUT
         output(display_emails_cmd(), args['-o'])
     elif args["send_emails"]:
         print("Sending emails...")

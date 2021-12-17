@@ -35,6 +35,25 @@ def str_add(*args):
         total += int(arg)
     return str(total)
 
+
+def join_email_listings(*args):
+    """
+    Accepts any number of args, each of which must be a string
+    expected to be a comma (with no spaces, as demanded when provided
+    as a commandline parameter/argument) separated listing of email
+    addresses.
+    Returned is a single string of "," separated emails with no
+    duplicates suitable for placement into a 'cc' (or 'bcc') listing.
+    """
+    res = []
+    for arg in args:
+        if arg:
+            arg = arg.split(',')
+            arg = [item.strip() for item in arg]
+            res.extend(arg)
+    return ','.join(sorted(set(res)))
+
+
 notused = '''
 def script_location():
     return os.getcwd()
@@ -195,7 +214,7 @@ def club_year(which='this', now=datetime.date.today()):
         return "{}-{}".format(now.year + n -1, now.year + n)
 
 
-redact = '''
+# the following is not used but might be helpful.
 def expand_date(date_string):
     if len(date_string) == 6:
         year = '20{}'.format(date_string[:2])
@@ -206,7 +225,7 @@ def expand_date(date_string):
         return 'BAD DATE'
     return '{}-{}-{}'.format(year, date_string[-4:-2],
                              date_string[-2:])
-'''
+
 
 def get_datestamp(date=None):
     """

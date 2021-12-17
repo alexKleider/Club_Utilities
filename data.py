@@ -204,8 +204,14 @@ def applicant_data_line2record(line):
 
 def populate_applicant_data(club):
     """
-    Reads applicant data file populating attributes:
-        club.applicant_data
+    Reads applicant data file populating attribute:
+        club.applicant_data: a dict with keys == applicants
+        and each value is a record with the following fields:
+            "first", "last", "status",  # The rest are dates
+            "app_rcvd", "fee_rcvd",     # or empty string if
+            "1st", "2nd", "3rd",        # event hasn't
+            "inducted", "dues_paid",    # happened yet.
+            "Sponsor1", "Sponsor2" 
     Note: sponsor data, if already collected, is included.
     """
     sponsors = hasattr(club, 'sponsors_by_applicant')
@@ -285,13 +291,12 @@ def parse_sponsor_data_line(line):
         helpers.tofro_first_last(sponsor.strip())
         for sponsor in parts[1].split(", ")])
     return (name, sponsors)
-
-
 def populate_sponsor_data(club):
     """
     Reads sponsor & membership data files populating attributes:
         club.sponsors_by_applicant, 
-        club.emails by sponsor,
+        club.applicant_set,
+        club.sponsor_emails,
         club.sponsor_set.
     All names (whether keys or values) are formated "last, first".
     """
@@ -331,6 +336,7 @@ def populate_sponsor_data(club):
             name = member.member_name(record, club)
             if name in club.sponsor_set:
                 club.sponsor_emails[name] = record['email']
+    club.applicant_set = club.sponsors_by_applicant.keys()
 
 
 ## Plan to redact the following in favour of the above function.

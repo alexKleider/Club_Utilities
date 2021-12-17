@@ -919,19 +919,33 @@ def append_email(record, club):
         'From': sender,    # Mandatory field.
         'Sender': sender,   # 0 or 1
         'Reply-To': club.which['from']['reply2'],  # 0 or 1
-        'To': record['email'],  # O or 1 comma separated list.
-        'Cc': None,             # O or 1 comma separated list.
-        'Bcc': None,            # O or 1 comma separated list.
+        'To': record['email'],  # at least one ',' separated address
+        'Cc': '',             # O or 1 comma separated list.
+        'Bcc': '',            # O or 1 comma separated list.
         'Subject': club.which['subject'],  # 0 or 1
         'attachments': [],
         'body': body,
     }
     if club.cc_sponsors:
         name_key = member_name(record, club)
-        if name_key in club.sponsor_data.keys():
-            email['Cc'] = ','.join(club.sponsor_data[name_key])
-        if club.cc:
-            email['Cc'] = club.cc
+        if name_key in club.applicant_set:
+            sponsors = club.sponsors_by_applicant[name_key]
+            # Use list comprehension for the following:
+            sponsor_email_addresses = []
+            for sponsor in club.sponsors_by_applicant[name_key]:
+                print('{} sponsor: {}'.format(name_key, sponsor))
+                print('appending: {}'.format(
+                                club.sponsor_emails[sponsor]))
+                addr = club.sponsor_emails[sponsor]
+                if addr:
+                    sponsor_email_addresses.append(addr)
+            sponsor_email_addresses = ','.join(
+                    sponsor_email_addresses)
+        else: sponsor_email_addresses = ''
+        if club.cc: ccs = club.cc
+        else: ccs = ''
+        email['Cc'] = helpers.join_email_listings(
+                                        sponsor_email_addresses, ccs)
         if club.bcc:
             email['Bcc'] = club.bcc
         club.json_data.append(email)
@@ -987,13 +1001,13 @@ def prepare_mailing(club):
     Both use utils.prepare4mailing to assign attributes to <club>
     (See Notes/call_flow.)
     """
-    traverse_records(club.input_file_name,
+    traverse_records(club.infile,
                      club.which["funcs"],
                      club)  # 'which' comes from content
     # No point in creating a json file if no emails:
     if club.json_data:
         print("There is email to send.")
-        with open(club.json_file_name, 'w') as file_obj:
+        with open(club.json_file, 'w') as file_obj:
             print('Dumping JSON to "{}".'.format(file_obj.name))
             file_obj.write(json.dumps(club.json_data))
     else:
@@ -1014,6 +1028,8 @@ def std_mailing_func(record, club):
     """
     if club.which["test"](record):
         record["subject"] = club.which["subject"]
+        if club.cc_sponsors:
+            pass
         q_mailing(record, club)
 
 

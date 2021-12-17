@@ -18,6 +18,17 @@ import helpers
 import datetime
 
 
+
+s0 = ''
+s1 = "alex@kleider.ca"
+s2 = 'alexkleider@gmail.com,akleider@sonic.net,alexkleider@gmail.com,alex@kleider.ca'
+s3 = 'alexkleider@protonmail.com'
+res = "akleider@sonic.net, alex@kleider.ca, alexkleider@gmail.com, alexkleider@protonmail.com"
+
+def test_join_email_listings():
+    assert helpers.join_email_listings(s0, s1, s2, s3) == res
+
+
 def test_script_location():
     assert helpers.script_location() == (
     "/home/alex/Git/Club/Utils"
