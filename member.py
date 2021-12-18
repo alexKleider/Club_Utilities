@@ -45,7 +45,6 @@ STATUS_KEY_VALUES = {
     'z4_treasurer': "Treasurer",
     'z5_d_odd': "Director- term ends next odd year",
     'z6_d_even': "Director- term ends next even year",
-    'zaa': "Expressed an interest in joining",
     'zae': "Application expired or withdrawn",
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
@@ -55,7 +54,7 @@ APPLICANT_STATI = [                               # 'a' for bad!
     status for status in STATI if status.startswith('a')]
 APPLICANT_SET = set(APPLICANT_STATI)
 MISCELANEOUS_STATI = "m|w|be"
-NON_MEMBER_SET = APPLICANT_SET | {"h", "m", 't', 'zaa', 'zae'}  # bitwise OR
+NON_MEMBER_SET = APPLICANT_SET | {"h", "m", 't', 'zae'}  # bitwise OR
 NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
@@ -190,12 +189,6 @@ def get_status_set(record):
         # above returns set of one empty string if status is empty
     else: return set()
 
-
-nolongercare = '''
-def is_interested(record):
-    """has expressed an interest in joining"""
-    return 'zaa' in get_status_set(record)
-'''
 
 def is_applicant(record):
     """
@@ -627,11 +620,11 @@ def show_by_status(by_status,
                    stati2show=STATI,
                    club=None):
     """
-    <by_status> is a dict keyed by status.
+    First parameter, <by_status>, is a dict keyed by status.
     Returns a list of strings (which can be '\n'.join(ed))
     consisting of Keys as headers with values listed beneath each key.
     Second parameter can be used to restrict which stati to display.
-    If club is specified, its <ap_data> (applicant data) attribute is
+    If club is specified, its <applicant_data>  attribute is
     used to add dates and/or sponsors.
     """
     ret = []
@@ -641,21 +634,31 @@ def show_by_status(by_status,
                                     ret, underline_char='-')
             for line in by_status[status]:
                 ret.append(line)
-                if hasattr(club, 'app_data'):
-                    app_keys = club.app_data.keys()
+                if hasattr(club, 'applicant_data'):
                     key = get_name_key_from_line(line)
-                    if key in app_keys:
+                    if key in club.applicant_data_keys:
                         # create a line of dates
                         date_listing = data.list_of_dates(
-                                        club.app_data[key])
+                                        club.applicant_data[key])
                         if date_listing:
                             ret.append("\tDate(s) attended: {}"
                                     .format(
                                     ', '.join(date_listing)))
                         else:
                             ret.append("\tNo meetings attended.")
-                        ret.append("\tSponsors: {Sponsor1}, {Sponsor2}"
-                                   .format(**club.app_data[key]))
+#                       print("Applicant data: {}".format(
+#                           club.applicant_data[key].__repr__()))
+                        sponsors = club.applicant_data[key]['sponsors']
+                    else:
+                        print("{} has no dates!!".format(key))
+                    if sponsors:
+                        sponsors = ', '.join(
+                                [helpers.tofro_first_last(sponsor)
+                                for sponsor in sponsors])
+                        print(sponsors)
+                        ret.append("\tSponsors: {}".format(sponsors))
+                    else:
+                        print("{} has no sponsors!!".format(key))
     return ret
 
 
@@ -806,7 +809,8 @@ def add2lists(record, club):
     """
     Populates club.members, club.honorary, club.inactive, (if web=True)
               club.stati, club.applicants,
-              club.inductees and
+              club.inductees, club.by_n_meetings and
+####### Change "by_n_meetings" to "by_applicant_status"
               club.errors (initially empty lists)
     and increments club.nmembers,
                    club.napplicants and
@@ -827,7 +831,6 @@ def add2lists(record, club):
         club.honorary.append(line)
         club.nhonorary += 1
     if is_inactive_member(record):
-#       print(line)   # DEBUG
         club.inactive.append(line)
         club.ninactive +=1
     if is_applicant(record):
@@ -840,7 +843,9 @@ def add2lists(record, club):
         s = status.pop()
         _ = club.by_n_meetings.setdefault(s, [])
         club.by_n_meetings[s].append(line)
-        # add metadata here (dates of meetings; sponsors)
+        # metadata (dates of meetings; sponsors)
+        # being appended by utils.show_cmd as it is building the
+        # output.
 
 
 def add2names(record, club):
@@ -1176,8 +1181,11 @@ prerequisites = {   # collectors needed by the
         'club.malformed = []',
         ],
     add2lists: [
-        """club.pattern = ("{first} {last}  [{phone}]  {address}, " +
-                    "{town}, {state} {postal_code} [{email}]")""",
+        # ACTION REQUIRED
+        # 1st is redundant (duplicates club.format vs pattern;
+        # the latter is assigned by utils.show_cmd().)
+#       """club.pattern = ("{first} {last}  [{phone}]  {address}, " +
+#                   "{town}, {state} {postal_code} [{email}]")""",
         'club.members = []',
         'club.nmembers = 0',
         'club.honorary = []',

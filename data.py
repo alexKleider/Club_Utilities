@@ -204,14 +204,15 @@ def applicant_data_line2record(line):
 
 def populate_applicant_data(club):
     """
-    Reads applicant data file populating attribute:
-        club.applicant_data: a dict with keys == applicants
+    reads applicant data file populating two attributes:
+    1. club.applicant_data: a dict with keys == applicants
         and each value is a record with the following fields:
             "first", "last", "status",  # The rest are dates
             "app_rcvd", "fee_rcvd",     # or empty string if
             "1st", "2nd", "3rd",        # event hasn't
             "inducted", "dues_paid",    # happened yet.
             "Sponsor1", "Sponsor2" 
+    2. club.applicant_data_keys
     Note: sponsor data, if already collected, is included.
     """
     sponsors = hasattr(club, 'sponsors_by_applicant')
@@ -226,6 +227,7 @@ def populate_applicant_data(club):
             if sponsors and name in sponsored:
                 rec["sponsors"] = club.sponsors_by_applicant[name]
             club.applicant_data[name] = rec
+        club.applicant_data_keys = club.applicant_data.keys()
 
 
 ### Expect to redact the following in favour of the above. ###
@@ -384,19 +386,37 @@ def list_of_dates(applicant_datum):
     return dates
 
 
-def get_meeting_dates(applicant_data):
+def get_meeting_dates(applicant, club):
     """
-    ## to be redacted ##
-    <applicant_data> is a dict of records as returned by the
-    function get_applicant_data (which in turn reads a file
-    in the format of rbc.Club.APPLICANT_SPoT.)
-    Returns a dict keyed by member name ('{last}, {first}')
-    with each value being a list of dates of meetings attended.
+    Depends on the club.applicant_data attribute.
+    Returns None if data unavailable, otherwise:
+    Returns a dict with two entries (each possibly empty:)
+        'dates': list (possible empty) of meeting dates attended 
+        'sponsors': list (possibly empty) of sponsors)
     """
-    ret = {}
-    for key in applicant_data.keys():
-        dates = list_of_dates(applicant_data[key])
-        ret[key] = dates
+    if not hasattr(club, applicant_data):
+        print("!! No club.applicant_data attribute  !!")
+        return 
+    try:
+        rec = club.applicant_data[applicant]
+    except KeyError:
+        print("!! No data for applicant {} !!".format(applicant))
+        return
+    ret = {"dates": [], "sponsors": []}
+    dates = []
+    for key in ("1st", "2nd", "3rd", "inducted", "dues_paid"):
+        val = rec[key]
+        if val:
+            dates.append(val)
+    if dates:
+        ret["dates"] = (', '.join(dates))
+    sponsors = []
+    for key in ("Sponsor1", "Sponsor2"):
+        val = rec[key]
+        if val:
+            sponsors.append(val)
+    if sponsors:
+        ret['sponsors'](', ',join(sponsors))
     return ret
 
 

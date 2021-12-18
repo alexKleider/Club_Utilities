@@ -463,7 +463,7 @@ def show_cmd(args=args):
     club.for_web = True
     err_code = member.traverse_records(
         club.infile,
-        [member.add2lists,
+        [member.add2lists,  # collects data into attributes of <club>
         ],
         club)
 
@@ -492,11 +492,15 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
             "Inactive Club Member(s)", ret,
             underline_char='=', extra_line=True)
         ret.extend(club.inactive)
-    if club.by_n_meetings:
+    if club.by_n_meetings:  # change to "by_applicant_status"
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
         helpers.add_header2list(header, ret, underline_char='=')
-        ret.extend(member.show_by_status(club.by_n_meetings, club=club))
+
+        ret.extend(member.show_by_status(
+                                club.by_n_meetings, # name change
+                                club=club))
+
     output("\n".join(ret), club.outfile)
 
 
