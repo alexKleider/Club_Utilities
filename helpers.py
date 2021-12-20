@@ -27,6 +27,7 @@ N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
               # should instead use rbc.Club.N_FRIDAY???
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
+CURRENT_CENTURY = '20'
 
 def str_add(*args):
     total = 0
@@ -54,12 +55,12 @@ def join_email_listings(*args):
     return ','.join(sorted(set(res)))
 
 
-notused = '''
+# the following is notused...
 def script_location():
     return os.getcwd()
-'''
 
-def useful_lines(stream, comment=None):
+
+def useful_lines(stream, comment="#"):
     """
     accepts a stream of lines and returns non blank lines that are not
     comments
@@ -214,10 +215,9 @@ def club_year(which='this', now=datetime.date.today()):
         return "{}-{}".format(now.year + n -1, now.year + n)
 
 
-# the following is not used but might be helpful.
 def expand_date(date_string):
     if len(date_string) == 6:
-        year = '20{}'.format(date_string[:2])
+        year = '{}{}'.format(CURRENT_CENTURY, date_string[:2])
     elif len(date_string) == 8:
         year = date_string[:4]
     else:

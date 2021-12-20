@@ -23,7 +23,7 @@ s0 = ''
 s1 = "alex@kleider.ca"
 s2 = 'alexkleider@gmail.com,akleider@sonic.net,alexkleider@gmail.com,alex@kleider.ca'
 s3 = 'alexkleider@protonmail.com'
-res = "akleider@sonic.net, alex@kleider.ca, alexkleider@gmail.com, alexkleider@protonmail.com"
+res = "akleider@sonic.net,alex@kleider.ca,alexkleider@gmail.com,alexkleider@protonmail.com"
 
 def test_join_email_listings():
     assert helpers.join_email_listings(s0, s1, s2, s3) == res
@@ -54,7 +54,7 @@ def test_useful_lines():
     "indented => unindented line",
         ]
     assert [line for line in helpers.useful_lines(
-            stream)] == expected
+            stream, comment='')] == expected
 
 
 def test_useful_lines_without_comments():
@@ -130,6 +130,9 @@ def test_club_year(which, now, expected):
     ("20201206", "2020-12-06"),
     ("210606", "2021-06-06"),
     ("20210606", "2021-06-06"),
+    ('201225', '2020-12-25'),
+    ('210703', '2021-07-03'),
+    ('220101', '2022-01-01'),
     ])
 def test_expand_date(date_string, expected):
     assert helpers.expand_date(date_string) == expected
@@ -140,11 +143,6 @@ def test_expand_date(date_string, expected):
     ])
 def test_get_datestamp_w_valid_datetime_params(date_obj, expected):
     assert helpers.get_datestamp(date_obj) == expected
-'''
-def test_get_datestamp_w_valid_datetime_params():
-    assert (helpers.get_datestamp(datetime.date(1945,7,3)) == 
-            'Jul 03, 1945')
-'''
 
 
 def test_get_datestamp_fails_if_invalid_parameter_provided():
@@ -294,4 +292,5 @@ def test_clarify__cc_w_keyword(source, keyword, expected):
     ])
 def test_tofro_first_last(source, expected):
     assert helpers.tofro_first_last(source) == expected
+
 

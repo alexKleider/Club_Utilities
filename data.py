@@ -148,15 +148,19 @@ def move_date_listing_into_record(dates, record):
         try:
             record[key] = dates[index]
         except IndexError:
-            record[key] = None
+            continue
+            record[key] = ''
 
 
 def applicant_data_line2record(line):
     """
     Assumes a valid line from the Data/applicant.txt file.
-    If parsing fails, None is returned.
     Otherwise a dict is returned with keys listed in 
-    Club.APPLICANT_DATA_FIELD_NAMES
+    Club.APPLICANT_DATA_FIELD_NAMES: "first", "last", "status", 
+        "app_rcvd", "fee_rcvd", 
+        "1st", "2nd", "3rd",
+        "inducted", "dues_paid",
+        "Sponsor1", "Sponsor2",
     """
     ret = {}
     for key in Club.APPLICANT_DATA_FIELD_NAMES:
@@ -167,6 +171,7 @@ def applicant_data_line2record(line):
     parts = [part.strip() for part in parts]
     names = parts[0].split()
 #   key = "{}, {}".format(names[1], names[0]) 
+#   print(names)
     ret['first'] = names[0]
     ret['last'] = names[1]
     dates = parts[1:]
@@ -177,8 +182,11 @@ def applicant_data_line2record(line):
         l -= 1
     else:
         _status = ''
-    if l == 0:               # for meanings
-        status = "zaa"
+    if l == 0:           # Should never have an entry /w no dates.
+        status = "zaa"   # No longer a valid status
+        print("Entry for {}{} is without any dates."
+                .format(names[0], names[1]))
+        sys.exit()
     elif l == 1:               # one date listed
         status = "a-"
     elif l == 2:
@@ -193,7 +201,10 @@ def applicant_data_line2record(line):
         status = "ad"
     elif l == 7:
         status = "m"
-    else: assert(False)
+    else:
+        print("Entry for {}{} has an invalid number of dates."
+                .format(names[0], names[1]))
+        sys.exit()
     move_date_listing_into_record(dates, ret)
     if _status:
         ret['status'] = _status
