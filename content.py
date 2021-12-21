@@ -369,12 +369,12 @@ about the Club and your privileges as a member there of.""",
 
     second_request_inductee_payment="""
 Your application for Club membership was approved by the
-Club Executive Committee at its last meeting and membership
-fees have been requested but as yet not received.  Until
-payment is received you are not yet a member.  This could
-create a problem for the Exec committee since there are applicants
+Club Executive Committee and membership fees have been
+requested but as yet not received.  Until payment is
+received you are not yet a member.  This could create a
+problem for the Exec committee since there are applicants
 ready to take the spot that you would take if, but only if, the
-dues are paid.  The Committee meets in less than a week!
+dues are paid.
 
 Please send a check for ${current_dues} to the Club
 (address provided below.)""",

@@ -214,9 +214,12 @@ def is_inductee(record):
     '''
     '''
     stati = get_status_set(record)
-    if stati & {'ai', 'aw'}:
+    if stati & {'ad'}:
+        _ = input("{first} {last} is an inductee"
+            .format(**record))
         return True
-    else: return False
+    else:
+        return False
 
 
 def is_waiting(record):
@@ -261,12 +264,6 @@ def is_dues_paying(record):
     stati = get_status_set(record)
     if 'ai' in stati or 'ad' in stati:
         return True
-
-
-def is_inductee(record):
-    """
-    """
-    return 'ai' in get_status_set(record)
 
 
 def is_new_member(record):
@@ -654,7 +651,7 @@ def show_by_status(by_status,
                         sponsors = ', '.join(
                                 [helpers.tofro_first_last(sponsor)
                                 for sponsor in sponsors])
-                        print(sponsors)
+#                       print(sponsors)
                         ret.append("\tSponsors: {}".format(sponsors))
                     else:
                         print("{} has no sponsors!!".format(key))
