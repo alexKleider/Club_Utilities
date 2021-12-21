@@ -215,16 +215,17 @@ def applicant_data_line2record(line):
 
 def populate_applicant_data(club):
     """
-    reads applicant data file populating two attributes:
+    Reads applicant data file populating two attributes:
     1. club.applicant_data: a dict with keys == applicants
         and each value is a record with the following fields:
-            "first", "last", "status",  # The rest are dates
-            "app_rcvd", "fee_rcvd",     # or empty string if
-            "1st", "2nd", "3rd",        # event hasn't
-            "inducted", "dues_paid",    # happened yet.
-            "Sponsor1", "Sponsor2" 
+            "first", "last", "status",
+            "app_rcvd", "fee_rcvd",   #} date (or empty
+            "1st", "2nd", "3rd",      #} string if event
+            "inducted", "dues_paid",  #} hasn't happened.
+            "Sponsor1", "Sponsor2"   # empty string if not available
     2. club.applicant_data_keys
-    Note: sponsor data, if already collected, is included.
+    Note: Sponsor data is included if populate_sponsor_data has
+    already been run, othwise, the values remain as empty strings.
     """
     sponsors = hasattr(club, 'sponsors_by_applicant')
     if sponsors: sponsored = club.sponsors_by_applicant.keys()
@@ -241,7 +242,9 @@ def populate_applicant_data(club):
         club.applicant_data_keys = club.applicant_data.keys()
 
 
+redacted = '''
 ### Expect to redact the following in favour of the above. ###
+#   But must first refactor ck_data which still uses it!     #
 
 def get_applicant_data(spot, sponsor_file=None):
     """
@@ -268,6 +271,9 @@ def get_applicant_data(spot, sponsor_file=None):
     return ret
 
 
+### Expect to redact the following.                      ###
+#   But must first refactor ck_data which still uses it!   #
+
 def get_applicants_by_status(applicant_data):
     """
     Param is what's returned by get_applicant_data.
@@ -286,6 +292,8 @@ def get_applicants_by_status(applicant_data):
         _ = ret.setdefault(status, [])
         ret[status].append(name)
     return ret
+'''
+
 
 def parse_sponsor_data_line(line):
     """
@@ -304,6 +312,8 @@ def parse_sponsor_data_line(line):
         helpers.tofro_first_last(sponsor.strip())
         for sponsor in parts[1].split(", ")])
     return (name, sponsors)
+
+
 def populate_sponsor_data(club):
     """
     Reads sponsor & membership data files populating attributes:
@@ -316,14 +326,6 @@ def populate_sponsor_data(club):
     club.sponsor_set = set()  # eschew duplicates!
     club.sponsor_emails = dict()
     club.sponsors_by_applicant = dict()
-#   if not hasattr(club, 'sponsor_spot'):
-#       print("Assigning default sponsor_spot.")
-#       club.sponsor_spot = club.SPONSORS_SPoT
-#   else:
-#       print("sponsor_spot already assigned to {}."
-#               .format(club.sponsor_spot))
-#   if not hasattr(club, 'infile'):
-#       club.infile = club.MEMBERSHIP_SPoT
     with open(club.sponsor_spot, 'r') as stream:
         print('Reading file "{}"...'.format(stream.name))
         for line in helpers.useful_lines(stream, comment='#'):
@@ -335,7 +337,6 @@ def populate_sponsor_data(club):
             except IndexError:
                 print("IndexError: {} sponsors???".format(name))
                 sys.exit()
-            # sponsors: ['first1 last1', 'first2 last2']
             sponsors = [helpers.tofro_first_last(name)
                         for name in sponsors]
             for sponsor in sponsors:
@@ -352,7 +353,9 @@ def populate_sponsor_data(club):
     club.applicant_set = club.sponsors_by_applicant.keys()
 
 
+redacted = '''
 ## Plan to redact the following in favour of the above function.
+# it's being used by get_applicant_data which is also to be redacted.
 def get_sponsor_data(spot):
     """
     <spot> is name of file (usual default: rbc.Club.SPONSORS_SPoT.
@@ -369,6 +372,19 @@ def get_sponsor_data(spot):
             (name, sponsors) = (tup[0], tup[1])
             ret[name] = sponsors
     return ret
+'''
+
+
+def line_of_meeting_dates(applicant_datum):
+    """
+    Returns a string: comma separated listing of meeting dates.
+    """
+    dates = []
+    for date_key in Club.MEETING_DATE_NAMES:
+        if applicant_datum[date_key]:
+            dates.append(applicant_datum[date_key])
+    return ', '.join(dates)
+
 
 redacted = '''
 def get_emails(list_of_members, file_name=Club.MEMBERSHIP_SPoT):
@@ -383,7 +399,6 @@ def get_emails(list_of_members, file_name=Club.MEMBERSHIP_SPoT):
         for record in d_reader:
             pass
     return ret
-'''
 
 
 def list_of_dates(applicant_datum):
@@ -429,6 +444,24 @@ def get_meeting_dates(applicant, club):
     if sponsors:
         ret['sponsors'](', ',join(sponsors))
     return ret
+
+
+def gather_sponsors(infile):
+    """
+    Read file typified by Data/sponsors.txt
+    and return a dict keyed by 'last, first' names with sponsors as
+    values.
+    """
+    ret = {}
+    with open(infile, 'r') as file_obj:
+        for line in helpers.useful_lines(file_obj, comment='#'):
+            parts = line.split(':')
+            names = parts[0].split()
+            name = "{}, {}".format(names[1], names[0])
+            sponsors = parts[1].strip()
+            ret[name] = sponsors
+    return ret
+'''
 
 
 def gather_extra_fees_data(extra_fees_spot, json_file=None):
@@ -490,24 +523,6 @@ def gather_extra_fees_data(extra_fees_spot, json_file=None):
     return {Club.NAME_KEY: by_name,
             Club.CATEGORY_KEY: by_category,
             }
-
-redacted = '''
-def gather_sponsors(infile):
-    """
-    Read file typified by Data/sponsors.txt
-    and return a dict keyed by 'last, first' names with sponsors as
-    values.
-    """
-    ret = {}
-    with open(infile, 'r') as file_obj:
-        for line in helpers.useful_lines(file_obj, comment='#'):
-            parts = line.split(':')
-            names = parts[0].split()
-            name = "{}, {}".format(names[1], names[0])
-            sponsors = parts[1].strip()
-            ret[name] = sponsors
-    return ret
-'''
 
 def extra_charges(club, raw=False):
     """
@@ -666,7 +681,9 @@ def ck_data(club,
     helpers.add_header2list("Report Regarding Data Integrity",
                             ret, underline_char='#', extra_line=True)
     # Collect data from csv files ==> club attributes:
+    # collect info from main data base:
     gather_membership_data(club)
+    # collect info from club gmail account contacts:
     gather_contacts_data(club)  # Sets up and populates:
     # club.gmail_by_name (string)
     # club.groups_by_name (set)     # club.g_by_group (set)
@@ -679,7 +696,7 @@ def ck_data(club,
 #       applicant_set = club.g_by_group[club.APPLICANT_GROUP]
 #   KeyError: 'applicant'
 # ... check that the contacts.cvs file came from the Club's gmail
-# account, not another!!!
+# account, not someone else's!!!
     applicant_set = club.g_by_group[club.APPLICANT_GROUP]
     applicant_missmatches = helpers.check_sets(
         applicant_set,
@@ -716,8 +733,10 @@ def ck_data(club,
 
     # Collect data from custom files ==> local variables
     extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
-    a_applicants = get_applicants_by_status(
-        get_applicant_data(club.APPLICANT_SPoT))
+    populate_sponsor_data(club)
+    populate_applicant_data(club)
+    applicants_by_status = get_applicants_by_status(
+        club.applicant_data)
 
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
@@ -749,14 +768,14 @@ def ck_data(club,
     for key in keys:
         if not (key in member.APPLICANT_SET):
             val = (club.ms_by_status.pop(key))
-    a_applicants = helpers.keys_removed(a_applicants,
+    applicants_by_status = helpers.keys_removed(applicants_by_status,
                                         ('m', 'zae'))
-    a_applicantsets = helpers.lists2sets(a_applicants)
+    applicants_by_status = helpers.lists2sets(applicants_by_status)
     ms_by_status_sets = helpers.lists2sets(club.ms_by_status)
-    if a_applicantsets != ms_by_status_sets:
+    if applicants_by_status != ms_by_status_sets:
         ret.append("\nApplicant problem:")
         ret.append("The following data from applicant SPoT-")
-        ret.extend(helpers.show_dict(a_applicants, extra_line=False))
+        ret.extend(helpers.show_dict(applicants_by_status, extra_line=False))
         ret.append("- does not match the following membership SPot-")
         ret.extend(helpers.show_dict(club.ms_by_status,
                    extra_line=False))
@@ -905,6 +924,7 @@ def data_listed(data, underline_char='=', inline=False):
     return ret
 
 
+# the following (compare function) is not used?  Redact?
 def compare(data1, data2, underline_char='=', inline=False):
     ret = []
     if data1 == data2:
@@ -917,6 +937,7 @@ def compare(data1, data2, underline_char='=', inline=False):
     ret.extend(data_listed(data2, underline_char, inline))
     ret.append("... end of listings")
     return ret
+
 
 redacted = '''
 def test_ck_data():

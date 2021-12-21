@@ -638,12 +638,11 @@ def show_by_status(by_status,
                     key = get_name_key_from_line(line)
                     if key in club.applicant_data_keys:
                         # create a line of dates
-                        date_listing = data.list_of_dates(
+                        dates_attended = data.line_of_meeting_dates(
                                         club.applicant_data[key])
-                        if date_listing:
+                        if dates_attended:
                             ret.append("\tDate(s) attended: {}"
-                                    .format(
-                                    ', '.join(date_listing)))
+                                    .format(dates_attended))
                         else:
                             ret.append("\tNo meetings attended.")
 #                       print("Applicant data: {}".format(

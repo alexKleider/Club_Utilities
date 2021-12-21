@@ -23,6 +23,7 @@ s0 = ''
 s1 = "alex@kleider.ca"
 s2 = 'alexkleider@gmail.com,akleider@sonic.net,alexkleider@gmail.com,alex@kleider.ca'
 s3 = 'alexkleider@protonmail.com'
+s4 = 'sponsor'
 res = "akleider@sonic.net,alex@kleider.ca,alexkleider@gmail.com,alexkleider@protonmail.com"
 
 def test_join_email_listings():
