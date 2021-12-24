@@ -242,57 +242,23 @@ def populate_applicant_data(club):
         club.applicant_data_keys = club.applicant_data.keys()
 
 
-redacted = '''
-### Expect to redact the following in favour of the above. ###
-#   But must first refactor ck_data which still uses it!     #
-
-def get_applicant_data(spot, sponsor_file=None):
+def get_applicants_by_status(club):
     """
-    Reads SPoT(s): the applicant data file +/- the sponsor file.
-    Returns a dict keyed by applicant names ("last, first").
-    Values are records (dicts) with fields as defined by
-    rbc.Club.APPLICANT_DATA_FIELD_NAMES.
-    """
-    if sponsor_file:
-        sponsor_data = get_sponsor_data(sponsor_file)
-        sponsored_applicants = set(sponsor_data.keys())
-    ret = {}
-    with open(spot, 'r') as src:
-        print('Reading file "{}"...'.format(src.name))
-        for line in helpers.useful_lines(src, comment='#'):
-            res = applicant_data_line2record(line)
-            name = member.get_last_first(res)
-            ret[name] = res
-            if sponsor_file and name in sponsored_applicants:
-                sponsors = sponsor_data[name]
-                assert len(sponsors) == 2
-                ret[name]['Sponsor1'] = sponsors[0].strip()
-                ret[name]['Sponsor2'] = sponsors[1].strip()
-    return ret
-
-
-### Expect to redact the following.                      ###
-#   But must first refactor ck_data which still uses it!   #
-
-def get_applicants_by_status(applicant_data):
-    """
-    Param is what's returned by get_applicant_data.
-    Returns a dict keyed by status; values are each
-    a list of applicant ('last, first') names.
+    Uses the <club> attribute <applicant_data> to return
+    a dict keyed by status;
+    values are each a list of applicant ('last, first') names.
     Note: also possible to get applicants by status from the main data
     base- this function uses data supplied by get_applicant_data which
     uses the applicant data files (rather than the main data base.)
+    NOTE: May want to refactor so this function uses
+    <club_applicant_data> as a parameter rather than <club>.
     """
-    #### Want to refactor so 'club' is a parameter along with  ####
-    #### a format string which defaults to "{first} {last}".   ####
-    # def get_applicants_by_status(club, fmt_str='{first} {last'}):
     ret = {}
-    for name in applicant_data.keys():
-        status = applicant_data[name]['status']
+    for name in club.applicant_data.keys():
+        status = club.applicant_data[name]['status']
         _ = ret.setdefault(status, [])
         ret[status].append(name)
     return ret
-'''
 
 
 def parse_sponsor_data_line(line):
@@ -353,28 +319,6 @@ def populate_sponsor_data(club):
     club.applicant_set = club.sponsors_by_applicant.keys()
 
 
-redacted = '''
-## Plan to redact the following in favour of the above function.
-# it's being used by get_applicant_data which is also to be redacted.
-def get_sponsor_data(spot):
-    """
-    <spot> is name of file (usual default: rbc.Club.SPONSORS_SPoT.
-    Returns a dict: keys are '2nd, 1st' names,
-                    values are tuples of sponsors.
-    Used by get_applicant_data (if sponsor_file is specified.)
-    Also used when sponsors are to be 'cc'ed emails to applicants
-    """
-    ret = {}
-    with open(spot.strip(), 'r') as src:
-        print('Reading file "{}"...'.format(src.name))
-        for line in helpers.useful_lines(src, comment='#'):
-            tup = parse_sponsor_data_line(line)
-            (name, sponsors) = (tup[0], tup[1])
-            ret[name] = sponsors
-    return ret
-'''
-
-
 def line_of_meeting_dates(applicant_datum):
     """
     Returns a string: comma separated listing of meeting dates.
@@ -384,84 +328,6 @@ def line_of_meeting_dates(applicant_datum):
         if applicant_datum[date_key]:
             dates.append(applicant_datum[date_key])
     return ', '.join(dates)
-
-
-redacted = '''
-def get_emails(list_of_members, file_name=Club.MEMBERSHIP_SPoT):
-    """
-    <list_of_members> is a list in '{last}, {first}' format.
-    Returns a dict keyed by members of the list with their email
-    address as a value for each.
-    """
-    ret = dict()
-    with open(file_name, 'r') as stream:
-        d_reader = csv.DictReader(stream)
-        for record in d_reader:
-            pass
-    return ret
-
-
-def list_of_dates(applicant_datum):
-    """
-    Returns a list if meeting dates.
-    """
-    dates = []
-    for date_key in Club.MEETING_DATE_NAMES:
-        if applicant_datum[date_key]:
-            dates.append(applicant_datum[date_key])
-    return dates
-
-
-def get_meeting_dates(applicant, club):
-    """
-    Depends on the club.applicant_data attribute.
-    Returns None if data unavailable, otherwise:
-    Returns a dict with two entries (each possibly empty:)
-        'dates': list (possible empty) of meeting dates attended 
-        'sponsors': list (possibly empty) of sponsors)
-    """
-    if not hasattr(club, applicant_data):
-        print("!! No club.applicant_data attribute  !!")
-        return 
-    try:
-        rec = club.applicant_data[applicant]
-    except KeyError:
-        print("!! No data for applicant {} !!".format(applicant))
-        return
-    ret = {"dates": [], "sponsors": []}
-    dates = []
-    for key in ("1st", "2nd", "3rd", "inducted", "dues_paid"):
-        val = rec[key]
-        if val:
-            dates.append(val)
-    if dates:
-        ret["dates"] = (', '.join(dates))
-    sponsors = []
-    for key in ("Sponsor1", "Sponsor2"):
-        val = rec[key]
-        if val:
-            sponsors.append(val)
-    if sponsors:
-        ret['sponsors'](', ',join(sponsors))
-    return ret
-
-
-def gather_sponsors(infile):
-    """
-    Read file typified by Data/sponsors.txt
-    and return a dict keyed by 'last, first' names with sponsors as
-    values.
-    """
-    ret = {}
-    with open(infile, 'r') as file_obj:
-        for line in helpers.useful_lines(file_obj, comment='#'):
-            parts = line.split(':')
-            names = parts[0].split()
-            name = "{}, {}".format(names[1], names[0])
-            sponsors = parts[1].strip()
-            ret[name] = sponsors
-    return ret
-'''
 
 
 def gather_extra_fees_data(extra_fees_spot, json_file=None):
@@ -735,8 +601,7 @@ def ck_data(club,
     extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
     populate_sponsor_data(club)
     populate_applicant_data(club)
-    applicants_by_status = get_applicants_by_status(
-        club.applicant_data)
+    applicants_by_status = get_applicants_by_status(club)
 
     # Deal with MEMBERSHIP data-
     # First check for malformed records:
