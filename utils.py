@@ -215,6 +215,7 @@ import shutil
 import csv
 import codecs
 import sys
+import platform
 import time
 import random
 import json
@@ -1263,6 +1264,8 @@ def mutt_send(recipient, subject, body, attachments=None):
 
 
 if __name__ == "__main__":
+    print("Architecture: {}  Platform: {}".
+            format(platform.architecture(), sys.platform))
     using_curses = False
     confirm = True
 

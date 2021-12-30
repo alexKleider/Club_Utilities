@@ -3,10 +3,11 @@
 # File: rbc.py
 
 """
-This module is specific to the Bolinas Rod and Boat Club
-data as maintained in the (4 or 5, depending how you count)
+This module is specific to the Bolinas Rod and Boat Club.
+Data as maintained in the (4 or 5, depending how you count)
 SPoT (Single Point of Truth) files.
-It provides the <Club> class.
+It provides the <Club> class which serves largely to keep track of
+global values.  Only one instance at a time.
 Most of class Club (all of its methods) is/are being redacted,
 its/their functionality having been moved elsewhere.
 """
@@ -105,6 +106,12 @@ class Club(object):
                    ' {state}, {postal_code} [{email}]')
     # # ...end of Constants and Defaults.
 
+    n_instances = 0
+
+    @classmethod
+    def inc_n_instances(cls):
+        cls.n_instances += 1
+
     def __init__(self, args=None, params=None):
         """
         <args> are the command line arguments provided by docopts.
@@ -113,6 +120,10 @@ class Club(object):
         no longer used. Each instance needed to know the format
         of the media.
         """
+        if self.n_instances > 0:
+            raise NotImplementedError("Only one instance allowed.")
+        self.inc_n_instances()
+
         if args:  # args from docopt
             # the body of this if statement replaces the need for
             # <utils.file_name_args2attributes(self, params)>
