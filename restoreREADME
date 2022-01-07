@@ -13,10 +13,12 @@ Guide to Cloning the Repository and Restoring Backed up Data
     # mount /dev/sdb1 Mnt
     # exit   # No need for root privileges (unitl umounting.)
     $ LAST=`cat Mnt/Club/last`  # Pick up date of last backup.
+    # Mine is in /home/alex/Git/Club/Utils
     $ mkdir Club  # Pick a project name & create a directory for it.
     $ cd Club   # Move into the project directory.
     $ git clone https://github.com/alexKleider/Club_Utilities
     ## Alternate URL: git@github.com:alexKleider/Club_Utilities.git
+    # The above works for me because I have authentication set up.
     $ mv Club_Utilities Utils  # Repos is cloned and renamed.
     $ cp -a ~/Mnt/Club/${LAST}/* ./  # Copy bu data => proj dir.
     #

@@ -214,7 +214,7 @@ def is_inductee(record):
     '''
     '''
     stati = get_status_set(record)
-    if stati & {'ad'}:
+    if stati & {'ai'}:
         _ = input("{first} {last} is an inductee"
             .format(**record))
         return True
