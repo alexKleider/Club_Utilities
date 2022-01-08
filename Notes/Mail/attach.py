@@ -1,6 +1,8 @@
 """
 This code comes from vijay.anand and can be found here:
 https://stackoverflow.com/questions/52292971/sending-single-email-with-3-different-attachments-python-3
+
+I don't remember if I ever got it to work.
 """
 import smtplib
 import mimetypes

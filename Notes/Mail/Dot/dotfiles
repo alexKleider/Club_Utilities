@@ -12,3 +12,7 @@ for sending emails:
 -rw------- 1 alex alex     9 May 27 11:52 .pw.clubg
 -rw------- 1 alex alex     9 May 27 11:51 .pw.easy
 -rw------- 1 alex alex     9 May 27 11:51 .pw.sonic
+
+Since we by default always use the Club's gmail account,
+the only one needed is '.pw.clubg' which needs to contain nothing
+except the club's gmail password in plain text.
