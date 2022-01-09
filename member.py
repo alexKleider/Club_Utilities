@@ -53,6 +53,9 @@ SPECIAL_NOTICE_STATI = set(                        # 'b' for bad!
 APPLICANT_STATI = [                               # 'a' for bad!
     status for status in STATI if status.startswith('a')]
 APPLICANT_SET = set(APPLICANT_STATI)
+EXEC_STATI = [ status for status in STATI if (
+                   status.startswith('z') and (status != 'zae'))]
+EXEC_SET = set(EXEC_STATI)
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | {"h", "m", 't', 'zae'}  # bitwise OR
 NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
@@ -419,6 +422,10 @@ def add2stati_by_m(record, club):
 
 def add2ms_by_status(record, club):
     if record['status']:
+        if record['last'] == 'Ferris':
+            print("Ferris's status is {}".format(record['status']))
+        if record['last'] == 'McPhail':
+            print("McPhail's status is {}".format(record['status']))
         stati = get_status_set(record)
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])

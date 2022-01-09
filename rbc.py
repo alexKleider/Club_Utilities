@@ -65,8 +65,6 @@ class Club(object):
                     "Exclude",
                     "Info",
                     "Mydata",
-                    "NonRepo",
-                    "Temp",
                     )
 
 

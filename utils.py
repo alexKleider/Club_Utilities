@@ -19,7 +19,7 @@ Usage:
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py stati [-O -D -M -B -m -s stati --mode <mode> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
@@ -79,13 +79,6 @@ Options:
               (whether for input or output depends on context.)
   -l  Long format for demographics (phone & email as well as address)
   -m  Maximum data  Same as including -DMB. See also -I
-  --mode <mode>   In stati command signals stati to show:
-            If not specified, all stati are reported.
-            | --mode <any string beginning with 'applic'>:
-            only applicants are reported
-            | --mode <<glbs.SEPARATOR> separated list of stati>:
-            only listed stati are reported.
-        (See -s <stati>: the two should be amalgamated.)
   --mta <mta>  Specify mail transfer agent to use. Choices are:
                 clubg     club's gmail account  [default: clubg]
                 akg       my gmail account
@@ -102,9 +95,14 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Deals with printer variablility; ensures correct
         alignment of text when printing letters. [default: X6505_e1]
-  -s <stati>   Report only the stati listed.
+  -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
-        (See also --mode <mode>: the two should be amalgamated.)
+            If not specified, all stati are reported.
+            Stati may include:
+                <any string beginning with 'appl'>:
+                    all applicants are included
+                <any string beginning with 'exec'>:
+                    all members of exec committee are included
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --subject <subject>  The subject line of an email.
   -t <2thank>   Input for thank_cmd. It must be a csv file in same
@@ -276,13 +274,12 @@ def set_default_args_4curses(args):
     args['-j'] = Club.JSON_FILE_NAME4EMAILS
     args['-l'] = True
     args['-m'] = True
-#   args['--mode'] = ''  # used by stati command
 #   args['--mta'] = 'clubg'  # default set by docopt
     args['-o'] = '2check.txt'
 #   args['-O'] = False   # Not used by curses interface
     args['--oo'] = False
 #   args['-p'] = 'X6505_e1'  # default set by docopt
-#   args['-s'] = ''  # to be deprecated in favour of --mode
+#   args['-s'] = ''
     args['-S'] = Club.SPONSORS_SPoT
 #   args['--subject'] = ''  # subject line of an email
     args['-t'] = Club.THANK_FILE
@@ -531,6 +528,29 @@ def assign_applicant_files(club):
         club.sponsor_file = Club.SPONSORS_SPoT
 
 
+def replace_with_in(s, rl, l):
+    """
+    <s> is a string
+    <rl> & <l> are iterables containing strings
+    A list is returned.
+    Each item of l is examined and
+        if it contains <s>
+            <rl> is added to the returned list
+        else the item itself is added to the returned list
+    which is returned sorted with no duplicates.
+    """
+    new_listing = []
+    for item in set(l):
+#       print("got '{}', ".format(item), end='')
+        if s in item:
+#           print("found '{}', ".format(s), end='')
+            new_listing.extend(rl)
+        else:
+            new_listing.append(item)
+#       print("now listing is '{}'".format(sorted(set(new_listing))))
+    return sorted(set(new_listing))
+
+
 def setup4stati(club):
     club.infile = args["-i"]
     if not club.infile:
@@ -542,17 +562,26 @@ def setup4stati(club):
         club.include_dates = args['-M']
     if not hasattr(club, "include_sponsors"):
         club.include_sponsors = args['-B']
-    if not hasattr(club, "which2show"):
-        whch2show = args['--mode']  # signals stati to show
-    if whch2show:
-        if 'applic' in whch2show:
-            club.stati2show = set(member.APPLICANT_STATI)
-        else:
-            club.stati2show = set(whch2show.split(glbs.SEPARATOR))
-    else:
-        club.stati2show = set(member.STATI)
-    if not club.stati2show.issubset(member.STATI):
-        print('Invalid <--mode> parameter provided.')
+    which2show = args['-s'].split(glbs.SEPARATOR)
+    if which2show:
+        for s, rl in (
+                ('appl', member.APPLICANT_SET),
+                ('exec', member.EXEC_SET),
+                ):
+#               print("{}, {}".format(s, rl))
+            which2show = replace_with_in(s, rl, which2show)
+        res = sorted(set(which2show))
+        club.stati2show = res
+    else:  # show all stati
+        club.stati2show = sorted(set(member.STATI))
+#   print("stati2show: {}".format(repr(club.stati2show)))
+    if not set(club.stati2show).issubset(set(member.STATI)):
+        for item in club.stati2show:
+            if not item in member.STATI:
+                print("Invalid status: '{}'".format(item))
+        print('Invalid <-s> parameter provided.')
+        print(club.stati2show)
+        print(member.STATI)
         sys.exit()
 
 
@@ -771,6 +800,7 @@ def stati_cmd(args=args):
         ]
     if club.include_addresses:
         funcs2execute.append(member.add2demographics)
+    print("about to traverse '{}'".format(club.infile))
     err_code = member.traverse_records(
         club.infile,
         funcs2execute,
