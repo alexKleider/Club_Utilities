@@ -155,12 +155,8 @@ def move_date_listing_into_record(dates, record):
 def applicant_data_line2record(line):
     """
     Assumes a valid line from the Data/applicant.txt file.
-    Otherwise a dict is returned with keys listed in 
-    Club.APPLICANT_DATA_FIELD_NAMES: "first", "last", "status", 
-        "app_rcvd", "fee_rcvd", 
-        "1st", "2nd", "3rd",
-        "inducted", "dues_paid",
-        "Sponsor1", "Sponsor2",
+    Returns a dict with keys as listed in 
+    Club.APPLICANT_DATA_FIELD_NAMES
     """
     ret = {}
     for key in Club.APPLICANT_DATA_FIELD_NAMES:
@@ -213,16 +209,23 @@ def applicant_data_line2record(line):
     return ret
 
 
+def populate_sponsors(rec, sponsors):
+    """
+    Uses <sponsors> data to populate relevand field in <rec>.
+    """
+    first_last = [member.names_reversed(sponsor) for sponsor in
+            sponsors]
+    rec['sponsor1'] = first_last[0]
+    rec['sponsor2'] = first_last[1]
+    rec['sponsors'] = sponsors
+
+
 def populate_applicant_data(club):
     """
     Reads applicant data file populating two attributes:
     1. club.applicant_data: a dict with keys == applicants
-        and each value is a record with the following fields:
-            "first", "last", "status",
-            "app_rcvd", "fee_rcvd",   #} date (or empty
-            "1st", "2nd", "3rd",      #} string if event
-            "inducted", "dues_paid",  #} hasn't happened.
-            "Sponsor1", "Sponsor2"   # empty string if not available
+        and each value is a record with fields as listed in
+        rbc.Club.APPLICANT_DATA_FIELD_NAMES.
     2. club.applicant_data_keys
     Note: Sponsor data is included if populate_sponsor_data has
     already been run, othwise, the values remain as empty strings.
@@ -234,10 +237,12 @@ def populate_applicant_data(club):
         print('Reading file "{}"...'.format(stream.name))
         for line in helpers.useful_lines(stream, comment='#'):
             rec = applicant_data_line2record(line)
-            name = member.get_last_first(rec)
-            rec = applicant_data_line2record(line)
+            rec = helpers.Rec(rec)
+            ## Change last_first to first_last ##
+            name = rec(member.fstrings['last_first'])
             if sponsors and name in sponsored:
-                rec["sponsors"] = club.sponsors_by_applicant[name]
+                populate_sponsors(rec,
+                        club.sponsors_by_applicant[name])
             club.applicant_data[name] = rec
         club.applicant_data_keys = club.applicant_data.keys()
 
@@ -313,7 +318,8 @@ def populate_sponsor_data(club):
     with open(club.infile, 'r') as stream:
         dictreader = csv.DictReader(stream)
         for record in dictreader:
-            name = member.member_name(record, club)
+            record = helpers.Rec(record)
+            name = record(member.fstrings['last_first'])
             if name in club.sponsor_set:
                 club.sponsor_emails[name] = record['email']
     club.applicant_set = club.sponsors_by_applicant.keys()

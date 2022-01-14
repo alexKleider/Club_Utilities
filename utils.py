@@ -17,7 +17,6 @@ Usage:
   ./utils.py [-O] [ ? | --help | --version]
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py names_only [-O -w <width> -i <infile> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
@@ -103,6 +102,9 @@ Options:
                     all applicants are included
                 <any string beginning with 'exec'>:
                     all members of exec committee are included
+        NOTE: if using the <gbls.SEPARATOR> , must wrap the
+        whole argument in quotes (like so: -s "ar1|arg2|arg3")
+        to prevent shell from treating each one as a pipe!!
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
   --subject <subject>  The subject line of an email.
   -t <2thank>   Input for thank_cmd. It must be a csv file in same
@@ -126,9 +128,6 @@ Commands:
         when some have paid.)
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
-    names_only: Returns a listing of members and applicants- names
-        and phone numbers only, without any other demographics.
-        If -w is 0, output is a single column, otherwise tabular.
     report: Prepares a 'Membership Report".
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
@@ -307,7 +306,7 @@ def confirm_file_present_and_up2date(file_name):
         sys.exit()
 
 
-def output(data, destination=args["-o"], announce_write=True):
+def output(data, destination=Club.STDOUT, announce_write=True):
     """
     Sends data (text) to destination as specified
     by the -o <outfile> command line parameter (which
@@ -455,10 +454,10 @@ def ck_data_cmd(args=args):
 def show_cmd(args=args):
     print("Preparing membership listings...")
     club = Club(args)
+    club.for_web = True
+    club.format = member.fstrings['first_last_w_all_data']
     data.populate_sponsor_data(club)
     data.populate_applicant_data(club)
-    club.format = member.fstrings['first_last_w_all_data']
-    club.for_web = True
     err_code = member.traverse_records(
         club.infile,
         [member.add2lists,  # collects data into attributes of <club>
@@ -502,90 +501,20 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
     output("\n".join(ret), club.outfile)
 
 
-def names_only_cmd(args=args):
-    club = Club(args)
-    print("Preparing listing of member and applicant names...")
-#   print("'-w' is set to {}".format(args['-w']))
-    err_code = member.traverse_records(club.infile,
-                                       [member.add2names, ],club)
-    ret = ["Members and Applicants of the Bolinas Rod & Boat Club",
-           "====================================================="]
-    if args['-w']:
-        club.names = helpers.tabulate(club.names,
-                                      max_width=int(args['-w']),
-                                      separator=' ')
-    ret.extend(club.names)
-    output('\n'.join(ret),
-           args["-o"])
-
-
-def assign_applicant_files(club):
-    club.applicant_spot = args['-A']
-    if not club.applicant_spot:
-        club.applicant_spot = Club.APPLICANT_SPoT
-    club.sponsor_file = args['-S']
-    if not club.sponsor_file:
-        club.sponsor_file = Club.SPONSORS_SPoT
-
-
-def replace_with_in(s, rl, l):
+def get_meeting_dates(applicant_data):
     """
-    <s> is a string
-    <rl> & <l> are iterables containing strings
-    A list is returned.
-    Each item of l is examined and
-        if it contains <s>
-            <rl> is added to the returned list
-        else the item itself is added to the returned list
-    which is returned sorted with no duplicates.
+    <applicant_data> is a record with APPLICANT_DATA_FIELD_NAMES as
+    keys. Returns a string consisting of a comma separated listing of
+    meeting dates if available, else "no meetings yet".
     """
-    new_listing = []
-    for item in set(l):
-#       print("got '{}', ".format(item), end='')
-        if s in item:
-#           print("found '{}', ".format(s), end='')
-            new_listing.extend(rl)
-        else:
-            new_listing.append(item)
-#       print("now listing is '{}'".format(sorted(set(new_listing))))
-    return sorted(set(new_listing))
+    dates = [applicant_data[key] for key in
+            Club.APPLICANT_DATA_FIELD_NAMES[5:8]
+            if applicant_data[key]]
+    if dates: return ', '.join(dates)
+    else: return "no meetings yet"
 
 
-def setup4stati(club):
-    club.infile = args["-i"]
-    if not club.infile:
-        club.infile = Club.MEMBERSHIP_SPoT
-    assign_applicant_files(club)
-    if not hasattr(club, "include_addresses"):
-        club.include_addresses = args['-D']
-    if not hasattr(club, "include_dates"):
-        club.include_dates = args['-M']
-    if not hasattr(club, "include_sponsors"):
-        club.include_sponsors = args['-B']
-    which2show = args['-s'].split(glbs.SEPARATOR)
-    if which2show:
-        for s, rl in (
-                ('appl', member.APPLICANT_SET),
-                ('exec', member.EXEC_SET),
-                ):
-#               print("{}, {}".format(s, rl))
-            which2show = replace_with_in(s, rl, which2show)
-        res = sorted(set(which2show))
-        club.stati2show = res
-    else:  # show all stati
-        club.stati2show = sorted(set(member.STATI))
-#   print("stati2show: {}".format(repr(club.stati2show)))
-    if not set(club.stati2show).issubset(set(member.STATI)):
-        for item in club.stati2show:
-            if not item in member.STATI:
-                print("Invalid status: '{}'".format(item))
-        print('Invalid <-s> parameter provided.')
-        print(club.stati2show)
-        print(member.STATI)
-        sys.exit()
-
-
-def show_stati(club):
+def show_stati(club, include_headers=True):
     """
     Returns a list of strings (that can be '\n'.join(ed))
     Assumes existance of following club attributes:
@@ -593,33 +522,27 @@ def show_stati(club):
             +/- stati2show
         +/- napplicants
         +/- demographics
-        +/- meeting_dates
-        +/- sponsors
+        +/- applicant_data 
         +/- special_notices_by_m
-    See client: stati_cmd() (+/- show_cmd and others?)
+    See clients: stati_cmd, show_cmd, (+/- others?)
+    If command line option -s arg has not been set, all stati will be
+    listed. See description of the '-s' option. (This option (if used)
+    allows clients to set the club.stati2show attribute.)
+    Also: can exclude publication of headers
+    by resetting <include_headers>
     """
-    if not club.ms_by_status:
+
+    if (not club.ms_by_status) and include_headers:
         return ["Found No Entries with 'Status' Content."]
     ret = []
     applicant_header_written = False
-    if hasattr(club, 'stati2show'):
-        stati2show = sorted(club.stati2show & club.ms_by_status.keys())
-    else:
-        stati2show = sorted(club.ms_by_status.keys())
     if hasattr(club, 'special_notices_by_m'):
         special_notice_members = set(club.special_notices_by_m.keys())
     else:
         special_notice_members = None
-    if club.include_sponsors: 
-        sponsor_file = club.sponsor_spot
-    else:
-        sponsor_file = None
-    if club.include_dates or club.include_sponsors:
-        ap_records = data.get_applicant_data(club.applicant_spot,
-                                          sponsor_file)
-        ap_record_keys = set(ap_records.keys())
-    else:
-        ap_record_keys = ()
+#   print('club.stati2show= {}'.format(club.stati2show))
+    stati2show = [status for status in club.stati2show
+            if status in club.ms_by_status.keys()]
     for status in stati2show:
         if hasattr(club, 'napplicants'):
             applicant_header = ("Applicants ({} in number)"
@@ -631,7 +554,7 @@ def show_stati(club):
             # needs to be done for everyone who is a status holder.
             # Probably need to move some of the code out of the if
             # clause.                   DEBUG
-            if not applicant_header_written:
+            if (not applicant_header_written) and include_headers:
                 helpers.add_header2list(
                     applicant_header,
                     ret, underline_char='=')
@@ -639,28 +562,31 @@ def show_stati(club):
             helpers.add_header2list(member.STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
             for applicant in sorted(club.ms_by_status[status]):
+#               applicant = member.names_reversed(applicant)
                 if (hasattr(club, 'demographics')
                         and club.include_addresses):
+                    with open("errorfile.txt", 'w') as stream:
+                        stream.write(repr(club.demographics))
                     ret.append(club.demographics[applicant])
                 else:
                     ret.append(applicant)
                 ## DEBUG ##
-                if ap_record_keys and applicant in ap_record_keys:
-                    dates = data.list_of_dates(ap_records[applicant])
-                    if dates:
-                        ret.append('\tDates(s) attended: {}'.
-                                   format(', '.join(dates)))
-                    else:
-                        ret.append('\tNo meetings yet.')
+                if (club.applicant_data_keys
+                and applicant in club.applicant_data_keys):
+                    ret.append('\tDates(s) attended: {}'.
+                       format(get_meeting_dates(
+                           club.applicant_data[applicant])))
                     if club.include_sponsors:
-                        ret.append('\tSponsors: {Sponsor1}, {Sponsor2}'.
-                                   format(**ap_records[applicant]))
+                        print(club.applicant_data[applicant])
+                        ret.append('\tSponsors: {sponsor1}, {sponsor2}'.
+                                   format(**club.applicant_data[applicant]))
                     else:
                         print("club.include_sponsors segment skipped")
-                elif ap_record_keys:
+                elif club.applicant_data_keys:
                     print("applicant not in ap_records")
         else:
-            helpers.add_header2list(member.STATUS_KEY_VALUES[status],
+            if include_headers:
+                helpers.add_header2list(member.STATUS_KEY_VALUES[status],
                                     ret, underline_char='=')
             for status_holder in sorted(club.ms_by_status[status]):
                 if hasattr(club, 'demographics'):
@@ -788,25 +714,69 @@ def report_cmd(args=args):
     output("\n".join(report), club.outfile)
 
 
+def setup4stati(club):
+    club.include_addresses = args['-D'] or args['-m']  # Demographics
+    if club.include_addresses:
+        club.format = member.fstrings['first_last_w_all_data']
+    else:
+        club.format = member.fstrings['first_last']
+    club.include_dates = args['-M'] or args['-m']  # Meetings
+    club.include_sponsors = args['-B'] or args['-m']  # Backers
+    if club.include_sponsors or club.include_dates:
+        data.populate_sponsor_data(club)
+        data.populate_applicant_data(club)
+    if args['-s']:
+        which2show = args['-s'].split(glbs.SEPARATOR)
+#   if which2show:
+        for s, rl in (
+                ('appl', member.APPLICANT_SET),
+                ('exec', member.EXEC_SET),
+                ):
+#               print("{}, {}".format(s, rl))
+            which2show = member.replace_with_in(s, rl, which2show)
+        res = sorted(set(which2show))
+        club.stati2show = res
+    else:  # show all stati
+        club.stati2show = sorted(set(member.STATI))
+#   print("stati2show: {}".format(repr(club.stati2show)))
+    if not set(club.stati2show).issubset(set(member.STATI)):
+        for item in club.stati2show:
+            if not item in member.STATI:
+                print("Invalid status: '{}'".format(item))
+        print('Invalid <-s> parameter provided.')
+        print(club.stati2show)
+        print(member.STATI)
+        sys.exit()
+
+
 def stati_cmd(args=args):
+    print("Preparing listings by status...")
     club = Club(args)
-    club.format = member.fstrings['first_last_w_all_data']
     club.for_web = False
     setup4stati(club)
     funcs2execute = [
+        member.add2lists,
         member.add2stati_by_m,
         member.add2ms_by_status,
         member.increment_napplicants,
         ]
     if club.include_addresses:
         funcs2execute.append(member.add2demographics)
+    else: print("addresses not included!!")
     print("about to traverse '{}'".format(club.infile))
     err_code = member.traverse_records(
         club.infile,
         funcs2execute,
         club)
     print("Preparing 'Stati' Report ...")
-    output('\n'.join(show_stati(club)), args['-o'])
+    output('\n'.join(
+        show_stati(club)
+#       member.show_by_status(
+#       club.ms_by_status,
+#       club.stati2show,
+#       club)  # to collect dates +/ sponsors
+            ), club.outfile)
+#   output('\n'.join(show_stati(club)), club.outfile)
 
 
 def zeros_cmd(args=args):
@@ -822,7 +792,7 @@ def zeros_cmd(args=args):
     res.extend(["\nZeros:",
                "======", ])
     res.extend(club.zeros)
-    output('\n'.join(res), args['-o'])
+    output('\n'.join(res), club.outfile)
 
 
 def usps_cmd(args=args):
@@ -1326,8 +1296,6 @@ if __name__ == "__main__":
         ck_data_cmd()
     elif args["show"]:
         show_cmd()
-    elif args["names_only"]:
-        names_only_cmd()
     elif args["report"]:
         report_cmd()
     elif args["stati"]:

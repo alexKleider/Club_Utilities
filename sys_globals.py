@@ -9,6 +9,9 @@
 VERSION = "1.1"
 
 SEPARATOR = '|'  # Note: used by rbc and member modules.
+## NOTE: When using this separator as part of a command line argument,
+## the argument must be "quoted" to prevent the shell from treating it
+## as a pipe!!!
 MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   # } Seconds between
 MAX_TIME_TO_SLEEP = 5   # } email postings.

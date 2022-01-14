@@ -45,7 +45,8 @@ data_destination = os.path.expandvars(
     '$CLUB/Archives/Data')
 mailing_destination = os.path.expandvars(
     '$CLUB/Archives/Mailings')
-info_file = "Info/last"
+info_file = os.path.expandvars(
+    "$CLUB/NR/Info/last")
 
 
 def archive(destination_directory,

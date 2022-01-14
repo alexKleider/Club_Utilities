@@ -29,6 +29,19 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 CURRENT_CENTURY = '20'
 
+
+
+class Rec(dict):
+
+    def __init__(self, rec):
+#       self = {key:value for (key,value) in rec.items()}
+        for key, value in rec.items():
+            self[key] = value
+
+    def __call__(self, fstr):
+        return fstr.format(**self)
+
+
 def str_add(*args):
     total = 0
     for arg in args:

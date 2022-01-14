@@ -61,21 +61,29 @@ class Club(object):
     STDOUT = 'output2check.txt'
 
     # Non repo directories (used by archive.py:)
+    print(os.path.split(os.getcwd()))
+    (head, tail) = os.path.split(os.getcwd())
     NONREPO_DIRS = ("Data",
                     "Exclude",
                     "Info",
-                    "Mydata",
+#                   "Mydata",
                     )
-
-
+#   NONREPO_DIRS = [os.path.join(
+#       os.path.split(os.getcwd())[0],
+#       'NR',
+#       f) for f in NONREPO_DIRS]
+    
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
 
-    APPLICANT_DATA_FIELD_NAMES = ("first", "last", "status", 
-        "app_rcvd", "fee_rcvd", 
-        "1st", "2nd", "3rd",
-        "inducted", "dues_paid",
-        "Sponsor1", "Sponsor2",)
+    APPLICANT_DATA_FIELD_NAMES = (
+        "first", "last", "status",
+        "app_rcvd", "fee_rcvd",   #} date (or empty
+        "1st", "2nd", "3rd",      #} string if event
+        "inducted", "dues_paid",  #} hasn't happened.
+        "sponsor1", "sponsor2",   # empty strings if not available
+        "sponsors",               # list of 2 last_first names
+        )
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
     # # Google Contact Groups in use:
@@ -260,6 +268,7 @@ class Club(object):
             else:
                 print("Without permission, must abort.")
                 sys.exit(1)
+
 
 # ## I believe methods can all be redacted. ###
 # ## They are implemented elsewhere: mostly in data.py

@@ -107,6 +107,46 @@ All is well.  "Trust me!"
 func_dict = {}
 
 
+def replace_with_in(s, rl, l):
+    """
+    <s> is a string
+    <rl> & <l> are iterables containing strings
+    A list is returned.
+    Each item of l is examined and
+        if it contains <s>
+            <rl> is added to the returned list
+        else the item itself is added to the returned list
+    which is returned sorted with no duplicates.
+    Used in utils to expand 'appl' and 'exec' into included stati.
+    ## TO DO: Might be better to bring the detail from where it's
+    ## used back to here.
+    """
+    new_listing = []
+    for item in set(l):
+#       print("got '{}', ".format(item), end='')
+        if s in item:
+#           print("found '{}', ".format(s), end='')
+            new_listing.extend(rl)
+        else:
+            new_listing.append(item)
+#       print("now listing is '{}'".format(sorted(set(new_listing))))
+    return sorted(set(new_listing))
+
+
+def names_reversed(name):
+    """
+    Changes first last to last, first
+    and last, first to first last.
+    """
+#   print("got {}".format(name))
+    if ', ' in name:
+        parts = name.split(', ')
+        return '{} {}'.format(parts[1].strip(), parts[0].strip())
+    else:
+        parts = name.split()
+        return '{}, {}'.format(parts[1].strip(), parts[0].strip())
+
+
 def traverse_records(infile, custom_funcs, club):
     """
     Opens <infile> for dict_reading (and in the process
@@ -130,12 +170,14 @@ def traverse_records(infile, custom_funcs, club):
         club.fieldnames = dict_reader.fieldnames
         club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
+#           record = helpers.Rec(record)
+#           Not needed because not doing any string formatting.
             for custom_func in custom_funcs:
                 custom_func(record, club)
 
-
+redacted = '''
 ## following is not yet used but should be!!
-def format_record(record, f_str="{last}, {first}"):
+def format_record(record, f_str=fstrings['last_first']):
     """
     Retrieves a string representation of a record.
     Default is to return the name in last, first format.
@@ -146,7 +188,7 @@ def format_record(record, f_str="{last}, {first}"):
 
 def member_name(record, club):
     """
-    Returns a string formated as defined by club.PATTERN.
+   Returns a string formated as defined by club.PATTERN.
     Default <PATTERN> is "{last}, {first}"...
     (see Club.__init__() in rbc.py)
     !! Plan to replace the above with functions  !!
@@ -162,7 +204,7 @@ def get_last_first(record):
 
 def get_first_last(record):
     return "{first} {last}".format(**record)
-
+'''
 
 def report_error(report, club):
     try:
@@ -218,8 +260,8 @@ def is_inductee(record):
     '''
     stati = get_status_set(record)
     if stati & {'ai'}:
-        _ = input("{first} {last} is an inductee"
-            .format(**record))
+#       _ = input("{first} {last} is an inductee"
+#           .format(**record))
         return True
     else:
         return False
@@ -416,38 +458,61 @@ def add2ms_by_email(record, club):
 
 def add2stati_by_m(record, club):
     if record["status"]:
-        club.stati_by_m[member_name(record, club)] = (
+        record = helpers.Rec(record)
+        club.stati_by_m[record(fstrings['first_last'])] = (
             get_status_set(record)  )
 
 
 def add2ms_by_status(record, club):
+    """
+    Appends a record to club.ms_by_status:
+        Each key is a status
+        Each value is a list of strings:
+            member names in last_first format
+            of those having that status.
+    """
     if record['status']:
-        if record['last'] == 'Ferris':
-            print("Ferris's status is {}".format(record['status']))
-        if record['last'] == 'McPhail':
-            print("McPhail's status is {}".format(record['status']))
         stati = get_status_set(record)
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
-            club.ms_by_status[status].append(member_name(record,
-                                             club))
+            record = helpers.Rec(record)
+            club.ms_by_status[status].append(
+                    record(fstrings['last_first']))
 
 
 def add2demographics(record, club):
-#   if is_applicant(record):
-        key = member_name(record, club)
-#       print(key)   # DEBUG
-        club.demographics[key] = (club.format.format(**record))
+    """
+    Appends a record to club.demographics:
+        Each key is a member name in last_first format
+        Each value is the record in format specified
+            by club.format
+    """
+    record = helpers.Rec(record)
+    club.demographics[record(fstrings['last_first'])] = (
+          record(club.format)) 
 
 
 def add2member_with_email_set(record, club):
-    if is_member(record) and record['email']:
-        club.member_with_email_set.add(member_name(record, club))
+    """
+    Appends a record to club.member_with_email_set if record
+    is that of a member and the member has an email address.
+    ## Proposal: rename 'add2has_email_set' and store in 
+                        'club.has_email_set'.
+    """
+    record = helpers.Rec(record)
+    entry = record(fstrings['last_first'])
+    if record['email']:
+    # No reason to exclude non members!
+        club.member_with_email_set.add(entry)
+    else:
+        club.no_email_set.add(entry)
+
 
 
 def add2applicant_with_email_set(record, club):
     if is_applicant(record) and record['email']:
-        club.applicant_with_email_set.add(member_name(record, club))
+        club.applicant_with_email_set.add(
+                record(fstrings['last_first']))
 
 
 def add2fee_data(record, club):
@@ -610,6 +675,8 @@ def modify_data(csv_in_file_name, func, club):
     with open(csv_in_file_name, 'r', newline='') as file_obj:
         reader = csv.DictReader(file_obj)
         for rec in reader:
+#           record = helpers.Rec(record)
+#           Not needed because not doing any string formatting.
             yield func(rec, club)
 
 
@@ -653,15 +720,19 @@ def show_by_status(by_status,
 #                           club.applicant_data[key].__repr__()))
                         sponsors = club.applicant_data[key]['sponsors']
                     else:
-                        print("{} has no dates!!".format(key))
+                        pass
+#                       print("{} has no dates!!".format(key))
                     if sponsors:
-                        sponsors = ', '.join(
+                        print(sponsors)
+                        sponsor_line = ', '.join(
                                 [helpers.tofro_first_last(sponsor)
                                 for sponsor in sponsors])
 #                       print(sponsors)
-                        ret.append("\tSponsors: {}".format(sponsors))
+                        ret.append("\tSponsors: {}"
+                                        .format(sponsor_line))
                     else:
-                        print("{} has no sponsors!!".format(key))
+                        pass
+#                       print("{} has no sponsors!!".format(key))
     return ret
 
 
@@ -851,13 +922,6 @@ def add2lists(record, club):
         # output.
 
 
-def add2names(record, club):
-    """
-    """
-    if is_member_or_applicant(record, club):
-        club.names.append(club.pattern.format(**record))
-
-
 def populate_non0balance_func(record, club):
     """
     Reads the MONEY_KEYS fields and, if any are not zero,
@@ -935,7 +999,8 @@ def append_email(record, club):
         'body': body,
     }
     if club.cc_sponsors:
-        name_key = member_name(record, club)
+        record = helpers.Rec(record)
+        name_key = record(fstrings['last_first'])
         if name_key in club.applicant_set:
             sponsors = club.sponsors_by_applicant[name_key]
             # Use list comprehension for the following:
@@ -1169,6 +1234,7 @@ prerequisites = {   # collectors needed by the
     #       ],
     add2member_with_email_set: [
         'club.member_with_email_set = set()',
+        'club.no_email_set = set()',
         ],
     add2applicant_with_email_set: [
         'club.applicant_with_email_set = set()',
@@ -1197,11 +1263,6 @@ prerequisites = {   # collectors needed by the
         'club.ninactive = 0',
         'club.by_n_meetings = {}',
         'club.napplicants = 0',
-        'club.errors = []',
-        ],
-    add2names: [
-        'club.pattern = ("{last}, {first} {phone}")',
-        'club.names = []',
         'club.errors = []',
         ],
     get_payables: [
