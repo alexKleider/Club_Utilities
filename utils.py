@@ -758,7 +758,7 @@ def stati_cmd(args=args):
         member.add2lists,
         member.add2stati_by_m,
         member.add2ms_by_status,
-        member.increment_napplicants,
+#       member.increment_napplicants,  # done by add2lists
         ]
     if club.include_addresses:
         funcs2execute.append(member.add2demographics)
