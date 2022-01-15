@@ -21,6 +21,7 @@ from rbc import Club
 import data
 
 NO_EMAIL_KEY = 'no_email'
+
 STATUS_KEY_VALUES = {
     "a-": "Application received without fee", #0
     "a" : "Application complete but not yet acknowledged",  # not yet welcomed
@@ -422,7 +423,8 @@ def add2email_by_m(record, club):
     """
     Populates dict- club.email_by_name.
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     email = record['email']
     if email:
         club.email_by_m[name] = email
@@ -436,7 +438,8 @@ def add2db_emails(record, club):
     with a special key for those without email
     """
 #   print("called add2db_emails")
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     email = record['email']
     if not email:
         email = NO_EMAIL_KEY
@@ -448,7 +451,8 @@ def add2ms_by_email(record, club):
     Populates club.ms_by_email, a dict keyed by emails one of which
     is NO_EMAIL_KEY to capture members without an email address.
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     email = record['email']
     if not email:
         email = NO_EMAIL_KEY
@@ -501,8 +505,7 @@ def add2member_with_email_set(record, club):
     """
     record = helpers.Rec(record)
     entry = record(fstrings['last_first'])
-    if record['email']:
-    # No reason to exclude non members!
+    if record['email'] and is_member(record):
         club.member_with_email_set.add(entry)
     else:
         club.no_email_set.add(entry)
@@ -511,6 +514,7 @@ def add2member_with_email_set(record, club):
 
 def add2applicant_with_email_set(record, club):
     if is_applicant(record) and record['email']:
+        record = helpers.Rec(record)
         club.applicant_with_email_set.add(
                 record(fstrings['last_first']))
 
@@ -520,7 +524,8 @@ def add2fee_data(record, club):
     Populates club.fee_category_by_m  and
     club.ms_by_fee_category if these attributes exist.
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     # print(repr(FEES_KEYS))
     for key in FEES_KEYS:
         # print("Checking key '{}' for {}".format(key, name))
@@ -550,7 +555,8 @@ def add2malformed(record, club=None):
     (... used for comparison re correct ordering.)
     Client must set up a club.malformed[] empty list to be populated.
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     if len(record) != N_FIELDS:
         club.malformed.append("{}: Wrong # of fields.".format(name))
     for key in MONEY_KEYS:
@@ -597,7 +603,8 @@ def thank_func(record, club):
     """
     Must assign "payment" and extra" to record.
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     if name in club.statement_data_keys:
         payment = club.statement_data[name]['total']
         statement_dict = get_statement_dict(record)
@@ -626,7 +633,8 @@ def db_credit_payment(record, club):
     new_record = {}
     for key in record.keys():
         new_record[key] = record[key]
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     if name in club.statement_data_keys:
         apply_credit2record(club.statement_data[name], new_record)
     club.dict_writer.writerow(new_record)
@@ -659,7 +667,8 @@ def credit_payment_func(record, club):
     Returns the <record>, modified by crediting payment(s)
     specified in club.statement_data
     """
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     if name in club.statement_data.keys():
         apply_credit2record(club.statement_data[name], record)
     return record
@@ -723,7 +732,7 @@ def show_by_status(by_status,
                         pass
 #                       print("{} has no dates!!".format(key))
                     if sponsors:
-                        print(sponsors)
+#                       print(sponsors)
                         sponsor_line = ', '.join(
                                 [helpers.tofro_first_last(sponsor)
                                 for sponsor in sponsors])
@@ -774,8 +783,9 @@ def get_statement_dict(record):
 
 
 def add2statement_data(record, club):
-    club.statement_data[
-        member_name(record, club)] = get_statement_dict(record)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
+    club.statement_data[name] = get_statement_dict(record)
 
 
 def get_statement(statement_dict, club=None):
@@ -911,8 +921,6 @@ def add2lists(record, club):
         stati = get_status_set(record)
         status = stati & APPLICANT_SET
         assert len(status) == 1
-#       if 'a0' in status:
-#           print("{} found".format(member_name(record, club)))
         club.napplicants += 1
         s = status.pop()
         _ = club.by_n_meetings.setdefault(s, [])
@@ -929,7 +937,8 @@ def populate_non0balance_func(record, club):
     with values keyed by MONEY_KEYS.
     """
     total = 0
-    name = member_name(record, club)
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
     for key in MONEY_KEYS:
         try:
             money = int(record[key])
@@ -941,7 +950,9 @@ def populate_non0balance_func(record, club):
 
 
 def populate_name_set_func(record, club):
-    club.name_set.add(member_name(record, club))
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
+    club.name_set.add(name)
 
 
 def add_dues_fees2new_db_func(record, club):

@@ -30,6 +30,10 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
+def my_print(s, outf):
+    with open(outf, 'w') as outfile:
+        for item in sorted(s):
+            outfile.write("{}\n".format(item))
 
 class Rec(dict):
 
@@ -146,6 +150,7 @@ def check_sets(s1, s2,
         add_header2list(header_in2nd_not1st,
                         ret, underline_char='-',
                         extra_line=True)
+#       my_print(in2nd_not1st, 'errors')
         ret.extend(sorted(in2nd_not1st))
     return ret
 
