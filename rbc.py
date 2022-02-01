@@ -3,6 +3,7 @@
 # File: rbc.py
 
 """
+"rbc" stands for (Bolinas) Rod & Boat Club.
 This module is specific to the Bolinas Rod and Boat Club.
 Data as maintained in the (4 or 5, depending how you count)
 SPoT (Single Point of Truth) files.
@@ -28,6 +29,11 @@ class Club(object):
     their functionality taken over by code found elsewhere.
     """
 
+    DATA_DIR = "Data"
+    DATA_DIR = os.path.join(
+            os.path.split(os.getcwd())[0],
+            'NR', 'Data')
+    
     # # Constants and Defaults...
     YEARLY_DUES = 100
     # meetings are held on (the first[1]) Friday (of each month) and
@@ -37,41 +43,42 @@ class Club(object):
     N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
 
     # Data bases used with default file names.
-    MEMBERSHIP_SPoT = 'Data/memlist.csv'
-    APPLICANT_SPoT = "Data/applicants.txt"
-    APPLICANT_CSV = "Data/applicants.csv"
-    SPONSORS_SPoT = "Data/sponsors.txt"
-    EXTRA_FEES_SPoT = 'Data/extra_fees.txt'
+    MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'memlist.csv')
+    APPLICANT_SPoT = os.path.join(DATA_DIR, "applicants.txt")
+    APPLICANT_CSV = os.path.join(DATA_DIR, "applicants.csv")
+    SPONSORS_SPoT = os.path.join(DATA_DIR, "sponsors.txt")
+    EXTRA_FEES_SPoT = os.path.join(DATA_DIR, 'extra_fees.txt')
     CONTACTS_SPoT = os.path.expanduser(      # } File to which google
                 '~/Downloads/contacts.csv')  # } exports the data.
-    RECEIPTS_FILE = 'Data/receipts-{}.txt'.format(helpers.this_year)
+    RECEIPTS_FILE = os.path.join(DATA_DIR,
+            'receipts-{}.txt'.format(helpers.this_year))
     THANK_FILE = 'Info/2thank.csv'
     # Used by utils.thank_cmd following which needs to be
     # stored in archives with date extension.
 
     # Intermediate &/or temporary files used:
-    EXTRA_FEES_JSON = 'Data/extra_fees.json'
-    EXTRA_FEES_TBL = 'Data/extra_fees.tbl'  # not used!
-    TEMP_MEMBERSHIP_SPoT = 'Data/new_memlist.csv'
-    OUTPUT2READ = 'Data/2read.txt'  # } generally goes to stdout.
-    MAILING_DIR = 'Data/MailingDir'
-    JSON_FILE_NAME4EMAILS = 'Data/emails.json'
-    ERRORS_FILE = 'errors.txt'
+    EXTRA_FEES_JSON = os.path.join(DATA_DIR, 'extra_fees.json')
+    EXTRA_FEES_TBL = os.path.join(DATA_DIR, 'extra_fees.tbl')  # not used!
+    TEMP_MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'new_memlist.csv')
+    MAILING_DIR = os.path.join(DATA_DIR, 'MailingDir')
+    JSON_FILE_NAME4EMAILS = os.path.join(DATA_DIR, 'emails.json')
 
     STDOUT = 'output2check.txt'
+    OUTPUT2READ = '2read.txt'  # } generally goes to stdout.
+    ERRORS_FILE = 'errors.txt'
 
     # Non repo directories (used by archive.py:)
-    print(os.path.split(os.getcwd()))
+#   print(os.path.split(os.getcwd()))
     (head, tail) = os.path.split(os.getcwd())
     NONREPO_DIRS = ("Data",
                     "Exclude",
                     "Info",
 #                   "Mydata",
                     )
-#   NONREPO_DIRS = [os.path.join(
-#       os.path.split(os.getcwd())[0],
-#       'NR',
-#       f) for f in NONREPO_DIRS]
+    NONREPO_DIRS = [os.path.join(
+        os.path.split(os.getcwd())[0],
+        'NR',
+        f) for f in NONREPO_DIRS]
     
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
@@ -277,6 +284,7 @@ class Club(object):
 
 if __name__ == "__main__":
     print("rbc.py compiles OK")
+    print("DATA_DIR resolves to {}".format(Club.DATA_DIR))
     sys.exit()
 else:
     def print(*args, **kwargs):

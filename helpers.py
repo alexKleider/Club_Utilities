@@ -30,6 +30,69 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
+def do_nothing(text):
+    print(text)
+
+
+def print_args(args, argument):
+    """
+    If args[argument] is True: print all the argument values.
+    This works well with docopt when trying to debug.
+    Screen width (number of columns) and height (number of rows) are
+    assumed to be 80 and 24 unless defined by args['-w'] and/or
+    args['r'] all respectively.
+    """
+#   print("Entering helpers.print_args")
+    if args[argument]:
+#       print(
+#       "helpers.print_args' 2nd param evaluates 'True'")
+        if '-w' in args.keys(): max_width = int(args['-w'])
+        else: max_width = 80
+        if '-r' in args.keys(): max_height = int(args['-r'])
+        else: max_height = 24
+        res = sorted(["{}: {}".format(key, args[key]) for key in args])
+#       print(res)
+        ret = tabulate(res, max_width=max_width, separator='   ')
+        row_number = 0
+        for row in ret:
+            row_number += 1
+            if row_number > max_height:
+                row_number = 1
+                _ = input("..any key to continue: ")
+            print(row)
+#       print("Got to here!!")
+        response = input("...end of ## arguments. Continue? ")
+        if not (response and response[0] in 'yY'):
+            sys.exit()
+    else:
+#       print(
+#       "helpers.print_args' 2nd param evaluates 'False'")
+        pass  # no nothing if args['argument'] ==> False.
+
+
+def print_usage_and_options(docstring):
+    """
+    Yet to be implemented: check that docstring contains
+    both a Usage and an Options section.
+    """
+    uline = oline = -1
+    doc_lines = docstring.split('\n')
+    for n in range(len(doc_lines)):
+#       _ = input("Line is '{}'".format(doc_lines[n].strip()))
+        if doc_lines[n].strip() == "Usage:":
+#           print("found usage @line {}".format(n))
+            uline = n
+        if doc_lines[n].strip() == "Options:":
+#           print("found options @line {}".format(n))
+            oline = n
+            break
+#       print("didn't find usage &/or options")
+    if uline == -1 or oline == -1:
+        print("Missing 'Usage' &/or 'Options' section.")
+        sys.exit()
+    print('\n'.join(doc_lines[uline:(oline-1)]))
+
+
 def my_print(s, outf):
     with open(outf, 'w') as outfile:
         for item in sorted(s):
@@ -737,6 +800,7 @@ if __name__ == "__main__":
     test_show_json_data()
     sys.exit()
 else:
-    def print(*args, **kwargs):
-        pass
+    pass
+#   def print(*args, **kwargs):
+#       pass
 

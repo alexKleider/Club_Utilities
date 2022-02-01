@@ -14,7 +14,7 @@ letters (which can be prepared using the 'prepare_mailing' command.)
 Consult the README file for further info.
 
 Usage:
-  ./utils.py [-O] [ ? | --help | --version]
+  ./utils.py [-O -w <width> -r <rows> ] [ -? | --help | --version]
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
@@ -38,6 +38,7 @@ Usage:
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
+  -?  Print allowed commands and their options.
   --version  Print version.
   -a <app_csv>  csv version of applicant data file.
   -A <app_spot>   Applicant data file.
@@ -94,6 +95,7 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Deals with printer variablility; ensures correct
         alignment of text when printing letters. [default: X6505_e1]
+  -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
             If not specified, all stati are reported.
@@ -113,8 +115,8 @@ Options:
         Used with the 'payables' and 'show_mailing_categories'
         commands. May not have much effect if the -w option value
         is not a high number.
-  -w <width>  Maximum number of characters per line in output.
-            [default: 140]
+  -w <width>  Maximum number of characters (columns) per line.
+            Screen widwh.  [default: 140]
   --which <letter>  Specifies type/subject of mailing.
   -x <file>  Used by commands not in use. (Expect redaction)
   -X <fees_spot>  Extra Fees data file.
@@ -234,7 +236,8 @@ CSV = ".csv"   # } command.
 TEMP_FILE = "2print.temp"  # see <output> function
 
 args = docopt(__doc__, version=glbs.VERSION)
-for arg in args:
+# allow for use of '=' when specifying param value:
+for arg in args.keys():
     if type(args[arg]) == str:
         if args[arg] and (args[arg][0] == '='):
             args[arg] = args[arg][1:]
@@ -1285,30 +1288,18 @@ if __name__ == "__main__":
     using_curses = False
     confirm = True
 
-    if args['-O']:
-        print("Arguments are...")
-        res = sorted(["{}: {}".format(key, args[key]) for key in args])
-        ret = helpers.tabulate(res, max_width=max_width, separator='   ')
-        print('\n'.join(ret))
-        if confirm:
-            response = input("...end of arguments. Continue? ")
-            if not (response and response[0] in 'yY'):
-                sys.exit()
-
-    if args["?"]:
+#   print("About to call helpers.print_args...")
+    helpers.print_args(args, '-O')
+#   print(".. finished call to helpers.print_args.")
+    if args['-?']:
         ## How much of this is in common with parsing docstring for
         ## the curses interface module?  ?refactoring is in order??
         ## See the parse4opt... functions in (curses) interface.py.
         ## Use docoptparser.py module??
-        doc_lines = __doc__.split('\n')
-        for n in range(len(doc_lines)):
-            if doc_lines[n] == "Usage:":
-                uline = n
-            if doc_lines[n] == "Options:":
-                oline = n
-                break
-        print('\n'.join(doc_lines[uline:(oline-1)]))
-    elif args["ck_data"]:
+        helpers.print_usage_and_options(__doc__)
+        sys.exit()
+
+    if args["ck_data"]:
         ck_data_cmd()
     elif args["show"]:
         show_cmd()
