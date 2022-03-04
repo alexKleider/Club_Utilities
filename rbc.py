@@ -29,10 +29,20 @@ class Club(object):
     their functionality taken over by code found elsewhere.
     """
 
+    INFO_DIR = "Info"
+    INFO_DIR = os.path.join(
+            os.path.split(os.getcwd())[0],
+            'NR', 'Info')
     DATA_DIR = "Data"
     DATA_DIR = os.path.join(
             os.path.split(os.getcwd())[0],
             'NR', 'Data')
+    ARCHIVE_DIR = 'Archives'
+    ARCHIVE_DIR = os.path.join(
+            os.path.split(os.getcwd())[0],
+            'Archives')
+    DATA_ARCHIVE = os.path.join(ARCHIVE_DIR, "Data")
+    MAILING_ARCHIVE = os.path.join(ARCHIVE_DIR, "Mailings")
     
     # # Constants and Defaults...
     YEARLY_DUES = 100

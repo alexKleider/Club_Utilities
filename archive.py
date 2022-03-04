@@ -80,7 +80,7 @@ def archive(destination_directory,
     for source in sources:
         dest = os.path.join(targz_base_name, source)
         if not args["--quiet"]:
-            print("source/dest are {}/{}".format(source, dest))
+            print("source & dest are {} & {}".format(source, dest))
         if os.path.isfile(source):
             shutil.copy2(source, targz_base_name)
             ret = True

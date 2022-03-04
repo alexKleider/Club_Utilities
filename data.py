@@ -244,6 +244,7 @@ def populate_applicant_data(club):
                 populate_sponsors(rec,
                         club.sponsors_by_applicant[name])
             club.applicant_data[name] = rec
+#       print("Populating club.applicant_data_keys")
         club.applicant_data_keys = club.applicant_data.keys()
 
 

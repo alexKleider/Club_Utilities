@@ -590,19 +590,19 @@ def show_stati(club, include_headers=True):
                 else:
                     ret.append(applicant)
                 ## DEBUG ##
-                if (club.applicant_data_keys
-                and applicant in club.applicant_data_keys):
-                    ret.append('\tDates(s) attended: {}'.
-                       format(get_meeting_dates(
-                           club.applicant_data[applicant])))
-                    if club.include_sponsors:
-                        print(club.applicant_data[applicant])
-                        ret.append('\tSponsors: {sponsor1}, {sponsor2}'.
-                                   format(**club.applicant_data[applicant]))
+                if club.include_dates or club.include_sponsors:
+                    if applicant in club.applicant_data_keys:
+                        ret.append('\tDates(s) attended: {}'.
+                           format(get_meeting_dates(
+                               club.applicant_data[applicant])))
+                        if club.include_sponsors:
+#                           print(club.applicant_data[applicant])
+                            ret.append('\tSponsors: {sponsor1}, {sponsor2}'.
+                                       format(**club.applicant_data[applicant]))
+                        else:
+                            print("club.include_sponsors segment skipped")
                     else:
-                        print("club.include_sponsors segment skipped")
-                elif club.applicant_data_keys:
-                    print("applicant not in ap_records")
+                        print("applicant not in applicant_data_keys")
         else:
             if include_headers:
                 helpers.add_header2list(member.STATUS_KEY_VALUES[status],
