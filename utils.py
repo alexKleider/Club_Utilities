@@ -16,7 +16,7 @@ Consult the README file for further info.
 Usage:
   ./utils.py [-O -w <width> -r <rows> ] [ -? | --help | --version]
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
-  ./utils.py show [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
@@ -57,6 +57,7 @@ Options:
             error report can be written.  [default: stdout]
   --emailer <emailer>  Use bash (via smtp or mutt) or python
                     to send emails.  [default: python]
+  --exec  Within 'show' cmnd: include listing of executive commitee.
   -f <format>  Specify output format of 'extra_charges' command.
         Possible choices are:
             'table' listing of names /w fees tabulated (=> 2 columns.)
@@ -477,21 +478,23 @@ FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE BOARD OF THE BRBC.
 Data maintained by the Membership Chair and posted here by Secretary {}.
 """.format(club.SECRETARY)]
 
-    keys = [key for key in sorted(
-                    member.STATUS_KEY_VALUES.keys())
-                    if (key.startswith('z')
-                    and key!='zae')]
-    if keys:
-        helpers.add_header2list(
-                "Executive Committee Members", ret,
-                underline_char='=', extra_line=True)
-        for key in keys:
+
+    if args['--exec']:
+        keys = [key for key in sorted(
+                        member.STATUS_KEY_VALUES.keys())
+                        if (key.startswith('z')
+                        and key!='zae')]
+        if keys:
             helpers.add_header2list(
-                    "{}".format(member.STATUS_KEY_VALUES[key]),
-                    ret, underline_char='-', extra_line=True)
-            for exec_member in club.ms_by_status[key]:
-                ret.append(member.names_reversed(exec_member))
-            
+                    "Executive Committee Members", ret,
+                    underline_char='=', extra_line=True)
+            for key in keys:
+                helpers.add_header2list(
+                        "{}".format(member.STATUS_KEY_VALUES[key]),
+                        ret, underline_char='-', extra_line=True)
+                for exec_member in club.ms_by_status[key]:
+                    ret.append(member.names_reversed(exec_member))
+
     if club.members:
         helpers.add_header2list("Club Members ({} in number as of {})"
                                 .format(club.nmembers, helpers.date),
