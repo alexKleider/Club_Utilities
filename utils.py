@@ -33,8 +33,7 @@ Usage:
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
-  ./utils.py wip [-O -o <outfile>]
-  ./utils.py new_db -F function [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
+  ./utils.py new_db -F function -G data_gathering_function[-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
@@ -65,6 +64,9 @@ Options:
             'listings' side by side lists (best use landscape mode.)
         [default: listings]
   -F <function>  Name of function to apply. (new_db command)
+        Implemented so far: set_kayak_fee
+  -G <data_gathering_function>  Function to gather required data.
+        Implemented so far: populate_kayak_fees
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -I <included>  Specify what's to be included by specifying the key
@@ -89,6 +91,8 @@ Options:
             Choices are stdout, printer, or the name of a file.
             NOTE: the create_applicant_csv command only accepts
             a file name which must end in ".csv".
+            NOTE: when a new db is created, this option is
+            over-ridden: defaults to "new_" + <name of input file>.
   --oo   Owing_Only: Only consider members with dues/fees outstanding.
             (Sets owing_only attribute of instance of Club.)
   -P <params>  This option will probably be redacted
@@ -143,6 +147,7 @@ Commands:
         relevant to current applicants: first & last names, status,
         up to three meeting dates and the two sponsors. If -o outfile
         is explicitly specified it must end in ".csv".
+    zeros: ???
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with a 'be' or an 's'
@@ -186,6 +191,10 @@ Commands:
         Notes/emailREADME for details.  Note that not all
         combinations of mta and emailer are working but the following
         does: "--mta clubg --emailer python". (./Notes/Mail/msmtprc.)
+    emailing: Initially developed to allow sending of attachments.
+        Since attachments are now possible using the send_mailing
+        command (at least with emailer python) this command will
+        most likely be redacted.
     restore_fees: Use this command to populate each member's record
         with what they will owe for the next club year. Respects any
         existing credits. Best done after all dues and fees have been
@@ -196,10 +205,6 @@ Commands:
         mannually check the new file and rename it if all is well.
         *[]* Since a new data base is created, the name of the
         output file is fixed and the '-o' option is ignored!!!
-    emailing: Initially developed to allow sending of attachments.
-        Since attachments are now possible using the send_mailing
-        command (at least with emailer python) this command will
-        most likely be redacted.
     fee_intake_totals: Input file should be a 'receipts' file with a
         specific format. It defaults to 'Data/receipts-YYYY.txt'
         where YYYY is the current year.  Output yields subtotals and
@@ -207,7 +212,30 @@ Commands:
         file.
     labels: print labels.       | default: -P A5160  | Both
     envelopes: print envelopes. | default: -P E000   | redacted.
-    wip: "work in progress" Used for development/testing.
+    new_db:  # yet to be implemented.
+
+
+    Order in which commands are presented:
+        ck_data
+        show
+        report
+        stati
+        create_applicant_csv  # this one should probably
+                              # be a separate utilii.
+        zeros  # no command description
+        usps
+        extra_charges
+        payables
+        show_mailing_categories
+        prepare_mailing
+        thank
+        display_emails
+        send_emails
+        emailing
+        restore_fees
+        fee_intake_totals
+        - some redacted functionality re envelopes & labels
+        new_db  # yet to be implemented.
 """
 
 import os
@@ -630,42 +658,6 @@ def show_stati(club, include_headers=True):
     return ret
 
 
-def create_applicant_csv_cmd(args=args):
-
-
-    def filtered_data(a_dict_w_dict_values,
-                   test_key, excluded):
-        for key in sorted(a_dict_w_dict_values.keys()):
-            if not a_dict_w_dict_values[key][test_key] in excluded:
-                yield a_dict_w_dict_values[key]
-
-
-    EXCLUDED_STATI = {'m', 'zae'}
-
-    club = Club(args)
-    if args['-o'] in {"stdout", "printer"}:
-        args['-o'] = None
-    club.applicant_csv = args['-o']
-    if not club.applicant_csv:
-        club.applicant_csv = club.APPLICANT_CSV
-    if not club.applicant_csv.endswith('.csv'):
-        print("Applicant csv file name must end in '.csv'!")
-        print("'{}' doesn't qualify!".format(club.applicant_csv))
-        sys.exit()
-    applicant_data = data.get_applicant_data(club.applicant_spot,
-                                             club.sponsor_spot)
-    applicant_keys = sorted(applicant_data.keys())  # sort names
-
-    helpers.save_db(filtered_data(applicant_data,
-                                  'status',
-                                  EXCLUDED_STATI,
-                                  ),
-                    club.APPLICANT_CSV,
-                    club. APPLICANT_DATA_FIELD_NAMES,  #
-                    report='applicants in csv format')
-    
-
-
 def report_cmd(args=args):
     print("Preparing Membership Report ...")
     club = Club(args=args)
@@ -799,6 +791,42 @@ def stati_cmd(args=args):
 #       club)  # to collect dates +/ sponsors
             ), club.outfile)
 #   output('\n'.join(show_stati(club)), club.outfile)
+
+
+def create_applicant_csv_cmd(args=args):
+
+
+    def filtered_data(a_dict_w_dict_values,
+                   test_key, excluded):
+        for key in sorted(a_dict_w_dict_values.keys()):
+            if not a_dict_w_dict_values[key][test_key] in excluded:
+                yield a_dict_w_dict_values[key]
+
+
+    EXCLUDED_STATI = {'m', 'zae'}
+
+    club = Club(args)
+    if args['-o'] in {"stdout", "printer"}:
+        args['-o'] = None
+    club.applicant_csv = args['-o']
+    if not club.applicant_csv:
+        club.applicant_csv = club.APPLICANT_CSV
+    if not club.applicant_csv.endswith('.csv'):
+        print("Applicant csv file name must end in '.csv'!")
+        print("'{}' doesn't qualify!".format(club.applicant_csv))
+        sys.exit()
+    applicant_data = data.get_applicant_data(club.applicant_spot,
+                                             club.sponsor_spot)
+    applicant_keys = sorted(applicant_data.keys())  # sort names
+
+    helpers.save_db(filtered_data(applicant_data,
+                                  'status',
+                                  EXCLUDED_STATI,
+                                  ),
+                    club.APPLICANT_CSV,
+                    club. APPLICANT_DATA_FIELD_NAMES,  #
+                    report='applicants in csv format')
+    
 
 
 def zeros_cmd(args=args):
@@ -1008,16 +1036,6 @@ def prepare_mailing_cmd(args=args):
     $ zip -r 4Michael {}""".format(args["--dir"]))
 
 
-def setup4new_db(club):
-    """
-    Clients are thank_cmd & restore_fees_cmd
-    Over rides output file name and 
-    """
-    # over ride output file name:
-    club.outfile = helpers.prepend2file_name('new_', club.infile)
-#   print('club.outfile set to {}'.format(club.outfile))
-    club.fieldnames = data.get_fieldnames(club.infile)
-
 
 def dict_write(f, fieldnames, iterable):
     """
@@ -1209,35 +1227,25 @@ def envelopes_cmd(args=args):
     club.print_custom_envelopes(source_file)
 
 
-def wip_cmd(args=args):
+def new_db_cmd(args=args):
     """
-    Code under development (work in progress) temporarily housed here.
+    Uses the -G <data_gathering_function> to set up attributes of club
+    before running the -F <function> which modifies data into a new db
+    specified by -o <new_membership_file>
+    So far have implemented -F & -G pairs as follows:
+        set_kayak_fee   populate_kayak_fees
+    Note: <-F> functions are defined in member module
+          <-G> functions in data module.  ("G" for "get")
     """
-    applicants = data.get_applicant_data(Club.APPLICANT_SPoT,
-                                         Club.SPONSORS_SPoT)
-    ret = []
-    for key in sorted(applicants.keys()):
-        if applicants[key]['status'] in {'m', 'zae'}:
-            continue
-        dates = []
-        for date_key in Club.MEETING_DATE_NAMES:
-            if applicants[key][date_key]:
-                dates.append(applicants[key][date_key])
-        if dates:
-            ret.append("{}: {}"
-                       .format(key, ', '.join(dates)))
-        else:
-            ret.append("{}: no meetings to date".format(key))
-    print("Meeting dates are:")
-    print("==================")
-    print("\n".join(ret))
-
-
-# # Plan to redact the next two functions in favour of using
-# # the Python mailing modules instead of msmtp and mutt.
-# # For the time being the Python modules are being used
-# # when sending via Easydns.com but msmtp is still being
-# # used when gmail is the MTA.
+    club = Club(args)
+    club.fieldnames = data.get_fieldnames(club.infile)
+    # data gathering (from files other than main db)
+    data.func_dict[args['-G']](club)  # populates club.kayak_fees
+    club.kayak_keys = set(club.kayak_fees.keys())
+    # call ... to create new db
+    func = member.func_dict[args['-F']]
+    dict_write(club.outfile, club.fieldnames,
+               member.modify_data(club.infile, func, club))
 
 
 notused = '''
@@ -1363,9 +1371,6 @@ if __name__ == "__main__":
     with output sent to '{}'"""
               .format(args['-i'], args['-o']))
         envelopes_cmd()
-    elif args["wip"]:
-        print("Work in progress command...")
-        wip_cmd()
     elif args["new_db"]:
         print("Creating a modified data base...")
         new_db_cmd()

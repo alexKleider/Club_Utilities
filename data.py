@@ -30,6 +30,7 @@ from rbc import Club
 
 DEBUGGING_FILE = 'debug.txt'
 
+
 def get_fieldnames(csv_file: "name of csv file"
         ) -> "list of the csv file's field names":
     with open(csv_file, 'r', newline='') as file_object:
@@ -209,6 +210,35 @@ def applicant_data_line2record(line):
     return ret
 
 
+def populate_kayak_fees(club):
+    """
+    Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
+        keys- last/first name
+        value- amount to be paid
+    Lines terminating in an asterix have already paid
+    and 'amount to be paid' for them should be 0.
+    Must be referenced within func_dict.
+    # Note: non kayak storage members should have a null in the
+    # 'kayak' field of the main db.
+    Format of each line in KAYAK_SPoT: "First Last:  AMT  [*]"
+    """
+    club.kayak_fees = {}
+    with open(club.KAYAK_SPoT, 'r') as stream:
+        for line in stream:
+            line = line.strip()
+            if not line or line[0] == '#': continue
+            parts = line.split(':')
+            if len(parts) != 2: assert False
+            names = parts[0].split()
+            name = '{}, {}'.format(names[1], names[0])
+            value = parts[1].split()
+            l = len(value)
+            if l > 2 or l < 1: assert False
+            if value[-1] == '*': amt = 0
+            else: amt = int(value[0])
+            club.kayak_fees[name] = amt
+
+
 def populate_sponsors(rec, sponsors):
     """
     Uses <sponsors> data to populate relevand field in <rec>.
@@ -378,9 +408,12 @@ def gather_extra_fees_data(extra_fees_spot, json_file=None):
                         category_change = True
                         continue
             else:  # Expect a name with fee for current category...
-#               print("line: {}".format(line))
                 parts = line.split(':')
-                fee = int(parts[1])
+                try:
+                    fee = int(parts[1])
+                except IndexError:
+                    print("line: {}".format(line))
+                    raise
                 names = parts[0].split()
                 first_name = names[0]
                 last_name = names[1]
@@ -811,15 +844,6 @@ def compare(data1, data2, underline_char='=', inline=False):
     return ret
 
 
-redacted = '''
-def test_ck_data():
-    club = Club
-    return ck_data(club)
-#   print("Call to ck_integrity has returned...")
-#   print(res)
-#   return res
-'''
-
 def list_mooring_data(extra_fees_spot):
     extra_fees_data = gather_extra_fees_data(extra_fees_spot)
 #   data = extra_fees_data[Club.CATEGORY_KEY]
@@ -829,11 +853,10 @@ def list_mooring_data(extra_fees_spot):
         ["{0} - {1}".format(*datum) for datum in mooring_data])
 
 
+func_dict = {
+        "populate_kayak_fees": populate_kayak_fees,
+        }
+
 
 if __name__ == '__main__':
     print("data.py compiles OK.")
-    redacted = '''
-else:
-    def print(*args, **kwargs):
-        pass
-'''

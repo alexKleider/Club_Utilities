@@ -92,6 +92,15 @@ fstrings = {
                     demographic_f_last_first_w_phone_and_email,
     }
 
+
+def format_record(record, f_str=fstrings['last_first']):
+    """
+    Retrieves a string representation of a record.
+    Default is to return the name in last, first format.
+    """
+    return f_str.format(**record)
+
+
 # The following is no longer used...
 # we get around the problem in a different way..
 # see "To avoid gmails nasty warning ..." in append_email.
@@ -104,8 +113,6 @@ via a different mail transfer agent (easydns.com) and hence gmail
 feels compelled to issue this warning.
 All is well.  "Trust me!"
 """
-
-func_dict = {}
 
 
 def replace_with_in(s, rl, l):
@@ -149,6 +156,8 @@ def names_reversed(name):
 
 
 def traverse_records(infile, custom_funcs, club):
+    # Fundamentally different from <modify_data>/<modified_data>!
+    # This function is to collect specific data, not change it.
     """
     Opens <infile> for dict_reading (and in the process
     assigns club.fieldnames.
@@ -176,36 +185,6 @@ def traverse_records(infile, custom_funcs, club):
             for custom_func in custom_funcs:
                 custom_func(record, club)
 
-redacted = '''
-## following is not yet used but should be!!
-def format_record(record, f_str=fstrings['last_first']):
-    """
-    Retrieves a string representation of a record.
-    Default is to return the name in last, first format.
-    """
-    return f_str.format(**record)
-
-#### Expect to redact the following 3 functions: ####
-
-def member_name(record, club):
-    """
-   Returns a string formated as defined by club.PATTERN.
-    Default <PATTERN> is "{last}, {first}"...
-    (see Club.__init__() in rbc.py)
-    !! Plan to replace the above with functions  !!
-    !! get_first_last() and get_last_first().    !!
-    Or better still: pass a formatting string to the function
-    """
-    return club.PATTERN.format(**record)
-
-
-def get_last_first(record):
-    return "{last}, {first}".format(**record)
-
-
-def get_first_last(record):
-    return "{first} {last}".format(**record)
-'''
 
 def report_error(report, club):
     try:
@@ -662,6 +641,28 @@ def rm_email_only_field(record, club):
     return new_record
 
 
+def set_kayak_fee(record, club):
+    """
+    Returns a modified record:
+        Assumes club.kayak_fees is a dict keyed by last,first names.
+        If record owner is not in this dict, her kayak field is set
+        to blank, othewise it is set to the value.
+    """
+    new_record = {}
+    for key in club.fieldnames:
+        new_record[key] = record[key]
+    name = format_record(record)
+    if name in club.kayak_keys:
+        new_record['kayak'] = club.kayak_fees[name]
+    else:
+        new_record['kayak'] = ''
+    return new_record
+
+
+func_dict = {}
+func_dict['set_kayak_fee'] = set_kayak_fee
+
+
 def credit_payment_func(record, club):
     """
     Returns the <record>, modified by crediting payment(s)
@@ -675,18 +676,20 @@ def credit_payment_func(record, club):
 
 
 def modify_data(csv_in_file_name, func, club):
+    # Rename?: 'traverse_csv', 'modified_data'
+    # Note: 'traverse_records' collects data, this 
+    # does something fundamentally different.
     """
-    A generator: yields the return value of
-    <func>(record) for each record read from the
-    csv file named <csv_in_file_name>.
-    <club> provides a method of passing values prn.
+    A generator: reads a csv file and for each entry, yields a record
+    modified by func (or, if func==None, the record unchanged.)
     """
     with open(csv_in_file_name, 'r', newline='') as file_obj:
         reader = csv.DictReader(file_obj)
         for rec in reader:
-#           record = helpers.Rec(record)
-#           Not needed because not doing any string formatting.
-            yield func(rec, club)
+            if func == None:
+                yield rec
+            else:
+                yield func(rec, club)
 
 
 def get_name_key_from_line(line):

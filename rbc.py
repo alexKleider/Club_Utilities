@@ -58,6 +58,7 @@ class Club(object):
     APPLICANT_CSV = os.path.join(DATA_DIR, "applicants.csv")
     SPONSORS_SPoT = os.path.join(DATA_DIR, "sponsors.txt")
     EXTRA_FEES_SPoT = os.path.join(DATA_DIR, 'extra_fees.txt')
+    KAYAK_SPoT = os.path.join(DATA_DIR, 'kayak.txt')
     CONTACTS_SPoT = os.path.expanduser(      # } File to which google
                 '~/Downloads/contacts.csv')  # } exports the data.
     RECEIPTS_FILE = os.path.join(DATA_DIR,
