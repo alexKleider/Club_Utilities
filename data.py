@@ -210,6 +210,46 @@ def applicant_data_line2record(line):
     return ret
 
 
+def get_dict(source_file):
+    """
+    A generic function to parse files.
+    Blank lines or comments ('#') are ignored.
+    All other lines must contains a 'first last' name followed by a
+    colon and anything else.
+    Returned is a dict keyed by 'last,first' name and string to right of
+    colon as value (which could be an empty string.
+    # To make this applicable to the 'applicants.txt' file one
+    # would have to change its format (first '|' => ':'.)
+    # Could be used for sponsors.txt and eventually, when they are
+    # separated out from extra_fees.txt, for dock.txt and mooring.txt.
+    """
+    ret = {}
+    with open(source_file, 'r') as stream:
+        for line in stream:
+            line = line.strip()
+            if not line or line[0] == '#': continue
+            parts = line.split(':')
+            if len(parts) != 2: assert False
+            names = parts[0].split()
+            name = '{}, {}'.format(names[1], names[0])
+            ret[name] = parts[1]
+    return ret
+
+
+def parse_kayak_data(raw_dict):
+    """
+    Modifies values in <raw_dict> as appropriate
+    for the KAYAK.SPoT file.
+    """
+    for key in raw_dict.keys():
+        value = raw_dict[key].split()
+        l = len(value)
+        if l > 2 or l < 1: assert False
+        if value[-1] == '*': amt = 0
+        else: amt = int(value[0])
+        raw_dict[key] = amt
+
+
 def populate_kayak_fees(club):
     """
     Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
@@ -222,21 +262,7 @@ def populate_kayak_fees(club):
     # 'kayak' field of the main db.
     Format of each line in KAYAK_SPoT: "First Last:  AMT  [*]"
     """
-    club.kayak_fees = {}
-    with open(club.KAYAK_SPoT, 'r') as stream:
-        for line in stream:
-            line = line.strip()
-            if not line or line[0] == '#': continue
-            parts = line.split(':')
-            if len(parts) != 2: assert False
-            names = parts[0].split()
-            name = '{}, {}'.format(names[1], names[0])
-            value = parts[1].split()
-            l = len(value)
-            if l > 2 or l < 1: assert False
-            if value[-1] == '*': amt = 0
-            else: amt = int(value[0])
-            club.kayak_fees[name] = amt
+    club.kayak_fees = parse_kayak_data(get_dict(club.KAYAk_SPoT))
 
 
 def populate_sponsors(rec, sponsors):

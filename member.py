@@ -659,10 +659,6 @@ def set_kayak_fee(record, club):
     return new_record
 
 
-func_dict = {}
-func_dict['set_kayak_fee'] = set_kayak_fee
-
-
 def credit_payment_func(record, club):
     """
     Returns the <record>, modified by crediting payment(s)
@@ -1165,15 +1161,6 @@ def inductee_payment_f(record, club):
         q_mailing(record, club)
 
 
-redactyesno = '''
-def test_func(record, club=None):
-    """
-    Can be used as a prototype or can be used for testing.
-    Populates record["extra"]
-    """
-    pass
-'''
-
 #  ### ... end of mailing functions.  ###
 
 
@@ -1324,14 +1311,6 @@ prerequisites = {   # collectors needed by the
     }
 
 
-func_dict['rm_email_only_field'] = (
-    rm_email_only_field,
-    ("first", "last", "phone", "address", "town", "state",
-     "postal_code", "country", "email", "dues", "dock",
-     "kayak", "mooring", "status",
-     )
-    )
-
 
 def setup_required_attributes(custom_funcs, club):
     """
@@ -1345,6 +1324,17 @@ def setup_required_attributes(custom_funcs, club):
             for code in prerequisites[func]:
                 exec(code)
 
+
+
+func_dict = {}
+func_dict['set_kayak_fee'] = set_kayak_fee
+func_dict['rm_email_only_field'] = (
+    rm_email_only_field,
+    ("first", "last", "phone", "address", "town", "state",
+     "postal_code", "country", "email", "dues", "dock",
+     "kayak", "mooring", "status",
+     )
+    )
 
 if __name__ == "__main__":
     print("member.py compiles OK.")

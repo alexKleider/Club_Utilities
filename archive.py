@@ -78,9 +78,15 @@ def archive(destination_directory,
               .format(targz_base_name))
         return False
     for source in sources:
+        print("source: '{}'".format(source))
+        print("targz_base_name: '{}'".format(targz_base_name))
         dest = os.path.join(targz_base_name, source)
+        print("dest: '{}'".format(dest))
         if not args["--quiet"]:
             print("source & dest are {} & {}".format(source, dest))
+            response = input("Continue? (y/n) ")
+            if not (response and response[0] in {'y', 'Y'}):
+                sys.exit()
         if os.path.isfile(source):
             shutil.copy2(source, targz_base_name)
             ret = True
@@ -108,13 +114,12 @@ def archive(destination_directory,
 
 
 def archive_mail(sources=mailing_sources):
-    no_empties = [source for source in sources if (
+    targets = [source for source in sources if (
         os.path.isfile(source) or (
         os.path.isdir(source) and os.listdir(source)))]
-    print("within archive_mail() archiving: {}"
-          .format(no_empties))
-    if no_empties:
-        if archive(mailing_destination, no_empties):
+    print("<targets> set to '{}'".format(targets))
+    if targets:
+        if archive(mailing_destination, targets):
             ans = input(
                   "Mailing archived.  Delete mailings from data? ")
             if ans and ans[0] in {'y', 'Y'}:
@@ -124,12 +129,16 @@ def archive_mail(sources=mailing_sources):
                     elif os.path.isfile(source):
                         os.remove(source)
                     else:
-                        print("Something not right in archive_mail!")
+                        print("ABORTING!",
+                            "Something not right in archive_mail!")
+                        sys.exit()
             args['mail_action'] = 'mail'
         else:
-            print("No mailing found to archive.")
+            print("Mailing targets found but archive returned False!")
+            return False
     else:
-        print("No mailing found to archive.")
+        print("No mailing <targets found to archive.")
+        return False
 
 
 def loose_trailing_empty_strings(list_of_strings):
