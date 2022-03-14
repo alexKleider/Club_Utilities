@@ -210,9 +210,13 @@ def ck_number_of_fields(record, club=None):
 
 def get_status_set(record):
     if record['status']:
-        return set(record['status'].split(glbs.SEPARATOR))
+        stati =  set(record['status'].split(glbs.SEPARATOR))
         # above returns set of one empty string if status is empty
-    else: return set()
+        stati = {item for item in stati if item}
+    else: stati = set()
+#   print("'{} {}' status is {}"
+#           .format(record['first'], record['last'], repr(stati)))
+    return stati
 
 
 def is_applicant(record):
@@ -352,7 +356,11 @@ def has_valid_email(record, club=None):
 
 
 def letter_returned(record, club=None):
-    return 'ba' in get_status_set(record)
+    stati = get_status_set(record)
+    res = 'ba' in stati
+#   print("'{} {}' status is {}"
+#           .format(record['first'], record['last'], repr(stati)))
+    return res
 
 
 def get_usps(record, club):
@@ -1008,6 +1016,7 @@ def append_email(record, club):
         'attachments': [],
         'body': body,
     }
+    sponsor_email_addresses = ''
     if club.cc_sponsors:
         record = helpers.Rec(record)
         name_key = record(fstrings['last_first'])
@@ -1016,22 +1025,21 @@ def append_email(record, club):
             # Use list comprehension for the following:
             sponsor_email_addresses = []
             for sponsor in club.sponsors_by_applicant[name_key]:
-                print('{} sponsor: {}'.format(name_key, sponsor))
-                print('appending: {}'.format(
-                                club.sponsor_emails[sponsor]))
+#               print('{} sponsor: {}'.format(name_key, sponsor))
+#               print('appending: {}'.format(
+#                               club.sponsor_emails[sponsor]))
                 addr = club.sponsor_emails[sponsor]
                 if addr:
                     sponsor_email_addresses.append(addr)
             sponsor_email_addresses = ','.join(
                     sponsor_email_addresses)
-        else: sponsor_email_addresses = ''
-        if club.cc: ccs = club.cc
-        else: ccs = ''
-        email['Cc'] = helpers.join_email_listings(
-                                        sponsor_email_addresses, ccs)
-        if club.bcc:
-            email['Bcc'] = club.bcc
-        club.json_data.append(email)
+    if club.cc: ccs = club.cc
+    else: ccs = ''
+    email['Cc'] = helpers.join_email_listings(
+                                    sponsor_email_addresses, ccs)
+    if club.bcc:
+        email['Bcc'] = club.bcc
+    club.json_data.append(email)
 
 
 def file_letter(record, club):
@@ -1052,24 +1060,24 @@ def q_mailing(record, club):
     file_letter   or
     append_email
     """
+    ss = get_status_set(record)
+    usps_ok = not 'ba' in ss
+    email_ok = not 'be' in ss
     record["subject"] = club.which["subject"]
-    if (record['status'] and 'be' in record['status']
-            and not club.which["e_and_or_p"] == "email"):
-        # If only sending emails...
-        # don't want to send a letter (even if known bad email.)
-        file_letter(record, club)
-    elif club.which["e_and_or_p"] == "email":
-        append_email(record, club)
-    elif club.which["e_and_or_p"] == "both":
+    how = club.which["e_and_or_p"]
+    if how == "email":
+        if email_ok: append_email(record, club)
+        else: file_letter(record, club)
+    elif how == "both":
         if record['email']:
             append_email(record, club)
         file_letter(record, club)
-    elif club.which["e_and_or_p"] == 'one_only':
-        if record['email']:
+    elif how == 'one_only':
+        if record['email'] and email_ok:
             append_email(record, club)
         else:
             file_letter(record, club)
-    elif club.which["e_and_or_p"] == 'usps':
+    elif how == 'usps':
         file_letter(record, club)
     else:
         print("Problem in q_mailing re {}".format(
@@ -1087,6 +1095,8 @@ def prepare_mailing(club):
     traverse_records(club.infile,
                      club.which["funcs"],
                      club)  # 'which' comes from content
+    listing = club.which["funcs"]
+    print("funcs ran by traverse_records: {}".format(listing))
     # No point in creating a json file if no emails:
     if club.json_data:
         print("There is email to send.")
@@ -1118,10 +1128,14 @@ def std_mailing_func(record, club):
 
 def bad_address_mailing_func(record, club):
     if club.which["test"](record):
+#       print("'{first} {last}' => bad address".format(**record))
         record["subject"] = club.which["subject"]
         record['extra'] = ("{address}\n{town}, {state} {postal_code}"
                            .format(**record))
         q_mailing(record, club)
+    else:
+        pass
+#       print("'{first} {last}' address OK".format(**record))
 
 
 def testing_func(record, club):

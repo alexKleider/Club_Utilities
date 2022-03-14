@@ -81,14 +81,13 @@ by the custom function.
 """,
 
     bad_address="""
+Mail sent to you has been returned.
+
 We have your mailing address as :
 
 {extra}
 
-but mail sent to that address has been returned.
-
-Please let us know a working postal address so records
-can be updated.[1]
+Please let us know if this should be corrected and, if so, to what.
 """,
 
     meeting_announcement="""
