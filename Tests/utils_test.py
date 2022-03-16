@@ -21,14 +21,6 @@ import utils
 import pytest
 
 
-@pytest.mark.parametrize("s, rl, l, expected", [
-    ('exec', ('pres', 'vp', 'treas', 'sec', 'b1'),
-        ('executive', 'a1'),
-        ['a1', 'b1', 'pres', 'sec', 'treas', 'vp']),
-    ])
-def test_replace_with_in(s, rl, l, expected):
-    assert utils.replace_with_in(s, rl, l) == expected
-
 redacted = '''
 @pytest.mark.parametrize("params, expected", [
     (('a1|exec', 'sec', '', None), {'a1', 'exec', 'sec'}

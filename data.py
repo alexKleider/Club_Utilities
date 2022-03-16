@@ -139,6 +139,11 @@ def gather_contacts_data(club):
 
 
 def move_date_listing_into_record(dates, record):
+    """
+    <dates>: a listing (possibly incomplete) of relevant dates.
+    <record>: a dict to which to add those dates by relevant key.
+    returns the record
+    """
     for key, index in (('app_rcvd',  0),
                        ('fee_rcvd',  1),
                        ('1st',       2),
@@ -149,15 +154,22 @@ def move_date_listing_into_record(dates, record):
         try:
             record[key] = dates[index]
         except IndexError:
-            continue
             record[key] = ''
+            continue
+    return record
 
 
 def applicant_data_line2record(line):
     """
     Assumes a valid line from the Data/applicant.txt file.
     Returns a dict with keys as listed in 
-    Club.APPLICANT_DATA_FIELD_NAMES
+    Club.APPLICANT_DATA_FIELD_NAMES = (
+        "first", "last", "status",
+        "app_rcvd", "fee_rcvd",   #} date (or empty
+        "1st", "2nd", "3rd",      #} string if event
+        "inducted", "dues_paid",  #} hasn't happened.
+        "sponsor1", "sponsor2",   # empty strings if not available
+        )
     """
     ret = {}
     for key in Club.APPLICANT_DATA_FIELD_NAMES:
@@ -210,7 +222,7 @@ def applicant_data_line2record(line):
     return ret
 
 
-def get_dict(source_file):
+def get_dict(source_file, sep=":", maxsplit=1):
     """
     A generic function to parse files.
     Blank lines or comments ('#') are ignored.
@@ -222,13 +234,15 @@ def get_dict(source_file):
     # would have to change its format (first '|' => ':'.)
     # Could be used for sponsors.txt and eventually, when they are
     # separated out from extra_fees.txt, for dock.txt and mooring.txt.
+    # For applicants.txt, can set sep='|' (maxsplit=1 limits parts to
+    # two)
     """
     ret = {}
     with open(source_file, 'r') as stream:
         for line in stream:
             line = line.strip()
             if not line or line[0] == '#': continue
-            parts = line.split(':')
+            parts = line.split(sep=sep, maxsplit=maxsplit)
             if len(parts) != 2: assert False
             names = parts[0].split()
             name = '{}, {}'.format(names[1], names[0])
@@ -762,6 +776,7 @@ def ck_data(club,
                 not_matching_notice = (
                     "Fee amounts don't match (try -d option for details)")
         else:
+            print("club_keys != file_keys")
             print(sorted(club_keys))
             print(sorted(file_keys))
             ret.append("\nFees problem (by name):")

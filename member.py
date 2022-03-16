@@ -1098,7 +1098,7 @@ def prepare_mailing(club):
     listing = club.which["funcs"]
     print("funcs ran by traverse_records: {}".format(listing))
     # No point in creating a json file if no emails:
-    if club.json_data:
+    if hasattr(club, 'json_data') and club.json_data:
         print("There is email to send.")
         with open(club.json_file, 'w') as file_obj:
             print('Dumping JSON to "{}".'.format(file_obj.name))

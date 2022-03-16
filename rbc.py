@@ -100,7 +100,6 @@ class Club(object):
         "1st", "2nd", "3rd",      #} string if event
         "inducted", "dues_paid",  #} hasn't happened.
         "sponsor1", "sponsor2",   # empty strings if not available
-        "sponsors",               # list of 2 last_first names
         )
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
@@ -177,6 +176,9 @@ class Club(object):
 
             if args['-o']: self.outfile = args['-o']
             else: self.outfile = Club.STDOUT
+
+            if args['-e']: self.errors = args['-e']
+            else: self.errors = Club.ERRORS_FILE
 
             if args["--cc"]: self.cc = args["--cc"]
             else: self.cc = ''

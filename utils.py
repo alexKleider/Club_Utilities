@@ -1190,21 +1190,19 @@ def fee_intake_totals_cmd(args=args):
     This command deals with the manual method of entering receipts.
     Eventually this will be deprecated in favour of the thank_cmd
     """
-    outfile = args['-o']
-    errorfile = args['-e']
-    club = Club()
+    club = Club(args=args)
     if args['-i']:
         fees_taken_in = club.fee_totals(infile=args['-i'])
     else:
         fees_taken_in = club.fee_totals()
     fees_taken_in.append(" ")
     res = '\n'.join(fees_taken_in)
-    output(res, args['-o'])
-    if club.invalid_lines and errorfile:
+    output(res, club.outfile)
+    if club.invalid_lines and hasattr(club, 'errors'):
         print('Writing possible errors to "{}".'
-              .format(errorfile))
+              .format(club.errors))
         output('\n'.join(club.invalid_lines),
-               errorfile, announce_write=False)
+               club.errors, announce_write=False)
 
 
 def labels_cmd(args=args):
@@ -1212,7 +1210,7 @@ def labels_cmd(args=args):
         medium = media[args["-P"]]
     else:
         medium = A5160
-    club = Club(medium)
+    club = Club(args=args, params=medium)
     club = args["-i"]
     return club.get_labels2print(source_file)
 

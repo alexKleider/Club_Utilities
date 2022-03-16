@@ -20,6 +20,14 @@ expected = {'a': [1,2,3,4],
            }
 
 
+@pytest.mark.parametrize("s, rl, l, expected", [
+    ('exec', ('pres', 'vp', 'treas', 'sec', 'b1'),
+        ('executive', 'a1'),
+        ['a1', 'b1', 'pres', 'sec', 'treas', 'vp']),
+    ])
+def test_replace_with_in(s, rl, l, expected):
+    assert member.replace_with_in(s, rl, l) == expected
+
 def test_keys_removed():
     assert helpers.keys_removed(d1, 'b') == expected
 

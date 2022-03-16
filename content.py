@@ -62,6 +62,10 @@ that must be subsequently filled in by the '..._funcs'.
 # # double braces fields are populated by the record data.
 letter_bodies = dict(
 
+    address_only="""
+Please find enclosed.
+""",
+
     bill_payment="""
 Please find enclosed payment.
 """,
@@ -383,15 +387,17 @@ Please send a check for ${current_dues} to the Club
 It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
-You will be receiving meeting minutes (via email) as prepared by
-our Club Secretary Ed Mann.
-
-As you may know, the Club has its own web site: 'rodandboatclub.com'.
-It is password protected; the password (a not so very closely guarded
-secret) is 'fish'.  By clicking on the "Membership" tab, you can find
-a listing of all your fellow members along with contact information.
+As you may know, the Club has its own web site 'rodandboatclub.com'
+which is password protected. The password is 'fish' and although not
+very closely guarded secret, please do not share it with non members.
+By clicking on the "Membership" tab, you can find a listing of all
+your fellow members along with contact information.
 If you see any inaccuracies there, please make it known[1] so
 corrections can be made.
+
+There is a wealth of history on our website: recordings of past
+'marine moments' along with photos of events, and forms for renting
+the club ~ lots to explore there.
 
 Members can (upon payment of a $10 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
@@ -403,8 +409,12 @@ The Club is available for members to rent for private functions (if
 certain conditions are met.)  More information can be found on the web
 site: "Rules and Forms" and under that "Club Rentals".
 
-Most important of all, come to meetings and other functions to enjoy
-the camaraderie!""",
+Please feel free to contact me if you have any questions about
+anything related to the Club.
+
+As you already know, general membership meetings are held on the first
+Friday of each month @ 7:30. Please come and attend meetings and other
+functions to enjoy the camaraderie!""",
 
     expired_application="""
 It's been more than six months since your membership application has
@@ -627,6 +637,16 @@ content_types = dict(  # which_letter
         "test": member.letter_returned,
         "e_and_or_p": "email",
         },
+    address_only={
+        "subject": "1040-es",
+        "from": authors["ak"],
+        "body": letter_bodies["address_only"],
+        "post_scripts": (),
+        "funcs": [member.std_mailing_func,],
+        "test": lambda record: record['phone']=='0',
+        "e_and_or_p": "usps",
+        },
+
     bill_payment={
         "subject": "Payment of Invoice.",
         "from": authors["bc"],
