@@ -784,15 +784,37 @@ def get_statement_dict(record):
         if record[key]:
             ret[key] = int(record[key])
             ret['total'] += ret[key]
-
-
     return ret
 
 
 def add2statement_data(record, club):
-    record = helpers.Rec(record)
-    name = record(fstrings['last_first'])
-    club.statement_data[name] = get_statement_dict(record)
+    rec = helpers.Rec(record)
+    name = rec(fstrings['last_first'])
+    club.statement_data_keys.append(name)
+    club.statement_data[name] = get_statement_dict(rec)
+
+
+def add2modified2thank_entries(record, club):
+    rec = helpers.Rec(record)
+    name = rec(fstrings['last_first'])
+    rec['status'] = club.statement_data[name]["total"]
+    club.modified2thank_entryies.append(rec)
+
+
+def rec_w_total_in_status(record, club):
+    """
+    Consults club.statement_data and returns a copy of the record
+    with the appropriate total in its 'status' field.
+    """
+    rec = helpers.Rec(record)
+    key = rec(fstrings['last_first'])
+    if key in club.statement_data_keys:
+        rec['status'] = club.statement_data[key]['total']
+    else:
+        print(
+        "Warning: expected to find '{}' in club.statement_data_keys")
+        rec['status'] = 'Payment not found'
+    return rec
 
 
 def get_statement(statement_dict, club=None):
@@ -1315,6 +1337,10 @@ prerequisites = {   # collectors needed by the
         ],
     add2statement_data: [
         'club.statement_data = {}',
+        'club.statement_data_keys = []',
+        ],
+    add2modified2thank_entries: [
+        'club.modified2thank_entries = {}',
         ],
     #   add2status_data: [
     #       'club.ms_by_status = {}',

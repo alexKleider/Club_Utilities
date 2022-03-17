@@ -754,6 +754,32 @@ def append_csv_data(new_csv, csv_file, zero=False):
     return field_names
 
 
+def modify_csv_data(csv_file, func=None, params=None, outfile=None):
+    """
+    <outfile> defaults to 'temp-'+<csv_file>
+    Data in <csv_file> (as modified by func if provided) is moved to
+    outfile. <params> can be provided for func if needed.
+    Returns the name of the outfile.
+    """
+    if not outfile:
+        outfile = 'temp-'+csv_file
+    with open(csv_file, 'r') as instream:
+        reader = csv.DictReader(instream)
+        fieldnames = reader.fieldnames
+        with open(outfile, 'w') as outstream:
+            writer = csv.DictWriter(outstream,fieldnames=fieldnames)
+            writer.writeheader()
+            for record in reader:
+                if func:
+                    if params:
+                        writer.writerow(func(record, params))
+                    else:
+                        writer.writerow(func(record))
+                else:
+                        writer.writerow(record)
+    return outfile
+
+
 def main():
     print("The month is '{}'.".format(month))
     print("'helpers.get_datestamp() returns '{}'."

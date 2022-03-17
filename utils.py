@@ -1072,13 +1072,20 @@ def thank_cmd(args=args):
     """
     club = Club(args)
     member.traverse_records(club.thank_file,
-                            [member.add2statement_data, ],
+                            [member.add2statement_data,
+                             member.add2modified2thank_entries,
+                             ],
                             club)
-    # To implememnt: maintain a record of those thanked...
     club.statement_data_keys = club.statement_data.keys()
     prepare4mailing(club)
     member.prepare_mailing(club)  # => thank_func
-    # Done with thanking; Must now update DB.
+    # Done with thanking; Must now update 2thank & main DBs.
+    new2thank_file = helpers.modify_csv_data(
+            club.thank_file,
+            func=member.add_total2status_field,
+            params=club,
+            )
+
     setup4new_db(club)  # over rides output file name
                         # & collects field names => club.fieldnames
     dict_write(club.outfile,
