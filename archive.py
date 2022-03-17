@@ -34,7 +34,7 @@ import rbc
 
 VERSION = '0.0.0'
 
-date_template = "%y-%m-%d"
+date_template = "%y-%m-%d_%H:%M"
 today = datetime.datetime.today()
 date_stamp = today.strftime(date_template)
 email_file = rbc.Club.JSON_FILE_NAME4EMAILS

@@ -15,6 +15,7 @@ its/their functionality having been moved elsewhere.
 
 import os
 import sys
+import csv
 import shutil
 import helpers
 
@@ -63,7 +64,9 @@ class Club(object):
                 '~/Downloads/contacts.csv')  # } exports the data.
     RECEIPTS_FILE = os.path.join(DATA_DIR,
             'receipts-{}.txt'.format(helpers.this_year))
-    THANK_FILE = 'Info/2thank.csv'
+    THANK_FILE =  os.path.join(DATA_DIR, '2thank.csv')
+    THANK_ARCHIVE =  os.path.join(DATA_DIR,
+            'thanked-{}.csv'.format(helpers.this_year))
     # Used by utils.thank_cmd following which needs to be
     # stored in archives with date extension.
 
@@ -104,29 +107,32 @@ class Club(object):
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
     # # Google Contact Groups in use:
-    GOOGLE_GROUPS = {"applicant," "DockUsers", "Kayak",
-                     "LIST", "moorings", "Officers", 'Secretary',
-                     "member",   # 'member' is there but not used.
+    APPLICANT_GROUP = "applicant"
+    MEMBER_GROUP = "LIST"
+    OFFICER_GROUP = 'Officers'
+    INACTIVE_GROUP = 'inactive'
+    DOCK_GROUP = 'DockUsers'
+    KAYAK_GROUP = 'Kayak'
+    MOORING_GROUP = 'moorings'
+    SECRETARY_GROUP = 'secretary'
+    GOOGLE_GROUPS = {APPLICANT_GROUP, DOCK_GROUP, KAYAK_GROUP,
+                     MEMBER_GROUP, MOORING_GROUP, OFFICER_GROUP,
+                     SECRETARY_GROUP, INACTIVE_GROUP, 
                      }
-    # # Should use the above to check data integrity!! ####
+    # # could use the above to check data integrity!! ####
     # # Yet to be implemented. ###
-    APPLICANT_GROUP = "applicant"           # } These are
-    MEMBER_GROUP = "LIST"                   # } specific to the
-    OFFICER_GROUP = 'Officers'              # } gmail contacts csv:
-    INACTIVE_GROUP = 'inactive'             # } CONTACTS_SPoT
     DOCK_FEE = 75
     KAYAK_FEE = 70
-    DOCK = 'DockUsers'    # } These are the 'groups'
-    KAYAK = 'Kayak'       # } as defined in the club's
-    MOORING = 'moorings'  # } gmail contacts.
-
-    SECRETARY = "Ed Mann"
+#   SECRETARY = "Ed Mann"  # Is this needed???
     
     # Miscelaneous 
     DEFAULT_FORMAT = 'listings'
     PATTERN = '{last}, {first}'
     PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
                    ' {state}, {postal_code} [{email}]')
+    with open(MEMBERSHIP_SPoT) as db_stream:
+        reader = csv.DictReader(db_stream)
+        DB_FIELDNAMES = reader.fieldnames
     # # ...end of Constants and Defaults.
 
     n_instances = 0
@@ -173,6 +179,10 @@ class Club(object):
 
             if args['-t']: self.thank_file = args['-t']
             else: self.thank_file = Club.THANK_FILE
+
+            if args['--thanked']:
+                self.thank_archive = args['--thanked']
+            else: self.thank_archive = Club.THANK_ARCHIVE
 
             if args['-o']: self.outfile = args['-o']
             else: self.outfile = Club.STDOUT

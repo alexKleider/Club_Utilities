@@ -27,6 +27,7 @@ Usage:
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
   ./utils.py thank [-t <2thank> -O -p <printer> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
+  ./utils.py archive_thanks [-t <2thank> -O --thanked <thank_archive> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
@@ -116,6 +117,9 @@ Options:
   --subject <subject>  The subject line of an email.
   -t <2thank>   Input for thank_cmd. It must be a csv file in same
         format as memlist.csv showing recent payments.
+  --thanked <thanked>  Name of the csv file to which to add a record
+        reflecting each thank you letter sent out. i.e. lines archived
+        from <2thank> file by the 
   -T  Present data in columns (a Table) rather than a long list.
         Used with the 'payables' and 'show_mailing_categories'
         commands. May not have much effect if the -w option value
@@ -1059,6 +1063,13 @@ def dict_write(f, fieldnames, iterable):
 
 
 def thank_cmd(args=args):
+    """
+    Reads the club.thank_file and prepares a mailing aknowledging
+    payment of moneys listed and creates a new db with the payments
+    credited.
+    If all goes well, run the update_thanked_cmd and replace the
+    original db with the new one.
+    """
     club = Club(args)
     member.traverse_records(club.thank_file,
                             [member.add2statement_data, ],
@@ -1076,6 +1087,36 @@ def thank_cmd(args=args):
                                   member.credit_payment_func,
                                   club)
                )
+
+
+def archive_thanks_cmd(args=args):
+    """
+    Zeros out the thank_file after its records are appended
+    to the thank_archive (csv) file.
+    If the thank_archive file doesn't exist, user is warned and
+    creation is offered. This should be expected with each new year
+    since the current year makes up part of the default file name.
+    """
+    club = Club(args=args)
+    # check existence of club.thank_file and club.thank_archive
+    # files..  and offer to create the latter if need be.
+    if not os.path.exists(club.thank_archive):
+        response = input(
+                "Expected file '{}' not found. Create one(y/n)?"
+                .format(club.thank_archive))
+        if not (response and response[0] in 'yY'):
+            print("Aborting for want of a required file: {}"
+                    .format(club.thank_archive))
+            sys.exit()
+        with open(club.thank_archive, 'w') as stream:
+            writer = csv.DictWriter(stream,
+                        fieldnames=club.DB_FIELDNAMES,
+                        dialect='unix',
+                        quoting=csv.QUOTE_MINIMAL,)
+            writer.writeheader()
+    field_names = helpers.append_csv_data(club.thank_file,
+                                        club.thank_archive,
+                                        zero=True)
 
 
 def display_emails_cmd(args=args):
@@ -1341,6 +1382,10 @@ if __name__ == "__main__":
         print("Preparing thank you emails and/or letters...")
         thank_cmd()
 #       print("...finished preparing thank you emails and/or letters.")
+    elif args["archive_thanks"]:
+        print("Moving data csv data from thanks to archive...")
+        archive_thanks_cmd()
+#       print("...finished moving csv data from thanks to archive.")
     elif args['display_emails']:
         # displaying emails does not involve rbc.Club so must 
         # deal with ouput file here:

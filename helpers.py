@@ -20,14 +20,109 @@ date_year_template = "%y"
 today = datetime.datetime.today()
 month = today.month
 this_year = today.year
+fall_back = '''
 s = today.strftime(date_template)
-d = datetime.datetime.strptime(s, date_template)
+d = d
 date = d.strftime(date_template)
+'''
+date = datetime.datetime.strptime(
+        today.strftime(date_template),
+        date_template
+            ).strftime(date_template)
 N_FRIDAY = 4  # ord of Friday: m, t, w, t, f, s, s
               # should instead use rbc.Club.N_FRIDAY???
 FORMFEED = chr(ord('L') - 64)  # '\x0c'
 
 CURRENT_CENTURY = '20'
+
+
+def get_first_friday_of_month(date=None):
+    """
+    Accepts a date or uses current date if None is provided.
+    Returns a datetime.date object representing the
+    next first Friday of the month.
+    """
+    if not date:
+        date = datetime.date.today()
+    year = date.year
+    month = date.month
+    for d in range(1, 8):  # range => 1..7 covering first week
+        day = datetime.date(year, month, d)
+        if day.weekday() == N_FRIDAY:
+            return day
+
+
+def next_first_friday(today=datetime.date.today(),
+                      exclude=False):
+    """
+    If <exclude> result will never be Jan 1
+    Jan 8th will be returned.
+    Returns a string (formated date.)
+    """
+    year = today.year
+    month = today.month
+    date = get_first_friday_of_month(today)
+    if exclude:
+        if date.month == 1 and date.day == 1:
+            date = date + datetime.timedelta(days=7)
+    if date < today:
+        if month == 12:
+            month = 1
+            year = year + 1
+        else:
+            month = month + 1
+        date = get_first_friday_of_month(
+            datetime.date(year, month, 1))
+        if exclude:
+            if date.month == 1 and date.day == 1:
+                date = date + datetime.timedelta(days=7)
+    return date.strftime(date_w_wk_day_template)
+
+
+def club_year(which='this', now=datetime.date.today()):
+    if which == 'last':
+        n = -1
+    elif which == 'this':
+        n = 0
+    elif which == 'next':
+        n = 1
+    else:
+        print("Invalid parameter given to helpers.club_year()")
+        sys.exit()
+    if now.month > 6:
+        return "{}-{}".format(now.year + n, now.year + n+1)
+    else:
+        return "{}-{}".format(now.year + n -1, now.year + n)
+
+
+def expand_date(date_string):
+    if len(date_string) == 6:
+        year = '{}{}'.format(CURRENT_CENTURY, date_string[:2])
+    elif len(date_string) == 8:
+        year = date_string[:4]
+    else:
+        print("Error: len(date_string) must be 6 or 8.")
+        return 'BAD DATE'
+    return '{}-{}-{}'.format(year, date_string[-4:-2],
+                             date_string[-2:])
+
+
+def get_datestamp(date=None):
+    """
+    Returns a string (for postal letters,) in the format 'Jul 03, 1945'.
+    If <date> is provided it must be type datetime.datetime or
+    datetime.date.  If not provided, today's date is used.
+    """
+    if date:
+        if (isinstance(date,datetime.date) 
+            or isinstance(date, datetime.datetime)):
+            d = date
+        else:
+            print("helpers.get_datestamp got a bad argument")
+            sys.exit()
+    else:
+        d = datetime.date.today()
+    return d.strftime(date_template)
 
 
 def do_nothing(text):
@@ -216,114 +311,6 @@ def check_sets(s1, s2,
 #       my_print(in2nd_not1st, 'errors')
         ret.extend(sorted(in2nd_not1st))
     return ret
-
-
-def get_first_friday_of_month(date=None):
-    """
-    Accepts a date or uses current date if None is provided.
-    Returns a datetime.date object representing the
-    next first Friday of the month.
-    """
-    if not date:
-        date = datetime.date.today()
-    year = date.year
-    month = date.month
-    for d in range(1, 8):  # range => 1..7 covering first week
-        day = datetime.date(year, month, d)
-        if day.weekday() == N_FRIDAY:
-            return day
-
-notused = '''
-def get_next_election_date():
-    """
-    Returns a datetime.date object representing the
-    next time club elections are to be held.
-    Relies on rbc.Club.ELECTION_MONTH.
-    """
-    date = datetime.date.today()
-    year = date.year
-    month = date.month
-# Following is code from next_first_friday- needs modifying:
-#   for d in range(1, 8):  # range => 1..7 covering first week
-#       day = datetime.date(year, month, d)
-#       if day.weekday() == N_FRIDAY:
-#           return day
-'''
-
-def next_first_friday(today=datetime.date.today(),
-                      exclude=False):
-    """
-    If <exclude> result will never be Jan 1
-    Jan 8th will be returned.
-    Returns a string (formated date.)
-    """
-    year = today.year
-    month = today.month
-    date = get_first_friday_of_month(today)
-    if exclude:
-        if date.month == 1 and date.day == 1:
-            date = date + datetime.timedelta(days=7)
-    if date < today:
-        if month == 12:
-            month = 1
-            year = year + 1
-        else:
-            month = month + 1
-        date = get_first_friday_of_month(
-            datetime.date(year, month, 1))
-        if exclude:
-            if date.month == 1 and date.day == 1:
-                date = date + datetime.timedelta(days=7)
-    return date.strftime(date_w_wk_day_template)
-
-
-# print("Setting the date to '{}'.".format(date))
-
-
-def club_year(which='this', now=datetime.date.today()):
-    if which == 'last':
-        n = -1
-    elif which == 'this':
-        n = 0
-    elif which == 'next':
-        n = 1
-    else:
-        print("Invalid parameter given to helpers.club_year()")
-        sys.exit()
-    if now.month > 6:
-        return "{}-{}".format(now.year + n, now.year + n+1)
-    else:
-        return "{}-{}".format(now.year + n -1, now.year + n)
-
-
-def expand_date(date_string):
-    if len(date_string) == 6:
-        year = '{}{}'.format(CURRENT_CENTURY, date_string[:2])
-    elif len(date_string) == 8:
-        year = date_string[:4]
-    else:
-        print("Error: len(date_string) must be 6 or 8.")
-        return 'BAD DATE'
-    return '{}-{}-{}'.format(year, date_string[-4:-2],
-                             date_string[-2:])
-
-
-def get_datestamp(date=None):
-    """
-    Returns a string (for postal letters,) in the format 'Jul 03, 1945'.
-    If <date> is provided it must be type datetime.datetime or
-    datetime.date.  If not provided, today's date is used.
-    """
-    if date:
-        if (isinstance(date,datetime.date) 
-            or isinstance(date, datetime.datetime)):
-            d = date
-        else:
-            print("helpers.get_datestamp got a bad argument")
-            sys.exit()
-    else:
-        d = datetime.date.today()
-    return d.strftime(date_template)
 
 
 def format_dollar_value(value):
@@ -739,6 +726,32 @@ def tofro_first_last(name):
     else:
         first, last = name.split()
         return f"{last}, {first}"
+
+
+def append_csv_data(new_csv, csv_file, zero=False):
+    """
+    Appends what is in <new_csv> file to
+    what's already in <csv_file>.
+    Field names (or just number of them?) must match.
+    ## Tested in Sandbox ##
+    """
+    field_names = ''
+    with open(new_csv, 'r') as instream:
+        reader = csv.DictReader(instream)
+        field_names = reader.fieldnames
+        with open(csv_file, 'a') as outstream:
+            writer = csv.DictWriter(outstream, fieldnames=field_names,
+                                dialect='unix',
+                                quoting=csv.QUOTE_MINIMAL,)
+            for line in reader:
+                writer.writerow(line)
+    if zero:
+        with open(new_csv, 'w') as outstream:
+            writer = csv.DictWriter(outstream, fieldnames=field_names,
+                                dialect='unix',
+                                quoting=csv.QUOTE_MINIMAL,)
+            writer.writeheader()
+    return field_names
 
 
 def main():

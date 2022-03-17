@@ -486,10 +486,6 @@ Thank you for your services.
 
 post_scripts = dict(
 
-    at_request_of_secretary=(
-        """ Sent at the request of {}, Secretary"""
-        .format(rbc.Club.SECRETARY)),
-
     remittance=""" Please send remittances to:
     The Bolinas Rod & Boat Club
     PO Box 248
