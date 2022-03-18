@@ -423,6 +423,7 @@ def add_sub_list(sub_header, sub_list, main_list,
 
 
 def prepend2file_name(word, file_name):
+    print("params are: {}, {}".format(word, file_name))
     head, tail = os.path.split(file_name)
     return os.path.join(head, ''.join((word, tail)))
 
@@ -756,13 +757,13 @@ def append_csv_data(new_csv, csv_file, zero=False):
 
 def modify_csv_data(csv_file, func=None, params=None, outfile=None):
     """
-    <outfile> defaults to 'temp-'+<csv_file>
+    <outfile> defaults to 'temp-'+<csv_file> in same directory.
     Data in <csv_file> (as modified by func if provided) is moved to
     outfile. <params> can be provided for func if needed.
     Returns the name of the outfile.
     """
     if not outfile:
-        outfile = 'temp-'+csv_file
+        outfile = prepend2file_name('temp-', csv_file)
     with open(csv_file, 'r') as instream:
         reader = csv.DictReader(instream)
         fieldnames = reader.fieldnames

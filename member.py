@@ -794,11 +794,11 @@ def add2statement_data(record, club):
     club.statement_data[name] = get_statement_dict(rec)
 
 
-def add2modified2thank_entries(record, club):
+def add2modified2thank_dict(record, club):
     rec = helpers.Rec(record)
     name = rec(fstrings['last_first'])
     rec['status'] = club.statement_data[name]["total"]
-    club.modified2thank_entryies.append(rec)
+    club.modified2thank_dict[name] = rec
 
 
 def rec_w_total_in_status(record, club):
@@ -1339,8 +1339,8 @@ prerequisites = {   # collectors needed by the
         'club.statement_data = {}',
         'club.statement_data_keys = []',
         ],
-    add2modified2thank_entries: [
-        'club.modified2thank_entries = {}',
+    add2modified2thank_dict: [
+        'club.modified2thank_dict = {}',
         ],
     #   add2status_data: [
     #       'club.ms_by_status = {}',

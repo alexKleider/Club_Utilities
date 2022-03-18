@@ -1062,6 +1062,18 @@ def dict_write(f, fieldnames, iterable):
             dict_writer.writerow(record)
 
 
+def setup4new_db(club):
+    """
+    Clients: thank_cmd, restore_fees_cmd, ...
+    Over rides output file name and
+    collects field names => club.fieldnames
+    """
+    # over ride output file name:
+    club.outfile = helpers.prepend2file_name('new_', club.infile)
+#   print('club.outfile set to {}'.format(club.outfile))
+    club.fieldnames = data.get_fieldnames(club.infile)
+
+
 def thank_cmd(args=args):
     """
     Reads the club.thank_file and prepares a mailing aknowledging
@@ -1073,7 +1085,7 @@ def thank_cmd(args=args):
     club = Club(args)
     member.traverse_records(club.thank_file,
                             [member.add2statement_data,
-                             member.add2modified2thank_entries,
+                             member.add2modified2thank_dict,
                              ],
                             club)
     club.statement_data_keys = club.statement_data.keys()
@@ -1082,7 +1094,7 @@ def thank_cmd(args=args):
     # Done with thanking; Must now update 2thank & main DBs.
     new2thank_file = helpers.modify_csv_data(
             club.thank_file,
-            func=member.add_total2status_field,
+            func=member.rec_w_total_in_status,
             params=club,
             )
 
