@@ -708,14 +708,19 @@ def report_cmd(args=args):
         report.extend(misc_stati)
 
     try:
-        with open(glbs.DEFAULT_ADDENDUM2REPORT_FILE, 'r') as fobj:
+        with open(club.ADDENDUM2REPORT_FILE, 'r') as fobj:
             addendum = fobj.read()
             if addendum:
-                print('Opening file: {}'.format(fobj.name))
+                print('Appending addendum as found in file: {}'
+                        .format(fobj.name))
                 report.append("\n\n")
                 report.append(addendum)
+            else:
+                print("No addendum found in file: {}"
+                        .format(fobj.name))
     except FileNotFoundError:
-        print('report.addendum not found')
+        print('No addendum (file: {}) found.'
+                .format(club.ADDENDUM2REPORT_FILE))
     report.extend(
         ['',
          "Respectfully submitted by...\n\n",

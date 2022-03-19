@@ -16,4 +16,3 @@ MSMTP_ACCOUNT = "gmail"
 MIN_TIME_TO_SLEEP = 1   # } Seconds between
 MAX_TIME_TO_SLEEP = 5   # } email postings.
 
-DEFAULT_ADDENDUM2REPORT_FILE = "Info/addendum2report.txt"

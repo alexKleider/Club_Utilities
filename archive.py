@@ -3,21 +3,23 @@
 # File: archive.py
 
 """
-A rewrite of archive-data.sh primarily to utilize
-constants defined in rbc.py (such as 'rbc.Club.NONREPO_DIRS'
-rather than hard code them into the utility- adhere to SPoT.)
+Initially began as a rewrite of archive-data.sh primarily to utilize
+constants defined in rbc.py (such as 'rbc.Club.NONREPO_DIRS' rather
+than hard code them into the utility- adhere to SPoT.)
+Note: Assumes only defaults have been used in data management!
 
-Also replaces archive_mailing.sh.
+Also serves to replaces archive_mailing.sh.
 
-It's inverse is restore.py.
+It's inverse is restore.py. (still a work in progress)
 
 Usage:
     ./archive.py [-h | --version]
-    ./archive.py [(-o | -O) -q -m]
+    ./archive.py [(-o | -O) -q (-m | -d)]
 
 Options:
   -h --help  Print this docstring.
   --version  Print version.
+  -d --deep  Back up everything! (Includes stable data)
   -q --quiet  Supress printing of files found to archive.
   -m --mail_only  Only archive mail, not rest of data.
   -O --Options  Show options and exit. Used for debugging.
@@ -32,21 +34,21 @@ import datetime
 from docopt import docopt
 import rbc
 
-VERSION = '0.0.0'
+VERSION = '0.0.1'
 
-date_template = "%y-%m-%d_%H:%M"
+date_template = "%y-%m-%d_%H-%M"
 today = datetime.datetime.today()
 date_stamp = today.strftime(date_template)
 email_file = rbc.Club.JSON_FILE_NAME4EMAILS
 letters_dir = rbc.Club.MAILING_DIR
 mailing_sources = [email_file, letters_dir]
-list_of_data_targets = rbc.Club.NONREPO_DIRS
+list_of_data_targets = [rbc.Club.DATA_DIR]
 data_destination = os.path.expandvars(
     '$CLUB/Archives/Data')
 mailing_destination = os.path.expandvars(
-    '$CLUB/Archives/Mailings')
+    '$CLUB/Archives/Mailing')
 info_file = os.path.expandvars(
-    "$CLUB/NR/Info/last")
+    "$CLUB/Info/last")
 
 
 def archive(destination_directory,
@@ -78,12 +80,13 @@ def archive(destination_directory,
               .format(targz_base_name))
         return False
     for source in sources:
-        print("source: '{}'".format(source))
-        print("targz_base_name: '{}'".format(targz_base_name))
-        dest = os.path.join(targz_base_name, source)
-        print("dest: '{}'".format(dest))
+#       print("source: '{}'".format(source))
+#       print("targz_base_name: '{}'".format(targz_base_name))
+        dest = os.path.join(targz_base_name,
+                os.path.split(source)[1])
+#       print("dest: '{}'".format(dest))
         if not args["--quiet"]:
-            print("source & dest are {} & {}".format(source, dest))
+#           print("source & dest are {} & {}".format(source, dest))
             response = input("Continue? (y/n) ")
             if not (response and response[0] in {'y', 'Y'}):
                 sys.exit()
@@ -117,13 +120,15 @@ def archive_mail(sources=mailing_sources):
     targets = [source for source in sources if (
         os.path.isfile(source) or (
         os.path.isdir(source) and os.listdir(source)))]
-    print("<targets> set to '{}'".format(targets))
+#   print("<targets> set to '{}'".format(targets))
     if targets:
         if archive(mailing_destination, targets):
             ans = input(
                   "Mailing archived.  Delete mailings from data? ")
             if ans and ans[0] in {'y', 'Y'}:
                 for source in sources:
+#                   print("within archive_mail: source is {}"
+#                           .format(source))
                     if os.path.isdir(source):
                         shutil.rmtree(source)
                     elif os.path.isfile(source):
@@ -153,9 +158,10 @@ def main():
     args['mail_action'] = ''
     args['data_action'] = ''
     if args['--options'] or args['--Options']:
-        print("Arguments are as follows:")
+#       print("Arguments are as follows:")
         for arg in args:
-            print("\t{}: {}".format(arg, args[arg]))
+            pass
+#           print("\t{}: {}".format(arg, args[arg]))
         if args['--Options']:
             sys.exit()
     try:

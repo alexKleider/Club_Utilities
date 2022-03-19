@@ -226,16 +226,12 @@ def get_dict(source_file, sep=":", maxsplit=1):
     """
     A generic function to parse files.
     Blank lines or comments ('#') are ignored.
-    All other lines must contains a 'first last' name followed by a
-    colon and anything else.
-    Returned is a dict keyed by 'last,first' name and string to right of
-    colon as value (which could be an empty string.
-    # To make this applicable to the 'applicants.txt' file one
-    # would have to change its format (first '|' => ':'.)
-    # Could be used for sponsors.txt and eventually, when they are
-    # separated out from extra_fees.txt, for dock.txt and mooring.txt.
-    # For applicants.txt, can set sep='|' (maxsplit=1 limits parts to
-    # two)
+    All other lines must contains a 'first last' name followed by
+    a separator (<sep> defaults to ':') and then anything else.
+    Returned is a dict keyed by 'last,first' name and value: the
+    string to right of <sep> (stripped of leading &/or trailing
+    spaces. (It could be an empty string!)
+    # For applicants.txt, can set sep='|' (maxsplit=1)
     """
     ret = {}
     with open(source_file, 'r') as stream:
@@ -246,7 +242,7 @@ def get_dict(source_file, sep=":", maxsplit=1):
             if len(parts) != 2: assert False
             names = parts[0].split()
             name = '{}, {}'.format(names[1], names[0])
-            ret[name] = parts[1]
+            ret[name] = parts[1].strip()
     return ret
 
 
@@ -254,6 +250,7 @@ def parse_kayak_data(raw_dict):
     """
     Modifies values in <raw_dict> as appropriate
     for the KAYAK.SPoT file.
+    ## One time use for when fee has already been paid
     """
     for key in raw_dict.keys():
         value = raw_dict[key].split()

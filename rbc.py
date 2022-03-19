@@ -32,16 +32,12 @@ class Club(object):
 
     INFO_DIR = "Info"
     INFO_DIR = os.path.join(
-            os.path.split(os.getcwd())[0],
-            'NR', 'Info')
+            os.path.split(os.getcwd())[0], 'Info')
     DATA_DIR = "Data"
     DATA_DIR = os.path.join(
-            os.path.split(os.getcwd())[0],
-            'NR', 'Data')
-    ARCHIVE_DIR = 'Archives'
+            os.path.split(os.getcwd())[0], 'Data')
     ARCHIVE_DIR = os.path.join(
-            os.path.split(os.getcwd())[0],
-            'Archives')
+            os.path.split(os.getcwd())[0], 'Archives')
     DATA_ARCHIVE = os.path.join(ARCHIVE_DIR, "Data")
     MAILING_ARCHIVE = os.path.join(ARCHIVE_DIR, "Mailings")
     
@@ -58,8 +54,12 @@ class Club(object):
     APPLICANT_SPoT = os.path.join(DATA_DIR, "applicants.txt")
     APPLICANT_CSV = os.path.join(DATA_DIR, "applicants.csv")
     SPONSORS_SPoT = os.path.join(DATA_DIR, "sponsors.txt")
-    EXTRA_FEES_SPoT = os.path.join(DATA_DIR, 'extra_fees.txt')
+#   redacted:
+#   EXTRA_FEES_SPoT = os.path.join(DATA_DIR, 'extra_fees.txt')
+    DOCK_SPoT = os.path.join(DATA_DIR, 'dock.txt')
     KAYAK_SPoT = os.path.join(DATA_DIR, 'kayak.txt')
+    MOORING_SPoT = os.path.join(DATA_DIR, 'mooring.txt')
+    EXTRA_FEES_SPoTs = ( DOCK_SPoT, KAYAK_SPoT, MOORING_SPoT,)
     CONTACTS_SPoT = os.path.expanduser(      # } File to which google
                 '~/Downloads/contacts.csv')  # } exports the data.
     RECEIPTS_FILE = os.path.join(DATA_DIR,
@@ -67,13 +67,13 @@ class Club(object):
     THANK_FILE =  os.path.join(DATA_DIR, '2thank.csv')
     THANK_ARCHIVE =  os.path.join(DATA_DIR,
             'thanked-{}.csv'.format(helpers.this_year))
-    # Used by utils.thank_cmd following which needs to be
-    # stored in archives with date extension.
+    ADDENDUM2REPORT_FILE = os.path.join(DATA_DIR, "addendum2report.txt") 
 
+#   redacted:
+#   EXTRA_FEES_JSON = os.path.join(DATA_DIR, 'extra_fees.json')
+#   EXTRA_FEES_TBL = os.path.join(DATA_DIR, 'extra_fees.tbl')  # not used!
+#   TEMP_MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'new_memlist.csv')
     # Intermediate &/or temporary files used:
-    EXTRA_FEES_JSON = os.path.join(DATA_DIR, 'extra_fees.json')
-    EXTRA_FEES_TBL = os.path.join(DATA_DIR, 'extra_fees.tbl')  # not used!
-    TEMP_MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'new_memlist.csv')
     MAILING_DIR = os.path.join(DATA_DIR, 'MailingDir')
     JSON_FILE_NAME4EMAILS = os.path.join(DATA_DIR, 'emails.json')
 
@@ -84,15 +84,15 @@ class Club(object):
     # Non repo directories (used by archive.py:)
 #   print(os.path.split(os.getcwd()))
     (head, tail) = os.path.split(os.getcwd())
-    NONREPO_DIRS = ("Data",
-                    "Exclude",
-                    "Info",
+#   NONREPO_DIRS = ("Data",
+#                   "Exclude",
+#                   "Info",
 #                   "Mydata",
-                    )
-    NONREPO_DIRS = [os.path.join(
-        os.path.split(os.getcwd())[0],
-        'NR',
-        f) for f in NONREPO_DIRS]
+#                   )
+#   NONREPO_DIRS = [os.path.join(
+#       os.path.split(os.getcwd())[0],
+#       'NR',
+#       f) for f in NONREPO_DIRS]
     
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
@@ -169,7 +169,7 @@ class Club(object):
             else: self.contacts_spot = Club.CONTACTS_SPoT
 
             if args['-X']: self.extra_fees_spot = args['-X']
-            else: self.extra_fees_spot = Club.EXTRA_FEES_SPoT
+            else: self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
 
             if args['-j']: self.json_file = args['-j']
             else: self.json_file = Club.JSON_FILE_NAME4EMAILS

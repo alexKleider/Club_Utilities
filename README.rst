@@ -30,9 +30,9 @@ or, for more information..
   ``./utils.py -h | pager``
 
 The project arose to facilitate my duties when appointed membership
-secretary to the Bolinas Rod & Boat Club.  It may be of use
-(undoubtedly with modifications) to someone else working on behalf
-of some other organization.
+secretary to the Bolinas Rod & Boat Club (in 2018 perhaps.)
+It may be of use (undoubtedly with modifications) to someone else
+working on behalf of some other organization.
 
 
 ==============================================
@@ -40,21 +40,16 @@ Directory Structure, Backup and Privacy Issues
 ==============================================
 
 There is the *project directory* (in my case it's **~/Git/Club**)
-and within it is the *repo* (**Club_Utilities** which I've renamed
-**Utils**.) Within the project directory there are other directories
-pertaining to the Club but only one is relevant to the code;
-it's the **Archive** directory which is maintained for backup
-and historical purposes.
+and within it is the *git-repo* (**Club_Utilities** which I've renamed
+**Utils**) which can be cloned at
+https://github.com/alexKleider/Club_Utilities.
+Data files are kept in the NR/Data (NR for NonRepo for privacy reasons)
+directory under the project directory.  The **archive.py** script
+wraps current data into a compressed file for storage on the Club's
+google Drive account.
+The **restoreREADME** file provides a guide as to how data can be
+restored.
 
-Current Club data is maintained within *excluded* (they are listed
-in the **.git/info/exclude** file) subdirectories of the
-*repo* directory. The
-**archive_data.sh** script does a backup of this data into the
-**Archives** directory and the **backup.sh** script provides backup
-onto mounted backup media. Consult those scripts and the
-**restoreREADME** file for details.
-
-The code is backedup by git.
 
 
 ====
