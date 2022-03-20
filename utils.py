@@ -15,14 +15,14 @@ Consult the README file for further info.
 
 Usage:
   ./utils.py [-O -w <width> -r <rows> ] [ -? | --help | --version]
-  ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spot> -C <contacts_spot> -o <outfile>]
+  ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -w <width> -f <format> -X <fees_spot> -o <outfile> -j <jsonfile>]
+  ./utils.py extra_charges [-O -w <width> -f <format> -X <fees_spots> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -31,7 +31,7 @@ Usage:
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
-  ./utils.py restore_fees [-O -i <membership_file> -X <fees_spot> -o <temp_membership_file> -e <error_file>]
+  ./utils.py restore_fees [-O -i <membership_file> -X <fees_spots> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
   ./utils.py new_db -F function -G data_gathering_function[-O -i <membership_file> -o <new_membership_file> -e <error_file>]
@@ -128,7 +128,7 @@ Options:
             Screen widwh.  [default: 140]
   --which <letter>  Specifies type/subject of mailing.
   -x <file>  Used by commands not in use. (Expect redaction)
-  -X <fees_spot>  Extra Fees data file.
+  -X <fees_spots>  a listing of the Extra Fees data files.
 
 Commands:
     When run without a command, suggests ways of getting help.
@@ -918,7 +918,7 @@ def extra_charges_cmd(args=args):
     Returns a report of members with extra charges.
     It also can create a json file: specified by the -j option.
     """
-    output('\n'.join(data.extra_charges(club_setup4extra_charges())),
+    output('\nextra_charges_cmd not implemented.',
             args['-o'])
 
 
@@ -1179,7 +1179,7 @@ def send_emails_cmd(args=args):
     Sends emails prepared by prepare_mailing_cmd.
     See also content.authors_DOCSTRING.
     """
-    if confirm:
+    if confirm:  # not using curses: check 'lesssecureapps' setting.
         ck_lesssecureapps_setting()
     mta = args["--mta"]
     emailer = args["--emailer"]
@@ -1360,7 +1360,7 @@ if __name__ == "__main__":
     print("Architecture: {}  Platform: {}".
             format(platform.architecture(), sys.platform))
     using_curses = False
-    confirm = True
+    confirm = True  # check google contacts is up to date
 
 #   print("About to call helpers.print_args...")
     helpers.print_args(args, '-O')
@@ -1391,7 +1391,7 @@ if __name__ == "__main__":
         print("haven't provided) an email address (to the Club.)")
         output(usps_cmd(), args['-o'])
     elif args["extra_charges"]:
-        print("Selecting members with extra charges:")
+        print("Command not implemented.")
         extra_charges_cmd()
     elif args["payables"]:
         print("Preparing listing of payables...")
@@ -1449,7 +1449,7 @@ if __name__ == "__main__":
 
 else:  # Using curses interface.
     using_curses = True
-    confirm = False
+    confirm = False  # Won't want to check contacts and lesssecureaps
     set_default_args_4curses(args)
 #   def print(*args, **kwargs):
 #       pass

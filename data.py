@@ -404,124 +404,42 @@ def line_of_meeting_dates(applicant_datum):
     return ', '.join(dates)
 
 
-def gather_extra_fees_data(extra_fees_spot, json_file=None):
+def gather_extra_fees_data(extra_fees_spots):
     """
-    Reads in_file and returns a dict with keys:
-        Club.NAME_KEY: a dict keyed by name with
-            each a set of (category, amount) tuples[1].
-        Club.CATEGORY_KEY: a dict keyed by category with
-            each a set of (last_first, amount) tuples.
-
-    Input file must have three header lines each containing
-    one of the following words: Mooring, Dock, Kayak,
-    and ending with ':'.
-    Other lines must contain 'First Last: amt'.
-    ...as can be seen in Data/extra_fees.txt.
-    If <json_file> is specified (name of a file) the
-    'by_name' dict is dumped into a json file of that name.
-    [1] The 'by_name' component can be converted so that its
-    values are all a single string using the json_fees_by_name
-    function.
+    <extra_fees_spots> must be a list of the names of three files
+    containing extra fee data for dock, kayak and mooring in that
+    order. 
     """
-    by_name = {}
-    by_category = dict(  # json version of input file
-        Kayak=[],
-        Dock=[],
-        Mooring=[],
-        )
-    categories = [key for key in by_category.keys()]
+    by_category = {}
+    for key in member.FEES_KEYS:
+        by_category[key] = {}
+    categories = sorted([key for key in by_category.keys()])
+    
+    for n, key in enumerate(categories):
+        by_category[key] = get_dict(extra_fees_spots[n])
+    return by_category
+    
 
-    with open(extra_fees_spot, 'r') as f_obj:
-        print('Reading file "{}"...'.format(f_obj.name))
-        category = ""
-        for line in helpers.useful_lines(f_obj, comment='#'):
-            category_change = False
-            if line[-1] == ':':  # line ending in ':' means
-                                 # there's been acategory change
-                words = line[:-1].split()
-                for word in words:
-                    if word in categories:
-                        category = word
-                        category_change = True
-                        continue
-            else:  # Expect a name with fee for current category...
-                parts = line.split(':')
-                try:
-                    fee = int(parts[1])
-                except IndexError:
-                    print("line: {}".format(line))
-                    raise
-                names = parts[0].split()
-                first_name = names[0]
-                last_name = names[1]
-                name_key = "{}, {}".format(last_name, first_name)
-                _ = by_name.setdefault(name_key, [])
-                _ = by_category.setdefault(category, [])
-                by_name[name_key].append((category, fee))
-                by_category[category].append((name_key, fee))
-    if json_file:
-        helpers.dump2json_file(by_name, json_file, verbose=True)
-    #   else:
-    #       print("No json file specified.")
-    return {Club.NAME_KEY: by_name,
-            Club.CATEGORY_KEY: by_category,
-            }
-
-def extra_charges(club, raw=False):
-    """
-    Returns a report of members with extra charges.
-    Only client is extra_charges_cmd.
-    Also creates a json file if requested.
-    Instance of Club must be set up by client along with
-    the following attributes (from command line arguments):
-        infile, json_file,
-        presentation_format, width
-    """
-    print('Retrieving input data from "{}"'.format(club.infile))
-    if club.presentation_format == 'listing':
-        if club.json_file:   # do we want a json file..
-            _ = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
-                                       json_file=club.json_file)
-        # Just return file content:
-        with open(club.infile, 'r') as f_object:
-            return [line.strip() for line in f_object]
-    extra_fees = gather_extra_fees_data(club.EXTRA_FEES_SPoT,
-                                        json_file=club.json_file)
-    by_name = extra_fees[club.NAME_KEY]
-    by_category = extra_fees[club.CATEGORY_KEY]
-    if club.presentation_format == 'table':  # Names /w fees in columns:
-        res = present_fees_by_name(by_name)
-        if raw:
-            ret = []
-        else:
-            ret = ["Extra fees by member:",
-                   "=====================", ]
-        ret.extend(helpers.tabulate(res, down=True,
-                   max_width=club.max_width, separator=' '))
-        return(ret)
-    elif club.presentation_format == 'listings':
-        return(present_fees_by_category(extra_fees, raw=raw))
-    else:
-        print(club.bad_format_warning)
-        sys.exit()
+def extra_fees_by_name(extra_fees_by_category):
+    ret = {}
+    for category in extra_fees_by_category.keys():
+        for name in extra_fees_by_category[category].keys():
+            _ = ret.setdefault(name, {})
+            ret[name][category] = extra_fees_by_category[
+                    category][name]
+    return ret        
 
 
-
-def present_fees_by_name(extra_fees, raw=False):
+def present_fees_by_name(extra_fees_by_name, raw=False):
     """
     Param would typically be the returned value of
-    gather_extra_fees_data(extra_fees_spot)
-    or its NAME_KEY value.
+    extra_fees_by_name(gather_extra_fees_data(extra_fees_spot))
     Returns a text listing with or (if raw=True) without a header.
     """
-    if Club.NAME_KEY in extra_fees:
-        jv = extra_fees[Club.NAME_KEY]
-    else:
-        jv = extra_fees
     ret = []
-    for key in jv:
+    for key in extra_fees_by_name:
         charges = []
-        for value in jv[key]:
+        for value in extra_fees_by_name[key]:
             charges.append("{} {}".format(value[0], value[1]))
         charges = ', '.join(charges)
         ret.append("{key}: {charges}".format(
@@ -534,18 +452,14 @@ def present_fees_by_category(extra_fees, raw=False,
                              ):
     """
     Param would typically be the returned value of
-    gather_extra_fees_data(extra_fees_spot)
-    or its CATEGORY_KEY value.
+    gather_extra_fees_data(extra_fees_spots.
     Returns a text listing with or (if raw=True) without a header.
     Last parameter (not yet implemented) changes the default of
     showing individuals' fees only for mooring since fees for dock
     use and kayak storage are the same for everyone .
     """
-    if Club.CATEGORY_KEY in extra_fees:
-        jv = extra_fees[Club.CATEGORY_KEY]
-    else:
-        jv = extra_fees
-    categories = sorted([key for key in jv])
+    categories = sorted([key.capitalized() for key in
+                                        extra_fees.keys()])
     ret = {}
     max_width = {}
     for category in categories:
@@ -570,7 +484,7 @@ def present_fees_by_category(extra_fees, raw=False,
             assert False
         ret[category].append('-' * len(ret[category][0]))
         max_width[category] = len(ret[category][0])
-        for value in jv[category]:
+        for value in extra_fees[category]:
             if category == 'Mooring':
                 ret[category].append("{0}: ${1}".format(*value))
             else:
@@ -605,7 +519,7 @@ def ck_data(club,
     2.  CONTACTS_SPoT    # csv downloaded from gmail
     3.  APPLICANT_SPoT   #
     4.  SPONSORS_SPoT    #
-    5.  EXTRA_FEES_SPoT  #
+    5.  EXTRA_FEES_SPoTs #
         ...
     The first 4 of the above all contain applicant data
     and must be checked for consistency.
@@ -614,7 +528,7 @@ def ck_data(club,
     Returns a report in the form of an array of lines.
     <fee_details> if set to True extends the output to include
     any discrepencies between what's billed each year vs what is
-    still owed; expected after payments begin to come in.
+    still owed; useful after payments begin to come in.
     """
     print("Entering data.ck_data")
     ret = []
@@ -675,7 +589,8 @@ def ck_data(club,
         ok.append("No Google Groups vs Member/Applicant Missmatch.")
 
     # Collect data from custom files ==> local variables
-    extra_fees_info = gather_extra_fees_data(club.extra_fees_spot)
+    extra_fees_info = gather_extra_fees_data(club.extra_fees_spots)
+    fees_by_name = extra_fees_by_name(extra_fees_info)
     populate_sponsor_data(club)
     populate_applicant_data(club)
     applicants_by_status = get_applicants_by_status(club)
@@ -735,26 +650,27 @@ def ck_data(club,
     # Now check fees: mem list vs extra fees SPoT
     # Keep in mind that after payment amounts won't match
     not_matching_notice = ''
-    if (extra_fees_info[club.CATEGORY_KEY] !=
+    if (extra_fees_info !=
             club.ms_by_fee_category):
-        club_keys = set(extra_fees_info[club.CATEGORY_KEY].keys())
+        club_keys = set(extra_fees_info.keys())
         file_keys = set(club.ms_by_fee_category.keys())
         if club_keys == file_keys:
+#           print("{} vs {}".format(club_keys, file_keys))
             not_matching_notice = (
                 "Fee amounts (by category) don't match")
             # traverse keys and report by name later
         else:
             ret.append("\nFees problem (by fee category):")
-            ret.append("extra_fees_info[club.CATEGORY_KEY]:")
-            ret.append(repr(extra_fees_info[club.CATEGORY_KEY]))
+            ret.append("extra_fees_info:")
+            ret.append(repr(extra_fees_info))
             ret.append("###  !=  ###")
             ret.append("club.ms_by_fee_category:")
             ret.append(repr(club.ms_by_fee_category))
     else:
         ok.append("No fees by category problem.")
 
-    if (extra_fees_info[club.NAME_KEY] != club.fee_category_by_m):
-        club_keys = set(extra_fees_info[club.NAME_KEY].keys())
+    if (fees_by_name != club.fee_category_by_m):
+        club_keys = set(fees_by_name.keys())
         file_keys = set(club.fee_category_by_m.keys())
         if club_keys == file_keys:
             if fee_details:
@@ -762,11 +678,11 @@ def ck_data(club,
                 # traverse keys and specify which amounts don't match
                 club_keys = sorted([key for key in club_keys])
                 for key in club_keys:
-                    if (extra_fees_info[club.NAME_KEY][key] !=
+                    if (fees_by_name[key] !=
                             club.fee_category_by_m[key]):
                         varying_amounts.append('{}: {} != {}'.format(
                                 key,
-                                extra_fees_info[club.NAME_KEY][key],
+                                fees_by_name[key],
                                 club.fee_category_by_m[key]
                                 ))
             else:
@@ -782,7 +698,7 @@ def ck_data(club,
                 [key for key in extra_fees_info[club.NAME_KEY].keys()])
             for key in sorted_keys:
                 ret.append("{}: {}".format(key, extra_fees_info[club.NAME_KEY][key]))
-#           ret.append(repr(extra_fees_info[club.NAME_KEY]))
+#           ret.append(repr(fees_by_name))
             ret.append("###  !=  ###")
             ret.append("club.fee_category_by_m:")
             for key, value in club.fee_category_by_m.items():
@@ -881,7 +797,7 @@ def compare(data1, data2, underline_char='=', inline=False):
     ret.append("... end of listings")
     return ret
 
-
+redact = '''
 def list_mooring_data(extra_fees_spot):
     extra_fees_data = gather_extra_fees_data(extra_fees_spot)
 #   data = extra_fees_data[Club.CATEGORY_KEY]
@@ -889,7 +805,7 @@ def list_mooring_data(extra_fees_spot):
     mooring_data = extra_fees_data[Club.CATEGORY_KEY]["Mooring"]
     return sorted(
         ["{0} - {1}".format(*datum) for datum in mooring_data])
-
+'''
 
 func_dict = {
         "populate_kayak_fees": populate_kayak_fees,

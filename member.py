@@ -67,9 +67,9 @@ MONEY_KEYS_CAPPED = [item.capitalize() for item in MONEY_KEYS]
 FEES_KEYS = MONEY_KEYS[1:]
 MONEY_HEADERS = {
     "dues":    "Dues..........",
-    "mooring": "Mooring.......",
     "dock":    "Dock Usage....",
     "kayak":   "Kayak Storage.",
+    "mooring": "Mooring.......",
     "total":   "    TOTAL.........",
     }
 demographic_f = (
@@ -509,26 +509,24 @@ def add2applicant_with_email_set(record, club):
 def add2fee_data(record, club):
     """
     Populates club.fee_category_by_m  and
-    club.ms_by_fee_category if these attributes exist.
+    club.ms_by_fee_category.
     """
     record = helpers.Rec(record)
     name = record(fstrings['last_first'])
     # print(repr(FEES_KEYS))
     for key in FEES_KEYS:
-        # print("Checking key '{}' for {}".format(key, name))
         try:
             fee = int(record[key])
         except ValueError:
-            # print("'{}' => ValueError".format(record[key]))
             continue
-        capped = key.capitalize()
-        # print("'{}' <=> {}".format(name, capped))
-        if hasattr(club, 'ms_by_fee_category'):
-            _ = club.ms_by_fee_category.setdefault(capped, [])
-            club.ms_by_fee_category[capped].append((name, fee))
-        if hasattr(club, 'fee_category_by_m'):
-            _ = club.fee_category_by_m.setdefault(name, [])
-            club.fee_category_by_m[name].append((capped, fee))
+#       capped = key.capitalize()
+#       print("'{}' <=> {}".format(name, capped))
+        _ = club.ms_by_fee_category.setdefault(key, [])
+        club.ms_by_fee_category[key].append((name, fee))
+        _ = club.fee_category_by_m.setdefault(name, [])
+        club.fee_category_by_m[name].append((key, fee))
+#   print("Added name '{}', capped '{}', fee '{}'."
+#           .format(name, capped, fee))
 
 
 def add2malformed(record, club=None):

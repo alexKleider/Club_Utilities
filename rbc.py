@@ -168,7 +168,7 @@ class Club(object):
             if args['-C']: self.contacts_spot = args['-C']
             else: self.contacts_spot = Club.CONTACTS_SPoT
 
-            if args['-X']: self.extra_fees_spot = args['-X']
+            if args['-X']: self.extra_fees_spots = args['-X']
             else: self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
 
             if args['-j']: self.json_file = args['-j']
