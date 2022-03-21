@@ -40,6 +40,13 @@ class Club(object):
             os.path.split(os.getcwd())[0], 'Archives')
     DATA_ARCHIVE = os.path.join(ARCHIVE_DIR, "Data")
     MAILING_ARCHIVE = os.path.join(ARCHIVE_DIR, "Mailings")
+    # Intermediate &/or temporary files used:
+    MAILING_DIR = os.path.join(DATA_DIR, 'MailingDir')
+    JSON_FILE_NAME4EMAILS = os.path.join(DATA_DIR, 'emails.json')
+
+    STDOUT = 'output2check.txt'
+    OUTPUT2READ = '2read.txt'  # } generally goes to stdout.
+    ERRORS_FILE = 'errors.txt'
     
     # # Constants and Defaults...
     YEARLY_DUES = 100
@@ -73,13 +80,6 @@ class Club(object):
 #   EXTRA_FEES_JSON = os.path.join(DATA_DIR, 'extra_fees.json')
 #   EXTRA_FEES_TBL = os.path.join(DATA_DIR, 'extra_fees.tbl')  # not used!
 #   TEMP_MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'new_memlist.csv')
-    # Intermediate &/or temporary files used:
-    MAILING_DIR = os.path.join(DATA_DIR, 'MailingDir')
-    JSON_FILE_NAME4EMAILS = os.path.join(DATA_DIR, 'emails.json')
-
-    STDOUT = 'output2check.txt'
-    OUTPUT2READ = '2read.txt'  # } generally goes to stdout.
-    ERRORS_FILE = 'errors.txt'
 
     # Non repo directories (used by archive.py:)
 #   print(os.path.split(os.getcwd()))

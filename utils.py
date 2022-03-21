@@ -794,12 +794,7 @@ def stati_cmd(args=args):
     print("Preparing 'Stati' Report ...")
     output('\n'.join(
         show_stati(club)
-#       member.show_by_status(
-#       club.ms_by_status,
-#       club.stati2show,
-#       club)  # to collect dates +/ sponsors
             ), club.outfile)
-#   output('\n'.join(show_stati(club)), club.outfile)
 
 
 def create_applicant_csv_cmd(args=args):
@@ -860,12 +855,12 @@ def usps_cmd(args=args):
         first,last,address,town,state,postal_code
     (Members who are NOT in the 'email only' category.)
     """
-    infile = args['-i']
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
+    print("Preparing a csv file listing showing members who")
+    print("receive meeting minutes by mail. i.e. don't have (or")
+    print("haven't provided) an email address (to the Club.)")
     club = Club(args)
     club.usps_only = []
-    err_code = member.traverse_records(infile, [
+    err_code = member.traverse_records(club.infile, [
                 member.get_usps,
                 member.get_secretary,
                 member.get_bad_emails,
@@ -880,15 +875,15 @@ def usps_cmd(args=args):
             break
     res.append(",".join(header))
     res.extend(club.usps_only)
-    # The following 2 lines are commented out because new secretary
-    # Michael Rafferty doesn't need/want to be on the list.
+    # The following 2 lines are commented out because former
+    # secretary Michael Rafferty didn't need/want to be on the list.
 #   if hasattr(club, 'secretary'):
 #       res.append(club.secretary)
     if club.bad_emails:
         print("... and {} more with a non functioning email."
               .format(len(club.bad_emails)))
         res.extend(club.bad_emails)
-    return '\n'.join(res)
+    output('\n'.join(res))
 
 
 def club_setup4extra_charges(args=args):
@@ -956,7 +951,7 @@ def payables_cmd(args=args):
                        "---------------------"])
         ret.extend(club.advance_payments)
     print('\n'.join(ret))
-    output('\n'.join(ret), args['-o'])
+    output('\n'.join(ret), club.outfile)
 
 
 def show_mailing_categories_cmd(args=args):
@@ -1040,9 +1035,18 @@ def prepare_mailing_cmd(args=args):
     # ***** Done with configuration & checks ...
     member.prepare_mailing(club)  # Populates club.mail_dir
     #                               and moves json_data to file.
-    print("""prepare_mailing completed..
-    ..next step might be the following:
-    $ zip -r 4Michael {}""".format(args["--dir"]))
+    # Check if any letters are filed and if not, delete mailing dir:
+    if os.path.isdir(club.mail_dir) and not len(
+            os.listdir(club.mail_dir)):
+        mail_dir_exists = False
+    else: mail_dir_exists = True
+    print("prepare_mailing completed..")
+    if mail_dir_exists:
+        print("""..next step might be the following:
+    $ zip -r 4Peter {}""".format(club.mail_dir))
+    else:
+        print("Mailing directory is empty; deleted.")
+        os.rmdir(club.mail_dir)
 
 
 
@@ -1386,10 +1390,7 @@ if __name__ == "__main__":
     elif args["zeros"]:
         zeros_cmd()
     elif args["usps"]:
-        print("Preparing a csv file listing showing members who")
-        print("receive meeting minutes by mail. i.e. don't have (or")
-        print("haven't provided) an email address (to the Club.)")
-        output(usps_cmd(), args['-o'])
+        usps_cmd()
     elif args["extra_charges"]:
         print("Command not implemented.")
         extra_charges_cmd()

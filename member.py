@@ -5,11 +5,10 @@
 """
 Applies to records of members of 'the club' which
 is further defined in another module (rbc.py).
-Many methods of Membership class are essentially
-independant of Membership but pertain to each record.
-Hence makes sense to separate them out.
-A many need to store data so those will get an extra
-(named) parameter: 'club=None'.
+(Most?) functions in this module pertain to member records and many
+(so called 'collector' functions) store data in one or more attributes
+of instances of rbc.Club so hence the extra (named) parameter set to
+'club=None' when it's not needed.
 """
 
 import os
@@ -24,12 +23,13 @@ NO_EMAIL_KEY = 'no_email'
 
 STATUS_KEY_VALUES = {
     "a-": "Application received without fee", #0
-    "a" : "Application complete but not yet acknowledged",  # not yet welcomed
+    "a" : "Application complete but not yet acknowledged",
+                # temporary until letter of welcome is sent
     "a0": "Applicant (no meetings yet)",  # welcomed
     "a1": "Attended one meeting",
     "a2": "Attended two meetings",
     "a3": "Attended three (or more) meetings",
-    "ai": "Inducted, needs to be notified",
+    "ai": "Inducted, needs to be notified",  # temporary until letter
     "ad": "Inducted & notified, membership pending payment of dues",
     "aw": "Inducted, awaiting vacancy and then payment", #7 > #8
     "am": "New Member",  # temporary until congratulatory letter.
@@ -38,7 +38,9 @@ STATUS_KEY_VALUES = {
     "h" : "Honorary Member",                             #10 > #12
     'm' : "Inactive member (continuing to receive minutes)",
     'r' : "Retiring/Giving up Club Membership",
-    't' : "Membership terminated (probably none payment of fees)",
+    't' : "Membership terminated (probably non payment of fees)",
+            # a not yet implemented temporary
+            # status to trigger a regret letter
     "w" : "Fees being waived",  # a rarely applied special status
     'z1_pres': "President",
     'z2_vp': "VicePresident",
@@ -131,13 +133,10 @@ def replace_with_in(s, rl, l):
     """
     new_listing = []
     for item in set(l):
-#       print("got '{}', ".format(item), end='')
         if s in item:
-#           print("found '{}', ".format(s), end='')
             new_listing.extend(rl)
         else:
             new_listing.append(item)
-#       print("now listing is '{}'".format(sorted(set(new_listing))))
     return sorted(set(new_listing))
 
 
@@ -146,7 +145,6 @@ def names_reversed(name):
     Changes first last to last, first
     and last, first to first last.
     """
-#   print("got {}".format(name))
     if ', ' in name:
         parts = name.split(', ')
         return '{} {}'.format(parts[1].strip(), parts[0].strip())
@@ -180,8 +178,6 @@ def traverse_records(infile, custom_funcs, club):
         club.fieldnames = dict_reader.fieldnames
         club.n_fields = len(club.fieldnames)  # to check db integrity
         for record in dict_reader:
-#           record = helpers.Rec(record)
-#           Not needed because not doing any string formatting.
             for custom_func in custom_funcs:
                 custom_func(record, club)
 
@@ -214,8 +210,6 @@ def get_status_set(record):
         # above returns set of one empty string if status is empty
         stati = {item for item in stati if item}
     else: stati = set()
-#   print("'{} {}' status is {}"
-#           .format(record['first'], record['last'], repr(stati)))
     return stati
 
 
@@ -231,24 +225,15 @@ def is_applicant(record):
 
 def is_new_applicant(record):
     """
-    Hasn't yet attended any meetings
+    Application received with payment and needs to be acknowledged.
     """
-    stati = get_status_set(record)
-    if stati & {'a'}:
-        return True
-    else: return False
+    return 'a' in get_status_set(record)
 
 
 def is_inductee(record):
     '''
     '''
-    stati = get_status_set(record)
-    if stati & {'ai'}:
-#       _ = input("{first} {last} is an inductee"
-#           .format(**record))
-        return True
-    else:
-        return False
+    return 'ai' in get_status_set(record)
 
 
 def is_waiting(record):
@@ -261,12 +246,9 @@ def is_member(record):
     """
     Tries to determine if record is that of a member (based on
     status field.)
-    If there is a problem, will either append notice to
-    club.errors (if it exists) or print out a warning.
     """
-    if not record['status']:
-        return True
     stati = get_status_set(record)
+    if not stati: return True
     if stati.intersection(set(NON_MEMBER_SET)):
         return False
     return True
@@ -297,6 +279,8 @@ def is_dues_paying(record):
 
 def is_new_member(record):
     """
+    a temporary status which triggers the
+    welcome to full membership letter.
     """
     return 'am' in get_status_set(record)
 
@@ -309,12 +293,15 @@ def is_honorary_member(record):
 
 def is_inactive_member(record):
     """
+    minutes only
     """
     return 'm' in get_status_set(record)
 
 
 def is_terminated(record):
     """
+    a temporary status assumed for non payment of dues
+    should which trigger a regret letter  (not yet implemented.)
     """
     return 't' in get_status_set(record)
 
@@ -349,18 +336,11 @@ def is_member_or_applicant(record, club=None):
 def has_valid_email(record, club=None):
     if 'be' in get_status_set(record):
         return False
-    if record["email"]:
-        return True
-    else:
-        return False
+    return record["email"]
 
 
 def letter_returned(record, club=None):
-    stati = get_status_set(record)
-    res = 'ba' in stati
-#   print("'{} {}' status is {}"
-#           .format(record['first'], record['last'], repr(stati)))
-    return res
+    return 'ba' in get_status_set(record)
 
 
 def get_usps(record, club):
@@ -519,14 +499,10 @@ def add2fee_data(record, club):
             fee = int(record[key])
         except ValueError:
             continue
-#       capped = key.capitalize()
-#       print("'{}' <=> {}".format(name, capped))
         _ = club.ms_by_fee_category.setdefault(key, [])
         club.ms_by_fee_category[key].append((name, fee))
         _ = club.fee_category_by_m.setdefault(name, [])
         club.fee_category_by_m[name].append((key, fee))
-#   print("Added name '{}', capped '{}', fee '{}'."
-#           .format(name, capped, fee))
 
 
 def add2malformed(record, club=None):
@@ -696,6 +672,7 @@ def modify_data(csv_in_file_name, func, club):
 
 def get_name_key_from_line(line):
     """
+    This functionality is provided by 
     """
     parts = line.split()
     return "{1}, {0}".format(*parts)
@@ -704,6 +681,8 @@ def get_name_key_from_line(line):
 def show_by_status(by_status,
                    stati2show=STATI,
                    club=None):
+    # clients: show_cmd & report_cmd in utils module
+    # probably should be elsewhere rather in this module??
     """
     First parameter, <by_status>, is a dict keyed by status.
     Returns a list of strings (which can be '\n'.join(ed))
@@ -1115,8 +1094,8 @@ def prepare_mailing(club):
     traverse_records(club.infile,
                      club.which["funcs"],
                      club)  # 'which' comes from content
-    listing = club.which["funcs"]
-    print("funcs ran by traverse_records: {}".format(listing))
+    listing = [func.__name__ for func in club.which["funcs"]]
+    print("Functions run by traverse_records: {}".format(listing))
     # No point in creating a json file if no emails:
     if hasattr(club, 'json_data') and club.json_data:
         print("There is email to send.")
@@ -1148,14 +1127,10 @@ def std_mailing_func(record, club):
 
 def bad_address_mailing_func(record, club):
     if club.which["test"](record):
-#       print("'{first} {last}' => bad address".format(**record))
         record["subject"] = club.which["subject"]
         record['extra'] = ("{address}\n{town}, {state} {postal_code}"
                            .format(**record))
         q_mailing(record, club)
-    else:
-        pass
-#       print("'{first} {last}' address OK".format(**record))
 
 
 def testing_func(record, club):

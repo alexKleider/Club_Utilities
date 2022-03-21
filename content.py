@@ -895,9 +895,8 @@ content_types = dict(  # which_letter
         "body": letter_bodies["covid_welcome"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record:
-            True if member.is_new_applicant(record)
-            else False),
+        "test": (lambda record: True if member.is_new_applicant(record)
+                                 else False),
         "e_and_or_p": "one_only",
         },
     awaiting_vacancy={

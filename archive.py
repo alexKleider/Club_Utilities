@@ -19,7 +19,7 @@ Usage:
 Options:
   -h --help  Print this docstring.
   --version  Print version.
-  -d --deep  Back up everything! (Includes stable data)
+  -a --all  Back up all data! (Includes stable data)
   -q --quiet  Supress printing of files found to archive.
   -m --mail_only  Only archive mail, not rest of data.
   -O --Options  Show options and exit. Used for debugging.
@@ -36,13 +36,15 @@ import rbc
 
 VERSION = '0.0.1'
 
+args = docopt(__doc__, version=VERSION)
+
 date_template = "%y-%m-%d_%H-%M"
 today = datetime.datetime.today()
 date_stamp = today.strftime(date_template)
-email_file = rbc.Club.JSON_FILE_NAME4EMAILS
-letters_dir = rbc.Club.MAILING_DIR
+email_file = rbc.Club.JSON_FILE_NAME4EMAILS  # ../Data/emails.json
+letters_dir = rbc.Club.MAILING_DIR  # ../Data/MailingDir
 mailing_sources = [email_file, letters_dir]
-list_of_data_targets = [rbc.Club.DATA_DIR]
+list_of_data_targets = [rbc.Club.DATA_DIR]  # list of 1 dir: ../Data
 data_destination = os.path.expandvars(
     '$CLUB/Archives/Data')
 mailing_destination = os.path.expandvars(
@@ -51,8 +53,8 @@ info_file = os.path.expandvars(
     "$CLUB/Info/last")
 
 
-def archive(destination_directory,
-            sources,
+def archive(sources,
+            destination_directory,
             targz_base_name=date_stamp,
             ):
     """
@@ -73,7 +75,7 @@ def archive(destination_directory,
         print("Specified tar file already exists...")
         print("... '{}'.".format(new_path))
         return False
-    try:
+    try:              # base_name defaults to a time stamp
         os.mkdir(targz_base_name)  # create a temporary dir
     except FileExistsError:
         print("Temporary directory '{}' already exists."
@@ -86,49 +88,59 @@ def archive(destination_directory,
                 os.path.split(source)[1])
 #       print("dest: '{}'".format(dest))
         if not args["--quiet"]:
-#           print("source & dest are {} & {}".format(source, dest))
+            print("source & dest are {} & {}".format(source, dest))
             response = input("Continue? (y/n) ")
             if not (response and response[0] in {'y', 'Y'}):
                 sys.exit()
         if os.path.isfile(source):
-            shutil.copy2(source, targz_base_name)
+            shutil.copy2(source, dest)
             ret = True
             if not args['--quiet']:
-                print("   Archiving file '{}'".format(source))
+                print("   Copied file '{}' into '{}'"
+                        .format(source, dest))
         elif os.path.isdir(source):
             shutil.copytree(source, dest)
             ret = True
             if not args['--quiet']:
-                print("   Archiving directory '{}'".format(source))
+                print("   Copied directory '{}' into '{}'"
+                        .format(source, dest))
         else:
             if not args['--quiet']:
                 print("   No file or directory named '{}' exists."
                   .format(source))
-    if ret:
+    if ret:  # something has been copied over so archive
         with tarfile.open(tar_file, "w:gz") as tar:
             tar.add(targz_base_name)
 #       print("{} exists? {}".format(tar_file, os.path.isfile(tar_file)))
-        res = shutil.move(tar_file, destination_directory)
-        if not (res == new_path):
-            print("Archiving error!")
-            ret = False
+        if not args['--quiet']:
+            print("Moving {} info {}..."
+                .format(tar_file, destination_directory))
+        move_res = shutil.move(tar_file, destination_directory)
+        if not args['--quiet']:
+            print("shutil.move({}, {}) returned {}"
+                    .format(tar_file, destination_directory, move_res))
+    if not args['--quiet']:
+        print("Removing dirctory tree {}.".format(targz_base_name))
     shutil.rmtree(targz_base_name)
     return ret
 
 
-def archive_mail(sources=mailing_sources):
+def archive_mail(sources,
+                 destination_directory,
+                 targz_base_name=date_stamp):
+    # let's not bother archiving an empty mailing directory:
     targets = [source for source in sources if (
         os.path.isfile(source) or (
         os.path.isdir(source) and os.listdir(source)))]
-#   print("<targets> set to '{}'".format(targets))
+    print("<targets> set to '{}'".format(targets))
     if targets:
-        if archive(mailing_destination, targets):
+        if archive(targets, destination_directory):
             ans = input(
                   "Mailing archived.  Delete mailings from data? ")
             if ans and ans[0] in {'y', 'Y'}:
                 for source in sources:
-#                   print("within archive_mail: source is {}"
-#                           .format(source))
+                    print("within archive_mail: deleting {}"
+                            .format(source))
                     if os.path.isdir(source):
                         shutil.rmtree(source)
                     elif os.path.isfile(source):
@@ -152,18 +164,10 @@ def loose_trailing_empty_strings(list_of_strings):
             list_of_strings = list_of_strings[:-1]
     return list_of_strings
 
-args = docopt(__doc__, version=VERSION)
-
 def main():
     args['mail_action'] = ''
     args['data_action'] = ''
-    if args['--options'] or args['--Options']:
-#       print("Arguments are as follows:")
-        for arg in args:
-            pass
-#           print("\t{}: {}".format(arg, args[arg]))
-        if args['--Options']:
-            sys.exit()
+    # decide if we are appending ('a') or creating a new ('w') file:
     try:
         with open(info_file, 'r') as f:
             content = f.read()
@@ -176,19 +180,19 @@ def main():
         action = 'a'  # append to existing file
         lines = loose_trailing_empty_strings(content.split('\n'))
         last_line = lines[-1] 
-        last_time = last_line[0]
         response = input('last update was {}; continue? y/n '
                          .format(last_line))
     if not (response and response[0] in 'yY'):
         sys.exit()
 
-    res = archive_mail()
+    res = archive_mail(mailing_sources,
+                       mailing_destination)
     if not args['--quiet']:
         print("archive_mail() returns {}".format(res))
     if args['--mail_only']:
         return
 
-    if archive(data_destination, sources=list_of_data_targets):
+    if archive(list_of_data_targets, data_destination):
         args['data_action'] = 'data'
     description = ' & '.join([text for text in (
         args['mail_action'], args['data_action']) if text])
@@ -198,4 +202,10 @@ def main():
 
 
 if __name__ == '__main__':
+    if args['--options'] or args['--Options']:
+        print("Arguments are as follows:")
+        for arg in args:
+            print("\t{}: {}".format(arg, args[arg]))
+        if args['--Options']:
+            sys.exit()
     main()

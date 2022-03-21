@@ -4,7 +4,8 @@
 # Typically: import sys_globals as glbs
 
 # On rethinkiing: perhaps these globals should all be attributes of
-# rbc.Club class.
+# rbc.Club class.  ...but not really- they don't have much to do with
+# the specifics of a particular club/organization.
 
 VERSION = "1.1"
 
