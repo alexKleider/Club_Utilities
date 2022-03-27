@@ -203,7 +203,7 @@ class Club(object):
             else: self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
 
             if args['-j']: self.json_file = args['-j']
-            else: self.json_file = Club.JSON_FILE_NAME4EMAILS
+            else: self.json_file = Club.EMAIL_JSON
 
             if args["--dir"]: self.mail_dir = args["--dir"]
             else: self.mail_dir = self.MAILING_DIR
