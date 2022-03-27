@@ -388,11 +388,11 @@ It is my pleasure to welcome you as a new member to the Bolinas Rod
 and Boat Club!
 
 As you may know, the Club has its own web site 'rodandboatclub.com'
-which is password protected. The password is 'fish' and although not
+which is password protected. The password is 'fish' and although not a
 very closely guarded secret, please do not share it with non members.
 By clicking on the "Membership" tab, you can find a listing of all
-your fellow members along with contact information.
-If you see any inaccuracies there, please make it known[1] so
+your fellow members along with contact information. Please have a look
+and if you see any inaccuracies there, please make it known[1] so
 corrections can be made.
 
 There is a wealth of history on our website: recordings of past

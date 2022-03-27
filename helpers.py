@@ -194,7 +194,13 @@ def my_print(s, outf):
             outfile.write("{}\n".format(item))
 
 class Rec(dict):
-
+    """
+    Each instance is a (deep!) copy of the dict type parameter and is
+    callable (with a formatting string as a parameter) returning the
+    populated formatting string. Suitable for displaying the record
+    &/or when one wants to have the record modified without changing
+    the original record (as when passed by reference!!)
+    """
     def __init__(self, rec):
 #       self = {key:value for (key,value) in rec.items()}
         for key, value in rec.items():

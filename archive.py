@@ -14,7 +14,7 @@ It's inverse is restore.py. (still a work in progress)
 
 Usage:
     ./archive.py [-h | --version]
-    ./archive.py [(-o | -O) -q (-m | -d)]
+    ./archive.py [(-o | -O) -q (-m | -a)]
 
 Options:
   -h --help  Print this docstring.
@@ -41,43 +41,43 @@ args = docopt(__doc__, version=VERSION)
 date_template = "%y-%m-%d_%H-%M"
 today = datetime.datetime.today()
 date_stamp = today.strftime(date_template)
-email_file = rbc.Club.JSON_FILE_NAME4EMAILS  # ../Data/emails.json
-letters_dir = rbc.Club.MAILING_DIR  # ../Data/MailingDir
-mailing_sources = [email_file, letters_dir]
-list_of_data_targets = [rbc.Club.DATA_DIR]  # list of 1 dir: ../Data
-data_destination = os.path.expandvars(
-    '$CLUB/Archives/Data')
-mailing_destination = os.path.expandvars(
-    '$CLUB/Archives/Mailing')
-info_file = os.path.expandvars(
-    "$CLUB/Info/last")
+#email_file = rbc.Club.JSON_FILE_NAME4EMAILS  # ../Data/emails.json
+#letters_dir = rbc.Club.MAILING_DIR  # ../Data/MailingDir
+mailing_sources = rbc.Club.MAILING_SOURCES
+data_sources = (rbc.Club.DATA_DIR, )  # list of 1 dir: ../Data
+stable_sources = rbc.Club.STABLE_DATA
+data_destination = rbc.Club.DATA_ARCHIVE
+mailing_destination = rbc.Club.MAILING_ARCHIVE
+stable_destination = rbc.Club.STABLE_ARCHIVE
+info_file = rbc.Club.ARCHIVING_INFO
 
 
 def archive(sources,
-            destination_directory,
+            destination_directory,  # the destination directory
             targz_base_name=date_stamp,
-            ):
+            quiet=False):
     """
-    Create a <targz_base_name>.tar.gz archive and
-    file it in the <destination_directory>.
-    The archive is to contain all files &/or directories listed
-    in <sources> all under a directory called <targz_base_name>
-    which is temporarily created (as a place to gather what is to
-    be archived) and then deleted. Fails if such a directory already
-    exists.
-    Returns False if no archiving is done, else returns True.
+    All files and directories listed in <sources> are archived into
+    <targz_base_name>.tar.gz which is placed into <dest_dir>.
+    Returns False if there are any irregularities, else returns True.
+    A 'False' return does not necessarily mean that archiving failed.
+    Returns 'True' if archiving is done.
+    A temporary <targz_base_name> directory is created and may get
+    left behind if irregularities occur or user aborts.
+    If <quiet> is set to <True> no user interaction is done.
     """
-    ret = False
+    ret = True  # return value => "False" if irregularities occur
+    copied = False  # nothing copied (yet)
     tar_file = "{}.tar.gz".format(targz_base_name)
     new_path = os.path.join(destination_directory,
-                            tar_file)
-    if os.path.exists(new_path):
+                            tar_file)  # full path name of archive
+    if os.path.exists(new_path):  # Unlikely if using defaults
         print("Specified tar file already exists...")
         print("... '{}'.".format(new_path))
-        return False
-    try:              # base_name defaults to a time stamp
+        return False  # won't overwrite an existing tar file.
+    try:   # base_name defaults to a time stamp
         os.mkdir(targz_base_name)  # create a temporary dir
-    except FileExistsError:
+    except FileExistsError:  # Unlikely if using defaults
         print("Temporary directory '{}' already exists."
               .format(targz_base_name))
         return False
@@ -87,39 +87,41 @@ def archive(sources,
         dest = os.path.join(targz_base_name,
                 os.path.split(source)[1])
 #       print("dest: '{}'".format(dest))
-        if not args["--quiet"]:
+        if not quiet:
             print("source & dest are {} & {}".format(source, dest))
-            response = input("Continue? (y/n) ")
+            response = input("Archive '{}'? (y/n) ".format(source))
             if not (response and response[0] in {'y', 'Y'}):
-                sys.exit()
+                ret = False
+                continue
         if os.path.isfile(source):
             shutil.copy2(source, dest)
-            ret = True
-            if not args['--quiet']:
+            copied = True
+            if not quiet:
                 print("   Copied file '{}' into '{}'"
                         .format(source, dest))
         elif os.path.isdir(source):
             shutil.copytree(source, dest)
-            ret = True
-            if not args['--quiet']:
+            copied = True
+            if not quiet:
                 print("   Copied directory '{}' into '{}'"
                         .format(source, dest))
         else:
-            if not args['--quiet']:
+            if not quiet:
+                ret = False
                 print("   No file or directory named '{}' exists."
                   .format(source))
-    if ret:  # something has been copied over so archive
+    if copied:  # something has been copied over so archive
         with tarfile.open(tar_file, "w:gz") as tar:
             tar.add(targz_base_name)
 #       print("{} exists? {}".format(tar_file, os.path.isfile(tar_file)))
-        if not args['--quiet']:
+        if not quiet:
             print("Moving {} info {}..."
                 .format(tar_file, destination_directory))
         move_res = shutil.move(tar_file, destination_directory)
-        if not args['--quiet']:
-            print("shutil.move({}, {}) returned {}"
-                    .format(tar_file, destination_directory, move_res))
-    if not args['--quiet']:
+#       if not quiet:
+#           print("shutil.move({}, {}) returned {}"
+#                   .format(tar_file, destination_directory, move_res))
+    if not quiet:
         print("Removing dirctory tree {}.".format(targz_base_name))
     shutil.rmtree(targz_base_name)
     return ret
@@ -149,7 +151,7 @@ def archive_mail(sources,
                         print("ABORTING!",
                             "Something not right in archive_mail!")
                         sys.exit()
-            args['mail_action'] = 'mail'
+            mail_action = 'mail'
         else:
             print("Mailing targets found but archive returned False!")
             return False
@@ -165,38 +167,65 @@ def loose_trailing_empty_strings(list_of_strings):
     return list_of_strings
 
 def main():
-    args['mail_action'] = ''
-    args['data_action'] = ''
-    # decide if we are appending ('a') or creating a new ('w') file:
+    report = []
+    action_keys = ('mail', 'volatile data', 'stable data', )
+    actions = {k: True for k in action_keys}
+    if args['--mail_only']:
+        actions['volatile data'] = False
+        actions['stable data'] = False
+    elif not args['--all']:
+        actions['stable data'] = False
+
+    # check that an info file (record of past backups) exists
+    # read and report if it does
+    # if not provide for creation later (once know what to report.)
     try:
         with open(info_file, 'r') as f:
             content = f.read()
     except FileNotFoundError:
-        action = 'w'  # write (creating a new) file
+        mode = 'w'  # will be creating a new file
         response = input(
             "file '{}' doesn't exist; continue? "
             .format(info_file))
     else:
-        action = 'a'  # append to existing file
+        mode = 'a'  # will be appending
         lines = loose_trailing_empty_strings(content.split('\n'))
         last_line = lines[-1] 
-        response = input('last update was {}; continue? y/n '
+        response = input(
+                'Date and details of last update: {}; continue?(y/n) '
                          .format(last_line))
     if not (response and response[0] in 'yY'):
         sys.exit()
 
     res = archive_mail(mailing_sources,
-                       mailing_destination)
+            mailing_destination)
+    if res:
+        report.append("mail")
+    else:
+        report.append("mail?")
     if not args['--quiet']:
         print("archive_mail() returns {}".format(res))
-    if args['--mail_only']:
-        return
 
-    if archive(list_of_data_targets, data_destination):
-        args['data_action'] = 'data'
-    description = ' & '.join([text for text in (
-        args['mail_action'], args['data_action']) if text])
-    with open(info_file, action) as f:
+    if actions['volatile data']:
+        res = archive(data_sources, data_destination)
+        if res:
+            report.append("data")
+        else:
+            report.append("data?")
+        if not args['--quiet']:
+            print("archiving data returns {}".format(res))
+
+    if actions['stable data']:
+        res = archive(stable_sources, stable_destination)
+        if res:
+            report.append("stable data")
+        else:
+            report.append("stable data?")
+        if not args['--quiet']:
+            print("archiving stable data returns {}".format(res))
+
+    description = ' & '.join([text for text in report])
+    with open(info_file, mode) as f:
         f.write("\n{} {}".format(date_stamp,
                                " {} archived".format(description)))
 

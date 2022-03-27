@@ -5,12 +5,16 @@
 """
 "rbc" stands for (Bolinas) Rod & Boat Club.
 This module is specific to the Bolinas Rod and Boat Club.
-Data as maintained in the (4 or 5, depending how you count)
-SPoT (Single Point of Truth) files.
+Dynamic (changing) data as maintained in SPoT (Single Point of Truth)
+files under the 'Data' directory. Stable (rarely changing) data is
+kept in other directories. There is also an Archive directory for
+temporary storage of archives. All of these as well as the main code
+base directory are contained under the top level project directory.
+The code base is a git repository. The archive.py utility is available
+to backup data to the archive directory and from there it can be
+backed up to the Club's Google Drive account. 
 It provides the <Club> class which serves largely to keep track of
 global values.  Only one instance at a time.
-Most of class Club (all of its methods) is/are being redacted,
-its/their functionality having been moved elsewhere.
 """
 
 import os
@@ -18,6 +22,26 @@ import sys
 import csv
 import shutil
 import helpers
+
+# these initial declarations provide a SPoT[1]
+# mainly for use by archive.py via the Club class.
+# [1] Single Point of Light (or "DRY" for Don't Repeat Yourself)
+root_dir = os.path.split(os.getcwd())[0]
+# Sources:
+data_dir = "Data"
+changing_data = (data_dir, )
+mailing_dir = 'Data/MailingDir'  # Under Data
+email_json_file = 'Data/emails.json'  # ditto
+stable_data = ("exclude",
+            "Info",
+            "README",
+            "requirements.txt",
+            )
+# Destinations:
+archive = "Archives"
+data_archive = 'Data'
+mailing_archive = 'Mailings'
+stable_archive = 'Stable'
 
 
 class Club(object):
@@ -30,20 +54,27 @@ class Club(object):
     their functionality taken over by code found elsewhere.
     """
 
-    INFO_DIR = "Info"
-    INFO_DIR = os.path.join(
-            os.path.split(os.getcwd())[0], 'Info')
-    DATA_DIR = "Data"
-    DATA_DIR = os.path.join(
-            os.path.split(os.getcwd())[0], 'Data')
-    ARCHIVE_DIR = os.path.join(
-            os.path.split(os.getcwd())[0], 'Archives')
-    DATA_ARCHIVE = os.path.join(ARCHIVE_DIR, "Data")
-    MAILING_ARCHIVE = os.path.join(ARCHIVE_DIR, "Mailings")
-    # Intermediate &/or temporary files used:
-    MAILING_DIR = os.path.join(DATA_DIR, 'MailingDir')
-    JSON_FILE_NAME4EMAILS = os.path.join(DATA_DIR, 'emails.json')
+    # "Archiving" provides for backup.
+    # Two categories of data to be archived:
+    # 1. constantly changing data
+    DATA_DIR = os.path.join(root_dir, data_dir)
+    CHANGING_DATA = [os.path.join(root_dir, entry)
+                        for entry in changing_data]
+    MAILING_DIR = os.path.join(root_dir, mailing_dir)
+    EMAIL_JSON = os.path.join(root_dir, email_json_file)
+    MAILING_SOURCES = (MAILING_DIR, EMAIL_JSON)
+    # 2. stable rarely changing data
+    STABLE_DATA = [os.path.join(root_dir, entry)
+                        for entry in stable_data]
+    # Destination(s) for the archiving process.
+    ARCHIVE_DIR = os.path.join(root_dir, archive)
+    DATA_ARCHIVE = os.path.join(ARCHIVE_DIR, data_archive)
+    MAILING_ARCHIVE = os.path.join(ARCHIVE_DIR, mailing_archive)
+    STABLE_ARCHIVE = os.path.join(ARCHIVE_DIR, stable_archive)
+    # We keep a log of archiving done:
+    ARCHIVING_INFO = os.path.join(root_dir, "Info/last")
 
+    # Intermediate &/or temporary files used:
     STDOUT = 'output2check.txt'
     OUTPUT2READ = '2read.txt'  # } generally goes to stdout.
     ERRORS_FILE = 'errors.txt'
@@ -123,7 +154,7 @@ class Club(object):
     # # Yet to be implemented. ###
     DOCK_FEE = 75
     KAYAK_FEE = 70
-#   SECRETARY = "Ed Mann"  # Is this needed???
+    SECRETARY = "Ed Mann" 
     
     # Miscelaneous 
     DEFAULT_FORMAT = 'listings'
@@ -265,43 +296,6 @@ class Club(object):
                    .format(helpers.format_dollar_value(total)))
 #       print("returning {}".format(res))
         return res
-
-    def check_mail_dir(self, mail_dir):
-        """
-        Set up the directory for postal letters.
-        """
-        if os.path.exists(mail_dir):
-            print("The directory '{}' already exists.".format(
-                                                    mail_dir))
-            response = input("... OK to overwrite it? ")
-            if response and response[0] in "Yy":
-                shutil.rmtree(mail_dir)
-            else:
-                print("Without permission, must abort.")
-                sys.exit(1)
-        os.mkdir(mail_dir)
-        pass
-
-    def check_json_file(self, json_email_file):
-        """
-        Checks the name of the json output file where
-        emails are to be stored.
-        """
-#       print("method check_json_file param is: {}"
-#           .format(json_email_file))
-        if os.path.exists(json_email_file):
-            print("The file '{}' already exists.".format(
-                                            json_email_file))
-            response = input("... OK to overwrite it? ")
-            if response and response[0] in "Yy":
-                os.remove(json_email_file)
-            else:
-                print("Without permission, must abort.")
-                sys.exit(1)
-
-
-# ## I believe methods can all be redacted. ###
-# ## They are implemented elsewhere: mostly in data.py
 # ##
 # ###  End of Club class declaration.
 
@@ -313,3 +307,61 @@ else:
     def print(*args, **kwargs):
         pass
 
+tree = """
+ProjectDirectory
+├── Archives
+│   ├── Data
+│   │   └── Temp
+│   ├── Mailings
+│   │   └── Temp
+│   ├── Receipts
+│   ├── Reports
+│   └── Stable
+├── Data
+│   ├── 2thank.csv
+│   ├── addendum2report.txt
+│   ├── applicants.txt
+│   ├── dock.txt
+│   ├── kayak.txt
+│   ├── memlist.csv
+│   ├── mooring.txt
+│   ├── old_extras
+│   ├── receipts-2022.txt
+│   ├── redacted-extra_fees.txt
+│   ├── sponsors.txt
+│   └── thanked-2022.csv
+├── exclude
+├── Info
+│   ├── attrition.txt
+│   ├── club_history
+│   ├── Formats
+│   │   ├── letter_layout.txt
+│   │   └── letter_spacing.txt
+│   ├── last
+│   ├── leadership.txt
+│   ├── procedures
+│   ├── reimbursements.txt
+│   ├── response2membership_inquiries.txt
+│   └── Thanked
+├── README
+├── requirements.txt
+├── Stable
+│   ├── Guides
+│   │   ├── application_for_membership__.pdf
+│   │   ├── bylaws
+│   │   ├── credentials
+│   │   └── mem_duties.txt
+│   └── Original
+│       ├── 2018
+│       │   ├── 2017DOCKUsers.doc
+│       │   ├── 2017MOORINGList.doc
+│       │   ├── 2018KAYAK FEE.doc
+│       │   ├── Bolinas-RBC-mailing-List-20180309.csv
+│       │   ├── Jan18TotalLIST.xlsx
+│       │   ├── mary_abbot_intro.txt
+│       │   ├── MembershipChairDuties.docx
+│       │   ├── MemDutiesV2.docx
+│       │   └── mylist.xlsx
+│       └── README
+└── Utils  # in git repo
+"""

@@ -725,10 +725,10 @@ def report_cmd(args=args):
         ['',
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
-         "for presentation {}\n".format(
-             helpers.next_first_friday(exclude=True))+
-         "(or next board meeting, which ever comes first.)"
-,
+"for presentation (mossibly by committee member Peter Gleckler) on",
+         "{} (or next board meeting, which ever comes first.)"
+         .format(
+             helpers.next_first_friday(exclude=True)),
          ])
     report.extend(
         ['',
