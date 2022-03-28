@@ -929,14 +929,11 @@ def payables_cmd(args=args):
     of which are lists) and then calls member.get_payables which
     traverses the db populating them.
     """
-    infile = args['-i']
-    if not infile:
-        infile = Club.MEMBERSHIP_SPoT
-    club = Club()
+    club = Club(args)
     club.still_owing = []
     club.advance_payments = []
     ret = []
-    err_code = member.traverse_records(infile,
+    err_code = member.traverse_records(club.infile,
                                        member.get_payables,
                                        club)
     if club.still_owing:
@@ -956,7 +953,8 @@ def payables_cmd(args=args):
         ret.extend(["Members with a Credit",
                        "---------------------"])
         ret.extend(club.advance_payments)
-    print('\n'.join(ret))
+#   print('\n'.join(ret))
+    ret.append("\n\nReport prepared {}".format(helpers.date))
     output('\n'.join(ret), club.outfile)
 
 
