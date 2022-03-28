@@ -84,6 +84,14 @@ demographic_f_last_first = (
 demographic_f_last_first_w_phone_and_email = (
     "{last}, {first} [{phone}] {address}, {town}, {state} " +
     "{postal_code} [{email}]")
+demographic_f_last_first_w_staggered_data = '\n'.join((
+    "{last}, {first} [{phone}]",
+    "\t{address}, {town}, {state} {postal_code}",
+    "\t[{email}]"))
+demographic_f_first_last_w_staggered_data = '\n'.join((
+    "{first}, {last} [{phone}]",
+    "\t{address}, {town}, {state} {postal_code}",
+    "\t[{email}]"))
 fstrings = {
         'first_last': "{first} {last}",
         "last_first": "{last}, {first}",
@@ -92,6 +100,10 @@ fstrings = {
         'last_first_w_address_only': demographic_f_last_first,
         'last_first_w_all_data':
                     demographic_f_last_first_w_phone_and_email,
+        'first_last_w_all_staggered':
+                    demographic_f_last_first_w_staggered_data,
+        'last_first_w_all_staggered': 
+                    demographic_f_first_last_w_staggered_data,
     }
 
 
@@ -448,7 +460,7 @@ def add2ms_by_status(record, club):
             _ = club.ms_by_status.setdefault(status, [])
             record = helpers.Rec(record)
             club.ms_by_status[status].append(
-                    record(fstrings['last_first']))
+                    record(club.format))
 
 
 def add2demographics(record, club):
@@ -670,14 +682,6 @@ def modify_data(csv_in_file_name, func, club):
                 yield func(rec, club)
 
 
-def get_name_key_from_line(line):
-    """
-    This functionality is provided by 
-    """
-    parts = line.split()
-    return "{1}, {0}".format(*parts)
-
-
 def show_by_status(by_status,
                    stati2show=STATI,
                    club=None):
@@ -699,7 +703,7 @@ def show_by_status(by_status,
             for line in by_status[status]:
                 ret.append(line)
                 if hasattr(club, 'applicant_data'):
-                    key = get_name_key_from_line(line)
+                    key = ' '.join(line.split()[:2])
                     if key in club.applicant_data_keys:
                         # create a line of dates
                         dates_attended = data.line_of_meeting_dates(
@@ -709,18 +713,14 @@ def show_by_status(by_status,
                                     .format(dates_attended))
                         else:
                             ret.append("\tNo meetings attended.")
-#                       print("Applicant data: {}".format(
-#                           club.applicant_data[key].__repr__()))
-                        sponsors = club.applicant_data[key]['sponsors']
+                        sponsors = club.sponsors_by_applicant[key]
                     else:
-                        pass
-#                       print("{} has no dates!!".format(key))
+                        sponsors = False
+                        print("{} has no dates!!".format(key))
                     if sponsors:
-#                       print(sponsors)
                         sponsor_line = ', '.join(
                                 [helpers.tofro_first_last(sponsor)
                                 for sponsor in sponsors])
-#                       print(sponsors)
                         ret.append("\tSponsors: {}"
                                         .format(sponsor_line))
                     else:
@@ -907,8 +907,7 @@ def add2lists(record, club):
                    club.ninductees (initially set to 0.)
     <club> is an instance of rbc.Club.
     """
-#   line = name_w_demographics(record, club)
-    line = fstrings['first_last_w_all_data'].format(**record)
+    line = club.format.format(**record)
     if is_member(record):
         first_letter = record['last'][:1]
         if club.for_web:

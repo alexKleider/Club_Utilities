@@ -276,15 +276,16 @@ def populate_kayak_fees(club):
     club.kayak_fees = parse_kayak_data(get_dict(club.KAYAk_SPoT))
 
 
-def populate_sponsors(rec, sponsors):
+def add_sponsors(rec, sponsors):
     """
-    Uses <sponsors> data to populate relevand field in <rec>.
+    Returns a record with sponsor fields added.
     """
     first_last = [member.names_reversed(sponsor) for sponsor in
             sponsors]
-    rec['sponsor1'] = first_last[0]
-    rec['sponsor2'] = first_last[1]
-    rec['sponsors'] = sponsors
+    ret = helpers.Rec(rec)
+    ret['sponsor1'] = first_last[0]
+    ret['sponsor2'] = first_last[1]
+    return ret
 
 
 def populate_applicant_data(club):
@@ -298,7 +299,9 @@ def populate_applicant_data(club):
     already been run, othwise, the values remain as empty strings.
     """
     sponsors = hasattr(club, 'sponsors_by_applicant')
-    if sponsors: sponsored = club.sponsors_by_applicant.keys()
+    # ... populate_sponsor_data must have been run
+    if sponsors:
+        sponsored = club.sponsors_by_applicant.keys()
     club.applicant_data = {}
     with open(club.applicant_spot, 'r') as stream:
         print('Reading file "{}"...'.format(stream.name))
@@ -308,10 +311,9 @@ def populate_applicant_data(club):
             ## Change last_first to first_last ##
             name = rec(member.fstrings['last_first'])
             if sponsors and name in sponsored:
-                populate_sponsors(rec,
+                rec = add_sponsors(rec,
                         club.sponsors_by_applicant[name])
             club.applicant_data[name] = rec
-#       print("Populating club.applicant_data_keys")
         club.applicant_data_keys = club.applicant_data.keys()
 
 

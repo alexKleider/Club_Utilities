@@ -665,9 +665,11 @@ def show_stati(club, include_headers=True):
 def report_cmd(args=args):
     print("Preparing Membership Report ...")
     club = Club(args=args)
-    data.populate_sponsor_data(club)
+    data.populate_sponsor_data(club)  # club attributes populated:
+                # sponsor_set, sponsor_emails, sponsors_by_applicant,
     data.populate_applicant_data(club)
-    club.format = member.fstrings['first_last_w_all_data']
+    club.format = member.fstrings[
+            'first_last_w_all_staggered']
     club.for_web = False
     err_code = member.traverse_records(
         club.infile,
@@ -691,7 +693,10 @@ def report_cmd(args=args):
                   "with meeting dates & sponsors listed)")
         helpers.add_header2list(header, report, underline_char='=')
         # ####  collect applicant data:
-        report.extend(member.show_by_status(club.by_n_meetings, club=club))
+        report.extend(
+                member.show_by_status(
+                    club.by_n_meetings,
+                    club=club))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
                   .format(len(club.ms_by_status['r'])))
@@ -740,7 +745,7 @@ def report_cmd(args=args):
 def setup4stati(club):
     club.include_addresses = args['-D'] or args['-m']  # Demographics
     if club.include_addresses:
-        club.format = member.fstrings['first_last_w_all_data']
+        club.format = member.fstrings['first_last_w_staggered_data']
     else:
         club.format = member.fstrings['first_last']
     club.include_dates = args['-M'] or args['-m']  # Meetings
