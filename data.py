@@ -307,13 +307,11 @@ def populate_applicant_data(club):
         print('Reading file "{}"...'.format(stream.name))
         for line in helpers.useful_lines(stream, comment='#'):
             rec = applicant_data_line2record(line)
-            rec = helpers.Rec(rec)
-            ## Change last_first to first_last ##
-            name = rec(member.fstrings['last_first'])
-            if sponsors and name in sponsored:
+            name_key = member.fstrings['last_first'].format(**rec)
+            if sponsors and name_key in sponsored:
                 rec = add_sponsors(rec,
-                        club.sponsors_by_applicant[name])
-            club.applicant_data[name] = rec
+                        club.sponsors_by_applicant[name_key])
+            club.applicant_data[name_key] = rec
         club.applicant_data_keys = club.applicant_data.keys()
 
 

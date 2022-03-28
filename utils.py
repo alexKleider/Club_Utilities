@@ -306,7 +306,7 @@ def set_default_args_4curses(args):
     args['-D'] = True
     args['-M'] = True
     args['-B'] = True
-    args['-j'] = Club.JSON_FILE_NAME4EMAILS
+    args['-j'] = Club.EMAIL_JSON
     args['-l'] = True
     args['-m'] = True
 #   args['--mta'] = 'clubg'  # default set by docopt
@@ -321,7 +321,7 @@ def set_default_args_4curses(args):
     args['-T'] = True
 #   args['-w'] = 140  # default set by docopt
 #   args['--which'] = ''  # a mandatory option
-    args['-X'] = Club.EXTRA_FEES_SPoT
+    args['-X'] = Club.EXTRA_FEES_SPoTs
 
 
 def confirm_file_present_and_up2date(file_name):
@@ -481,6 +481,7 @@ media = dict(  # keep the classes in a dict
 def ck_data_cmd(args=args):
     print("Checking for data consistency...")
     club = Club(args)
+    club.format = member.fstrings['last_first']
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
     output("\n".join(data.ck_data(club, fee_details=args['-d'])),
@@ -745,7 +746,7 @@ def report_cmd(args=args):
 def setup4stati(club):
     club.include_addresses = args['-D'] or args['-m']  # Demographics
     if club.include_addresses:
-        club.format = member.fstrings['first_last_w_staggered_data']
+        club.format = member.fstrings['first_last_w_all_staggered']
     else:
         club.format = member.fstrings['first_last']
     club.include_dates = args['-M'] or args['-m']  # Meetings

@@ -460,7 +460,7 @@ def add2ms_by_status(record, club):
             _ = club.ms_by_status.setdefault(status, [])
             record = helpers.Rec(record)
             club.ms_by_status[status].append(
-                    record(club.format))
+                    record(fstrings['last_first']))
 
 
 def add2demographics(record, club):
@@ -703,7 +703,7 @@ def show_by_status(by_status,
             for line in by_status[status]:
                 ret.append(line)
                 if hasattr(club, 'applicant_data'):
-                    key = ' '.join(line.split()[:2])
+                    key = (' '.join(line.split()[:2]))
                     if key in club.applicant_data_keys:
                         # create a line of dates
                         dates_attended = data.line_of_meeting_dates(
@@ -905,9 +905,11 @@ def add2lists(record, club):
     and increments club.nmembers,
                    club.napplicants and
                    club.ninductees (initially set to 0.)
-    <club> is an instance of rbc.Club.
+    <club> is an instance of rbc.Club; its 'format' attribute
+    determines how the data is displayed.
     """
     line = club.format.format(**record)
+    key = fstrings['last_first'].format(**record)
     if is_member(record):
         first_letter = record['last'][:1]
         if club.for_web:
@@ -929,7 +931,7 @@ def add2lists(record, club):
         club.napplicants += 1
         s = status.pop()
         _ = club.by_n_meetings.setdefault(s, [])
-        club.by_n_meetings[s].append(line)
+        club.by_n_meetings[s].append(key)
         # metadata (dates of meetings; sponsors)
         # being appended by utils.show_cmd as it is building the
         # output.
