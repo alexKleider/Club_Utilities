@@ -218,8 +218,8 @@ class Club(object):
             if args['-o']: self.outfile = args['-o']
             else: self.outfile = Club.STDOUT
 
-            if args['-e']: self.errors = args['-e']
-            else: self.errors = Club.ERRORS_FILE
+            if args['-e']: self.errors_file = args['-e']
+            else: self.errors_file = Club.ERRORS_FILE
 
             if args["--cc"]: self.cc = args["--cc"]
             else: self.cc = ''

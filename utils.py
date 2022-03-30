@@ -1241,19 +1241,20 @@ def restore_fees_cmd(args=args):
     """
     # ## During implementation, be sure to ...                     ###
     # ## Take into consideration the possibility of credit values. ###
-    club = Club()
+    club = Club(args)
     setup4new_db(club)
     data.restore_fees(club)  # Populates club.new_db & club.errors
     helpers.save_db(club.new_db, club.outfile, club.fieldnames,
                  report="New membership DB")
     if club.errors:
         output('\n'.join(
-               ['Note the following irregularities:',
-                '==================================', ]
-               + club.errors), destination=args['-e'])
+                   ['Note the following irregularities:',
+                    '==================================', ]
+                   + club.errors),
+               destination=club.errors_file)
 
-    if club.errors and args["-e"]:
-        with open(args["-e"], 'w') as file_obj:
+    if club.errors:
+        with open(club.errors_file, 'w') as file_obj:
             file_obj.write('\n'.join(club.errors))
             print('Wrote errors to "{}".'.format(file_obj.name))
 

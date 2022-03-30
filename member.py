@@ -502,19 +502,25 @@ def add2fee_data(record, club):
     """
     Populates club.fee_category_by_m  and
     club.ms_by_fee_category.
+    Note: this gathers from main data base,
+    _not_ from extra fees SPoTs. See
+    data.populate_extra_fees(club) which populates
+    club.by_name & club.by_category.
+    Both produce dicts in the same formats respectively.
+    Tested by Tests.xtra_fees.py
     """
     record = helpers.Rec(record)
     name = record(fstrings['last_first'])
     # print(repr(FEES_KEYS))
-    for key in FEES_KEYS:
+    for f_key in FEES_KEYS:
         try:
-            fee = int(record[key])
+            fee = int(record[f_key])
         except ValueError:
             continue
-        _ = club.ms_by_fee_category.setdefault(key, [])
-        club.ms_by_fee_category[key].append((name, fee))
-        _ = club.fee_category_by_m.setdefault(name, [])
-        club.fee_category_by_m[name].append((key, fee))
+        _ = club.ms_by_fee_category.setdefault(f_key, {})
+        club.ms_by_fee_category[f_key][name] = fee
+        _ = club.fee_category_by_m.setdefault(name, {})
+        club.fee_category_by_m[name][f_key] = fee
 
 
 def add2malformed(record, club=None):
