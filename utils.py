@@ -151,7 +151,7 @@ Commands:
         relevant to current applicants: first & last names, status,
         up to three meeting dates and the two sponsors. If -o outfile
         is explicitly specified it must end in ".csv".
-    zeros: ???
+    zeros: Reports on whether money fields are zero or NULL
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with a 'be' or an 's'
@@ -841,11 +841,13 @@ def create_applicant_csv_cmd(args=args):
 
 def zeros_cmd(args=args):
     """
-    Reports those with zero vs NIL in fees field.
+    Reports those with zero vs NULL in fees field.
+    Useful in that a NULL value implies that it isn't a fee that is
+    charged to this particular member.
     """
     club = Club(args)
     err_code = member.traverse_records(
-        infile, [member.get_zeros_and_nulls, ], club)
+        club.infile, [member.get_zeros_and_nulls, ], club)
     res = ["Nulls:",
            "======", ]
     res.extend(club.nulls)
@@ -919,8 +921,7 @@ def extra_charges_cmd(args=args):
     Returns a report of members with extra charges.
     It also can create a json file: specified by the -j option.
     """
-    output('\nextra_charges_cmd not implemented.',
-            args['-o'])
+    pass  # Not implemented.
 
 
 def payables_cmd(args=args):
@@ -969,7 +970,7 @@ def show_mailing_categories_cmd(args=args):
             [key for key in content.content_types.keys()],
             separator='  '))
 #   ret.extend((("\t" + key) for key in content.content_types.keys()))
-    output('\n'.join(ret), args['-o'])
+    print('\n'.join(ret))
 
 
 def prepare4mailing(club):
@@ -1018,10 +1019,10 @@ def prepare4mailing(club):
     # *** Check that we don't overwright previous mailings:
     if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
         print("Checking for directory '{}'.".format(club.mail_dir))
-        club.check_mail_dir(club.mail_dir)
+        helpers.check_before_deletion(club.mail_dir)
     if club.which["e_and_or_p"] in ("both", "email", "one_only"):
         print("Checking for file '{}'.".format(club.json_file))
-        club.check_json_file(club.json_file)
+        helpers.check_before_deletion(club.json_file)
         club.json_data = []
 
 

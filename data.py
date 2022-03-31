@@ -666,8 +666,7 @@ def restore_fees(club):
     club.new_db = []
     club.non0balance = {}
     club.name_set = set()
-    club.by_name = gather_extra_fees_data(club.extra_fees_spot
-                                         )[Club.NAME_KEY]
+    populate_extra_fees(club)
     club.extra_fee_names = set([key for key in club.by_name.keys()])
     err_code = member.traverse_records(club.infile, (
         member.populate_non0balance_func,

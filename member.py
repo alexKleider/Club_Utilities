@@ -761,12 +761,13 @@ def get_statement_dict(record):
     Note: 'total' is always returned. Values for other keys are
     included only if are non zero.
     """
-    ret = dict()
-    ret['total'] = 0
+    ret = dict(extra='',
+                total= 0)
     for key in MONEY_KEYS:
         if record[key]:
             ret[key] = int(record[key])
             ret['total'] += ret[key]
+        if not ret['total']: ret['extra'] = '  still owing'
     return ret
 
 

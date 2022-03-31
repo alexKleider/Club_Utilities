@@ -148,9 +148,9 @@ def archive_mail(sources,
                     elif os.path.isfile(source):
                         os.remove(source)
                     else:
-                        print("ABORTING!",
-                            "Something not right in archive_mail!")
-                        sys.exit()
+                        print("NOTE!",
+                            "Failed to find '{}' to delete!"
+                            .format(source))
             mail_action = 'mail'
         else:
             print("Mailing targets found but archive returned False!")

@@ -36,6 +36,20 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
+def check_before_deletion(file_or_dir):
+    """
+    If <file_or_dir> exists, check before deleting or overwriting it.
+    User given opportunity to abort.
+    """
+    if os.path.exists(file_or_dir):
+        response = input(
+                "'{}' exists! Over write &/or delete it?(y/n) "
+                .format(file_or_dir))
+        if not(response and response[0] in 'yY'):
+            print('Aborting program execution.')
+            sys.exit()
+
+
 def get_first_friday_of_month(date=None):
     """
     Accepts a date or uses current date if None is provided.

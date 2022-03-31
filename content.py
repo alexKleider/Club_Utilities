@@ -207,7 +207,7 @@ Details are as follows:
 {{extra}}""".format(helpers.club_year(which='this')),
 
     interim_request="""
-Club records indicate that you still have dues (and/or
+Club records indicate that you have dues (and/or
 applicable fees) outstanding as follows...
 
 {extra}
