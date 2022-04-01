@@ -32,6 +32,11 @@ def test_keys_removed():
     assert helpers.keys_removed(d1, 'b') == expected
 
 
+def test_names_reversed():
+    name = 'James (Kirk) Kirkham'
+    assert member.names_reversed(member.names_reversed(name)) == name
+
+
 @pytest.mark.parametrize("record, expected", [
 #({'first': 'Rick', 'last': 'Addicks', 'phone': '883-0365', 'address': '185 Caribe Isle', 'town': 'Novato', 'state': 'CA', 'postal_code': '94949', 'country': 'USA', 'email': 'mail@rickaddicks.com', 'dues': '0', 'dock': '', 'kayak': '', 'mooring': '', 'status': ''},
 #    ),

@@ -498,9 +498,10 @@ the check in order to prevent any confusion.""",
     ref1_reservations="""[1] Reservations can be made through Anna Gade
     (uc_anna@sbcglobal.net.)""",
 
-    covid19="""Because of the current pandemic, the Club is closed
-    and in person meetings are suspended. Virtual meetings are still
-    being held and you'll be receiving notices.
+    covid19="""Because of the current pandemic, the Club is currently
+    holding hybrid meetings, by zoom or in person. To attend in person
+    you must have submitted proof of vaccination to the Club's email
+    address.
     Let's hope for an early return to 'business as usual.'
     Stay safe; Stay well.""",
 

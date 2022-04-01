@@ -161,7 +161,7 @@ def names_reversed(name):
         parts = name.split(', ')
         return '{} {}'.format(parts[1].strip(), parts[0].strip())
     else:
-        parts = name.split()
+        parts = name.rsplit(maxsplit=1)
         return '{}, {}'.format(parts[1].strip(), parts[0].strip())
 
 
