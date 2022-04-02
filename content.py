@@ -1133,18 +1133,8 @@ def prepare_letter_template(which_letter, lpr):
     Prepares the template for a letter.
     <which_letter>: one of the <content_types> and
     <printer>: one of the keys to the <printers> dict
-    specifying which printer is to be used (passed as the
-    "--lpr" command line parameter.)
-    Returns a 'letter' with formatting fields to be filled
-    in by expanding <record>:
-    typically {first}, {last}, {address}, {town}, {state},
-    {postal_code}, {country}, and possibly (one or more)
-    {extra}(s) &/or 'PS's.
+    Returns a 'letter' /w formatting fields.
     """
-    #   print(printer)
-    #   lpr = printers[printer]
-    # top margin:
-    #   print(lpr['top'])
     ret = [""] * lpr["top"]  # add blank lines at top
     # return address:
     ret_addr = address_format.format(**which_letter["from"])
@@ -1261,7 +1251,6 @@ if __name__ == "__main__":
     # main()
     print('\n'.join(contents()))
     print("content.py compiles OK")
-    sys.exit()
 else:
     def print(*args, **kwargs):
         pass

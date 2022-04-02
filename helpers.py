@@ -36,18 +36,23 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
-def check_before_deletion(file_or_dir):
+def check_before_deletion(file_names):
     """
-    If <file_or_dir> exists, check before deleting or overwriting it.
-    User given opportunity to abort.
+    Parameter <file_names> may be one name or a sequence of names.
+    For each- check with user if ok to delete or overwrite.
+    Aborts program execution if permission is not granted.
+    Does not itself do any deletion.
     """
-    if os.path.exists(file_or_dir):
-        response = input(
-                "'{}' exists! Over write &/or delete it?(y/n) "
-                .format(file_or_dir))
-        if not(response and response[0] in 'yY'):
-            print('Aborting program execution.')
-            sys.exit()
+    if istype(file_names, str):
+        file_names = [file_names, ]
+    for f in file_names:
+        if os.path.exists(f):
+            response = input(
+                    "'{}' exists! Over write &/or delete it?(y/n) "
+                    .format(f))
+            if not(response and response[0] in 'yY'):
+                print('Aborting program execution.')
+                sys.exit()
 
 
 def get_first_friday_of_month(date=None):
@@ -723,9 +728,9 @@ def clarify_cc(s, word2remove='sponsors'):
     Assumes <s> is a string /w or /wo commas (but no blank spaces.)
     Splits the string on the commas(",") and looks for <word2remove>.
     Returns a 2-tuple:
-        1st item is Boolean depending on presence of <word2remove>.
-        2nd item is a list (possibly empty) of any other entries...
-    (expect a listing of email addresses or an empty list.)
+        1st item: Boolean => presence of <word2remove>.
+        2nd item: a list (possibly empty) of any other entries...
+            (expect a listing of email addresses or an empty list.)
     """
     removed = False
     res = s.split(',')

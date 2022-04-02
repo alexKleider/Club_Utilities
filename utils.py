@@ -979,15 +979,18 @@ def prepare4mailing(club):
     ## Need to implement sending of copies to       ##
     ## sponsors if "-cc sponsors" option is chosen. ##
     """
-    club.cc_sponsors = False
-    club.owing_only = False
+    # give user opportunity to abort if files are still present:
+    helpers.check_before_deletion(club.json_file, club.mail_dir)
     if args['--oo']:
         club.owing_only = True
+    else:
+        club.owing_only = False
     club.bcc = args['--bcc']
     # Note: sponsors may be specified either by including "sponsors"
     # as an argument (or possibly part of, comma separated) of the
     # "-cc" option  or by specifying it in the "--which" part (see the
     # content.py file.)
+    club.cc_sponsors = False
     if args['--cc']:
         (club.cc_sponsors, club.ccs) = helpers.clarify_cc(
                                 args['--cc'], 'sponsors')
@@ -1004,26 +1007,10 @@ def prepare4mailing(club):
     if club.cc_sponsors:  # collect applicant/sponsor data
         data.populate_sponsor_data(club)
         data.populate_applicant_data(club)
-        # provides the following:
-        #    club.sponsor_set (set)
-        #    club.sponsor_emails (dict)
-        #    club.sponsors_by_applicant (dict)
-        #    club.applicant_data (dict with keys:
-        #      first, last, status,  
-        #      app_rcvd, fee_rcvd, 1st, 2nd, 3rd, inducted, dues_paid
-        #      (un fulfilled meeting dates are entered as None)
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
                                                   club.lpr)
-    # *** Check that we don't overwright previous mailings:
-    if club.which["e_and_or_p"] in ("both", "usps", "one_only"):
-        print("Checking for directory '{}'.".format(club.mail_dir))
-        helpers.check_before_deletion(club.mail_dir)
-    if club.which["e_and_or_p"] in ("both", "email", "one_only"):
-        print("Checking for file '{}'.".format(club.json_file))
-        helpers.check_before_deletion(club.json_file)
-        club.json_data = []
 
 
 def prepare_mailing_cmd(args=args):

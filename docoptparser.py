@@ -104,13 +104,11 @@ if __name__ == "__main__":
     cmd_opts = parse4opts_by_cmd(filename)
     opt_descriptors = parse4opt_descriptors(filename)
 
-    for key, value in cmd_opts.items():
-        print("{}: {}".format(key, value))
-#       print("{}: {}".format(key, cmd_opts[key]))
-    print()
     for key in sorted(cmd_opts.keys()):
-#   for key, value in opt_descriptors.items():
-        print("{}:".format(key))
-        for line in value:
+        print("{}: {}".format(key, cmd_opts[key]))
+    print()
+    for key in sorted(opt_descriptors.keys()):
+        print("{}: {}".format(key,opt_descriptors[key][0]))
+        for line in opt_descriptors[key][1:]:
             print("\t{}".format(line))
 
