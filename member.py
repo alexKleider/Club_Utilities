@@ -972,13 +972,12 @@ def add_dues_fees2new_db_func(record, club):
         new_record['dues'] = helpers.str_add(
             club.YEARLY_DUES,
             new_record['dues'])
-        name = get_last_first(record)
+        name = fstrings['last_first'].format(**record)
         if name in club.extra_fee_names:
-            for (category, amount) in club.by_name[name]:
+            for (category, amount) in club.by_name[name].items():
                 category = category.lower()
                 new_record[category] = helpers.str_add(
-                    amount,
-                    new_record[category])
+                    amount, new_record[category])
     club.new_db.append(new_record)
 
 

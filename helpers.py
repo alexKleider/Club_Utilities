@@ -754,15 +754,18 @@ def tofro_first_last(name):
         return f"{last}, {first}"
 
 
-def append_csv_data(new_csv, csv_file, zero=False):
+def append_csv_data(new_info_csv, csv_file, zero=False):
     """
-    Appends what is in <new_csv> file to
+    Appends what is in <new_info_csv> file to
     what's already in <csv_file>.
     Field names (or just number of them?) must match.
+    Returns field names taken from first parameter.
+    If <zero> data (but not headers (fieldnames)) is removed from
+    <new_info_csv>.
     ## Tested in Sandbox ##
     """
     field_names = ''
-    with open(new_csv, 'r') as instream:
+    with open(new_info_csv, 'r') as instream:
         reader = csv.DictReader(instream)
         field_names = reader.fieldnames
         with open(csv_file, 'a') as outstream:
@@ -772,7 +775,7 @@ def append_csv_data(new_csv, csv_file, zero=False):
             for line in reader:
                 writer.writerow(line)
     if zero:
-        with open(new_csv, 'w') as outstream:
+        with open(new_info_csv, 'w') as outstream:
             writer = csv.DictWriter(outstream, fieldnames=field_names,
                                 dialect='unix',
                                 quoting=csv.QUOTE_MINIMAL,)
