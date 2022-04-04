@@ -980,22 +980,9 @@ def prepare4mailing(club):
     ## sponsors if "-cc sponsors" option is chosen. ##
     """
     # give user opportunity to abort if files are still present:
-    helpers.check_before_deletion(club.json_file, club.mail_dir)
-    if args['--oo']:
-        club.owing_only = True
-    else:
-        club.owing_only = False
-    club.bcc = args['--bcc']
-    # Note: sponsors may be specified either by including "sponsors"
-    # as an argument (or possibly part of, comma separated) of the
-    # "-cc" option  or by specifying it in the "--which" part (see the
-    # content.py file.)
-    club.cc_sponsors = False
-    if args['--cc']:
-        (club.cc_sponsors, club.ccs) = helpers.clarify_cc(
-                                args['--cc'], 'sponsors')
-    else:
-        (club.cc_sponsors, club.ccs) = (False, [])
+    helpers.check_before_deletion((club.json_file, club.mail_dir))
+    if os.path.exists(club.mail_dir): shutil.rmtree(club.mail_dir)
+    os.mkdir(club.mail_dir)
     if not args['--which']:
         club.which = content.content_types["thank"]
     else:
@@ -1004,9 +991,6 @@ def prepare4mailing(club):
             (cc_sponsors, cced) = helpers.clarify_cc(club.which['cc'])
             club.cc_sponsors = club.cc_sponsors or cc_sponsors
             club.ccs = set(club.ccs + cced)  # remove duplicates
-    if club.cc_sponsors:  # collect applicant/sponsor data
-        data.populate_sponsor_data(club)
-        data.populate_applicant_data(club)
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
@@ -1030,15 +1014,15 @@ def prepare_mailing_cmd(args=args):
     # Check if any letters are filed and if not, delete mailing dir:
     if os.path.isdir(club.mail_dir) and not len(
             os.listdir(club.mail_dir)):
-        mail_dir_exists = False
-    else: mail_dir_exists = True
-    print("prepare_mailing completed..")
-    if mail_dir_exists:
-        print("""..next step might be the following:
-    $ zip -r 4Peter {}""".format(club.mail_dir))
-    else:
-        print("Mailing directory is empty; deleted.")
         os.rmdir(club.mail_dir)
+        print("Empty mailing directory deleted.")
+    else:
+        print("""..next step might be the following:
+    $ zip -r 4Peter {0:}
+    (... or using tar:
+    $ tar -vczf 4Peter.tar.gz {0:}"""
+            .format(club.mail_dir))
+    print("prepare_mailing completed..")
 
 
 

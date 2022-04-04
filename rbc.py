@@ -218,6 +218,18 @@ class Club(object):
             if args['-o']: self.outfile = args['-o']
             else: self.outfile = Club.STDOUT
 
+            self.owing_only = args['--oo']
+
+            Club.cc_sponsors = False
+            if args['--cc']:
+                (Club.cc_sponsors, Club.ccs) = helpers.clarify_cc(
+                                        args['--cc'], 'sponsors')
+            else:
+                (Club.cc_sponsors, Club.ccs) = (False, [])
+            if Club.cc_sponsors:  # collect applicant/sponsor data
+                data.populate_sponsor_data(Club)
+                data.populate_applicant_data(Club)
+
             if args['-e']: self.errors_file = args['-e']
             else: self.errors_file = Club.ERRORS_FILE
 

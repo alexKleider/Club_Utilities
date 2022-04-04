@@ -11,9 +11,9 @@ name and depend on a dict within the utils.Membership class
 with those names as keys and the methods as values.
 
 A number of 'dict's are being used:
-    letter_bodies   Marked by 'b'
-    authors: ak, membership,   Marked by 'a'
-    content_types   Marked by 'c'
+    letter_bodies
+    authors: ak, membership,
+    content_types
         each provides: {
             "subject":
             "from": authors["membership"],

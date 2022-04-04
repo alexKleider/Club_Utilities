@@ -820,37 +820,22 @@ def get_statement(statement_dict, club=None):
     return '\n'.join(ret)
 
 
-notused = '''
-def get_statement_data(statement_data, club=None):
-    """
-    Returns an array of strings:  a statement for each record/member.
-    """
-    ret = []
-    for name in statemenet_data_keys.keys():
-        line = "{: <21}".format(name)
-        statement = get_statement(statement_data[name], club)
-        if club and club.inline:
-            ret.append(line + statement)
-        else:
-            ret.append(line)
-            ret.append(statement)
-    return '\n'.join(ret)
-'''
-
 def assign_statement2extra_func(record, club=None):
     """
     Sets up record['extra'] to contain a statement with
     appropriate suffix for dues & fees notice.
     """
+    record["owing"] = False
     d = get_statement_dict(record)
     extra = ['Statement of account:', ]
+    extra.append(get_statement(d))
     if d['total'] == 0:
         extra.append("You are all paid up. Thank you.")
-    else:
-        extra.append(get_statement(d))
-    if d['total'] < 0:
+    elif d['total'] < 0:
         extra.extend(["You have a credit balance.",
                       "Thank you for your advanced payment."])
+    else:
+        record["owing"] = True
     record['extra'] = '\n'.join(extra)
 
 
@@ -1007,7 +992,7 @@ def append_email(record, club):
     """
     club.which has already been assigned to one of the values
     of content.content_types
-    Returns a list of dicts.
+    Appends an email to club.json_data
     """
 #   print(club.email)
     body = club.email.format(**record)
@@ -1061,35 +1046,27 @@ def file_letter(record, club):
 
 def q_mailing(record, club):
     """
-    Checks on desired type of mailing and
-    deals with mailing as appropriate.
-    Decides wich (if any or both) of the following to call:
-    file_letter   or
-    append_email
+    Dispatches email &/or letter to appropriate 'bin'.
     """
-    ss = get_status_set(record)
-    usps_ok = not 'ba' in ss
-    email_ok = not 'be' in ss
     record["subject"] = club.which["subject"]
+    # ^ the above should be assigned elsewhere!!
+    # check how to send:
     how = club.which["e_and_or_p"]
     if how == "email":
-        if email_ok: append_email(record, club)
-        else: file_letter(record, club)
+        append_email(record, club)
     elif how == "both":
-        if record['email']:
-            append_email(record, club)
+        append_email(record, club)
         file_letter(record, club)
     elif how == 'one_only':
-        if record['email'] and email_ok:
+        if record['email']:
             append_email(record, club)
         else:
             file_letter(record, club)
     elif how == 'usps':
         file_letter(record, club)
     else:
-        print("Problem in q_mailing re {}".format(
-                    "{last}, {first}".format(**record)))
-        assert False
+        print("Problem in q_mailing: letter/email not sent to {}."
+                .format(fstrings['first_last'].format(**record)))
 
 
 def prepare_mailing(club):
@@ -1102,13 +1079,13 @@ def prepare_mailing(club):
     traverse_records(club.infile,
                      club.which["funcs"],
                      club)  # 'which' comes from content
-    listing = [func.__name__ for func in club.which["funcs"]]
-    print("Functions run by traverse_records: {}".format(listing))
+#   listing = [func.__name__ for func in club.which["funcs"]]
+#   print("Functions run by traverse_records: {}".format(listing))
     # No point in creating a json file if no emails:
     if hasattr(club, 'json_data') and club.json_data:
-        print("There is email to send.")
         with open(club.json_file, 'w') as file_obj:
-            print('Dumping JSON to "{}".'.format(file_obj.name))
+            print('Dumping emails (JSON) to "{}".'
+                    .format(file_obj.name))
             file_obj.write(json.dumps(club.json_data))
     else:
         print("There are no emails to send.")
@@ -1130,8 +1107,11 @@ def std_mailing_func(record, club):
         record["subject"] = club.which["subject"]
         if club.cc_sponsors:
             pass
-        q_mailing(record, club)
-
+        if club.owing_only:
+            if record['owing']:
+                q_mailing(record, club)
+        else:
+            q_mailing(record, club)
 
 def bad_address_mailing_func(record, club):
     if club.which["test"](record):

@@ -43,8 +43,8 @@ def check_before_deletion(file_names):
     Aborts program execution if permission is not granted.
     Does not itself do any deletion.
     """
-    if istype(file_names, str):
-        file_names = [file_names, ]
+    if isinstance(file_names, str):
+        file_names = (file_names, )
     for f in file_names:
         if os.path.exists(f):
             response = input(
