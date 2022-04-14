@@ -2,6 +2,9 @@
 
 # File: backup.sh
 
+#### !!! this precedes when I moved Data from beneath Utils
+#### !!! to beside it.  Needs a rewrite before being useful.
+
 # will not do a back up more than once each day.
 
 # Case specific parts (clearly indicated by "#***")

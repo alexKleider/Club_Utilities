@@ -2,7 +2,7 @@
 
 # File: clear.sh
 
-# Deletes Data/MailingDir and all it's contents.
+# Deletes Data/emails.json and Data/MailingDir.
 # Working emails should be archived (./archive_mailings.sh)
 # and doing so also deletes Data/MailingDir.
 # This script is useful when testing and contents 

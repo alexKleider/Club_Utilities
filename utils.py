@@ -22,7 +22,6 @@ Usage:
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -o <outfile>]
-  ./utils.py extra_charges [-O -w <width> -f <format> -X <fees_spots> -o <outfile> -j <jsonfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -34,7 +33,7 @@ Usage:
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spots> -o <temp_membership_file> -e <error_file>]
   ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
-  ./utils.py new_db -F function -G data_gathering_function[-O -i <membership_file> -o <new_membership_file> -e <error_file>]
+  ./utils.py new_db -F function -G data_gathering_function [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
 Options:
   -h --help  Print this docstring. Best piped through pager.
@@ -54,16 +53,10 @@ Options:
   --dir <mail_dir>   The directory (to be created and/or read)
                      containing letters for batch printing.
   -e <error_file>   Specify name of a file to which an
-            error report can be written.  [default: stdout]
+            error report can be written.
   --emailer <emailer>  Use bash (via smtp or mutt) or python
                     to send emails.  [default: python]
   --exec  Within 'show' cmnd: include listing of executive commitee.
-  -f <format>  Specify output format of 'extra_charges' command.
-        Possible choices are:
-            'table' listing of names /w fees tabulated (=> 2 columns.)
-            'listing' same format as Data/extra_fees.txt
-            'listings' side by side lists (best use landscape mode.)
-        [default: listings]
   -F <function>  Name of function to apply. (new_db command)
         Implemented so far: set_kayak_fee
   -G <data_gathering_function>  Function to gather required data.
@@ -151,17 +144,11 @@ Commands:
         relevant to current applicants: first & last names, status,
         up to three meeting dates and the two sponsors. If -o outfile
         is explicitly specified it must end in ".csv".
-    zeros: Reports on whether money fields are zero or NULL
+    zeros: Reports on whether dues field is zero or NULL
     usps: Creates a csv file containing names and addresses of
         members without an email address who therefore receive Club
         minutes by post. Also includes any one with a 'be' or an 's'
         status (... a mechanism for sending a copy to the secretary.)
-    extra_charges: Reports on members paying extra charges (for
-        kayak storage, mooring &/or dock usage.)
-        | -f <format>  -specify listing, listings or table format.
-                (Has a default: see -f option description.)
-        | -w <width>  -specify maxm # of chars per line in output.
-        | -j <json_file>  -creat a json file. (This was
         but is no longer required by the restore_fees_cmd.)
     payables: Reports on non zero money fields.
         | -T  Present as a table rather than a listing.
@@ -228,7 +215,6 @@ Commands:
                               # be a separate utilii.
         zeros  # no command description
         usps
-        extra_charges
         payables
         show_mailing_categories
         prepare_mailing
@@ -263,8 +249,8 @@ import Pymail.send
 import Bashmail.send
 from rbc import Club
 
-TEXT = ".txt"  # } Used by <extra_charges_cmd>
-CSV = ".csv"   # } command.
+# TEXT = ".txt"  # } Used by <extra_charges_cmd> command which has
+# CSV = ".csv"   # } been redacted so could probably be deleted.
 
 TEMP_FILE = "2print.temp"  # see <output> function
 
@@ -841,7 +827,7 @@ def create_applicant_csv_cmd(args=args):
 
 def zeros_cmd(args=args):
     """
-    Reports those with zero vs NULL in fees field.
+    Reports those with zero vs NULL in dues field.
     Useful in that a NULL value implies that it isn't a fee that is
     charged to this particular member.
     """
@@ -1203,9 +1189,8 @@ def restore_fees_cmd(args=args):
     If records are found with balance still outstanding, these are
     reported to errors.  Also reported will be anyone listed as paying
     fees but not found amongst members.
-    Repopulates the club's master list with the ANNUAL_DUES constant
-    and any fees being charged as specified in the file specified by
-    'args['<extra_fees.json>']'.
+    Repopulates the club's master list with the ANNUAL_DUES constant &
+    any fees being charged (as gleaned from Club.extra_fees_spots.)
     The -i <membership_file> is not changed.
     If '-o <temp_membership_file>' is specified, output goes there,
     if not, output goes to a file named by concatenating 'new_' with
@@ -1214,7 +1199,8 @@ def restore_fees_cmd(args=args):
     # ## During implementation, be sure to ...                     ###
     # ## Take into consideration the possibility of credit values. ###
     club = Club(args)
-    setup4new_db(club)
+    setup4new_db(club)  # over rides output file name
+                        # & collects field names => club.fieldnames
     data.restore_fees(club)  # Populates club.new_db & club.errors
     helpers.save_db(club.new_db, club.outfile, club.fieldnames,
                  report="New membership DB")
@@ -1223,12 +1209,8 @@ def restore_fees_cmd(args=args):
                    ['Note the following irregularities:',
                     '==================================', ]
                    + club.errors),
-               destination=club.errors_file)
-
-    if club.errors:
-        with open(club.errors_file, 'w') as file_obj:
-            file_obj.write('\n'.join(club.errors))
-            print('Wrote errors to "{}".'.format(file_obj.name))
+               destination=club.errors_file,
+               announce_write=True)
 
 
 def fee_intake_totals_cmd(args=args):
@@ -1276,10 +1258,11 @@ def new_db_cmd(args=args):
     Uses the -G <data_gathering_function> to set up attributes of club
     before running the -F <function> which modifies data into a new db
     specified by -o <new_membership_file>
-    So far have implemented -F & -G pairs as follows:
-        set_kayak_fee   populate_kayak_fees
-    Note: <-F> functions are defined in member module
-          <-G> functions in data module.  ("G" for "get")
+    # So far have implemented -F & -G pairs as follows:
+    #     set_kayak_fee   populate_kayak_fees
+    # Note: <-F> functions are defined in member.py
+    #       <-G> ("get" or "gather") functions defined in data.py.
+    # May use this in place of restore_fees.
     """
     club = Club(args)
     club.fieldnames = data.get_fieldnames(club.infile)
@@ -1368,9 +1351,9 @@ if __name__ == "__main__":
         zeros_cmd()
     elif args["usps"]:
         usps_cmd()
-    elif args["extra_charges"]:
-        print("Command not implemented.")
-        extra_charges_cmd()
+#   elif args["extra_charges"]:
+#       print("Command not implemented.")
+#       extra_charges_cmd()
     elif args["payables"]:
         print("Preparing listing of payables...")
         payables_cmd()

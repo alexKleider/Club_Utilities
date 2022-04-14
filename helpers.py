@@ -448,7 +448,6 @@ def add_sub_list(sub_header, sub_list, main_list,
 
 
 def prepend2file_name(word, file_name):
-    print("params are: {}, {}".format(word, file_name))
     head, tail = os.path.split(file_name)
     return os.path.join(head, ''.join((word, tail)))
 
@@ -752,6 +751,43 @@ def tofro_first_last(name):
     else:
         first, last = name.split()
         return f"{last}, {first}"
+
+
+def add_fields(fieldnames, csv_file, prefix='new_'):
+    """
+    <csv_file> field_names must be a subset of <fieldnames>.
+    Output has the same data but with blank entries for
+    any field name not previously present.
+    Output goes to a file with the same name prefixed by <prefix>
+    (which can be set to an empty string in which case the file is
+    replaced!)
+    Data is temporarily stored in memory so beware if files are huge!
+    """
+    data = []
+    with open(csv_file, 'r',
+            encoding='utf-8', newline='') as instream:
+        reader = csv.DictReader(instream)
+        field_names = reader.fieldnames
+        if not set(field_names).issubset(fieldnames):
+            print("Assertion failed in helpers.add_fields!")
+            sys.exit()
+        for rec in reader:
+            new_rec = {}
+            for key in fieldnames:
+                new_rec[key] = ''
+            for key in rec.keys():
+                if not rec[key]: rec[key] = ''
+                new_rec[key] = rec[key]
+            data.append(new_rec)
+    if prefix:
+        csv_file = prefix + csv_file
+    with open(csv_file, 'w', newline='')as outstream:
+        writer = csv.DictWriter(outstream,
+                                fieldnames,
+                                lineterminator='\n')
+        writer.writeheader()
+        for item in data:
+            writer.writerow(item)
 
 
 def append_csv_data(new_info_csv, csv_file, zero=False):

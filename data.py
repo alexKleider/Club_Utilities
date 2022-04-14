@@ -187,10 +187,14 @@ def applicant_data_line2record(line):
     l = len(dates)
     if parts[-1].startswith("Appl"):
         dates = dates[:-1]  # waste the text
-        _status = "zae"  # see members.STATUS_KEY_VALUES
+        special_status = "zae"  # see members.STATUS_KEY_VALUES
+        l -= 1
+    elif parts[-1].startswith("w"):
+        dates = dates[:-1]
+        special_status = "aw"
         l -= 1
     else:
-        _status = ''
+        special_status = ''
     if l == 0:           # Should never have an entry /w no dates.
         status = "zaa"   # No longer a valid status
         print("Entry for {}{} is without any dates."
@@ -215,8 +219,8 @@ def applicant_data_line2record(line):
                 .format(names[0], names[1]))
         sys.exit()
     move_date_listing_into_record(dates, ret)
-    if _status:
-        ret['status'] = _status
+    if special_status:
+        ret['status'] = special_status
     else:
         ret['status'] = status
     return ret
@@ -231,7 +235,9 @@ def get_dict(source_file, sep=":", maxsplit=1):
     Returned is a dict keyed by 'last,first' name and value: the
     string to right of <sep> (stripped of leading &/or trailing
     spaces. (It could be an empty string!)
-    # For applicants.txt, can set sep='|' (maxsplit=1)
+    # For applicants.txt, could set sep='|' (maxsplit=1)
+    # But: applicant data is populated one line at a time so this
+    # function is not useful there
     """
     ret = {}
     with open(source_file, 'r') as stream:
@@ -650,22 +656,14 @@ def restore_fees(club):
     """
     Sets up and leaves a new list of records in club.new_db:
     Dues and relevant fees are applied to each member's record.
-    Also populates the following:
-        <club.name_set>   
-        <club.errors>
-    The <club.errors> list is populated by names that are found
-    in the <fees_json_file> but not in the <membership_csv_file>.
-    Also listed will be any members still owing.
-    Other warnings may also appear.
+    Also populates <club.name_set> & <club.errors>
+    The <club.errors> includes names that are found in the
+    <fees_json_file> but not in the <membership_csv_file> and 
+    those still owing before new fees/dues are added.
     """
-    print(
-        "Preparing to restore dues and fees to the data base...")
-    print(
-        "  1st check that no one is still owing ...")
-    club.errors = []
-    club.new_db = []
-    club.non0balance = {}
-    club.name_set = set()
+    print("Restore dues and fees to the data base...")
+    club.errors = []; club.new_db = [];
+    club.non0balance = {}; club.name_set = set();
     populate_extra_fees(club)
     club.extra_fee_names = set([key for key in club.by_name.keys()])
     err_code = member.traverse_records(club.infile, (
@@ -673,14 +671,21 @@ def restore_fees(club):
         member.populate_name_set_func,
         member.add_dues_fees2new_db_func,
         ), club)
+    if club.non0balance:
+        warning = "Non zero balances..."
+#       print(warning)
+        club.errors.append(warning)
+        for name in sorted(club.non0balance.keys()):
+            club.errors.append("{}: {}"
+                    .format(name, repr(club.non0balance[name])))
     names_not_members = club.extra_fee_names - club.name_set
     if names_not_members:
-        warning = "Not all in extra fees listing are members!"
-        print(warning)
+        warning = "Not all listed as paying extra fees are members!"
+#       print(warning)
         club.errors.append(warning)
         for name in names_not_members:
             club.errors.append(
-                "\t{} listed as paying fee(s) but not a member."
+                "\t{}: non member listed as paying fee(s)."
                 .format(name))
 
 # save_db moved to helpers
