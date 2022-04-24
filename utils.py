@@ -77,7 +77,7 @@ Options:
   -l  Long format for demographics (phone & email as well as address)
   -m  Maximum data  Same as including -DMB. See also -I
   --mta <mta>  Specify mail transfer agent to use. Choices are:
-                clubg     club's gmail account  [default: clubg]
+                clubg     club's gmail account  [default: easy]
                 akg       my gmail account
                 easy      my easydns account
   -O  Show Options/commands/arguments.  Used for debugging.
@@ -977,6 +977,7 @@ def prepare4mailing(club):
             (cc_sponsors, cced) = helpers.clarify_cc(club.which['cc'])
             club.cc_sponsors = club.cc_sponsors or cc_sponsors
             club.ccs = set(club.ccs + cced)  # remove duplicates
+    club.json_data = []
     club.lpr = content.printers[args["-p"]]
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,

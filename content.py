@@ -62,12 +62,8 @@ that must be subsequently filled in by the '..._funcs'.
 # # double braces fields are populated by the record data.
 letter_bodies = dict(
 
-    address_only="""
+    find_enclosed="""
 Please find enclosed.
-""",
-
-    bill_payment="""
-Please find enclosed payment.
 """,
 
     for_testing="""
@@ -92,12 +88,6 @@ We have your mailing address as :
 {extra}
 
 Please let us know if this should be corrected and, if so, to what.
-""",
-
-    meeting_announcement="""
-Board members meet at 6pm.
-General meeting scheduled for 7:30pm.
-Come for the fun!
 """,
 
     feb_meeting="""
@@ -163,9 +153,6 @@ me know[1].
 My apologies for the confusion (caused by my ineptitude!)
 {{extra}}""".format(helpers.club_year(which='next')),
 
-
-
-    # Send with March, April, and May minutes:
     first_notice="""
 This is a reminder that annual Club dues will be due in June.
 That is still a ways out but some might like to know in advance
@@ -220,9 +207,9 @@ in your remittance to the
 at your earliest convenience.
 """,
 
-    # Send with August minutes:
+    # Send in early August:
     penultimate_warning="""
-Club records indicate that your dues (+/- other fees) have
+Club records indicate that your dues (+/or other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
 (If you've any reason to believe that our accounting might be in
@@ -235,7 +222,7 @@ Details follow.
 
     # Send towards end of August:
     final_warning="""
-Club records indicate that your dues (+/- other fees) have
+Club records indicate that your dues (+/or other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
 (If you've any reason to believe that our accounting might be in
@@ -244,31 +231,6 @@ error, please let us know[1].)
 Please pay promptly; we'd hate to loose you as a member.
 
 Details follow.
-{extra}""",
-
-    expiration_extended="""
-Club records indicate that your dues (+/- other fees) have
-as yet not been paid.  Club Bylaws dictate that membership is
-terminated if dues are not paid by Sept. 1st but the Club Executive
-Committee has decided to extend a grace period until the end of this
-month.
-(If you've any reason to believe that our accounting might be in
-error, please let us know[1].)
-
-Please pay promptly; we'd hate to loose you as a member.
-
-Details follow.
-{extra}""",
-
-    # Penalties are not levied! Don't send!
-    penalty_notice="""
-The deadline for Club Dues payment has passed and records indicate
-that you are in arrears so a late fee of $25 has been applied.
-If you feel this is incorrect, please speak up[1]- we are only
-human!  Otherwise, don't delay sending in your check rather than
-risk being removed from the Club's list of members.
-
-Details are as follows:
 {extra}""",
 
     covid_final_notice="""
@@ -439,29 +401,13 @@ I've been asked that you return the club house key that you
 got from Ralph.  A stamped addressed envelope has been included
 for your convenience.""",
 
-    cover_letter="""
-Enclosed you'll find minutes of the Bolinas Rod and Boat Club.""",
-
-    personal="""
-The enclosed came to the Club PO Box along with an application.
-Obviously it is in error. Since your name is on it I thought
-best to send it on to you rather than to Herbert.
-
-I hope this finds you well.
-""",
-
-    fromSecretary="""
-Enjoy the minutes!
-Michael Rafferty, Secretary
-""",
-
     tpmg_social_security="""
 Please find enclosed the documentation I believe you require from the
 Social Security Administration concerning Medicare deductions for both
 my wife and for me.
 """,
 
-    fromRandy="""
+    randy="""
 The pluma pescadores, fly fishers, wing of the BRBC will be meeting
 in the yurt at the Rushes Thursday at 7 pm.  Snacks, stories, lessons
 on knots, equipment comments, lines, leaders, flies and laughter.
@@ -477,13 +423,14 @@ Bring flashlight is best.
 Cheers and tight lines.
 """,
 
-    payment="""
+    bill_paying="""
 Thank you for your services.
 """
     )
 # ... end of letter_bodies.
 
 
+### !!!!!!!!!!!!!!!!!!!! POSTSCRIPTS !!!!!!!!!!!!!!!!! ##
 post_scripts = dict(
 
     remittance=""" Please send remittances to:
@@ -556,21 +503,6 @@ authors = dict(  # from
         reply2="rodandboatclub@gmail.com",
         mail_signature="\nSincerely,\n\n\nAlex Kleider (Membership)",
         ),
-    secretary=dict(   # Club Secretary
-        first="Bolinas",
-        last="Rod & Boat Club",
-        address="PO Box 248",
-        town="Bolinas",
-        state="CA",
-        postal_code="94924",
-        country="USA",
-        email_signature=(
-            "\nSincerely,\nMichael Rafferty (Club Secretary)"),
-        email="rodandboatclub@gmail.com",
-        reply2="rodandboatclub@gmail.com",
-        mail_signature=(
-            "\nSincerely,\n\n\nMichael Rafferty (Club Secretary)"),
-        ),
     randy=dict(  # Randy Rush in Bolinas Home
         first="Randy",
         last="Rush",
@@ -587,28 +519,30 @@ authors = dict(  # from
         ),
     )  # ... end of authors.
 
-# One of the following content_types is assigned to the 'which'
-# attribute of an instance of utils.Club for mailing purposes.
-#
-#   # Each item in the following dict specifies:
-#       # subject: re line in letter_bodies, subject line in emails
-#       # from: expect a value from the 'authors' dict
-#       #     each value is itself a dict specifying more info...
-#       #     names, address, signatures, reply to, ..
-#       # body: text of the letter which may or may not have
-#       #     one or more 'extra' sections.
-#       # post_scripts:  a list of optional postscripts
-#       # funcs: a list of functions used on each record during
-#       #     the data gathering traversal of the membership csv.
-#       # test: a (usually 'lambda') function that determines
-#       #     if the record is to be considered at all.
-#       # e_and_or_p: possibilities are:
-#       #     'both' email and usps,
-#       #     'email' email only,
-#       #     'usps' mail only,
-#       #  or 'one_only' email if available, otherwise usps.
-#   # One of the following becomes the 'which' attribute
-#   # of a Membership instance.
+content_type_docstring = """
+One of the following content_types is assigned to the 'which'
+attribute of an instance of utils.Club for mailing purposes.
+
+  Each item in the following dict specifies:
+      subject: re line in letter_bodies, subject line in emails
+      from: expect a value from the 'authors' dict
+          each value is itself a dict specifying more info...
+          names, address, signatures, reply to, ..
+      body: text of the letter which may or may not have
+          one or more 'extra' sections.
+      post_scripts:  a list of optional postscripts
+      funcs: a list of functions used on each record during
+          the data gathering traversal of the membership csv.
+      test: a (usually 'lambda') function that determines
+          if the record is to be considered at all.
+      e_and_or_p: possibilities are:
+          'both' email and usps,
+          'email' email only,
+          'usps' mail only,
+       or 'one_only' email if available, otherwise usps.
+  One of the following becomes the 'which' attribute
+  of a Membership instance.
+"""
 
 content_types = dict(  # which_letter
     # ## If a 'salutation' key/value is provided for any of the
@@ -634,33 +568,14 @@ content_types = dict(  # which_letter
         "test": member.letter_returned,
         "e_and_or_p": "email",
         },
-    address_only={
+    find_enclosed={  # test will always return False!?!
         "subject": "1040-es",
         "from": authors["ak"],
-        "body": letter_bodies["address_only"],
+        "body": letter_bodies["find_enclosed"],
         "post_scripts": (),
         "funcs": [member.std_mailing_func,],
-        "test": lambda record: record['phone']=='0',
+        "test": lambda record: record['phone']=='0',  # !?!
         "e_and_or_p": "usps",
-        },
-
-    bill_payment={
-        "subject": "Payment of Invoice.",
-        "from": authors["bc"],
-        "body": letter_bodies["bill_payment"],
-        "post_scripts": (),
-        "funcs": [member.std_mailing_func, ],
-        "test": lambda record: True,
-        "e_and_or_p": "usps",
-        },
-    meeting_announcement={
-        "subject": "Meeting Friday",
-        "from": authors["secretary"],
-        "body": letter_bodies["meeting_announcement"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
-        "test": lambda record: True if record["email"] else False,
-        "e_and_or_p": "one_only",
         },
     feb_meeting={
         "subject": "Meeting first Friday of February",
@@ -672,15 +587,6 @@ content_types = dict(  # which_letter
         "funcs": (member.std_mailing_func,),
         "test": lambda record: True if record["email"] else False,
         "e_and_or_p": "email",
-        },
-    usps_minutes={
-        "subject": "Rod & Boat Club Minutes",
-        "from": authors["secretary"],
-        "body": letter_bodies["usps_minutes"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
-        "test": lambda record: False if record["email"] else True,
-        "e_and_or_p": "usps",
         },
     happyNY_and_0th_fees_request={
         "subject": "Happy New Year from the Bolinas R&B Club",
@@ -818,38 +724,6 @@ content_types = dict(  # which_letter
             ) else False,
         "e_and_or_p": "both",
         },
-    expiration_extended={
-        "subject": "Membership expiration extended",
-        "from": authors["membership"],
-        "body": letter_bodies["expiration_extended"],
-        "post_scripts": (
-            post_scripts["remittance"],
-            post_scripts["ref1_email_or_PO"],
-            ),
-        "funcs": (member.assign_statement2extra_func,
-                  member.std_mailing_func),
-        "test": lambda record: True if (
-            member.is_dues_paying(record) and
-            member.not_paid_up(record)
-            ) else False,
-        "e_and_or_p": "both",
-        },
-    penalty_notice={      # Penalties are not levied! Don't send!
-        "subject": "BR&BC dues and penalty for late payment",
-        "from": authors["membership"],
-        "body": letter_bodies["penalty_notice"],
-        "post_scripts": (
-            post_scripts["remittance"],
-            post_scripts["ref1_email_or_PO"],
-            ),
-        "funcs": (member.assign_statement2extra_func,
-                  member.std_mailing_func),
-        "test": (lambda record: True if (
-            member.is_dues_paying(record) and
-            member.not_paid_up(record)
-            ) else False),
-        "e_and_or_p": "both",
-        },
     covid_final_notice={
         "subject": "BR&BC final notice",
         "from": authors["membership"],
@@ -985,7 +859,7 @@ content_types = dict(  # which_letter
         "e_and_or_p": "one_only",
         },
 
-    membership_termination={
+    membership_termination={ # Incl stamped self addressed envelope)
         "subject": "Sorry you're leaving us.",
         "from": authors["membership"],
         "body": letter_bodies["membership_termination"],
@@ -994,16 +868,6 @@ content_types = dict(  # which_letter
         "test": (lambda record: True if member.is_terminated(record)
                  else False),
         "e_and_or_p": "usps",
-        },
-
-    cover_letter={
-        "subject": "Recent Minutes",
-        "from": authors["secretary"],
-        "body": letter_bodies["cover_letter"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
-        "test": (lambda record: False if record['email'] else True),
-        "e_and_or_p": "one_only",
         },
 
     personal={
@@ -1032,7 +896,7 @@ content_types = dict(  # which_letter
         "subject": "Pluma Pescadores",
         "from": authors["randy"],
         #       "salutation": "Dear Sir or Madame,",
-        "body": letter_bodies["fromRandy"],
+        "body": letter_bodies["randy"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
         "test": (
@@ -1042,11 +906,11 @@ content_types = dict(  # which_letter
             else False),
         "e_and_or_p": "email",
         },
-    payment={  # # If using this, must edit "test" ##
+    bill_paying={  # # If using this, must edit "test" ##
         "subject": "Payment of Amount Due",
         "from": authors["ak"],
         #       "salutation": "Dear Sir or Madame,",
-        "body": letter_bodies["payment"],
+        "body": letter_bodies["bill_paying"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
         "test": custom_lambdas['MarinMechanical'],
@@ -1254,3 +1118,6 @@ if __name__ == "__main__":
 else:
     def print(*args, **kwargs):
         pass
+
+
+

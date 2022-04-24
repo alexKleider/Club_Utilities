@@ -1095,6 +1095,7 @@ def prepare_mailing(club):
 # # they provide necessary attributes to their 'record' parameter
 # # in order to add custom content (to a letter &/or email.)
 
+
 def std_mailing_func(record, club):
     """
     Assumes any prerequisite processing has been done and
@@ -1111,6 +1112,7 @@ def std_mailing_func(record, club):
                 q_mailing(record, club)
         else:
             q_mailing(record, club)
+
 
 def bad_address_mailing_func(record, club):
     if club.which["test"](record):
