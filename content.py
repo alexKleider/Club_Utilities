@@ -870,17 +870,6 @@ content_types = dict(  # which_letter
         "e_and_or_p": "usps",
         },
 
-    personal={
-        "subject": "Papers mistakenly included with application",
-        "from": authors["ak"],
-        "body": letter_bodies["personal"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
-        "test": (lambda record: True if 'p' in record["status"]
-                 else False),
-        "e_and_or_p": "usps",
-        },
-
     tpmg_social_security={
         "subject": "Medicare Reimbursement",
         "from": authors["ak"],
@@ -952,28 +941,12 @@ printers = dict(
         to=(7, 29),  # recipient window
         re=3,  # below windows => fold
         ),
-    loft=dict(
+    peter=dict(
         indent=0,
         top=0,  # blank lines at top
         frm=(5, 25),  # return window
         date=4,  # between windows
         to=(7, 29),  # recipient window
-        re=3,  # below windows => fold
-        ),
-    Janice=dict(
-        indent=4,
-        top=4,  # blank lines at top
-        frm=(5, 25),  # return window
-        date=4,  # between windows
-        to=(7, 29),  # recipient window
-        re=3,  # below windows => fold
-        ),
-    Michael=dict(
-        indent=0,
-        top=0,  # blank lines at top
-        frm=(4, 30),  # return window
-        date=3,  # between windows
-        to=(6, 38),  # recipient window
         re=3,  # below windows => fold
         ),
     )

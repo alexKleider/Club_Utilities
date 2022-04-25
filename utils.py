@@ -92,8 +92,8 @@ Options:
   -P <params>  This option will probably be redacted
             since old methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
-  -p <printer>  Deals with printer variablility; ensures correct
-        alignment of text when printing letters. [default: X6505_e1]
+  -p <printer>  Ensure correct alignment of text with envelope windows
+            when printing letters. [default: X6505_e1]
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
