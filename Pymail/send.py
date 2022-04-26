@@ -237,7 +237,9 @@ def send(emails, mta, report_progress=True,
                 "Attempting login: {user} /w pw REDACTED ...")
         print(message.format(**server))
     s.login(server['user'], server['password'])
-    print("... successful.")
+    response = input("... successful.  Continue? ")
+    if not response or not response[0] in 'yY':
+        sys.exit()
 
     try:
         for email in emails:

@@ -318,6 +318,13 @@ def is_terminated(record):
     return 't' in get_status_set(record)
 
 
+def is_gmail_user(record):
+    """
+    Has a gmail address.
+    """
+    return record['email'].endswith('gmail.com')
+
+
 def increment_napplicants(record, club):
     """
     """

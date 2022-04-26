@@ -80,6 +80,18 @@ has a corresponding entry in the record dict (typically arranged
 by the custom function.
 """,
 
+    gmail_warning="""
+Google has changed posicy regarding use of gmail as a mail transfer
+agent (MTA.)  The reason this is relevant to you as a member of the
+Bolinas Rod & Boat Club _and_ a user of gmail is that as of the end of
+May, 2022, emails you receive from BR&BC Membership will most likely
+come with a warning regarding its authenticity.  The warning is mainly
+against opening any accompanying attachments which Membership rarely
+if ever sends so hopefully this won't create any hardship for anyone.
+
+Please be assured that there's no malfeasance!
+""",
+
     bad_address="""
 Mail sent to you has been returned.
 
@@ -559,6 +571,15 @@ content_types = dict(  # which_letter
         "test": lambda record: True,
         "e_and_or_p": "one_only",
         },
+    gmail_warning={
+        "subject": "Gmail warning",
+        "from": authors["membership"],
+        "body": letter_bodies["gmail_warning"],
+        "post_scripts": (),
+        "funcs": [member.std_mailing_func, ],
+        "test": member.is_gmail_user,
+        "e_and_or_p": "email",
+        },
     bad_address={
         "subject": "Address correction requested.",
         "from": authors["membership"],
@@ -942,11 +963,11 @@ printers = dict(
         re=3,  # below windows => fold
         ),
     peter=dict(
-        indent=0,
-        top=0,  # blank lines at top
-        frm=(5, 25),  # return window
-        date=4,  # between windows
-        to=(7, 29),  # recipient window
+        indent=5,
+        top=4,  # blank lines at top
+        frm=(4, 25),  # return window
+        date=5,  # between windows
+        to=(6, 29),  # recipient window
         re=3,  # below windows => fold
         ),
     )

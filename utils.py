@@ -24,7 +24,7 @@ Usage:
   ./utils.py usps [-O -i <infile> -o <outfile>]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
-  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --cc <cc> --bcc <bcc> ATTACHMENTS...]
+  ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --mta <mta> --cc <cc> --bcc <bcc> ATTACHMENTS...]
   ./utils.py thank [-t <2thank> -O -p <printer> -j <json_file> --dir <mail_dir> -o <temp_membership_file> -e <error_file>]
   ./utils.py archive_thanks [-t <2thank> -O --thanked <thank_archive> -e <error_file>]
   ./utils.py display_emails [-O] -j <json_file> [-o <txt_file>]
@@ -93,7 +93,7 @@ Options:
             since old methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Ensure correct alignment of text with envelope windows
-            when printing letters. [default: X6505_e1]
+            when printing letters. [default: peter]
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
@@ -295,7 +295,7 @@ def set_default_args_4curses(args):
     args['-j'] = Club.EMAIL_JSON
     args['-l'] = True
     args['-m'] = True
-#   args['--mta'] = 'clubg'  # default set by docopt
+#   args['--mta'] = ...  # default set by docopt
     args['-o'] = '2check.txt'
 #   args['-O'] = False   # Not used by curses interface
     args['--oo'] = False
@@ -1151,10 +1151,10 @@ def send_emails_cmd(args=args):
     mta = args["--mta"]
     emailer = args["--emailer"]
     if emailer == "python":
-        emailer = Pymail.send.send
+        send_func = Pymail.send.send
         print("Using Python modules to dispatch emails.")
     elif emailer == "bash":
-        emailer = Bashmail.send.send
+        send_func = Bashmail.send.send
         print("Using Bash to dispatch emails.")
     else:
         print('"{}" is an unrecognized "--emailer" option.'
@@ -1163,7 +1163,7 @@ def send_emails_cmd(args=args):
     wait = mta.endswith('g')
     message = None
     data = helpers.get_json(args['-j'], report=True)
-    emailer(data, mta, include_wait=wait)
+    send_func(data, mta, include_wait=wait)
 
 
 def emailing_cmd(args=args):
