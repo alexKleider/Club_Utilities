@@ -93,7 +93,7 @@ Options:
             since old methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Ensure correct alignment of text with envelope windows
-            when printing letters. [default: peter]
+            when printing letters. [default: peter_e10]
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
@@ -319,13 +319,9 @@ def confirm_file_present_and_up2date(file_name):
     if not os.path.exists(file_name):
         print("File '{}' expected but not found.".format(file_name))
         sys.exit()
-    response = input("Is file '{}' present and up to date? "
-                     .format(file_name))
-    if response and response[0] in "Yy":
-        return True
-    else:
-        print("Update the file before rerunning utility.")
-        sys.exit()
+    helpers.verify("Is file '{}' up to date? "
+                     .format(file_name),
+                   "Update the file before rerunning utility.")
 
 
 def output(data, destination=Club.STDOUT, announce_write=True):
@@ -717,7 +713,7 @@ def report_cmd(args=args):
         ['',
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
-"for presentation (mossibly by committee member Peter Gleckler) on",
+"for presentation (possibly by committee member Peter Gleckler) on",
          "{} (or next board meeting, which ever comes first.)"
          .format(
              helpers.next_first_friday(exclude=True)),
@@ -979,6 +975,8 @@ def prepare4mailing(club):
             club.ccs = set(club.ccs + cced)  # remove duplicates
     club.json_data = []
     club.lpr = content.printers[args["-p"]]
+    helpers.verify("Printer is set to <{}>. Continue? "
+            .format(args['-p']))
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
                                                   club.lpr)
@@ -1092,13 +1090,11 @@ def archive_thanks_cmd(args=args):
     # check existence of club.thank_file and club.thank_archive
     # files..  and offer to create the latter if need be.
     if not os.path.exists(club.thank_archive):
-        response = input(
+        helpers.verify(
                 "Expected file '{}' not found. Create one(y/n)?"
-                .format(club.thank_archive))
-        if not (response and response[0] in 'yY'):
-            print("Aborting for want of a required file: {}"
+                .format(club.thank_archive),
+                report="Aborting for want of a required file: {}"
                     .format(club.thank_archive))
-            sys.exit()
         with open(club.thank_archive, 'w') as stream:
             writer = csv.DictWriter(stream,
                         fieldnames=club.DB_FIELDNAMES,
@@ -1131,14 +1127,11 @@ def ck_lesssecureapps_setting():
     If using gmail the account security setting must be lowered:
     https://myaccount.google.com/lesssecureapps
     """
-    if args['--mta'].endswith('g'):
-        print(             # Check lesssecureapps setting:
-            'Has "https://myaccount.google.com/lesssecureapps" been set')
-        response = input(
-            '.. and have you respoinded affirmatively to the warning? ')
-        if ((not response) or not (response[0] in 'Yy')):
-            print("Emailing won't work until that's done.")
-            sys.exit()
+    if args['--mta'].endswith('g'):  # Check lesssecureapps setting:
+        helpers.verify(
+        '''Has "https://myaccount.google.com/lesssecureapps" been set\n
+... and have you respoinded affirmatively to the warning? ''',
+            "Emailing won't work until that's done.")
 
 
 def send_emails_cmd(args=args):

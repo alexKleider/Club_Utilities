@@ -36,6 +36,21 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
+def verify(notice, report=None):
+    """
+    Print notice and call sys.exit() if response does not begin with
+    'y' or 'Y'.
+    If report is set, it is printed before sys.exit() is called.
+    Returns True if sys.exit() is not called.
+    """
+    response = input(notice)
+    if not (response and response[0] in 'yY'):
+        if report:
+            print(report)
+        sys.exit()
+    else: return True
+
+
 def check_before_deletion(file_names):
     """
     Parameter <file_names> may be one name or a sequence of names.
@@ -462,69 +477,6 @@ def show_dict(d, extra_line=True):
     return lines
 
 
-couldberedacted = '''
-def compare_dicts(dict1, dict2,
-                  specified_value=None):
-    """
-    Compares two dictionaries and returns any instances in which a key
-    in one yields a value different from the same key in the other, or
-    a key in the first is not present in the second.
-    Can optionally provide for a listing of all dict1 keys that have a
-    <specified_value> but such keys are NOT checked against dict2.
-    """
-    ret = {"no_entry": [],  # keys appearing in dict1 but not dict2
-           "value_mismatch": [],  # same key, differing values
-          }
-    if specified_value:
-        ret[specified_value] = []
-    for key1 in dict1:
-        val1 = dict1[key1]
-        if specified_value and val1==specified_value:
-            ret[specified_value].append(key1)
-        else:
-            try:
-                val2 = dict2[key1]
-            except KeyError:
-                ret["no_entry"].append("{}: {}"
-                           .format(key1, val1))
-            else:
-                if val1 != val2:
-                    ret.append["value_mismatch"](
-                        "{}: {} != {}"
-                        .format(key1, val1, val2))
-    return ret
-'''
-
-redacted = '''
-def display_mismatches(mismatches,
-                       message=None,
-                       display_special=False):
-    ret = []
-    mismatch = False
-    if mismatches["no_entry"]:
-        mismatch = True
-        ret.append(
-            "The following key/value pairs are lacking:")
-        for line in mismatches["no_entry"]:
-            ret.append('\t{}'.format(line))
-    if mismatches["value_mismatch"]:
-        mismatch = True
-        ret.append(
-            "Inconsistemt values for following keys:")
-        for line in m_gmail_mismatchs["value_mismatch"]:
-            ret.append('\t{}'.format(line))
-    if (len(mismatches) == 3   # there was a "specified_value"
-        and display_special):  # and it is to be displayed...
-        specified_value = (set(mismatches.keys()) -
-                           {"no_entry", "value_mismatch"}).pop()
-        if message:
-            ret.append(message)
-        else:
-            ret.append("Keys with value '{}':".format(specified_value))
-        for line in mismatches[specified_value]:
-            ret.append('\t{}'.format(line))
-    return ret
-'''
 
 def show_json_data(json_data, underlinechar=''):
     """

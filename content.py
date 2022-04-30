@@ -933,7 +933,7 @@ content_types = dict(  # which_letter
 
 printers = dict(
     # tuples in the case of envelope windows.
-    X6505_e1=dict(  # Smaller envelope.
+    X6505_e9=dict(  # Smaller envelope.  #9: 3-7/8 x 8-7/8"
         # e1: envelope with distances (in mm) from top to
         # top of top window       21
         # bottom of top window    43
@@ -946,7 +946,7 @@ printers = dict(
         to=(5, 30),  # recipient window 12..16
         re=2,  # lines below bottom window
         ),
-    X6505_e2=dict(  # Larger envelope.
+    X6505_e10=dict(  # Larger envelope. #10: 4-1/8 x 9-1/2"
         indent=5,
         top=2,  # blank lines at top  1 ..2
         frm=(4, 25),  # return window 3..6
@@ -954,7 +954,7 @@ printers = dict(
         to=(5, 30),  # recipient window 12..16
         re=2,  # lines below bottom window
         ),
-    HL2170=dict(  # large envelopes, Cavin Rd usb printer
+    HL2170_e10=dict(  # large envelopes, Cavin Rd usb printer
         indent=3,
         top=1,  # blank lines at top
         frm=(5, 25),  # return window
@@ -962,7 +962,7 @@ printers = dict(
         to=(7, 29),  # recipient window
         re=3,  # below windows => fold
         ),
-    peter=dict(
+    peter_e10=dict(  # Larger envelope. #10: 4-1/8 x 9-1/2"
         indent=5,
         top=4,  # blank lines at top
         frm=(4, 25),  # return window
