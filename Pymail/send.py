@@ -40,7 +40,10 @@ import random
 try:
     import config
 except ModuleNotFoundError:
-    import Pymail.config as config
+    try:
+        import Pymail.config as config
+    except ModuleNotFoundError:
+        from code import config
 
 MIN_TIME_TO_SLEEP = 1   #} Seconds between
 MAX_TIME_TO_SLEEP = 5   #} email postings.
