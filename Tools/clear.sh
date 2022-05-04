@@ -8,20 +8,20 @@
 # This script is useful when testing and contents 
 # of Data/MailingDir can be discarded.
 
-if [ -f Data/emails.json ]
+if [ -f /home/alex/Git/Club/Data/emails.json ]
     then
         echo "Removing Data/emails.json"
-        rm Data/emails.json
+        rm /home/alex/Git/Club/Data/emails.json
     else
         echo "emails.json not found."
 fi
 
-if [ -d Data/MailingDir ]
+if [ -d /home/alex/Git/Club/Data/MailingDir ]
     then
         echo "Removing Data/MailDir"
-        rm -rf Data/MailingDir
+        rm -rf /home/alex/Git/Club/Data/MailingDir
     else
-        echo "Data/MailingDir not found."
+        echo "/home/alex/Git/Club/Data/MailingDir not found."
 fi
 
 

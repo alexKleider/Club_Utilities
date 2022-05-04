@@ -1,6 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# File: Pymail/send.py
+# File: send.py
+
+## Two hard links:
+# this file is used by the ~/Git/Club/Utils code base where it is found
+# as Pymail/send.py
+# and by the ~/Git/Lib code base where it is found as code/send.py.
 
 """
 Used to send an email using Python modules only.

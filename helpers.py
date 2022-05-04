@@ -3,8 +3,10 @@
 # File: helpers.py
 
 """
-Helper functions developed for the Club/Utils repo.
-This file also appears in ~/PyLib (by means of a hard link.)
+NOTE: three hard links!!
+Helper functions developed for the ~/Git/Club/Utils repo.
+Also used by the ~/Git/Lib repo
+and the ~/PyLib code base
 """
 
 import os
