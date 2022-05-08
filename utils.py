@@ -957,29 +957,34 @@ def show_mailing_categories_cmd(args=args):
 
 def prepare4mailing(club):
     """
-    Set up configuration in an instance of rbc.Club.
-    ## Need to implement sending of copies to       ##
-    ## sponsors if "-cc sponsors" option is chosen. ##
+    Set up configuration in an instance of rbc.Club
+    including club.cc_sponsors boolean.
+    club.which['cc'] is left as a set.
     """
     # give user opportunity to abort if files are still present:
     helpers.check_before_deletion((club.json_file, club.mail_dir))
     if os.path.exists(club.mail_dir): shutil.rmtree(club.mail_dir)
     os.mkdir(club.mail_dir)
+    club.cc_sponsors = False
     if not args['--which']:
         club.which = content.content_types["thank"]
     else:
         club.which = content.content_types[args["--which"]]
         if "cc" in club.which.keys():
-            (cc_sponsors, cced) = helpers.clarify_cc(club.which['cc'])
-            club.cc_sponsors = club.cc_sponsors or cc_sponsors
-            club.ccs = set(club.ccs + cced)  # remove duplicates
+            cc = set(club.which['cc'].split(','))
+            if 'sponsors' in cc:
+                club.which['cc'] = cc - {'sponsors'}
+                club.cc_sponsors = True
     club.json_data = []
     club.lpr = content.printers[args["-p"]]
+    club.applicant_set = member.APPLICANT_SET
     helpers.verify("Printer is set to <{}>. Continue? "
             .format(args['-p']))
     club.email = content.prepare_email_template(club.which)
     club.letter = content.prepare_letter_template(club.which,
                                                   club.lpr)
+    if club.cc_sponsors:
+        data.populate_sponsor_data(club)
 
 
 def prepare_mailing_cmd(args=args):

@@ -316,7 +316,7 @@ if not all of the privileges of membership until a vacancy
 occurs at which time I will send you a request for payment of
 dues and once paid you will become a full fledged member!
 
-You're almost there; as good as for all intense and purposes!""",
+You're almost there; "as good as" for all intents and purposes!""",
 
     request_delayed_inductee_payment="""
 It's my pleasure to report that a vacancy has come up and so

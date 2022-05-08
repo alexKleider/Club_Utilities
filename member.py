@@ -1112,8 +1112,6 @@ def std_mailing_func(record, club):
     """
     if club.which["test"](record):
         record["subject"] = club.which["subject"]
-        if club.cc_sponsors:
-            pass
         if club.owing_only:
             if record['owing']:
                 q_mailing(record, club)
