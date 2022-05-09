@@ -714,7 +714,7 @@ def show_by_status(by_status,
             helpers.add_header2list(STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
             for line in by_status[status]:
-                ret.append(line)
+                ret.append(helpers.tofro_first_last(line))
                 if hasattr(club, 'applicant_data'):
                     key = (' '.join(line.split()[:2]))
                     if key in club.applicant_data_keys:
