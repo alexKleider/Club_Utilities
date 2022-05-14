@@ -241,10 +241,11 @@ import subprocess
 import logging
 from docopt import docopt
 import sys_globals as glbs
-import member
-import helpers
 import content
 import data
+import helpers
+import member
+from member import fstrings
 import Pymail.send
 import Bashmail.send
 from rbc import Club
@@ -646,18 +647,21 @@ def show_stati(club, include_headers=True):
 
 
 def report_cmd(args=args):
+    import member  # unclear why this is needed!!
     print("Preparing Membership Report ...")
-    club = Club(args=args)
+    club = Club(args)
     data.populate_sponsor_data(club)  # club attributes populated:
                 # sponsor_set, sponsor_emails, sponsors_by_applicant,
-    data.populate_applicant_data(club)
-    club.format = member.fstrings[
+    data.populate_applicant_data(club) 
+    club.format = fstrings[
             'first_last_w_all_staggered']
     club.for_web = False
     err_code = member.traverse_records(
+            # add demographic listings for those with ba or be status.
         club.infile,
         [member.add2lists,
          member.add2ms_by_status,
+         member.add2bad_demographics,
         ],
         club)
     report = []
@@ -689,11 +693,21 @@ def report_cmd(args=args):
             report.append(name)
 
     misc_stati = member.show_by_status(
-        club.ms_by_status, stati2show="m|w|be|ba".split('|'))
+        club.ms_by_status, stati2show="m|w".split('|'))
     if misc_stati:
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
         report.extend(misc_stati)
+    if club.ba_stati:
+        helpers.add_header2list(member.STATUS_KEY_VALUES['ba'],
+                report, underline_char='-')
+        for member in club.ba_stati.keys():
+            report.append(club.ba_stati[member] + '\n')
+    if club.be_stati:
+        helpers.add_header2list(member.STATUS_KEY_VALUES['be'],
+                report, underline_char='-')
+        for member in club.be_stati.keys():
+            report.append(club.be_stati[member] + '\n')
 
     try:
         with open(club.ADDENDUM2REPORT_FILE, 'r') as fobj:

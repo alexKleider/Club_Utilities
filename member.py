@@ -469,6 +469,16 @@ def add2ms_by_status(record, club):
             club.ms_by_status[status].append(
                     record(fstrings['last_first']))
 
+def add2bad_demographics(record, club):
+    record = helpers.Rec(record)
+    stati = get_status_set(record)
+    if 'ba' in stati:
+        club.ba_stati[record(fstrings['last_first'])] = (
+            record(fstrings['first_last_w_all_staggered']))
+    if 'be' in stati:
+        club.be_stati[record(fstrings['last_first'])] = (
+            record(fstrings['first_last_w_all_staggered']))
+
 
 def add2demographics(record, club):
     """
@@ -1245,6 +1255,10 @@ prerequisites = {   # collectors needed by the
         ],
     add2demographics: [
         'club.demographics = {}',
+        ],
+    add2bad_demographics: [
+        'club.ba_stati = {}',
+        'club.be_stati = {}',
         ],
     add2fee_data: [
         'club.fee_category_by_m = {}',
