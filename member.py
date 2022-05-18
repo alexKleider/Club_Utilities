@@ -577,9 +577,15 @@ def apply_credit2statement(statement, credit):
     """
     credit is used to modify statement- both are dicts
     """
-    for key in credit.keys():
+    for key in set(credit.keys()) - {'extra'}:
         try:
             statement[key] -= credit[key]
+        except TypeError:
+            print('statement key/value is {}: {}'
+                    .format(key, statement[key]))
+            print('credit key/value is {}: {}'
+                    .format(key, credit[key]))
+            raise
         except KeyError:
             print('credit key is "{}"'.format(key))
             raise
@@ -591,7 +597,8 @@ def apply_credit2record(statement, record):
     money keys include "total"
     <record> is modified accordingly (ignoring the 'total' key
     """
-    for key in [key for key in statement.keys() if key != 'total']:
+    for key in [key for key in statement.keys()
+            if not key in {'total', 'extra'}]:
         record[key] = int(record[key]) - statement[key]
 
 
