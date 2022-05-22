@@ -939,20 +939,20 @@ printers = dict(
         # bottom of top window    43
         # top of lower window     59
         # bottom of lower window  84
-        indent=7,
+        indent=5,
         top=4,  # blank lines at top  1 ..2
         frm=(4, 25),  # return window 3..6
         date=5,  # lines between windows 7..11
         to=(5, 30),  # recipient window 12..16
-        re=2,  # lines below bottom window
+        re=3,  # lines below bottom window
         ),
     X6505_e10=dict(  # Larger envelope. #10: 4-1/8 x 9-1/2"
-        indent=5,
-        top=2,  # blank lines at top  1 ..2
-        frm=(4, 25),  # return window 3..6
+        indent=4,
+        top=3,  # blank lines at top  1 ..2
+        frm=(5, 25),  # return window 3..6
         date=5,  # lines between windows 7..11
-        to=(5, 30),  # recipient window 12..16
-        re=2,  # lines below bottom window
+        to=(6, 30),  # recipient window 12..16
+        re=4,  # lines below bottom window
         ),
     HL2170_e10=dict(  # large envelopes, Cavin Rd usb printer
         indent=3,
