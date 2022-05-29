@@ -24,6 +24,10 @@ Options:
   -m --mail_only  Only archive mail, not rest of data.
   -O --Options  Show options and exit. Used for debugging.
   -o --options  Show options then continue.  ..ditto..
+
+Unless -m or -a are set, data +/- mail (if it exists) are backed up.
+If -m is set, only mail is backed up.
+If -a is set, all (data, stable data and mail) are backed up.
 """
 
 import os
@@ -88,41 +92,42 @@ def archive(sources,
                 os.path.split(source)[1])
 #       print("dest: '{}'".format(dest))
         if not quiet:
-            print("source & dest are {} & {}".format(source, dest))
-            response = input("Archive '{}'? (y/n) ".format(source))
+            response = "Move '{}' into '{}'? (y/n) ".format(source, dest)
             if not (response and response[0] in {'y', 'Y'}):
                 ret = False
+                print("... failed to move '{}' into '{}'!"
+                        .format(source, dest))
                 continue
         if os.path.isfile(source):
             shutil.copy2(source, dest)
             copied = True
             if not quiet:
-                print("   Copied file '{}' into '{}'"
+                print("... copied file '{}' into '{}'"
                         .format(source, dest))
         elif os.path.isdir(source):
             shutil.copytree(source, dest)
             copied = True
             if not quiet:
-                print("   Copied directory '{}' into '{}'"
+                print("... copied directory '{}' into '{}'"
                         .format(source, dest))
         else:
             if not quiet:
                 ret = False
-                print("   No file or directory named '{}' exists."
+                print("... no file or directory named '{}' exists."
                   .format(source))
     if copied:  # something has been copied over so archive
         with tarfile.open(tar_file, "w:gz") as tar:
             tar.add(targz_base_name)
 #       print("{} exists? {}".format(tar_file, os.path.isfile(tar_file)))
         if not quiet:
-            print("Moving {} info {}..."
+            print("Moving {} into {}..."
                 .format(tar_file, destination_directory))
         move_res = shutil.move(tar_file, destination_directory)
 #       if not quiet:
 #           print("shutil.move({}, {}) returned {}"
 #                   .format(tar_file, destination_directory, move_res))
     if not quiet:
-        print("Removing dirctory tree {}.".format(targz_base_name))
+        print("Removing temporary dirctory tree {}.".format(targz_base_name))
     shutil.rmtree(targz_base_name)
     return ret
 
@@ -134,7 +139,8 @@ def archive_mail(sources,
     targets = [source for source in sources if (
         os.path.isfile(source) or (
         os.path.isdir(source) and os.listdir(source)))]
-    print("<targets> set to '{}'".format(targets))
+    if not args('--quiet'):
+        print("<targets> set to '{}'".format(targets))
     if targets:
         if archive(targets, destination_directory):
             ans = input(

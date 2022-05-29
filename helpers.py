@@ -38,6 +38,12 @@ FORMFEED = chr(ord('L') - 64)  # '\x0c'
 CURRENT_CENTURY = '20'
 
 
+def get_os_release():
+    with open('/etc/os-release', 'r') as info:
+        assignments = info.read()
+    return assignments.split('\n')[0].split('=')[1][1:-1]
+
+
 def verify(notice, report=None):
     """
     Print notice and call sys.exit() if response does not begin with
@@ -853,9 +859,10 @@ def test_show_json_data():
 
 
 if __name__ == "__main__":
+    print(get_os_release())
     print("Module helpers compiles without error.")
     main()
-    test_show_json_data()
+#   test_show_json_data()
     sys.exit()
 else:
     pass

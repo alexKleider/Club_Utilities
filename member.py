@@ -695,13 +695,16 @@ def credit_payment_func(record, club):
     return record
 
 
-def modify_data(csv_in_file_name, func, club):
+def modify_data(csv_in_file_name, func, club=None):
     # Rename?: 'traverse_csv', 'modified_data'
-    # Note: 'traverse_records' collects data, this 
-    # does something fundamentally different.
+    # Note: 'traverse_records' collects data, this
+    # returns (a possibly modified version of) each record
+    # in the csv file.
     """
     A generator: reads a csv file and for each entry, yields a record
     modified by func (or, if func==None, the record unchanged.)
+    <club> is provided to be used as a parameter of <func> (if
+    additional data is needed.)
     """
     with open(csv_in_file_name, 'r', newline='') as file_obj:
         reader = csv.DictReader(file_obj)

@@ -58,9 +58,9 @@ Options:
                     to send emails.  [default: python]
   --exec  Within 'show' cmnd: include listing of executive commitee.
   -F <function>  Name of function to apply. (new_db command)
-        Implemented so far: set_kayak_fee
+        Implemented so far: member.set_kayak_fee
   -G <data_gathering_function>  Function to gather required data.
-        Implemented so far: populate_kayak_fees
+        Implemented so far: data.populate_kayak_fees
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -I <included>  Specify what's to be included by specifying the key
@@ -1272,9 +1272,10 @@ def new_db_cmd(args=args):
     before running the -F <function> which modifies data into a new db
     specified by -o <new_membership_file>
     # So far have implemented -F & -G pairs as follows:
-    #     set_kayak_fee   populate_kayak_fees
-    # Note: <-F> functions are defined in member.py
-    #       <-G> ("get" or "gather") functions defined in data.py.
+    #     set_kayak_fee                       populate_kayak_fees
+    # Note: <-F> functions are defined in member.func_dict
+    #       <-G> ("get" or "gather") functions:
+                        defined in data.func_dict.
     # May use this in place of restore_fees.
     """
     club = Club(args)
@@ -1336,6 +1337,7 @@ def mutt_send(recipient, subject, body, attachments=None):
 if __name__ == "__main__":
     print("Architecture: {}  Platform: {}".
             format(platform.architecture(), sys.platform))
+    print(helpers.get_os_release())
     using_curses = False
     confirm = True  # check google contacts is up to date
 
