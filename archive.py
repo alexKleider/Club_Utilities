@@ -92,7 +92,8 @@ def archive(sources,
                 os.path.split(source)[1])
 #       print("dest: '{}'".format(dest))
         if not quiet:
-            response = "Move '{}' into '{}'? (y/n) ".format(source, dest)
+            response = input(
+                "Move '{}' into '{}'? (y/n) ".format(source, dest))
             if not (response and response[0] in {'y', 'Y'}):
                 ret = False
                 print("... failed to move '{}' into '{}'!"
@@ -139,7 +140,7 @@ def archive_mail(sources,
     targets = [source for source in sources if (
         os.path.isfile(source) or (
         os.path.isdir(source) and os.listdir(source)))]
-    if not args('--quiet'):
+    if not args['--quiet']:
         print("<targets> set to '{}'".format(targets))
     if targets:
         if archive(targets, destination_directory):
@@ -164,6 +165,7 @@ def archive_mail(sources,
     else:
         print("No mailing <targets found to archive.")
         return False
+    return '** archive_mail() => "success"'
 
 
 def loose_trailing_empty_strings(list_of_strings):

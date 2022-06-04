@@ -31,7 +31,7 @@ STATUS_KEY_VALUES = {
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, needs to be notified",  # temporary until letter
     "ad": "Inducted & notified, membership pending payment of dues",
-    "aw": "Inducted, awaiting vacancy", #7 > #8
+    "aw": "Inducted & notified, awaiting vacancy", #7 > #8
     "am": "New Member",  # temporary until congratulatory letter.
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
