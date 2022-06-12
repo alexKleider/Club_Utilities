@@ -59,6 +59,19 @@ def verify(notice, report=None):
     else: return True
 
 
+def equal_float(a, b):
+    """
+    compares floats for equality to limit of machine's accuracy
+    # from Mark Summerfield
+    """
+    return abs(a -b) <= sys.float_info.epsilon
+
+
+def get_attributes(r):
+    return sorted([attribute for attribute in dir(r)
+            if not attribute.startswith('__')])
+
+
 def check_before_deletion(file_names):
     """
     Parameter <file_names> may be one name or a sequence of names.

@@ -170,6 +170,7 @@ def applicant_data_line2record(line):
         "inducted", "dues_paid",  #} hasn't happened.
         "sponsor1", "sponsor2",   # empty strings if not available
         )
+    Note: terminates program if no dates are provided.
     """
     ret = {}
     for key in Club.APPLICANT_DATA_FIELD_NAMES:
@@ -235,8 +236,7 @@ def get_dict(source_file, sep=":", maxsplit=1):
     Returned is a dict keyed by 'last,first' name and value: the
     string to right of <sep> (stripped of leading &/or trailing
     spaces. (It could be an empty string!)
-    # For applicants.txt, could set sep='|' (maxsplit=1)
-    # But: applicant data is populated one line at a time so this
+    # Applicant data is populated one line at a time so this
     # function is not useful there
     """
     ret = {}
@@ -247,24 +247,13 @@ def get_dict(source_file, sep=":", maxsplit=1):
             parts = line.split(sep=sep, maxsplit=maxsplit)
             if len(parts) != 2: assert False
             names = parts[0].split()
-            name = '{}, {}'.format(names[1], names[0])
+            try:
+                name = '{}, {}'.format(names[1], names[0])
+            except IndexError:
+                _ = input("IndexError re line: '{}'"
+                        .format(line))
             ret[name] = parts[1].strip()
     return ret
-
-
-def parse_kayak_data(raw_dict):
-    """
-    Modifies values in <raw_dict> as appropriate
-    for the KAYAK.SPoT file.
-    ## One time use for when fee has already been paid
-    """
-    for key in raw_dict.keys():
-        value = raw_dict[key].split()
-        l = len(value)
-        if l > 2 or l < 1: assert False
-        if value[-1] == '*': amt = 0
-        else: amt = int(value[0])
-        raw_dict[key] = amt
 
 
 def populate_extra_fees(club):
@@ -296,22 +285,6 @@ def populate_extra_fees(club):
             by_category[cat][name] = int(amt)
     club.by_category = by_category
     club.by_name = by_name
-
-
-def populate_kayak_fees(club):
-    """
-    NOTE: one time use; should be REDACTed!!!
-    Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
-        keys- last/first name
-        value- amount to be paid
-    Lines terminating in an asterix have already paid
-    and 'amount to be paid' for them should be 0.
-    Must be referenced within func_dict.
-    # Note: non kayak storage members should have a null in the
-    # 'kayak' field of the main db.
-    Format of each line in KAYAK_SPoT: "First Last:  AMT  [*]"
-    """
-    club.kayak_fees = parse_kayak_data(get_dict(club.KAYAk_SPoT))
 
 
 def add_sponsors(rec, sponsors):
@@ -606,8 +579,8 @@ def ck_data(club,
             if fee_details:
                 not_matching_notice = "Fee amounts don't match"
                 # traverse keys and specify which amounts don't match
-                club_keys = sorted([key for key in club_keys])
-                for key in club_keys:
+                sorted_club_keys = sorted([key for key in club_keys])
+                for key in sorted_club_keys:
                     if (club.by_name[key] !=
                             club.fee_category_by_m[key]):
                         varying_amounts.append('{}: {} != {}'.format(
@@ -620,12 +593,17 @@ def ck_data(club,
                     "Fee amounts don't match (try -d option for details)")
         else:
             print("club_keys != file_keys")
-            print(sorted(club_keys))
-            print(sorted(file_keys))
+            club_set = set(club_keys)
+            file_set = set(file_keys)
+            print(club_keys - file_keys)
+            print(file_keys - club_keys)
+#           print(sorted(club_keys))
+#           print(sorted(file_keys))
             ret.append("\nFees problem (by name):")
             ret.append("extra_fees_info[club.NAME_KEY]:")
             sorted_keys = sorted(
                 [key for key in extra_fees_info[club.NAME_KEY].keys()])
+            #  extra_fees_info not defined????
             for key in sorted_keys:
                 ret.append("{}: {}".format(key, extra_fees_info[club.NAME_KEY][key]))
 #           ret.append(repr(fees_by_name))
@@ -734,6 +712,37 @@ def list_mooring_data(extra_fees_spot):
     return sorted(
         ["{0} - {1}".format(*datum) for datum in mooring_data])
 '''
+
+
+def parse_kayak_data(raw_dict):
+    """
+    Modifies values in <raw_dict> as appropriate
+    for the KAYAK.SPoT file.
+    ## One time use for when fee has already been paid
+    """
+    for key in raw_dict.keys():
+        value = raw_dict[key].split()
+        l = len(value)
+        if l > 2 or l < 1: assert False
+        if value[-1] == '*': amt = 0
+        else: amt = int(value[0])
+        raw_dict[key] = amt
+
+
+def populate_kayak_fees(club):
+    """
+    NOTE: one time use; should be REDACTed!!!
+    Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
+        keys- last/first name
+        value- amount to be paid
+    Lines terminating in an asterix have already paid
+    and 'amount to be paid' for them should be 0.
+    Must be referenced within func_dict.
+    # Note: non kayak storage members should have a null in the
+    # 'kayak' field of the main db.
+    Format of each line in KAYAK_SPoT: "First Last:  AMT  [*]"
+    """
+    club.kayak_fees = parse_kayak_data(get_dict(club.KAYAk_SPoT))
 
 func_dict = {
         "populate_kayak_fees": populate_kayak_fees,

@@ -1,4 +1,4 @@
-#!/usr/bin/env python4
+#!/usr/bin/env python3
 
 # File: angie.py
 
@@ -9,8 +9,11 @@ My keys:
 first,last,phone,address,town,state,postal_code,country,email,dues,dock,kayak,mooring,status
 """
 
-INFILE = '/home/alex/Git/Club/Data/fromAngie.csv'
 INFILE = 'loose1st.csv'
+INFILE = '/home/alex/Git/Club/Data/fromAngie.csv'
+INFILE = '/home/alex/Git/Club/Data/angieslist.csv'
+FIRST = 'First'
+FIRST = '\ufeffFirst'
 
 import csv
 
@@ -25,14 +28,14 @@ with open(INFILE, 'r',newline='') as stream:
     for record in reader:
 #       print(record)
         ret_rec = {}  # Note       vvvvvv   special char!
-        ret_rec['first'] = record['\ufeffFirst']
+        ret_rec['first'] = record[FIRST]
         ret_rec['last'] = record['Last']
         ret_rec['dues'] = record['Membership']
         ret_rec['dock'] = record['Dock Fees']
         ret_rec['application'] = record['App  Fee']
         ret_rec['kayak'] = record['Kayak Storage']
         ret_rec['mooring'] = record['Mooring Fee']
-        key = "{first} {last}: ".format(**ret_rec)
+        key = "{first} {last}".format(**ret_rec)
         for money_key in money_keys:
             if ret_rec[money_key]:
                 try:
@@ -46,16 +49,33 @@ with open(INFILE, 'r',newline='') as stream:
 res = []
 for name_key in collector.keys():
     entry = ''
+    total_paid = 0
     for money_key in money_keys:
         val = collector[name_key][money_key]
         if val:
+            total_paid += int(val)
             entry = (entry + ' ' + '{}: {}'
                     .format(money_key, val))
     if entry:
-        res.append(name_key + entry)
+        text = ("{:<24}{:>3d}".format(name_key, total_paid)
+                + "  (" + entry + ")")
+        shorter_text = text.replace("( dues: 100", '(')
+        if shorter_text.endswith('  ()'):
+#           print("found ' ( )'")
+            shorter_text = shorter_text[:-4]
+#       shorter_text = text
+#       if shorter_text != text: print("no change")
+        res.append(shorter_text)
 
-for key in errors.keys():
-    print("{}  {}".format(key,errors[key]))
+error_keys = errors.keys()
+if error_keys:
+    print("\nERRORS")
+    print("\n======")
+    for key in error_keys:
+        print("{}  {}".format(key,errors[key]))
+if res:
+    print("\nPAYMENTS")
+    print("\n========")
 for item in res:
     print(item)
 
