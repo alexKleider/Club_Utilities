@@ -3,10 +3,24 @@
 # File: angie.py
 
 """
+The csv file Angie sends me must be subjected to the 'fromdos'
+command, then have the first line deleted. After that it becomes
+a csv file that this utility can process.
+Lines that don't make proper sense (i.e. text in what should be
+numeric fields) are printed first followed by a listing of
+payments she is reporting.
+All output is printed to the screen so typical usage would be
+$ ./angie.py > 2check
+and then study '2check' and move new parts to $CLUB/Data/receipts*
+"""
+
+notes = """
 Angie's keys: 
-First,Last,Deposit,Check Amount,Membership,Dock Fees,Mooring Fee,App  Fee,Kayak Storage,Derby Donation,Other,Notes
+\ufeffFirst,Last,Deposit,Check Amount,Membership,Dock Fees,Mooring Fee,App  Fee,Kayak Storage,Derby Donation,Other,Notes
 My keys:
 first,last,phone,address,town,state,postal_code,country,email,dues,dock,kayak,mooring,status
+The '\ufeff' declares 'endian' and I haven't figured out how to get
+rid of it!  I've just accepted it as part of the key name.
 """
 
 INFILE = 'loose1st.csv'

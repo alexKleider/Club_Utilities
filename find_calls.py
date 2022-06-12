@@ -19,12 +19,20 @@ EXPR = r"def (\w+)\("
 PAT = re.compile(EXPR)
 
 # first get our list of source code files:
-MODULE_NAMES = ("content",
+MODULE_NAMES = ("archive",
+                "content",
                 "data",
+                "docoptparser.py",
+                "dot_files.py",
+                "find_calls.py",
                 "helpers",
-                "interface",
+                "interface.py",
+                "json_as_txt.py",
                 "member",
+                "parse_sponsors.py",
                 "rbc",
+                "restore.py",
+                "setup.py",
                 "sys_globals",
                 "utils",
                 )

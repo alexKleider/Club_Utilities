@@ -11,11 +11,19 @@ each time a system is set up.
 This utility provides menu driven functionality to:
 1. copy these files from a working system into a directory that
 can then be copied (using scp) to the new system.
-2. save an original copy of the .msmtprc file on the new system
+2. save an original copy of the .msmtprc[1] file on the new system
 preventing its loss when overwritten. Typically invoked when the
 directory created by the first option has been moved to the new
 installation but before it's files are copied into the user's
 home directory.
+
+Suggested work flow:
+    Keep a copy of an encrypted version of the dotfiles.tar.gz file
+(i.e. dotfiles.tar.gz.gpg) in my personal google drive account.
+
+
+[1] Installation of msmtp may not create a .msmtprc file
+any longer so this may be redundant.
 """
 
 import os
