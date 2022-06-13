@@ -10,6 +10,10 @@ Both return dicts:
     the other keyed by option providing option descriptions.
 """
 
+import os
+
+
+FILENAME = os.path.expandvars("$CLUBU/utils.py")
 
 def parse4opts_by_cmd(filename):
     """
@@ -100,13 +104,18 @@ def parse4opt_descriptors(filename):
     return ret
 
 if __name__ == "__main__":
-    filename = "utils.py"
-    cmd_opts = parse4opts_by_cmd(filename)
-    opt_descriptors = parse4opt_descriptors(filename)
+    cmd_opts = parse4opts_by_cmd(FILENAME)
+    opt_descriptors = parse4opt_descriptors(FILENAME)
 
+    options_header = "Commandline Options"
+    descriptors_header = "Option Descriptions"
+    print(options_header)
+    print("=" * len(options_header))
     for key in sorted(cmd_opts.keys()):
         print("{}: {}".format(key, cmd_opts[key]))
     print()
+    print(descriptors_header)
+    print("=" * len(descriptors_header))
     for key in sorted(opt_descriptors.keys()):
         print("{}: {}".format(key,opt_descriptors[key][0]))
         for line in opt_descriptors[key][1:]:

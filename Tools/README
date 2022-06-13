@@ -1,5 +1,0 @@
-The scripts in this (<Tools>) directory are out of date in that file
-locations have changed. The hope is to provide the same functionality
-using <archive.py> which would collect its arguments (which files to
-archive) from rbc.py (rbc.Club.)
-

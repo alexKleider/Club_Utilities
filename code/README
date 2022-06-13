@@ -1,0 +1,9 @@
+# File: code/README
+
+As I move my library into this "code" directory
+each file importing from it will (probably) need the following:
+
+from code import  <listing of files required from code>
+
+Not sure under what circumstances I need:
+sys.path.insert(0, os.path.split(sys.path[0])[0])

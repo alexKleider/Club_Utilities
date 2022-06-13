@@ -5,6 +5,7 @@
 """
 A work in progress: looking for a generalized way to parse files such
 as: applicants.txt, sponsors.txt, etc
+Probably not worth the effort!!
 """
 
 
@@ -15,9 +16,9 @@ def get_name_key(name):
     Returns a string in the format <last,first>.
     Returns None if fails.
     """
-    name = name.strip().split()
+    names = name.strip().split()
     if not (len(names) == 2): return
-    return '{1},{2}'.format(*names)
+    return '{1},{0}'.format(*names)
 
 
 def parse_sponsors(line):
@@ -28,14 +29,17 @@ def parse_sponsors(line):
 
 def test_get_name_key(name_test_data):
     for item in name_test_data:
-        if not get_name
+        if get_name_key(item[0]) != item[1]:
+            print("Error: '{}' != '{}'".format(*item))
+
 
  
 test_data = (
         ('Kent Khtikian', 'Khtikian,Kent'),
         (' Kent Khtikian ','Khtikian,Kent'),
         (' Kent  Khtikian ','Khtikian,Kent'),
+        (' Kent  Khtikian ',' Khtikian,Kent'),
         )
 
-if __name__ = "__main__":
-    test
+if __name__ == "__main__":
+    test_get_name_key(test_data)

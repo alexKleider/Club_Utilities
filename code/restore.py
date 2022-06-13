@@ -3,6 +3,7 @@
 # File: restore.py
 
 """
+#### !!!!! WARNING  file location changed => code directory!! ####
 Usage:
   $ ./restore.py src 
 
@@ -16,6 +17,12 @@ import os
 import sys
 import shutil
 import tarfile
+# Must first add the parent directory of the
+# currently running script to the system path:
+sys.path.insert(0, os.path.split(sys.path[0])[0])
+# print(sys.path)
+# ... or alternatively set PYTHONPATH to project directory:
+# export PYTHONPATH=/home/alex/Git/Club/Utils
 import rbc
 
 # First part just checks that there is a valid parameter

@@ -36,7 +36,9 @@ errors = {}
 money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
 
 #with open(INFILE, 'r', newline='') as stream:
-with open(INFILE, 'r',newline='') as stream:
+with open(INFILE, 'r',
+#       encoding='utf-16',
+        newline='') as stream:
     reader = csv.DictReader(stream, dialect='excel')
 #   print(reader.fieldnames)
     for record in reader:

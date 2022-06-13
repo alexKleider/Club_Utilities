@@ -26,7 +26,7 @@ import helpers
 # these initial declarations provide a SPoT[1]
 # mainly for use by archive.py via the Club class.
 # [1] Single Point of Light (or "DRY" for Don't Repeat Yourself)
-root_dir = os.path.split(os.getcwd())[0]
+root_dir = os.path.expandvars('$CLUB')
 # Sources:
 data_dir = "Data"
 changing_data = (data_dir, )
