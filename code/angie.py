@@ -10,8 +10,9 @@ Lines that don't make proper sense (i.e. text in what should be
 numeric fields) are printed first followed by a listing of
 payments she is reporting.
 All output is printed to the screen so typical usage would be
-$ ./angie.py > 2check
-and then study '2check' and move new parts to $CLUB/Data/receipts*
+    $ ./code/angie.py [input-file-name]  >  2check
+An optional input file parameter may be used to override the default.
+.. and then study '2check' and move new parts to $CLUB/Data/receipts*
 """
 
 notes = """
@@ -30,13 +31,17 @@ FIRST = 'First'
 FIRST = '\ufeffFirst'
 
 import csv
+import sys
+
+if len(sys.argv) > 1: infile = sys.argv[1]
+else: infile = INFILE
 
 collector = {}
 errors = {}
 money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
 
-#with open(INFILE, 'r', newline='') as stream:
-with open(INFILE, 'r',
+#with open(infile, 'r', newline='') as stream:
+with open(infile, 'r',
 #       encoding='utf-16',
         newline='') as stream:
     reader = csv.DictReader(stream, dialect='excel')

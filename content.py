@@ -318,7 +318,7 @@ dues and once paid you will become a full fledged member!
 
 You're almost there; "as good as" for all intents and purposes!""",
 
-    request_delayed_inductee_payment="""
+    vacancy_open="""
 It's my pleasure to report that a vacancy has come up and so
 you can now become a member.
 
@@ -819,16 +819,16 @@ content_types = dict(  # which_letter
                  else False),
         "e_and_or_p": "one_only",
         },
-    request_delayed_inductee_payment={
+    vacancy_open={
         "subject": "Welcome to the Bolinas Rod & Boat Club",
         "from": authors["membership"],
         "cc": "sponsors",
-        "body": letter_bodies["request_delayed_inductee_payment"],
+        "body": letter_bodies["vacancy_open"],
         "post_scripts": (
             post_scripts["remittance"],
             ),
         "funcs": (member.inductee_payment_f,),
-        "test": (lambda record: True if member.is_waiting(record)
+        "test": (lambda record: True if member.vacancy_open(record)
                  else False),
         "e_and_or_p": "one_only",
         },

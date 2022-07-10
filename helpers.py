@@ -3,10 +3,13 @@
 # File: helpers.py
 
 """
-NOTE: three hard links!!
-Helper functions developed for the ~/Git/Club/Utils repo.
-Also used by the ~/Git/Lib repo
-and the ~/PyLib code base
+Helper functions developed for the Club/Utils repo.
+This file appears in
+    ~/Git/PyLib
+    ~/Git/Club/Utils
+    ~/Git/Lib
+    ~/Git/Mymath
+(by means of hard links.)
 """
 
 import os
@@ -298,8 +301,13 @@ def script_location():
 
 def useful_lines(stream, comment="#"):
     """
-    accepts a stream of lines and returns non blank lines that are not
-    comments
+    A generator which accepts a stream of lines (strings.)
+    Blank lines are ignored.
+    If <comment> resolves to true, lines beginning with <comment>
+    (after being stripped of leading spaces) are also ignored.
+    <comment> can be set to <None> if don't want this functionality.
+    Other lines are returned ("yield"ed) stripped of leading and
+    trailing white space.
     """
     for line in stream:
         line = line.strip()

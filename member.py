@@ -31,6 +31,7 @@ STATUS_KEY_VALUES = {
     "a3": "Attended three (or more) meetings",
     "ai": "Inducted, needs to be notified",  # temporary until letter
     "ad": "Inducted & notified, membership pending payment of dues",
+    "av": "Vacancy ready to be filled pending payment of dues",
     "aw": "Inducted & notified, awaiting vacancy", #7 > #8
     "am": "New Member",  # temporary until congratulatory letter.
     "be": "Email on record being rejected",   # => special notice
@@ -248,10 +249,10 @@ def is_inductee(record):
     return 'ai' in get_status_set(record)
 
 
-def is_waiting(record):
+def vacancy_open(record):
     """
     """
-    return 'aw' in get_status_set(record)
+    return 'av' in get_status_set(record)
 
 
 def is_member(record):
