@@ -876,9 +876,12 @@ def get_payables(record, club):
     positives are added to club.still_owing,
     negatives to club.advance_payments.
     """
-    if 'r' in get_status_set(record):
+    if get_status_set(record).intersection({'h', 'm', 'r'}):
         return
-    name = "{last}, {first}: ".format(**record)
+    if record['email']:
+        name = "{last}, {first}: ".format(**record)
+    else:
+        name = "{last}, {first}*: ".format(**record)
     line_positive = []
     line_negative = []
     for key in MONEY_KEYS:
