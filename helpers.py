@@ -5,10 +5,9 @@
 """
 Helper functions developed for the Club/Utils repo.
 This file appears in
-    ~/Git/PyLib
     ~/Git/Club/Utils
-    ~/Git/Lib
-    ~/Git/Mymath
+    ~/Git/PyLib
+    ~/Git/Lib/code
 (by means of hard links.)
 """
 
