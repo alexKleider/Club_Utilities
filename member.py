@@ -879,8 +879,10 @@ def get_payables(record, club):
     if get_status_set(record).intersection({'h', 'm', 'r'}):
         return
     if record['email']:
+        no_email = False
         name = "{last}, {first}: ".format(**record)
     else:
+        no_email = True
         name = "{last}, {first}*: ".format(**record)
     line_positive = []
     line_negative = []
@@ -898,6 +900,7 @@ def get_payables(record, club):
         line = ("{:<30}".format(name)
                 + ', '.join(line_positive))
         club.still_owing.append(line)
+        if no_email: club.n_no_email += 1
     if line_negative:
         line = ("{:<30}".format(name)
                 + ', '.join(line_negative))
@@ -1300,6 +1303,7 @@ prerequisites = {   # collectors needed by the
     get_payables: [
         'club.still_owing = []',
         'club.advance_payments = []',
+        'club.n_no_email = 0',
         ],
     get_secretary: [
         'club.secretary = ""',

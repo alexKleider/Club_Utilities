@@ -107,13 +107,13 @@ error_keys = errors.keys()
 
 def display(stream=sys.stdout):
     if error_keys:
-        print("\nERRORS", file=stream)
-        print("\n======", file=stream)
+        print("\nINVALID LINES", file=stream)
+        print(  "=============", file=stream)
         for key in error_keys:
             print("{}  {}".format(key,errors[key]), file=stream)
     if res:
         print("\nPAYMENTS", file=stream)
-        print("\n========", file=stream)
+        print(  "========", file=stream)
     for item in res:
         print(item, file=stream)
 

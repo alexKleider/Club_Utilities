@@ -952,7 +952,9 @@ def payables_cmd(args=args):
         ret.extend(club.advance_payments)
 #   print('\n'.join(ret))
     ret.append("\n\nReport prepared {}".format(helpers.date))
-    ret.append("(*) names with an asterix indicate usps vs email")
+    ret.append(
+            "(*) names ({}) with an asterix indicate usps vs email"
+            .format(club.n_no_email))
     output('\n'.join(ret), club.outfile)
 
 
