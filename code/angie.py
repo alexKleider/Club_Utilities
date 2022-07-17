@@ -10,9 +10,13 @@ Lines that don't make proper sense (i.e. text in what should be
 numeric fields) are printed first followed by a listing of
 payments she is reporting.
 All output is printed to the screen so typical usage would be
-    $ ./code/angie.py [input-file-name]  >  2check
-An optional input file parameter may be used to override the default.
-.. and then study '2check' and move new parts to $CLUB/Data/receipts*
+    $ ./code/angie.py [input-file-name]  >  angie-data.txt
+.. and then study 'angie-data.txt' and
+move new parts to $CLUB/Data/receipts*
+An optional input file parameter may be used to override the default
+and an optional second parameter can specify an output file.
+If want to specify an output param but keep the input as default:
+    $ ./code/angie.py None output_file.
 """
 
 notes = """
@@ -33,9 +37,20 @@ FIRST = '\ufeffFirst'
 import csv
 import sys
 
-if len(sys.argv) > 1: infile = sys.argv[1]
-else: infile = INFILE
+infile = INFILE
+outfile = sys.stdout
+out_stream = False
+if len(sys.argv) > 1:
+    if sys.argv[1] != 'None':
+        infile = sys.argv[1]
+if len(sys.argv) > 2:
+    outfile = sys.argv[2]
+    out_stream = True
 
+answer = input("In & out put files set to {} & {}. Continue? "
+        .format(infile, outfile))
+if not (answer and (answer[0] in 'Yy')):
+    sys.exit()
 collector = {}
 errors = {}
 money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
@@ -89,14 +104,20 @@ for name_key in collector.keys():
         res.append(shorter_text)
 
 error_keys = errors.keys()
-if error_keys:
-    print("\nERRORS")
-    print("\n======")
-    for key in error_keys:
-        print("{}  {}".format(key,errors[key]))
-if res:
-    print("\nPAYMENTS")
-    print("\n========")
-for item in res:
-    print(item)
 
+def display(stream=sys.stdout):
+    if error_keys:
+        print("\nERRORS", file=stream)
+        print("\n======", file=stream)
+        for key in error_keys:
+            print("{}  {}".format(key,errors[key]), file=stream)
+    if res:
+        print("\nPAYMENTS", file=stream)
+        print("\n========", file=stream)
+    for item in res:
+        print(item, file=stream)
+
+if out_stream:
+    with open(outfile, 'w') as out_stream:
+        display(out_stream)
+else: display()
