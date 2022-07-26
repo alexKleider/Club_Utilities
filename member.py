@@ -94,6 +94,7 @@ demographic_f_first_last_w_staggered_data = '\n'.join((
     "\t{address}, {town}, {state} {postal_code}",
     "\t[{email}]"))
 fstrings = {
+        'key': "{last},{first}",
         'first_last': "{first} {last}",
         "last_first": "{last}, {first}",
         'first_last_w_address_only': demographic_f, 
@@ -867,6 +868,31 @@ def assign_statement2extra_func(record, club=None):
     record['extra'] = '\n'.join(extra)
 
 
+def get_payables_dict(record, club):
+    """
+    Populates club.owing_dict and club.credits_dict.
+
+    Checks record for dues &/or fees. If found,
+    positives are added to club.owing_dict,
+    negatives to club.credits_dict.
+    """
+    if get_status_set(record).intersection({'h', 'm', 'r'}):
+        return
+    name_key = format_record(record, fstrings['key'])
+    val = {}
+    total = 0
+    for key in MONEY_KEYS:
+        if record[key]:
+            amt = int(record[key])
+            total += amt
+            val[key] = amt
+    val['total'] = total
+    if total > 0:
+        club.owing_dict[name_key] = val
+    if total < 0:
+        club.credits_dict[name_key] = val
+
+
 def get_payables(record, club):
     """
     Populates club.still_owing and club.advance_payments
@@ -883,7 +909,8 @@ def get_payables(record, club):
         name = "{last}, {first}: ".format(**record)
     else:
         no_email = True
-        name = "{last}, {first}*: ".format(**record)
+        if club.asterixUSPS:
+            name = "{last}, {first}*: ".format(**record)
     line_positive = []
     line_negative = []
     for key in MONEY_KEYS:
@@ -1304,6 +1331,10 @@ prerequisites = {   # collectors needed by the
         'club.still_owing = []',
         'club.advance_payments = []',
         'club.n_no_email = 0',
+        ],
+    get_payables_dict: [
+        'club.owing_dict = {}',
+        'club.credits_dict = {}',
         ],
     get_secretary: [
         'club.secretary = ""',

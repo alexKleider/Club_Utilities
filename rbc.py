@@ -183,43 +183,37 @@ class Club(object):
         if self.n_instances > 0:
             raise NotImplementedError("Only one instance allowed.")
         self.inc_n_instances()
+        
+        ######  Set all defaults  #####
+        self.infile = Club.MEMBERSHIP_SPoT
+        self.applicant_spot = Club.APPLICANT_SPoT
+        self.sponsor_spot = Club.SPONSORS_SPoT
+        self.contacts_spot = Club.CONTACTS_SPoT
+        self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
+        self.json_file = Club.EMAIL_JSON
+        self.mail_dir = self.MAILING_DIR
+        self.thank_file = Club.THANK_FILE
+        self.thank_archive = Club.THANK_ARCHIVE
+        self.outfile = Club.STDOUT
+        self.errors_file = Club.ERRORS_FILE
+        self.cc = ''
+        self.bcc = ''
 
-        if args:  # args from docopt
+        if args:  # override defaults if provided by docopts
             # the body of this if statement replaces the need for
             # <utils.file_name_args2attributes(self, params)>
             if args['-i']: self.infile = args['-i']
-            else: self.infile = Club.MEMBERSHIP_SPoT
-
             if args['-A']: self.applicant_spot = args['-A']
-            else: self.applicant_spot = Club.APPLICANT_SPoT
-
             if args['-S']: self.sponsor_spot = args['-S']
-            else: self.sponsor_spot = Club.SPONSORS_SPoT
-
             if args['-C']: self.contacts_spot = args['-C']
-            else: self.contacts_spot = Club.CONTACTS_SPoT
-
             if args['-X']: self.extra_fees_spots = args['-X']
-            else: self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
-
             if args['-j']: self.json_file = args['-j']
-            else: self.json_file = Club.EMAIL_JSON
-
             if args["--dir"]: self.mail_dir = args["--dir"]
-            else: self.mail_dir = self.MAILING_DIR
-
             if args['-t']: self.thank_file = args['-t']
-            else: self.thank_file = Club.THANK_FILE
-
             if args['--thanked']:
                 self.thank_archive = args['--thanked']
-            else: self.thank_archive = Club.THANK_ARCHIVE
-
             if args['-o']: self.outfile = args['-o']
-            else: self.outfile = Club.STDOUT
-
             self.owing_only = args['--oo']
-
             Club.cc_sponsors = False
             if args['--cc']:
                 (Club.cc_sponsors, Club.ccs) = helpers.clarify_cc(
@@ -229,16 +223,9 @@ class Club(object):
             if Club.cc_sponsors:  # collect applicant/sponsor data
                 data.populate_sponsor_data(Club)
                 data.populate_applicant_data(Club)
-
             if args['-e']: self.errors_file = args['-e']
-            else: self.errors_file = Club.ERRORS_FILE
-
             if args["--cc"]: self.cc = args["--cc"]
-            else: self.cc = ''
-
             if args["--bcc"]: self.bcc = args["--bcc"]
-            else: self.bcc = ''
-
             if args['ATTACHMENTS']:
                 self.attachment = args['ATTACHMENTS']
             else:

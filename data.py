@@ -630,6 +630,71 @@ def ck_data(club,
     return ret
 
 
+def club_with_payables_dict(infile=None, args=None):
+    """
+    Returns an instance of Club with required attributes:
+        owing_dict     } both of which
+        credits_dict   }  are dicts
+    <args> provides for optional docopt args
+    """
+    club = Club(args)
+    if infile: club.infile = infile
+    club.owing_dict = {}
+    club.credits_dict = {}
+    err_code = member.traverse_records(club.infile,
+                                       member.get_payables_dict,
+                                       club)
+    return club
+
+
+def club_with_payables_listing(args=None, asterixUSPS=False):
+    """
+    Returns an instance of Club with required attributes:
+        still_owing         } both of which
+        advance_payments    }  are lists
+    <args> provides for optional docopt args
+    <asterixUSPS> if True adds an "*" to those without email
+    """
+    club = Club(args)
+    club.still_owing = []
+    club.advance_payments = []
+    club.asterixUSPS = asterixUSPS
+    err_code = member.traverse_records(club.infile,
+                                       member.get_payables,
+                                       club)
+    return club
+
+
+def payables_report(club, tabulate=False, max_width=None):
+    ret = []
+    if club.still_owing:
+        helpers.add_header2list(
+            "Members owing ({} in number)"
+            .format(len(club.still_owing)),
+            ret, underline_char='=', extra_line=True)
+        if not max_width: max_width = 80
+        else: max_width = int(max_width)
+        if tabulate:
+            tabulated = helpers.tabulate(club.still_owing,
+                                         max_width=max_width,
+                                         separator='  ')
+            ret.extend(tabulated)
+        else:
+            ret.extend(club.still_owing)
+    if club.advance_payments:
+        ret.append("\n")
+        ret.extend(["Members with a Credit",
+                       "---------------------"])
+        ret.extend(club.advance_payments)
+#   print('\n'.join(ret))
+    ret.append("\n\nReport prepared {}".format(helpers.date))
+    ret.append(
+            "(*) names ({}) with an asterix indicate usps vs email"
+            .format(club.n_no_email))
+    return ret
+
+
+
 def restore_fees(club):
     """
     Sets up and leaves a new list of records in club.new_db:

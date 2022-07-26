@@ -926,36 +926,9 @@ def payables_cmd(args=args):
     of which are lists) and then calls member.get_payables which
     traverses the db populating them.
     """
-    club = Club(args)
-    club.still_owing = []
-    club.advance_payments = []
-    ret = []
-    err_code = member.traverse_records(club.infile,
-                                       member.get_payables,
-                                       club)
-    if club.still_owing:
-        helpers.add_header2list(
-            "Members owing ({} in number)"
-            .format(len(club.still_owing)),
-            ret, underline_char='=', extra_line=True)
-        if args['-T']:
-            tabulated = helpers.tabulate(club.still_owing,
-                                         max_width=max_width,
-                                         separator='  ')
-            ret.extend(tabulated)
-        else:
-            ret.extend(club.still_owing)
-    if club.advance_payments:
-        ret.append("\n")
-        ret.extend(["Members with a Credit",
-                       "---------------------"])
-        ret.extend(club.advance_payments)
-#   print('\n'.join(ret))
-    ret.append("\n\nReport prepared {}".format(helpers.date))
-    ret.append(
-            "(*) names ({}) with an asterix indicate usps vs email"
-            .format(club.n_no_email))
-    output('\n'.join(ret), club.outfile)
+    club = data.club_with_payables_listing(args, asterixUSPS=True)
+    report = data.payables_report(club, args['-T'], args['-w'])
+    output('\n'.join(report), club.outfile)
 
 
 def show_mailing_categories_cmd(args=args):

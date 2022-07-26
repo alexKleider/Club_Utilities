@@ -31,6 +31,7 @@ rid of it!  I've just accepted it as part of the key name.
 INFILE = 'loose1st.csv'
 INFILE = '/home/alex/Git/Club/Data/fromAngie.csv'
 INFILE = '/home/alex/Git/Club/Data/angieslist.csv'
+INFILE = '/home/alex/Git/Club/Utils/code/072522.csv'
 FIRST = 'First'
 FIRST = '\ufeffFirst'
 
@@ -39,6 +40,7 @@ import sys
 
 infile = INFILE
 outfile = sys.stdout
+outfile = 'code/receipts'
 out_stream = False
 if len(sys.argv) > 1:
     if sys.argv[1] != 'None':
@@ -112,8 +114,8 @@ def display(stream=sys.stdout):
         for key in error_keys:
             print("{}  {}".format(key,errors[key]), file=stream)
     if res:
-        print("\nPAYMENTS", file=stream)
-        print(  "========", file=stream)
+        print("\n#PAYMENTS", file=stream)
+        print(  "#========", file=stream)
     for item in res:
         print(item, file=stream)
 
