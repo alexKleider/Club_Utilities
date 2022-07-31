@@ -3,20 +3,38 @@
 # File: angie.py
 
 """
+Usage:
+    ./angie.py [input file (None if default)] [output file: default is
+    stdout]
+
+Options:
+    infile defaults to 'code/fromAngie.csv', 'None' > default.
+    outfile defaults to stdout. Suggest 'code/receipts.txt'
+
 The csv file Angie sends me must be subjected to the 'fromdos'
 command, then have the first line deleted. After that it becomes
 a csv file that this utility can process.
+Use it as input to this utility. Default is code/fromAngie.csv
+
 Lines that don't make proper sense (i.e. text in what should be
-numeric fields) are printed first followed by a listing of
-payments she is reporting.
-All output is printed to the screen so typical usage would be
-    $ ./code/angie.py [input-file-name]  >  angie-data.txt
-.. and then study 'angie-data.txt' and
-move new parts to $CLUB/Data/receipts*
+numeric fields) are printed first. The rest of the output is
+a listing of payments she is reporting.
+
+If an output file is not specified (as a second parameter:)
+output is printed to the screen so typical usage would be
+    $ ./code/angie.py [input-file-name]  >  receipts.txt.txt
+
+The output file should be examined for errors; Note that names may
+not match club data base- pass what's been collected since last run
+into an input file for code/discrepency_search.py. 
+Once clean up has been done, can then move relevant parts (payments
+that came in since last reported) to $CLUB/Data/receipts*
+
 An optional input file parameter may be used to override the default
 and an optional second parameter can specify an output file.
-If want to specify an output param but keep the input as default:
-    $ ./code/angie.py None output_file.
+If want to specify an output file but use the default input file
+use 'None' as a first parameter as follows:
+    $ ./code/angie.py None code/receipts.txt
 """
 
 notes = """
@@ -28,36 +46,48 @@ The '\ufeff' declares 'endian' and I haven't figured out how to get
 rid of it!  I've just accepted it as part of the key name.
 """
 
-INFILE = 'loose1st.csv'
-INFILE = '/home/alex/Git/Club/Data/fromAngie.csv'
-INFILE = '/home/alex/Git/Club/Data/angieslist.csv'
-INFILE = '/home/alex/Git/Club/Utils/code/072522.csv'
-FIRST = 'First'
-FIRST = '\ufeffFirst'
+INFILE = '/home/alex/Git/Club/Utils/code/fromAngie.csv'
+
+FIRST = 'First'        # Can't get rid of the 'endian' prefix...
+FIRST = '\ufeffFirst'  # ... which is contaminating header line.
 
 import csv
 import sys
 
 infile = INFILE
 outfile = sys.stdout
-outfile = 'code/receipts'
-out_stream = False
+# outfile = 'code/receipts'
 if len(sys.argv) > 1:
     if sys.argv[1] != 'None':
         infile = sys.argv[1]
 if len(sys.argv) > 2:
     outfile = sys.argv[2]
-    out_stream = True
 
 answer = input("In & out put files set to {} & {}. Continue? "
         .format(infile, outfile))
 if not (answer and (answer[0] in 'Yy')):
     sys.exit()
+
+
+def dict2list(dic, formatter='{:<24}{}'):
+    """
+    """
+    return [ formatter.format(key, value) for key, value in
+            dic.items()]
+
+
+def display(listing, header, stream):
+        print("\n" + header, file=stream)
+        print(  "=" * len(header), file=stream)
+        for item in listing:
+            print(item, file=stream)
+
+
 collector = {}
 errors = {}
 money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
 
-#with open(infile, 'r', newline='') as stream:
+#  collect data from input file => collector
 with open(infile, 'r',
 #       encoding='utf-16',
         newline='') as stream:
@@ -84,9 +114,12 @@ with open(infile, 'r',
                     ret_rec[money_key] = ''
         collector[key] = ret_rec
 
-res = []
+
+# convert what's been collected into useful format
+res = {}
 for name_key in collector.keys():
     entry = ''
+    addendum = []
     total_paid = 0
     for money_key in money_keys:
         val = collector[name_key][money_key]
@@ -95,7 +128,8 @@ for name_key in collector.keys():
             entry = (entry + ' ' + '{}: {}'
                     .format(money_key, val))
     if entry:
-        text = ("{:<24}{:>3d}".format(name_key, total_paid)
+        # {:<24}
+        text = ("{:>3d}".format(total_paid)
                 + "  (" + entry + ")")
         shorter_text = text.replace("( dues: 100", '(')
         if shorter_text.endswith('  ()'):
@@ -103,23 +137,27 @@ for name_key in collector.keys():
             shorter_text = shorter_text[:-4]
 #       shorter_text = text
 #       if shorter_text != text: print("no change")
-        res.append(shorter_text)
+        res[name_key] = shorter_text
 
 error_keys = errors.keys()
 
-def display(stream=sys.stdout):
-    if error_keys:
-        print("\nINVALID LINES", file=stream)
-        print(  "=============", file=stream)
-        for key in error_keys:
-            print("{}  {}".format(key,errors[key]), file=stream)
-    if res:
-        print("\n#PAYMENTS", file=stream)
-        print(  "#========", file=stream)
-    for item in res:
-        print(item, file=stream)
+error_header = ['# INVALID LINES',
+                '# =============',
+                ]
 
-if out_stream:
-    with open(outfile, 'w') as out_stream:
-        display(out_stream)
-else: display()
+payments_header = ['# PAYMENTS',
+                   '# ========',
+                   ]
+
+writecode = 'w'
+
+if error_keys:
+    with open(outfile, writecode) as outstream:
+        if error_keys:
+            display(dict2list(errors), '# INVALID LINES', outstream)
+            display([], '', outstream)  # white space for separation
+        writecode = 'a'
+if res:
+    with open(outfile, writecode) as outstream:
+        display(dict2list(res), '# PAYMENTS', outstream)
+

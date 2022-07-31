@@ -4,10 +4,17 @@
 
 
 """
+Usage:
+    ./code/angie.py [infile [outfile]]
 An optional input file parameter may be used to override the default
 and an optional second parameter can specify an output file.
 If want to specify an output param but keep the input as default:
     $ ./code/angie.py None output_file.
+
+Reads MEMLIST = '/home/alex/Git/Club/Data/memlist.csv' and uses it to
+check for data consistency.
+
+Will generate a 'thankfile' called 'code/2thank.csv'.
 """
 
 import os
@@ -25,13 +32,11 @@ THANKFILE = 'code/2thank.csv'
 MEMLIST = '/home/alex/Git/Club/Data/memlist.csv'
 infile = INFILE
 outfile = OUTFILE
-out_stream = False
 if len(sys.argv) > 1:
     if sys.argv[1] != 'None':
         infile = sys.argv[1]
 if len(sys.argv) > 2:
     outfile = sys.argv[2]
-    out_stream = True
 
 club = data.club_with_payables_dict(MEMLIST)
 owers = club.owing_dict.keys()
