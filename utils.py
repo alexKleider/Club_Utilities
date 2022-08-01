@@ -1208,9 +1208,13 @@ def fee_intake_totals_cmd(args=args):
     Eventually this will be deprecated in favour of the thank_cmd
     """
     club = Club(args=args)
+    print("fee_intake_totals_cmd about to call club.fee_totals()")
     if args['-i']:
+        print("args['-i'] evaluates to '{}'"
+                .format(args['-i']))
         fees_taken_in = club.fee_totals(infile=args['-i'])
     else:
+        print("Using default receipts file.")
         fees_taken_in = club.fee_totals()
     fees_taken_in.append(" ")
     res = '\n'.join(fees_taken_in)

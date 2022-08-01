@@ -26,7 +26,7 @@ import data
 import rbc
 
 INFILE = '/home/alex/Git/Club/Utils/code/receipts.txt'
-OUTFILE = '/home/alex/Git/Club/code/checked-totals.txt'
+OUTFILE = '/home/alex/Git/Club/Utils/code/checked-totals.txt'
 THANKFILE = 'code/2thank.csv'
 
 MEMLIST = '/home/alex/Git/Club/Data/memlist.csv'
@@ -61,20 +61,28 @@ with open(infile, 'r') as instream:
         collector['{},{}'.format(parts[1], parts[0])] = int(parts[2])
 keys = sorted(collector.keys())
 
-print()
-print("Money collected")
+res = ['',
+       'Money collected',
+       '===============',
+      ]
 for key in keys:
-    print("{}: {}".format(key, collector[key]))
+    res.append("{}: {}".format(key, collector[key]))
 
 payors = collector.keys()
 payors_not_owing = set(payors).difference(owers)
 if payors_not_owing:
-    print("\nThe following paid but don't owe!")
-    print(  "=================================")
+    res.extend(['',
+       "Paid but don't owe!",
+       '===================',
+      ])
     for payor in sorted(payors_not_owing):
-        print(payor)
+        res.append(payor)
 else:
-    print("all payors are in owing")
+    res.append("\nall payors are in owing")
+
+with open(outfile, 'w') as outstream:
+    for line in res:
+        outstream.write(line + '\n')
 
 # Create a csv file of members who have paid & need to be thanked:
 with open(MEMLIST, 'r', newline='') as memliststream:

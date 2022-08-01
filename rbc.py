@@ -258,9 +258,10 @@ class Club(object):
         (... the only reason it's a class method
         rather than a function or a static method.)
         NOTE: Money taken in (or refunded) must appear
-        within line[23:28]! i.e. maximum 5 digits (munus sign
+        within line[28:33]! i.e. maximum 5 digits (munus sign
         and only 4 digits if negatime).
         """
+        print("Running Club.fee_totals()")
         res = ["Fees taken in to date:"]
         self.invalid_lines = []
 
@@ -274,12 +275,12 @@ class Club(object):
                 line = line.rstrip()
                 if line[:5] == "Date:":
                     date = line
-                if (line[24:27] == "---") and subtotal:
+                if (line[29:32] == "---") and subtotal:
                     res.append("    SubTotal            --- {:>10}"
                                .format(helpers.format_dollar_value(subtotal)))
                     subtotal = 0
                 try:
-                    amount = int(line[23:28])
+                    amount = int(line[28:33])
                 except (ValueError, IndexError):
                     self.invalid_lines.append(line)
                     continue
@@ -289,9 +290,9 @@ class Club(object):
 #               print(" adding {}, running total is {}"
 #                   .format(amount, total))
         if subtotal:
-            res.append("    SubTotal            --- {:>10}"
+            res.append("         SubTotal            --- {:>10}"
                        .format(helpers.format_dollar_value(subtotal)))
-        res.append("\nGrand Total to Date:    --- ---- {:>10}"
+        res.append("\nGrand Total to Date:         --- ---- {:>10}"
                    .format(helpers.format_dollar_value(total)))
 #       print("returning {}".format(res))
         return res
@@ -302,9 +303,9 @@ if __name__ == "__main__":
     print("rbc.py compiles OK")
     print("DATA_DIR resolves to {}".format(Club.DATA_DIR))
     sys.exit()
-else:
-    def print(*args, **kwargs):
-        pass
+#else:
+#    def print(*args, **kwargs):
+#        pass
 
 tree = """
 ProjectDirectory
