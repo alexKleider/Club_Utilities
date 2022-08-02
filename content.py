@@ -221,6 +221,10 @@ at your earliest convenience.
 
     # Send in early August:
     penultimate_warning="""
+As we enter the month of August it means you've already enjoyed
+two months of Club membership and its benefits but this could end
+if you don't take action soon!
+
 Club records indicate that your dues (+/or other fees) have
 as yet not been paid.  Please be aware that according to
 Club bylaws, membership lapses if fees are not paid by Sept 1st.
@@ -724,7 +728,7 @@ content_types = dict(  # which_letter
         "funcs": (member.assign_statement2extra_func,
                   member.std_mailing_func),
         "test": lambda record: True if (
-            member.is_duespaying(record) and
+            member.is_dues_paying(record) and
             member.not_paid_up(record)
             ) else False,
         "e_and_or_p": "one_only",
