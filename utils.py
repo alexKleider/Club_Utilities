@@ -1219,11 +1219,11 @@ def fee_intake_totals_cmd(args=args):
     fees_taken_in.append(" ")
     res = '\n'.join(fees_taken_in)
     output(res, club.outfile)
-    if club.invalid_lines and hasattr(club, 'errors'):
+    if club.invalid_lines:
         print('Writing possible errors to "{}".'
-              .format(club.errors))
+              .format(club.errors_file))
         output('\n'.join(club.invalid_lines),
-               club.errors, announce_write=False)
+               club.errors_file, announce_write=False)
 
 
 def labels_cmd(args=args):

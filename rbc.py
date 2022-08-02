@@ -259,7 +259,7 @@ class Club(object):
         rather than a function or a static method.)
         NOTE: Money taken in (or refunded) must appear
         within line[28:33]! i.e. maximum 5 digits (munus sign
-        and only 4 digits if negatime).
+        and only 4 digits if negative).
         """
         print("Running Club.fee_totals()")
         res = ["Fees taken in to date:"]
@@ -267,34 +267,32 @@ class Club(object):
 
         total = 0
         subtotal = 0
-        date = ''
 
         with open(infile, "r") as file_obj:
             print('Reading from file "{}".'.format(file_obj.name))
             for line in file_obj:
-                line = line.rstrip()
-                if line[:5] == "Date:":
-                    date = line
+                line = line.rstrip()  # get rid of trailing '\n'
+                if line.startswith("Date:") or not line.strip():
+                    continue  # Ignore date headers and blank lines
                 if (line[29:32] == "---") and subtotal:
-                    res.append("    SubTotal            --- {:>10}"
-                               .format(helpers.format_dollar_value(subtotal)))
+                    res.append(
+                        "    SubTotal                 --- {:>10}"
+                       .format(helpers.format_dollar_value(subtotal)))
                     subtotal = 0
                 try:
                     amount = int(line[28:33])
                 except (ValueError, IndexError):
                     self.invalid_lines.append(line)
                     continue
-#               res.append("Adding ${}.".format(amount))
                 total += amount
                 subtotal += amount
-#               print(" adding {}, running total is {}"
-#                   .format(amount, total))
         if subtotal:
             res.append("         SubTotal            --- {:>10}"
                        .format(helpers.format_dollar_value(subtotal)))
         res.append("\nGrand Total to Date:         --- ---- {:>10}"
                    .format(helpers.format_dollar_value(total)))
-#       print("returning {}".format(res))
+        ## Find 'error' lines (those without expected data)
+        ## in club.invalid_lines
         return res
 # ##
 # ###  End of Club class declaration.
