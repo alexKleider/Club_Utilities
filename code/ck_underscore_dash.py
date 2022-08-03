@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+# File: ck_underscore_dash.py
 
 """
 Quick script written to check for consistency in use of 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# File: parse_sponsors.py
+# File: parse_text_data.py
 
 """
 A work in progress: looking for a generalized way to parse files such
