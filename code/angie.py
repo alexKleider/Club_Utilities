@@ -46,12 +46,21 @@ The '\ufeff' declares 'endian' and I haven't figured out how to get
 rid of it!  I've just accepted it as part of the key name.
 """
 
+import os
 import csv
 import sys
+sys.path.insert(0, os.path.split(sys.path[0])[0])
+import helpers
+import data
+import rbc
 
-INFILE = '/home/alex/Git/Club/Utils/code/fromAngie.csv'
+MEMLIST = '/home/alex/Git/Club/Data/memlist.csv'
 INFILE = '/home/alex/Git/Club/Data/angie220731.csv'
+INFILE = '/home/alex/Git/Club/Utils/code/fromAngie.csv'
 ERROR_FILE =  '/home/alex/Git/Club/Utils/code/errors.txt'
+
+club = data.club_with_payables_dict(MEMLIST)
+owers = club.owing_dict.keys()
 
 FIRST = 'First'        # Can't get rid of the 'endian' prefix...
 FIRST = '\ufeffFirst'  # ... which is contaminating header line.
@@ -88,7 +97,7 @@ def display(listing, header, stream):
             print(item, file=stream)
 
 
-def parse_angies_csv(infile, errors=None):
+def parse_angies_csv(infile, owers=None, errors=None):
     """
     <infile> is an 'Angie generated' csv file.
     Returned is a dict:
@@ -102,6 +111,7 @@ def parse_angies_csv(infile, errors=None):
         collect_errors = True
     #  collect data from input file => collector
     collector = {}
+    print("Reading {}".format(infile))
     with open(infile, 'r',
     #       encoding='utf-16',
             newline='') as stream:
@@ -110,10 +120,17 @@ def parse_angies_csv(infile, errors=None):
         for record in reader:
     #       print(record)
             total = 0
+            if (not record[FIRST]
+                or not record['Last']
+                or record['Check Amount'] == record['Other']
+                ):
+                continue
             ret_rec = {}  # Note       vvvvvv   special char!
             for key1, key2 in correspondence:
                 ret_rec[key1] = record[key2].strip()
             key = "{last},{first}".format(**ret_rec)
+            if owers and (not (key in owers)):
+                errors.append("{} not in owers.".format(key))
             ret_rec.pop('first')
             ret_rec.pop('last')
             for money_key in money_keys:
@@ -174,7 +191,7 @@ def main():
     errors = []
     money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
 
-    collector = parse_angies_csv(infile, errors)
+    collector = parse_angies_csv(infile, owers=owers, errors=errors)
     print(repr(errors))
     # convert what's been collected into useful format
     res = {}
@@ -214,12 +231,14 @@ def main():
     writecode = 'w'
 
     if error_keys:
+        print("writing to {}".format(outfile))
         with open(outfile, writecode) as outstream:
             if error_keys:
                 display(dict2list(errors), '# INVALID LINES', outstream)
                 display([], '', outstream)  # white space for separation
             writecode = 'a'
     if res:
+        print("writing to {}".format(outfile))
         with open(outfile, writecode) as outstream:
             display(dict2list(res), '# PAYMENTS', outstream)
 
@@ -227,14 +246,14 @@ def dev():
     errors = []
     infile = INFILE
     error_file = ERROR_FILE
-    res = parse_angies_csv(infile, errors=errors)
+    res = parse_angies_csv(infile, owers=owers, errors=errors)
     outfile = 'code/receipts'
+    print("writing to {}".format(outfile))
     with open(outfile, 'w') as stream:
-        print("sending output to {}".format(outfile))
         for line in text4receipts(res):
             stream.write(line + '\n')
     if errors:
-        print("\nEncountered error(s) sent to {}"
+        print("Encountered error(s) sent to {}"
                 .format(error_file))
         with open(error_file, 'w') as stream:
             for item in errors:

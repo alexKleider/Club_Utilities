@@ -5,11 +5,11 @@
 
 """
 Usage:
-    ./code/angie.py [infile [outfile]]
+    ./code/discrepency_search.py [infile [outfile]]
 An optional input file parameter may be used to override the default
 and an optional second parameter can specify an output file.
 If want to specify an output param but keep the input as default:
-    $ ./code/angie.py None output_file.
+    $ ./code/discrepency_search.py None output_file.
 
 Reads MEMLIST = '/home/alex/Git/Club/Data/memlist.csv' and uses it to
 check for data consistency.
@@ -56,6 +56,7 @@ collector = {}  # keys will be last,first names,
                 # values will be what's been payed.
 # First deal with the latest entries in Angie's list of receipts:
 with open(infile, 'r') as instream:
+    print("Reading from {}".format(instream.name))
     for line in helpers.useful_lines(instream):
         parts = line.split()
         collector['{},{}'.format(parts[1], parts[0])] = int(parts[2])
@@ -81,14 +82,17 @@ else:
     res.append("\nall payors are in owing")
 
 with open(outfile, 'w') as outstream:
+    print("writing to {}".format(outstream.name))
     for line in res:
         outstream.write(line + '\n')
 
 # Create a csv file of members who have paid & need to be thanked:
 with open(MEMLIST, 'r', newline='') as memliststream:
+    print("Reading from {}".format(memliststream.name))
     dict_reader = csv.DictReader(memliststream, restkey='extra')
     fieldnames = dict_reader.fieldnames
     with open(THANKFILE, 'w') as thankstream:
+        print("Writing to {}".format(thankstream.name))
         dict_writer = csv.DictWriter(thankstream,
                                     fieldnames,
                                     lineterminator='\n'
@@ -99,6 +103,4 @@ with open(MEMLIST, 'r', newline='') as memliststream:
             if key in payors:
                 # For time being assume paid what's owed..
                 dict_writer.writerow(record)
-print("2thank listing written to {}."
-        .format(THANKFILE))
 
