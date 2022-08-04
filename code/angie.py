@@ -50,6 +50,8 @@ import csv
 import sys
 
 INFILE = '/home/alex/Git/Club/Utils/code/fromAngie.csv'
+INFILE = '/home/alex/Git/Club/Data/angie220731.csv'
+ERROR_FILE =  '/home/alex/Git/Club/Utils/code/errors.txt'
 
 FIRST = 'First'        # Can't get rid of the 'endian' prefix...
 FIRST = '\ufeffFirst'  # ... which is contaminating header line.
@@ -120,16 +122,16 @@ def parse_angies_csv(infile, errors=None):
                         ret_rec[money_key] = int(
                                 ret_rec[money_key])
                     except ValueError:
-                        errors.append("{}: {}: {}"
+                        errors.append("{}: {}: {}\n"
                                 .format(key, money_key,
                                         ret_rec[money_key]))
-                        ret_rec[money_key] = ''
+                        ret_rec[money_key] = 0
                     total += ret_rec[money_key]
                 if not ret_rec[money_key]:
                     ret_rec.pop(money_key)
             ret_rec['total'] = total
             if not total:
-                errors.append("{}: {}".format(key, repr(record)))
+                errors.append("{}: {}\n".format(key, repr(record)))
             collector[key] = ret_rec
     return collector
 
@@ -146,6 +148,11 @@ def text4receipts(receipts_dict):
     ret = []
     for key, value in receipts_dict.items():
         entry =  "{:<27}{:>5}".format(key2name(key), value['total'])
+        payments = ["{}: {}".format(k, v) for k, v in value.items()
+                if k not in {'dues', 'total'}]
+        addendum = ', '.join(payments)
+        if addendum:
+            entry = entry + '  (' + addendum + ')'
         ret.append(entry)
     return ret
 
@@ -219,6 +226,7 @@ def main():
 def dev():
     errors = []
     infile = INFILE
+    error_file = ERROR_FILE
     res = parse_angies_csv(infile, errors=errors)
     outfile = 'code/receipts'
     with open(outfile, 'w') as stream:
@@ -226,9 +234,11 @@ def dev():
         for line in text4receipts(res):
             stream.write(line + '\n')
     if errors:
-        print("\nEncountered the following error(s):")
-        for item in errors:
-            print(item)
+        print("\nEncountered error(s) sent to {}"
+                .format(error_file))
+        with open(error_file, 'w') as stream:
+            for item in errors:
+                stream.write(item + '\n')
 
 if __name__ == '__main__':
     dev()
