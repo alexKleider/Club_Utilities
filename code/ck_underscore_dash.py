@@ -5,7 +5,9 @@
 """
 Quick script written to check for consistency in use of 
 dash vs underscore.
-Using dashes, not underscores for double barrelled names.
+Using dashes, not underscores for double barreled names.
+Underscores are used where one would use a space (but can't
+because it would stymie the parsing.)
 """
 import os
 import csv

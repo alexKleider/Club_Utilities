@@ -273,6 +273,13 @@ at rodandboatclub@gmail.com?
 
 Thanks,""",
 
+    waiting4application_fee="""
+We've received your application which will be complete once the
+application fee ($25) has been received.  You are now listed in
+the Club data base.
+
+The process has begun!""",
+
     new_applicant_welcome="""
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
@@ -453,8 +460,8 @@ post_scripts = dict(
     The Bolinas Rod & Boat Club
     PO Box 248
     Bolinas, CA 94924
-It's always a good idea to jot down 'club dues' on
-the check in order to prevent any confusion.""",
+It's always a good idea to jot down on the check exactly for
+what you are paying in order to prevent any confusion.""",
 
     ref1_email_or_PO="""[1] rodandboatclub@gmail.com or PO Box 248, 94924""",
 
@@ -774,6 +781,20 @@ content_types = dict(  # which_letter
                  'be' in record["status"].split(member.SEPARATOR)
                  else False),
         "e_and_or_p": "usps",
+        },
+    waiting4application_fee={
+        "subject": "Application Received",
+        "from": authors["membership"],
+        "cc": "sponsors",
+        "body": letter_bodies["waiting4application_fee"],
+        "post_scripts": (post_scripts["covid19"],
+                        post_scripts['remittance'],),
+        "funcs": (member.std_mailing_func,),
+        "test": (lambda record: True if
+                 (record["status"]
+                  and 'a-' in record["status"].split("|"))
+                 else False),
+        "e_and_or_p": "one_only",
         },
     new_applicant_welcome={
         "subject": "Welcome to the Club",
