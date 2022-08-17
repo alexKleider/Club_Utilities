@@ -164,6 +164,7 @@ class Club(object):
     with open(MEMBERSHIP_SPoT) as db_stream:
         reader = csv.DictReader(db_stream)
         DB_FIELDNAMES = reader.fieldnames
+
     # # ...end of Constants and Defaults.
 
     n_instances = 0

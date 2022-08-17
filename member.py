@@ -109,10 +109,9 @@ fstrings = {
     }
 
 
-def format_record(record, f_str=fstrings['last_first']):
+def format_record(record, f_str):
     """
     Retrieves a string representation of a record.
-    Default is to return the name in last, first format.
     """
     return f_str.format(**record)
 
@@ -459,17 +458,19 @@ def add2ms_by_status(record, club):
     """
     Appends a record to club.ms_by_status:
         Each key is a status
-        Each value is a list of strings:
-            member names in last_first format
-            of those having that status.
+        Each value is a list of keys (member key format.)
     """
     if record['status']:
+        entry = format_record(record, club.format)
         stati = get_status_set(record)
+        key = format_record(record, fstrings['key'])
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
             record = helpers.Rec(record)
+#           print("appending", record(club.format), status)
             club.ms_by_status[status].append(
-                    record(fstrings['last_first']))
+                    record(fstrings['key']))
+            club.entries_w_status[key] = entry
 
 def add2bad_demographics(record, club):
     record = helpers.Rec(record)
@@ -677,7 +678,7 @@ def set_kayak_fee(record, club):
     new_record = {}
     for key in club.fieldnames:
         new_record[key] = record[key]
-    name = format_record(record)
+    name = format_record(record, 'last_first' )
     if name in club.kayak_keys:
         new_record['kayak'] = club.kayak_fees[name]
     else:
@@ -717,7 +718,7 @@ def modify_data(csv_in_file_name, func, club=None):
                 yield func(rec, club)
 
 
-def show_by_status(by_status,
+def show_by_status(by_status,  # dict: key: status, value: name_keys
                    stati2show=STATI,
                    club=None):
     # clients: show_cmd & report_cmd in utils module
@@ -735,32 +736,33 @@ def show_by_status(by_status,
         if status in stati2show:
             helpers.add_header2list(STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
-            for line in by_status[status]:
-                ret.append(helpers.tofro_first_last(line))
-                if hasattr(club, 'applicant_data'):
-                    key = (' '.join(line.split()[:2]))
-                    if key in club.applicant_data_keys:
-                        # create a line of dates
-                        dates_attended = data.line_of_meeting_dates(
-                                        club.applicant_data[key])
-                        if dates_attended:
-                            ret.append("\tDate(s) attended: {}"
-                                    .format(dates_attended))
+            for name_key in by_status[status]:
+#               print('name_key:', name_key)
+                ret.append(club.entries_w_status[name_key])
+                if status in APPLICANT_STATI:
+                    if hasattr(club, 'applicant_data'):
+                        if name_key in club.applicant_data_keys:
+                            # create a line of dates
+                            dates_attended = data.line_of_meeting_dates(
+                                            club.applicant_data[name_key])
+                            if dates_attended:
+                                ret.append("\tDate(s) attended: {}"
+                                        .format(dates_attended))
+                            else:
+                                ret.append("\tNo meetings attended.")
+                            sponsors = club.sponsors_by_applicant[name_key]
                         else:
-                            ret.append("\tNo meetings attended.")
-                        sponsors = club.sponsors_by_applicant[key]
-                    else:
-                        sponsors = False
-                        print("{} has no dates!!".format(key))
-                    if sponsors:
-                        sponsor_line = ', '.join(
-                                [helpers.tofro_first_last(sponsor)
-                                for sponsor in sponsors])
-                        ret.append("\tSponsors: {}"
-                                        .format(sponsor_line))
-                    else:
-                        pass
-#                       print("{} has no sponsors!!".format(key))
+                            sponsors = False
+                            print("{} has no dates!!".format(name_key))
+                        if sponsors:
+                            sponsor_line = ', '.join(
+                                    [helpers.tofro_first_last(sponsor)
+                                    for sponsor in sponsors])
+                            ret.append("\tSponsors: {}"
+                                            .format(sponsor_line))
+                        else:
+                            pass
+    #                       print("{} has no sponsors!!".format(name_key))
     return ret
 
 
@@ -952,8 +954,7 @@ def add2lists(record, club):
     """
     Populates club.members, club.honorary, club.inactive, (if web=True)
               club.stati, club.applicants,
-              club.inductees, club.by_n_meetings and
-####### Change "by_n_meetings" to "by_applicant_status"
+              club.inductees, club.by_applicant_status and
               club.errors (initially empty lists)
     and increments club.nmembers,
                    club.napplicants and
@@ -962,14 +963,20 @@ def add2lists(record, club):
     determines how the data is displayed.
     """
     line = club.format.format(**record)
-    key = fstrings['last_first'].format(**record)
+    key = fstrings['key'].format(**record)
+    stati = get_status_set(record)
+    for status in stati:
+        club.stati.setdefault(status, [])
+        club.stati[status].append(key)
+    club.entries_w_status[key] = line
     if is_member(record):
+        # so we have a blank line between first letters:
         first_letter = record['last'][:1]
-        if club.for_web:
-            if first_letter != club.first_letter:
-                club.first_letter = first_letter
-                club.members.append("")
-            club.members.append(line)
+        if first_letter != club.first_letter:
+            club.first_letter = first_letter
+            club.members.append("")
+
+        club.members.append(line)
         club.nmembers += 1
     if is_honorary_member(record):
         club.honorary.append(line)
@@ -977,14 +984,19 @@ def add2lists(record, club):
     if is_inactive_member(record):
         club.inactive.append(line)
         club.ninactive +=1
+    if is_inductee(record):
+        club.inductees.append(line)
+        club.ninductees += 1
+        pass
     if is_applicant(record):
+        club.applicants[key] = line
         stati = get_status_set(record)
         status = stati & APPLICANT_SET
         assert len(status) == 1
         club.napplicants += 1
         s = status.pop()
-        _ = club.by_n_meetings.setdefault(s, [])
-        club.by_n_meetings[s].append(key)
+        _ = club.by_applicant_status.setdefault(s, [])
+        club.by_applicant_status[s].append(key)
         # metadata (dates of meetings; sponsors)
         # being appended by utils.show_cmd as it is building the
         # output.
@@ -1284,6 +1296,7 @@ prerequisites = {   # collectors needed by the
 #       ],
     add2ms_by_status: [
         'club.ms_by_status = {}',
+        'club.entries_w_status = {}',
         ],
     #   add2status_data: [
     #       'club.ms_by_status = {}',
@@ -1323,9 +1336,12 @@ prerequisites = {   # collectors needed by the
         'club.nhonorary = 0',
         'club.inactive = []',
         'club.ninactive = 0',
-        'club.by_n_meetings = {}',
+        'club.applicants = {}',
+        'club.by_applicant_status = {}',
         'club.napplicants = 0',
+        'club.stati = {}',
         'club.errors = []',
+        'club.entries_w_status = {}',
         ],
     get_payables: [
         'club.still_owing = []',

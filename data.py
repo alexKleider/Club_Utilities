@@ -318,7 +318,7 @@ def populate_applicant_data(club):
         print('Reading file "{}"...'.format(stream.name))
         for line in helpers.useful_lines(stream, comment='#'):
             rec = applicant_data_line2record(line)
-            name_key = member.fstrings['last_first'].format(**rec)
+            name_key = member.fstrings['key'].format(**rec)
             if sponsors and name_key in sponsored:
                 rec = add_sponsors(rec,
                         club.sponsors_by_applicant[name_key])
@@ -356,7 +356,7 @@ def parse_sponsor_data_line(line):
     parts = line.split(":")
     sponsored = parts[0].strip()
     names = sponsored.split()
-    name = '{}, {}'.format(names[1], names[0])
+    name = '{},{}'.format(names[1], names[0])
     part2 = parts[1]
     sponsors = tuple([
         helpers.tofro_first_last(sponsor.strip())
@@ -381,7 +381,7 @@ def populate_sponsor_data(club):
         for line in helpers.useful_lines(stream, comment='#'):
             parts = line.split(':')
             names = parts[0].split()  # applicant 1st and 2nd names
-            name = "{}, {}".format(names[1], names[0])
+            name = "{},{}".format(names[1], names[0])
             try:
                 sponsors = parts[1].split(',')
             except IndexError:

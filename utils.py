@@ -245,7 +245,6 @@ import content
 import data
 import helpers
 import member
-from member import fstrings
 import Pymail.send
 import Bashmail.send
 from rbc import Club
@@ -472,9 +471,8 @@ def ck_data_cmd(args=args):
 
 
 def show_cmd(args=args):
-    print("Preparing membership listings...")
+    print("Preparing membership listings for web ...")
     club = Club(args)
-    club.for_web = True
     club.format = member.fstrings['first_last_w_all_data']
     data.populate_sponsor_data(club)
     data.populate_applicant_data(club)
@@ -527,6 +525,18 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
             "Inactive Club Member(s)", ret,
             underline_char='=', extra_line=True)
         ret.extend(club.inactive)
+
+    if club.by_applicant_status:
+        header = ("Applicants ({} in number)"
+                  .format(club.napplicants))
+        helpers.add_header2list(header, ret, underline_char='=')
+
+        ret.extend(
+            member.show_by_status(
+                club.by_applicant_status,
+                club=club))
+
+    redacted = '''
     if club.by_n_meetings:  # change to "by_applicant_status"
         header = ("Applicants ({} in number)"
                   .format(club.napplicants))
@@ -535,7 +545,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
         ret.extend(member.show_by_status(
                                 club.by_n_meetings, # name change
                                 club=club))
-
+'''
     output("\n".join(ret), club.outfile)
 
 
@@ -650,12 +660,10 @@ def report_cmd(args=args):
     import member  # unclear why this is needed!!
     print("Preparing Membership Report ...")
     club = Club(args)
-    data.populate_sponsor_data(club)  # club attributes populated:
-                # sponsor_set, sponsor_emails, sponsors_by_applicant,
-    data.populate_applicant_data(club) 
-    club.format = fstrings[
+    club.format = member.fstrings[
             'first_last_w_all_staggered']
-    club.for_web = False
+    data.populate_sponsor_data(club)
+    data.populate_applicant_data(club) 
     err_code = member.traverse_records(
             # add demographic listings for those with ba or be status.
         club.infile,
@@ -671,19 +679,16 @@ def report_cmd(args=args):
     report.append('')
     report.append('Club membership currently stands at {}.'
                   .format(club.nmembers))
-
-#   for line in report:
-#       print(line)
-    if club.by_n_meetings:
+    if club.by_applicant_status:
         header = ("Applicants ({} in number, "
                   .format(club.napplicants) +
                   "with meeting dates & sponsors listed)")
         helpers.add_header2list(header, report, underline_char='=')
         # ####  collect applicant data:
         report.extend(
-                member.show_by_status(
-                    club.by_n_meetings,
-                    club=club))
+               member.show_by_status(
+                   club.by_applicant_status,
+                   club=club))
     if 'r' in club.ms_by_status:
         header = ('Members ({} in number) retiring from the Club:'
                   .format(len(club.ms_by_status['r'])))
@@ -693,7 +698,9 @@ def report_cmd(args=args):
             report.append(name)
 
     misc_stati = member.show_by_status(
-        club.ms_by_status, stati2show="m|w".split('|'))
+                        club.ms_by_status,
+                        stati2show="m|w".split('|'),
+                        club=club)
     if misc_stati:
         header = "Miscelaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
@@ -776,8 +783,23 @@ def setup4stati(club):
 
 def stati_cmd(args=args):
     print("Preparing listings by status...")
+    print("Preparing 'Stati' Report ...")
     club = Club(args)
-    club.for_web = False
+    setup4stati(club)
+    err_code = member.traverse_records(
+            club.infile,
+            [member.add2ms_by_status,],
+            club) 
+    listing = member.show_by_status(
+                    club.ms_by_status,
+                    stati2show=club.stati2show,
+                    club=club)
+    output('\n'.join(listing), club.outfile)
+
+
+def old_stati_cmd(args=args):
+    print("Preparing listings by status...")
+    club = Club(args)
     setup4stati(club)
     funcs2execute = [
         member.add2lists,
