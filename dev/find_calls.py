@@ -5,15 +5,21 @@
 """
 Study function definitions, calls and assignments.
 
-Definitions are sent to 
-Calls are sent to 
-Assignments are sent to 
+Definitions, Calls, & Assignments are sent to 
+output files named below ("# output file names...")
 """
 
 import re
 import sys
 import pprint
 import helpers
+
+# output file names...
+DEFS = '2ck_defs'
+CALLS = '2ck_calls'
+CALLSf = '2ck_calls_formatted'
+UNUSED = '2ck_unused'
+
 
 EXPR = r"def (\w+)\("
 PAT = re.compile(EXPR)
@@ -22,27 +28,20 @@ PAT = re.compile(EXPR)
 MODULE_NAMES = ("archive",
                 "content",
                 "data",
-                "docoptparser.py",
-                "dot_files.py",
-                "find_calls.py",
+#               "docoptparser",
+                "dot_files",
+                "find_calls",
                 "helpers",
-                "interface.py",
-                "json_as_txt.py",
+                "interface",
+#               "json_as_txt",
                 "member",
-                "parse_sponsors.py",
+#               "parse_sponsors",
                 "rbc",
-                "restore.py",
-                "setup.py",
+#               "restore",
+                "setup",
                 "sys_globals",
                 "utils",
                 )
-
-# output file names..
-DEFS = '2ck_defs'
-CALLS = '2ck_calls'
-CALLSf = '2ck_calls_formatted'
-UNUSED = '2ck_unused'
-
 
 def call_found(func_name, line, refed=None):
     """

@@ -347,6 +347,7 @@ def get_applicants_by_status(club):
 
 def parse_sponsor_data_line(line):
     """
+    !?UNUSED?!
     Assumes blank and commented lines have already been removed.
     returns a 2 tuple: (for subsequent use as a key/value pair)
     t1 is "last, first" name
@@ -632,6 +633,7 @@ def ck_data(club,
 
 def club_with_payables_dict(infile=None, args=None):
     """
+    !?UNUSED?!
     Returns an instance of Club with required attributes:
         owing_dict     } both of which
         credits_dict   }  are dicts
@@ -756,6 +758,9 @@ def data_listed(data, underline_char='=', inline=False):
 
 # the following (compare function) is not used?  Redact?
 def compare(data1, data2, underline_char='=', inline=False):
+    """
+    !?UNUSED?!
+    """
     ret = []
     if data1 == data2:
         ret.append("Good News: data1 == data2")
@@ -767,16 +772,6 @@ def compare(data1, data2, underline_char='=', inline=False):
     ret.extend(data_listed(data2, underline_char, inline))
     ret.append("... end of listings")
     return ret
-
-redact = '''
-def list_mooring_data(extra_fees_spot):
-    extra_fees_data = gather_extra_fees_data(extra_fees_spot)
-#   data = extra_fees_data[Club.CATEGORY_KEY]
-#   print(repr(data["Mooring"]))
-    mooring_data = extra_fees_data[Club.CATEGORY_KEY]["Mooring"]
-    return sorted(
-        ["{0} - {1}".format(*datum) for datum in mooring_data])
-'''
 
 
 def parse_kayak_data(raw_dict):
@@ -796,6 +791,7 @@ def parse_kayak_data(raw_dict):
 
 def populate_kayak_fees(club):
     """
+    !?UNUSED?!
     NOTE: one time use; should be REDACTed!!!
     Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
         keys- last/first name

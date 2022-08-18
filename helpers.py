@@ -63,13 +63,17 @@ def verify(notice, report=None):
 
 def equal_float(a, b):
     """
+    # Not used but might be helpful.
     compares floats for equality to limit of machine's accuracy
     # from Mark Summerfield
     """
-    return abs(a -b) <= sys.float_info.epsilon
+    return abs(a - b) <= sys.float_info.epsilon
 
 
 def get_attributes(r):
+    """
+    # Not used but might be helpful.
+    """
     return sorted([attribute for attribute in dir(r)
             if not attribute.startswith('__')])
 
@@ -153,6 +157,12 @@ def club_year(which='this', now=datetime.date.today()):
 
 
 def expand_date(date_string):
+    """
+    # Not used but might be helpful.
+    Assumes date_string is in form yymmdd or yyyymmdd;
+    Returns date in 'yyyy-mm-dd' format
+    or "BAD DATE" if len(date_string) != 6 or 8.
+    """
     if len(date_string) == 6:
         year = '{}{}'.format(CURRENT_CENTURY, date_string[:2])
     elif len(date_string) == 8:
@@ -183,6 +193,9 @@ def get_datestamp(date=None):
 
 
 def do_nothing(text):
+    """
+    !?UNUSED?!  redact!?
+    """
     print(text)
 
 
@@ -291,11 +304,6 @@ def join_email_listings(*args):
             arg = [item.strip() for item in arg]
             res.extend(arg)
     return ','.join(sorted(set(res)))
-
-
-# the following is notused...
-def script_location():
-    return os.getcwd()
 
 
 def useful_lines(stream, comment="#"):
@@ -538,6 +546,9 @@ def show_json_data(json_data, underlinechar=''):
 
 
 def dump2json_file(data, json_file, verbose=True):
+    """
+    !?UNUSED?!  Redact?!
+    """
     with open(json_file, "w") as json_file_obj:
         if verbose:
             print('Dumping (json) data to "{}".'.format(
@@ -557,6 +568,9 @@ def get_json(file_name, report=False):
 
 
 def longest(x, y):
+    """
+    Not used but could be helpful
+    """
     if len(x) > len(y):
         return x
     else:
@@ -735,6 +749,7 @@ def tofro_first_last(name):
 
 def add_fields(fieldnames, csv_file, prefix='new_'):
     """
+    !?UNUSED?!
     <csv_file> field_names must be a subset of <fieldnames>.
     Output has the same data but with blank entries for
     any field name not previously present.

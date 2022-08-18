@@ -249,9 +249,6 @@ import Pymail.send
 import Bashmail.send
 from rbc import Club
 
-# TEXT = ".txt"  # } Used by <extra_charges_cmd> command which has
-# CSV = ".csv"   # } been redacted so could probably be deleted.
-
 TEMP_FILE = "2print.temp"  # see <output> function
 
 args = docopt(__doc__, version=glbs.VERSION)
@@ -548,7 +545,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
 '''
     output("\n".join(ret), club.outfile)
 
-
+not_used = '''
 def get_meeting_dates(applicant_data):
     """
     <applicant_data> is a record with APPLICANT_DATA_FIELD_NAMES as
@@ -560,6 +557,7 @@ def get_meeting_dates(applicant_data):
             if applicant_data[key]]
     if dates: return ', '.join(dates)
     else: return "no meetings yet"
+'''
 
 
 def show_stati(club, include_headers=True):
@@ -797,30 +795,6 @@ def stati_cmd(args=args):
     output('\n'.join(listing), club.outfile)
 
 
-def old_stati_cmd(args=args):
-    print("Preparing listings by status...")
-    club = Club(args)
-    setup4stati(club)
-    funcs2execute = [
-        member.add2lists,
-        member.add2stati_by_m,
-        member.add2ms_by_status,
-#       member.increment_napplicants,  # done by add2lists
-        ]
-    if club.include_addresses:
-        funcs2execute.append(member.add2demographics)
-    else: print("addresses not included!!")
-    print("about to traverse '{}'".format(club.infile))
-    err_code = member.traverse_records(
-        club.infile,
-        funcs2execute,
-        club)
-    print("Preparing 'Stati' Report ...")
-    output('\n'.join(
-        show_stati(club)
-            ), club.outfile)
-
-
 def create_applicant_csv_cmd(args=args):
 
 
@@ -914,6 +888,7 @@ def usps_cmd(args=args):
 
 def club_setup4extra_charges(args=args):
     """
+    !?UNUSED?!  Redact?!
     Returns an instance of rbc.Club set up with what's needed
     to run the data.extra.charges function.
     ## Should probably not use -i as argument for extra fees file ##
@@ -931,15 +906,6 @@ Choose one of the following:        [default: table]
         'listing' same format as Data/extra_fees.txt
         'listings' side by side lists (best use landscape mode.) """
     return club
-
-
-
-def extra_charges_cmd(args=args):
-    """
-    Returns a report of members with extra charges.
-    It also can create a json file: specified by the -j option.
-    """
-    pass  # Not implemented.
 
 
 def payables_cmd(args=args):
@@ -1335,6 +1301,9 @@ def mutt_send(recipient, subject, body, attachments=None):
         print("Error: {} ({})".format(
             p.stdout, recipient))
 
+
+def unused_func():
+    pass
 
 if __name__ == "__main__":
     print("Architecture: {}  Platform: {}".

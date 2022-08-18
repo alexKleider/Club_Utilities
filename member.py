@@ -417,7 +417,8 @@ def add2email_by_m(record, club):
         club.email_by_m[name] = email
 
 
-def add2db_emails(record, club):
+redacted = '''
+def add2db_emails(record, club):  #?!unused
     """
     Populates club.db_emails
     'ex' for experimental
@@ -431,6 +432,7 @@ def add2db_emails(record, club):
     if not email:
         email = NO_EMAIL_KEY
     club.db_emails[name] = email
+'''
 
 
 def add2ms_by_email(record, club):
@@ -472,7 +474,7 @@ def add2ms_by_status(record, club):
                     record(fstrings['key']))
             club.entries_w_status[key] = entry
 
-def add2bad_demographics(record, club):
+def add2bad_demographics(record, club):  #?!unused
     record = helpers.Rec(record)
     stati = get_status_set(record)
     if 'ba' in stati:
@@ -483,6 +485,7 @@ def add2bad_demographics(record, club):
             record(fstrings['first_last_w_all_staggered']))
 
 
+redacted = '''
 def add2demographics(record, club):
     """
     Appends a record to club.demographics:
@@ -493,6 +496,7 @@ def add2demographics(record, club):
     record = helpers.Rec(record)
     club.demographics[record(fstrings['last_first'])] = (
           record(club.format)) 
+'''
 
 
 def add2member_with_email_set(record, club):
@@ -508,14 +512,6 @@ def add2member_with_email_set(record, club):
         club.member_with_email_set.add(entry)
     else:
         club.no_email_set.add(entry)
-
-
-
-def add2applicant_with_email_set(record, club):
-    if is_applicant(record) and record['email']:
-        record = helpers.Rec(record)
-        club.applicant_with_email_set.add(
-                record(fstrings['last_first']))
 
 
 def add2fee_data(record, club):
@@ -627,11 +623,9 @@ def thank_func(record, club):
 
 # The next two functions add entries to club.new_db
 
-
-#  update_db_re_payment_func(record, club):
-notused = '''
 def db_credit_payment(record, club):
     """
+    !?UNUSED?!  Redact?!
     Checks if record is in the club.statement_data dict and if so
     credits payment(s).  In either case data is moved to new
     db specified by club.dict_writer.
@@ -644,7 +638,7 @@ def db_credit_payment(record, club):
     if name in club.statement_data_keys:
         apply_credit2record(club.statement_data[name], new_record)
     club.dict_writer.writerow(new_record)
-'''
+
 
 def db_apply_charges(record, club):
     pass
@@ -1257,7 +1251,7 @@ def send_attachment(record, club):
 
 prerequisites = {   # collectors needed by the
                     # various traversing functions
-    add2db_emails: [
+    add2db_emails: [  #?!unused
         "club.db_emails = {}",
         ],
     ck_number_of_fields: [
@@ -1307,13 +1301,10 @@ prerequisites = {   # collectors needed by the
         'club.member_with_email_set = set()',
         'club.no_email_set = set()',
         ],
-    add2applicant_with_email_set: [
-        'club.applicant_with_email_set = set()',
-        ],
-    add2demographics: [
-        'club.demographics = {}',
-        ],
-    add2bad_demographics: [
+#   add2demographics: [
+#       'club.demographics = {}',
+#       ],
+    add2bad_demographics: [  #?!unused
         'club.ba_stati = {}',
         'club.be_stati = {}',
         ],
@@ -1378,9 +1369,9 @@ prerequisites = {   # collectors needed by the
     std_mailing_func: [
         "club.json_data = []",
         ],
-    db_apply_charges: [
-        "club.new_db = {}",
-        ],
+#   db_apply_charges: [
+#       "club.new_db = {}",
+#       ],
     add2statement_data: [
         'club.statement_data = {}',
         'club.statement_data_keys = []',
