@@ -54,6 +54,8 @@ config = dict(
         "password": getpw("easy"),
         "tls": "on",
     },
+# google no longer provides smtp services so 
+# the following won't work!!
     akg= {
         "host": "smtp.gmail.com",
         "port": "587",

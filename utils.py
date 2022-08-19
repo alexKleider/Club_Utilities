@@ -1122,14 +1122,15 @@ def send_emails_cmd(args=args):
     Sends emails prepared by prepare_mailing_cmd.
     See also content.authors_DOCSTRING.
     """
-    if confirm:  # not using curses: check 'lesssecureapps' setting.
-        ck_lesssecureapps_setting()
+    # gmail no longer provides smtp services so next 2 lines redacted
+#   if confirm:  # not using curses: check 'lesssecureapps' setting.
+#       ck_lesssecureapps_setting()
     mta = args["--mta"]
     emailer = args["--emailer"]
     if emailer == "python":
         send_func = Pymail.send.send
         print("Using Python modules to dispatch emails.")
-    elif emailer == "bash":
+    elif emailer == "bash":  # will probably redact this
         send_func = Bashmail.send.send
         print("Using Bash to dispatch emails.")
     else:
@@ -1255,31 +1256,6 @@ def new_db_cmd(args=args):
     func = member.func_dict[args['-F']]
     dict_write(club.outfile, club.fieldnames,
                member.modify_data(club.infile, func, club))
-
-
-notused = '''
-def smtp_send(recipients, message):
-    """
-    Send email, as defined in <message>,
-    to the <recipients> who will receive this email
-    from the Bolinas Rod and Boat Club.
-    <recipients> must be an iterable of one or more email addresses.
-    Note: Must first lower br&bc's account security at:
-    https://myaccount.google.com/lesssecureapps
-    Also Note: <message> must be in proper format with
-    "From:", "To:" & "Subject:" lines (no leading spaces!) followed
-    by a blank line and then the text of the email. The "From:" line
-    should read as follows: "From: rodandboatclub@gmail.com"
-    """
-    cmd_args = ["msmtp", "-a", glbs.MSMTP_ACCOUNT, ]
-    for recipient in recipients:
-        cmd_args.append(recipient)
-    p = subprocess.run(cmd_args, stdout=subprocess.PIPE,
-                       input=message, encoding='utf-8')
-    if p.returncode:
-        print("Error: {} ({})".format(
-            p.stdout, recipient))
-'''
 
 
 def mutt_send(recipient, subject, body, attachments=None):

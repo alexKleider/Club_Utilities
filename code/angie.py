@@ -117,6 +117,7 @@ def parse_angies_csv(infile, owers=None, errors=None):
             newline='') as stream:
         reader = csv.DictReader(stream, dialect='excel')
     #   print(reader.fieldnames)
+        ck = 0
         for record in reader:
     #       print(record)
             total = 0
@@ -129,6 +130,9 @@ def parse_angies_csv(infile, owers=None, errors=None):
             for key1, key2 in correspondence:
                 ret_rec[key1] = record[key2].strip()
             key = "{last},{first}".format(**ret_rec)
+            if ck == 0:
+                print(owers)
+                ck += 1
             if owers and (not (key in owers)):
                 errors.append("{} not in owers.".format(key))
             ret_rec.pop('first')
@@ -247,7 +251,7 @@ def dev():
     infile = INFILE
     error_file = ERROR_FILE
     res = parse_angies_csv(infile, owers=owers, errors=errors)
-    outfile = 'code/receipts'
+    outfile = 'code/receipts.txt'
     print("writing to {}".format(outfile))
     with open(outfile, 'w') as stream:
         for line in text4receipts(res):

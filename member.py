@@ -1251,9 +1251,9 @@ def send_attachment(record, club):
 
 prerequisites = {   # collectors needed by the
                     # various traversing functions
-    add2db_emails: [  #?!unused
-        "club.db_emails = {}",
-        ],
+#   add2db_emails: [  #?!unused
+#       "club.db_emails = {}",
+#       ],
     ck_number_of_fields: [
         "club.errors = []",
         ],
