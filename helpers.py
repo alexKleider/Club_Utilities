@@ -747,6 +747,11 @@ def tofro_first_last(name):
         return f"{last}, {first}"
 
 
+def loose_spaces(line):
+    words = line.split()
+    return ''.join(words)
+
+
 def add_fields(fieldnames, csv_file, prefix='new_'):
     """
     !?UNUSED?!

@@ -53,7 +53,8 @@ def gather_membership_data(club):
     both 'email' collectors.
     """
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-                                       (member.add2db_emails,
+                                       (
+#                                       member.add2db_emails,
 #                                       member.add2email_data,
                                         member.add2email_by_m,
                                         member.add2fee_data,
@@ -460,6 +461,7 @@ def ck_data(club,
 # ... check that the contacts.cvs file came from the Club's gmail
 # account, not someone else's!!!
     applicant_set = club.g_by_group[club.APPLICANT_GROUP]
+#   _ = input(f"applicant_set: {applicant_set}")
     applicant_missmatches = helpers.check_sets(
         applicant_set,
         club.applicant_with_email_set,
@@ -473,19 +475,32 @@ def ck_data(club,
         "Member(s) in Google Contacts not in Member Listing",
         "Member(s) in Member Listing not in Google Contacts"
         )
+
+    g_inactive = club.g_by_group[club.INACTIVE_GROUP]
+    g_inactive = set(
+        [helpers.loose_spaces(item) for item in g_inactive])
+    m_inactive = set(club.ms_by_status['m'])
+    print(f"g_inactive: {g_inactive}")
+    print(f"m_inactive: {m_inactive}")
     special_status_missmatches = helpers.check_sets(
-        club.g_by_group[club.INACTIVE_GROUP],
-        set(club.ms_by_status['m']),
+        g_inactive,
+        m_inactive,
         "{} doesn't match membership listing"
             .format(club.INACTIVE_GROUP),
         "'m' status (inactive) not reflected in google contacts"
         )
 
 
-    if (
-        applicant_missmatches or
-        member_missmatches or
-        special_status_missmatches):
+    if special_status_missmatches:
+        helpers.add_header2list(
+            "Special status missmatches",
+            ret, underline_char='=', extra_line=True)
+        ret.extend(special_status_missmatches)
+    else:
+        ok.append("No special status missmatches")
+
+
+    if applicant_missmatches or member_missmatches:
         helpers.add_header2list(
             "Missmatch: Gmail groups vs Club data",
             ret, underline_char='=', extra_line=True)

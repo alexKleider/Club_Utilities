@@ -449,6 +449,19 @@ def add2ms_by_email(record, club):
     club.ms_by_email[email].append(name)
 
 
+def add2applicant_with_email_set(record, club):
+    """
+    Populates club.applicant_with_email_set
+    """
+    if not is_applicant(record):
+        return
+    record = helpers.Rec(record)
+    name = record(fstrings['last_first'])
+    email = record['email']
+    if email:
+        club.applicant_with_email_set.add(name)
+
+
 def add2stati_by_m(record, club):
     if record["status"]:
         record = helpers.Rec(record)
@@ -1300,6 +1313,9 @@ prerequisites = {   # collectors needed by the
     add2member_with_email_set: [
         'club.member_with_email_set = set()',
         'club.no_email_set = set()',
+        ],
+    add2applicant_with_email_set: [
+        'club.applicant_with_email_set = set()',
         ],
 #   add2demographics: [
 #       'club.demographics = {}',
