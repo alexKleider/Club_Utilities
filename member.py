@@ -37,7 +37,7 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
     "h" : "Honorary Member",                             #10 > #12
-    'm' : "Inactive member (continuing to receive minutes)",
+    'm' : "Inactive (continuing to receive minutes)",
     'r' : "Retiring/Giving up Club Membership",
     't' : "Membership terminated (probably non payment of fees)",
             # a not yet implemented temporary
@@ -456,9 +456,8 @@ def add2applicant_with_email_set(record, club):
     if not is_applicant(record):
         return
     record = helpers.Rec(record)
-    name = record(fstrings['last_first'])
-    email = record['email']
-    if email:
+    name = record(fstrings['key'])
+    if record['email']:
         club.applicant_with_email_set.add(name)
 
 
@@ -520,7 +519,8 @@ def add2member_with_email_set(record, club):
                         'club.has_email_set'.
     """
     record = helpers.Rec(record)
-    entry = record(fstrings['last_first'])
+    entry = record(fstrings['key'])
+#   entry = record(fstrings['last_first'])
     if record['email'] and is_member(record):
         club.member_with_email_set.add(entry)
     else:

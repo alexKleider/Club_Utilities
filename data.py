@@ -89,7 +89,8 @@ def get_gmail_record(g_rec):
         g_rec["Family Name"],
         g_rec["Name Suffix"],
         )).strip()
-    gname = "{}, {}".format(last_name, first_name)
+#   gname = "{}, {}".format(last_name, first_name)
+    gname = "{},{}".format(last_name, first_name)
     alias = "{}{}".format(first_name, last_name)
     muttname = '{} {}'.format(first_name, last_name)
     return dict(
@@ -137,6 +138,15 @@ def gather_contacts_data(club):
             for key in g_dict["groups"]:
                 _ = club.g_by_group.setdefault(key, set())
                 club.g_by_group[key].add(g_dict["gname"])
+
+testing = '''
+    _ = input(f"""gmail_by_name: {club.gmail_by_name}""")
+    club.gmail_by_name = dict()  # => string
+    _ = input(f"""groups_by_name: {club.groups_by_name}""")
+    club.groups_by_name = dict()  # => set
+    _ = input(f"""g_by_group: {club.g_by_group}""")
+    club.g_by_group = dict()  # >set of names
+'''
 
 
 def move_date_listing_into_record(dates, record):
@@ -477,11 +487,7 @@ def ck_data(club,
         )
 
     g_inactive = club.g_by_group[club.INACTIVE_GROUP]
-    g_inactive = set(
-        [helpers.loose_spaces(item) for item in g_inactive])
     m_inactive = set(club.ms_by_status['m'])
-    print(f"g_inactive: {g_inactive}")
-    print(f"m_inactive: {m_inactive}")
     special_status_missmatches = helpers.check_sets(
         g_inactive,
         m_inactive,
