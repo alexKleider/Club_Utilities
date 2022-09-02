@@ -827,7 +827,7 @@ content_types = dict(  # which_letter
         "body": letter_bodies["awaiting_vacancy"],
         "post_scripts": (),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record: True if member.is_inducted(record)
+        "test": (lambda record: True if member.is_inductee(record)
                                  else False),
         "e_and_or_p": "one_only",
         },
