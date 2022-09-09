@@ -37,6 +37,7 @@ import tarfile
 import datetime
 from docopt import docopt
 import rbc
+import helpers
 
 VERSION = '0.0.1'
 
@@ -57,12 +58,13 @@ info_file = rbc.Club.ARCHIVING_INFO
 
 
 def archive(sources,
-            destination_directory,  # the destination directory
+            destination_directory,
             targz_base_name=date_stamp,
             quiet=False):
     """
     All files and directories listed in <sources> are archived into
-    <targz_base_name>.tar.gz which is placed into <dest_dir>.
+    <targz_base_name>.tar.gz which is placed into
+    <destination_directory>.
     Returns False if there are any irregularities, else returns True.
     A 'False' return does not necessarily mean that archiving failed.
     Returns 'True' if archiving is done.
@@ -88,8 +90,8 @@ def archive(sources,
     for source in sources:
 #       print("source: '{}'".format(source))
 #       print("targz_base_name: '{}'".format(targz_base_name))
-        dest = os.path.join(targz_base_name,
-                os.path.split(source)[1])
+        dest = os.path.join(targz_base_name,  #} file name
+                os.path.split(source)[1])     #} by itself.
 #       print("dest: '{}'".format(dest))
         if not quiet:
             response = input(
@@ -168,12 +170,6 @@ def archive_mail(sources,
     return '** archive_mail() => "success"'
 
 
-def loose_trailing_empty_strings(list_of_strings):
-    if list_of_strings:
-        while not list_of_strings[-1]:
-            list_of_strings = list_of_strings[:-1]
-    return list_of_strings
-
 def main():
     report = []
     action_keys = ('mail', 'volatile data', 'stable data', )
@@ -197,7 +193,8 @@ def main():
             .format(info_file))
     else:
         mode = 'a'  # will be appending
-        lines = loose_trailing_empty_strings(content.split('\n'))
+        lines = helpers.loose_trailing_empty_strings(
+                                content.split('\n'))
         last_line = lines[-1] 
         response = input(
                 'Date and details of last update: {}; continue?(y/n) '

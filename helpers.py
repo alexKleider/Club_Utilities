@@ -747,6 +747,13 @@ def tofro_first_last(name):
         return f"{last}, {first}"
 
 
+def loose_trailing_empty_strings(list_of_strings):
+    if list_of_strings:
+        while not list_of_strings[-1]:
+            list_of_strings = list_of_strings[:-1]
+    return list_of_strings
+
+
 def loose_spaces(line):
     words = line.split()
     return ''.join(words)
