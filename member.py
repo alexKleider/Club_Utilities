@@ -1090,15 +1090,12 @@ def append_email(record, club):
     sponsor_email_addresses = ''
     if club.cc_sponsors:
         record = helpers.Rec(record)
-        name_key = record(fstrings['last_first'])
+        name_key = record(fstrings['key'])
         if name_key in club.applicant_set:
             sponsors = club.sponsors_by_applicant[name_key]
             # Use list comprehension for the following:
             sponsor_email_addresses = []
             for sponsor in club.sponsors_by_applicant[name_key]:
-#               print('{} sponsor: {}'.format(name_key, sponsor))
-#               print('appending: {}'.format(
-#                               club.sponsor_emails[sponsor]))
                 addr = club.sponsor_emails[sponsor]
                 if addr:
                     sponsor_email_addresses.append(addr)

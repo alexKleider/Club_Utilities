@@ -967,11 +967,6 @@ def prepare4mailing(club):
 
 def prepare_mailing_cmd(args=args):
     """
-    See description under 'Commands' heading in the docstring.
-    Sets up an instance of rbc.Club with necessary attributes and
-    then calls member.prepare_mailing.
-    ## Need to implement sending of copies to       ##
-    ## sponsors if "-cc sponsors" option is chosen. ##
     """
     # ***** Set up configuration in an instance of # Club:
     club = Club(args)
