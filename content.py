@@ -369,8 +369,8 @@ Please send a check for ${current_dues} to the Club
 
 
     welcome2full_membership="""
-It is my pleasure to welcome you as a new member to the Bolinas Rod
-and Boat Club!
+As Membership Chair, it is my pleasure to welcome you as a new
+member to the Bolinas Rod and Boat Club!
 
 As you may know, the Club has its own web site 'rodandboatclub.com'
 which is password protected. The password is 'fish' and although not a
@@ -384,7 +384,7 @@ There is a wealth of history on our website: recordings of past
 'marine moments' along with photos of events, and forms for renting
 the club ~ lots to explore there.
 
-Members can (upon payment of a $10 deposit) get a key to the Club
+Members can (upon payment of a $25 deposit) get a key to the Club
 from "keeper of the keys" Ralph Cammicia.  Many take advantage of
 having this access to spend time on the balcony enjoying views of
 the lagoon and Bolinas Ridge.  Please be sure to lock up upon
@@ -397,9 +397,11 @@ site: "Rules and Forms" and under that "Club Rentals".
 Please feel free to contact me if you have any questions about
 anything related to the Club.
 
-As you already know, general membership meetings are held on the first
-Friday of each month @ 7:30. Please come and attend meetings and other
-functions to enjoy the camaraderie!""",
+As you already know, general membership meetings are held on the
+first Friday of each month @ 7:30. The February Annual General
+meeting is an exception to this rule. You'll be receiving
+announcemnts from the Club Secretary. Please come and attend
+meetings and other functions to enjoy the camaraderie!""",
 
     expired_application="""
 It's been more than six months since your membership application has
