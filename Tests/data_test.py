@@ -25,23 +25,23 @@ import pytest
 
 @pytest.mark.parametrize("line, expected", [
 ('Kent Khtikian: Jack Siedman, Don Murch',
-    ('Khtikian, Kent', ('Siedman, Jack', 'Murch, Don'))),
+    ('Khtikian,Kent', ('Siedman, Jack', 'Murch, Don'))),
 ('Andrew Kleinberg:  Rudi Ferris, Ralph Camiccia',
-    ('Kleinberg, Andrew', ('Ferris, Rudi', 'Camiccia, Ralph'))),
+    ('Kleinberg,Andrew', ('Ferris, Rudi', 'Camiccia, Ralph'))),
 ('Jen Hatch:  Kimberly Goosherst, Shervin Kheradpir',
-    ('Hatch, Jen', ('Goosherst, Kimberly', 'Kheradpir, Shervin'))),
+    ('Hatch,Jen', ('Goosherst, Kimberly', 'Kheradpir, Shervin'))),
 ('Hector Mora-Lopez: Ed Mann, Esra Connor',
-    ('Mora-Lopez, Hector', ('Mann, Ed', 'Connor, Esra'))),
+    ('Mora-Lopez,Hector', ('Mann, Ed', 'Connor, Esra'))),
 ('July Guzman:  Kirsten Walker, William Norton',
-    ('Guzman, July', ('Walker, Kirsten', 'Norton, William'))),
+    ('Guzman,July', ('Walker, Kirsten', 'Norton, William'))),
 ('Marco Garcia:  Kirsten Walker, Albert Foreman',
-    ('Garcia, Marco', ('Walker, Kirsten', 'Foreman, Albert'))),
+    ('Garcia,Marco', ('Walker, Kirsten', 'Foreman, Albert'))),
 ('Sam Schow:  Rudi Ferris, Joel Booth',
-    ('Schow, Sam', ('Ferris, Rudi', 'Booth, Joel'))),
+    ('Schow,Sam', ('Ferris, Rudi', 'Booth, Joel'))),
 ('Jason Crichfield: Joseph Ferraro, Ralph Camiccia',
-    ('Crichfield, Jason', ('Ferraro, Joseph', 'Camiccia, Ralph'))),
+    ('Crichfield,Jason', ('Ferraro, Joseph', 'Camiccia, Ralph'))),
 ('Matthew Lundy: Ralph Camiccia, Rudi Ferris',
-    ('Lundy, Matthew', ('Camiccia, Ralph', 'Ferris, Rudi'))),
+    ('Lundy,Matthew', ('Camiccia, Ralph', 'Ferris, Rudi'))),
 ])
 def test_parse_sponsor_data_line(line, expected):
     assert data.parse_sponsor_data_line(line) == expected

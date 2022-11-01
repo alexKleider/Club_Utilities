@@ -144,13 +144,13 @@ def replace_with_in(s, rl, l):
     ## TO DO: Might be better to bring the detail from where it's
     ## used back to here.
     """
-    new_listing = []
+    ret = []
     for item in set(l):
         if s in item:
-            new_listing.extend(rl)
+            ret.extend(rl)
         else:
-            new_listing.append(item)
-    return sorted(set(new_listing))
+            ret.append(item)
+    return sorted(set(ret))
 
 
 def names_reversed(name):

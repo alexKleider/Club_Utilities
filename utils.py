@@ -263,8 +263,12 @@ except ValueError:
     print(
         "Value of '-w' command line argument must be an integer.")
     sys.exit()
-if args["-p"] not in content.printers.keys():
+printer_choices = content.printers.keys()
+if args["-p"] not in printer_choices:
     print("Invalid '-p' parameter! '{}'".format(args['-p']))
+    print("Valid choices are:")
+    for printer in printer_choices:
+        print("\t" + printer)
     sys.exit()
 
 
@@ -532,32 +536,7 @@ Data maintained by the Membership Chair and posted here by Secretary {}.
             member.show_by_status(
                 club.by_applicant_status,
                 club=club))
-
-    redacted = '''
-    if club.by_n_meetings:  # change to "by_applicant_status"
-        header = ("Applicants ({} in number)"
-                  .format(club.napplicants))
-        helpers.add_header2list(header, ret, underline_char='=')
-
-        ret.extend(member.show_by_status(
-                                club.by_n_meetings, # name change
-                                club=club))
-'''
     output("\n".join(ret), club.outfile)
-
-not_used = '''
-def get_meeting_dates(applicant_data):
-    """
-    <applicant_data> is a record with APPLICANT_DATA_FIELD_NAMES as
-    keys. Returns a string consisting of a comma separated listing of
-    meeting dates if available, else "no meetings yet".
-    """
-    dates = [applicant_data[key] for key in
-            Club.APPLICANT_DATA_FIELD_NAMES[5:8]
-            if applicant_data[key]]
-    if dates: return ', '.join(dates)
-    else: return "no meetings yet"
-'''
 
 
 def show_stati(club, include_headers=True):
@@ -623,7 +602,6 @@ def show_stati(club, include_headers=True):
                            format(get_meeting_dates(
                                club.applicant_data[applicant])))
                         if club.include_sponsors:
-#                           print(club.applicant_data[applicant])
                             ret.append('\tSponsors: {sponsor1}, {sponsor2}'.
                                        format(**club.applicant_data[applicant]))
                         else:
@@ -641,14 +619,6 @@ def show_stati(club, include_headers=True):
                     except KeyError:
                         logging.error(
                                 "No entry for %s!"%status_holder)
-#                   line = (club.demographics[status_holder])
-#                   if (special_notice_members and
-#                       status_holder in special_notice_members
-#                       ):
-#                       line = ('{} {}'.format(
-#                           line,
-#                           club.special_notices_by_m[status_holder]))
-#                   ret.append(line)
                 else:
                     ret.append(status_holder)
     return ret
@@ -745,30 +715,33 @@ def report_cmd(args=args):
 
 
 def setup4stati(club):
-    club.include_addresses = args['-D'] or args['-m']  # Demographics
+    # Demographics...
+    club.include_addresses = args['-D'] or args['-m']
     if club.include_addresses:
-        club.format = member.fstrings['first_last_w_all_staggered']
+        club.format = member.fstrings[
+                                'first_last_w_all_staggered']
     else:
         club.format = member.fstrings['first_last']
-    club.include_dates = args['-M'] or args['-m']  # Meetings
-    club.include_sponsors = args['-B'] or args['-m']  # Backers
+    # Meetings...
+    club.include_dates = args['-M'] or args['-m']
+    # Backers...
+    club.include_sponsors = args['-B'] or args['-m']
+    # Sponsors &/or Dates...
     if club.include_sponsors or club.include_dates:
         data.populate_sponsor_data(club)
         data.populate_applicant_data(club)
-    if args['-s']:
+    if args['-s']:  # See DocString re '-s' option
         which2show = args['-s'].split(glbs.SEPARATOR)
-#   if which2show:
         for s, rl in (
                 ('appl', member.APPLICANT_SET),
                 ('exec', member.EXEC_SET),
                 ):
-#               print("{}, {}".format(s, rl))
-            which2show = member.replace_with_in(s, rl, which2show)
+            which2show = member.replace_with_in(
+                                            s, rl, which2show)
         res = sorted(set(which2show))
         club.stati2show = res
     else:  # show all stati
         club.stati2show = sorted(set(member.STATI))
-#   print("stati2show: {}".format(repr(club.stati2show)))
     if not set(club.stati2show).issubset(set(member.STATI)):
         for item in club.stati2show:
             if not item in member.STATI:

@@ -31,10 +31,14 @@ from rbc import Club
 DEBUGGING_FILE = 'debug.txt'
 
 
-def get_fieldnames(csv_file: "name of csv file"
+def get_fieldnames(csv_file: "name of csv file", report=True
         ) -> "list of the csv file's field names":
+    """
+    Returns the field names of the csv file named.
+    """
     with open(csv_file, 'r', newline='') as file_object:
-        print('DictReading file "{}"...'.format(file_object.name))
+        if report:
+            print('DictReading file "{}"...'.format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         return dict_reader.fieldnames
 
@@ -44,8 +48,8 @@ def gather_membership_data(club):
     Gathers the info we want from the membership csv file
     which is defined by club.MEMBERSHIP_SPoT.
 
-    Sets up a number of collectors as attributes of <club>
-    and then calls member.traverse_records to populate them.
+    Calls member.traverse_records which sets up and then populates
+    a number of collectors (attributes of <club>.)
     See member.add2... functions corresponding to each[1] of the
     following <club> attributes.
     [1] except both 'fee_category' collectors are populated by
@@ -126,8 +130,8 @@ def gather_contacts_data(club):
     with open(club.CONTACTS_SPoT, 'r',
         encoding='utf-8', newline='') as file_obj:
         google_reader = csv.DictReader(file_obj)
-        print('DictReading Google contacts file "{}"...'.format(
-                                                    file_obj.name))
+        print('DictReading Google contacts file "{}"...'
+            .format(file_obj.name))
         for g_rec in google_reader:
             g_dict = get_gmail_record(g_rec)
 
@@ -138,15 +142,6 @@ def gather_contacts_data(club):
             for key in g_dict["groups"]:
                 _ = club.g_by_group.setdefault(key, set())
                 club.g_by_group[key].add(g_dict["gname"])
-
-testing = '''
-    _ = input(f"""gmail_by_name: {club.gmail_by_name}""")
-    club.gmail_by_name = dict()  # => string
-    _ = input(f"""groups_by_name: {club.groups_by_name}""")
-    club.groups_by_name = dict()  # => set
-    _ = input(f"""g_by_group: {club.g_by_group}""")
-    club.g_by_group = dict()  # >set of names
-'''
 
 
 def move_date_listing_into_record(dates, record):
@@ -207,9 +202,8 @@ def applicant_data_line2record(line):
         l -= 1
     else:
         special_status = ''
-    if l == 0:           # Should never have an entry /w no dates.
-        status = "zaa"   # No longer a valid status
-        print("Entry for {}{} is without any dates."
+    if l == 0:       # Should never have an entry /w no dates.
+        print("Entry for applicant {}{} is without any dates."
                 .format(names[0], names[1]))
         sys.exit()
     elif l == 1:               # one date listed

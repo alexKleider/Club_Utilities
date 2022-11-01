@@ -30,12 +30,6 @@ def test_join_email_listings():
     assert helpers.join_email_listings(s0, s1, s2, s3) == res
 
 
-def test_script_location():
-    assert helpers.script_location() == (
-    "/home/alex/Git/Club/Utils"
-    )
-
-
 stream = [
     "The quick brown fox",
     "   jumped over the moon",

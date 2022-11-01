@@ -289,8 +289,8 @@ each month. Meetings are scheduled to begin at 7:30 pm (except
 for the February special dinner meeting which begins at 6pm.)
 
 To become eligible for membership (and not waste your application
-fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received.""",
+fee) you must attend a minimum of three meetings with in a six
+month period.""",
 
     covid_welcome="""
 As Membership Chair it is my pleasure to welcome you as a new
