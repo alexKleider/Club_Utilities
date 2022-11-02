@@ -19,8 +19,8 @@ Next step to implement is to merge this csv file with the main club
 data base csv file.  (Not yet implemented)
 """
 
-FIELDS =(
-'first,last,phone,address,town,state,postal_code,country,email,dues,dock,kayak,mooring,status'.split(','))
+HEADER = ('first,last,phone,address,town,state,postal_code,country,email,dues,dock,kayak,mooring,status')
+FIELDS = HEADER.split(',')
 
 import sys
 import csv
