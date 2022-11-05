@@ -4,11 +4,15 @@
 
 """
 Usage:
-    ./eg_applicant.py [filename]
+    ./eg_applicant.py [infilename [outfilename]]
 
+Prints a line of comma separated values which can
+be redirected into (>) or appended to (>>) a file.
 
-Positional argument <filename>, if provided,
+Positional argument <infilename>, if provided,
 must have one field value per line in the correct order.
+If used then <outfilename> may also be provided for output.
+Data is appended (so as not to overwrite if file exists.)
 
 A work in progress...
 
@@ -49,4 +53,9 @@ else:
         applicant[key] = input(f"\t{key}: ")
 
 values = [applicant[key] for key in applicant.keys()]
-print(','.join(values))
+ret = ','.join(values)
+if len(sys.argv) == 3:
+    with open(sys.argv[2], 'a') as outstream:
+        outstream.write(ret)
+else:
+    print(ret)

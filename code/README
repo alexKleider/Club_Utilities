@@ -1,6 +1,21 @@
 # File: code/README
 
-As I move my library into this "code" directory
+this directory is where I'm developing some utilities,
+the most active one having to do with resolving the csv
+files Angie sends me with my records.  The major issue has
+to do with the fact that names often don't match. (eg Bill 
+vs William)
+code/angie.py 
+    accepts one of angie's csv files (after it has been subjected to
+    the 'fromdos' command and has had the first line deleted)...
+    and yields a listing which can be cut and pasted into the receipts
+    file.
+
+I've also thought about having a 'main.py' program in the parent
+directory and modules it uses in this directory although so far
+(as of Sat 05 Nov 2022 09:00:09 AM PDT) no moves have been made
+in this direction.
+If/when I do move my library into this "code" directory
 each file importing from it will (probably) need the following:
 
 from code import  <listing of files required from code>
@@ -10,10 +25,4 @@ modules located in 'code's parent directory:
     import os
     import sys
     sys.path.insert(0, os.path.split(sys.path[0])[0])
-
-code/angie.py 
-    accepts one of angie's csv files (after it has been subjected to
-    the 'fromdos' command and has had the first line deleted)...
-    and yields a listing which can be cut and pasted into the receipts
-    file.
 

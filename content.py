@@ -249,20 +249,6 @@ Please pay promptly; we'd hate to loose you as a member.
 Details follow.
 {extra}""",
 
-    covid_final_notice="""
-Club records indicate that you have not yet paid Club dues for the
-current ({}) membership year.  If you no longer wish to be a
-member, no further action is necessary (although we would like to hear
-explicitly if that is your choice,) otherwise, please send in payment
-which must be received soon if you are to remain a member.
-{{extra}}
-If you would like to remain a member but are unable to make payment
-because of financial hardship imposed by the pandemic, please let us
-know; the Executive Committee is very concerned about, and wants to
-consider, any such cases.
-
-Sincerely,""".format(helpers.club_year(which='this')),
-
     bad_email="""
 Emails sent to you at
     "{email}"
@@ -284,36 +270,15 @@ The process has begun!""",
 As Membership Chair it is my pleasure to welcome you as a new
 applicant for membership in the Bolinas Rod and Boat Club.
 
-Please come and enjoy the meetings held on the first Friday of
-each month. Meetings are scheduled to begin at 7:30 pm (except
-for the February special dinner meeting which begins at 6pm.)
+If they haven't already done so, please ask your sponsors to
+inform you of the purpose and rules of the Club (as required by
+our By-Laws.)
 
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in a six
-month period.""",
-
-    covid_welcome="""
-As Membership Chair it is my pleasure to welcome you as a new
-applicant for membership in the Bolinas Rod and Boat Club.
-
-The following is part of what used to be the welcoming text
-but unfortunately all meetings have been suspended during the
-pandemic.
-
-'''
-Please come and enjoy the meetings held on the first Friday of
-each month. Meetings are scheduled to begin at 7:30 pm (except
-for the February special dinner meeting which begins at 6pm.)
-
-To become eligible for membership (and not waste your application
-fee) you must attend a minimum of three meetings with in the six
-month period beginning the date your application was received.
-'''
-
-Meetings are now being held virtually. The Club Secretary will be
-sending you announcements.
-
-Stay safe and let's all hope for more social times in the future!""",
+month period.  You may attend as the guest of any member; your
+sponsors are where you might want to turn in this regard as well.
+""",
 
     awaiting_vacancy="""
 The Club Executive Committee has, at its last meeting,
@@ -758,21 +723,6 @@ content_types = dict(  # which_letter
             ) else False,
         "e_and_or_p": "both",
         },
-    covid_final_notice={
-        "subject": "BR&BC final notice",
-        "from": authors["membership"],
-        "body": letter_bodies["covid_final_notice"],
-        "post_scripts": (
-            post_scripts["remittance"],
-            ),
-        "funcs": (member.assign_statement2extra_func,
-                  member.std_mailing_func),
-        "test": (lambda record: True if
-            (member.is_dues_paying(record) and
-            member.dues_owing(record)
-            ) else False),
-        "e_and_or_p": "one_only",
-        },
     bad_email={
         "subject": "non-working email",
         "from": authors["membership"],
@@ -809,17 +759,6 @@ content_types = dict(  # which_letter
                  (record["status"]
                   and 'a' in record["status"].split("|"))
                  else False),
-        "e_and_or_p": "one_only",
-        },
-    covid_welcome={
-        "subject": "Welcome to the Club",
-        "from": authors["membership"],
-        "cc": "sponsors",
-        "body": letter_bodies["covid_welcome"],
-        "post_scripts": (),
-        "funcs": (member.std_mailing_func,),
-        "test": (lambda record: True if member.is_new_applicant(record)
-                                 else False),
         "e_and_or_p": "one_only",
         },
     awaiting_vacancy={
