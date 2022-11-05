@@ -1,10 +1,77 @@
 # File: restoreREADME
 #    -located within the git repository.
 
+Note: It's been my custom to name directories with a capitol letter.
+You may or may not wish to follow such a convention.
 
 Guide to Cloning the Repository and Restoring Backed up Data
 ============================================================
 
+    # Assume you want everthing under a directory called "Club"
+    mkdir Club
+    cd Club
+    mkdir Archives
+    cd Archives  # where we keep archived data and from where
+                # we transfer tar files to google drive
+    mkdir Data  Mailings  Receipts  Reports  Stable
+    cd ..  # this should put you back to the Club directory
+    git clone https://github.com/alexKleider/Club_Utilities
+    mv Club_Utilities/ Utils  # abreviated version
+    mkdir Temp  # where we extract from the compressed (tar) files
+    cd Temp
+    # download from google drive the "Stable data" found under the
+    # membership section...  (My system automatically sends downloads 
+    # to ~/Downloads.  Your system may do otherwise and if so you'll
+    # have to adapt!
+    ls -lA ~/Downloads/  # to make sure it's there 
+    mv ~/Downloads/22-11-05_09-39.tar.gz ./  # pick the latest date
+    tar -vxzf 22-11-05_09-39.tar.gz  # file name (the date) will differ
+    mv Info ../                    }  This is all a bit confusing:
+    mv 22-11-05_09-39/Info/ ../    }  what we want is to move the
+    cd ../Info/                    }  Info directory (with its contents)
+    cd ../Temp/                    }  with its contents into the Club 
+    rm -r Temp/*                   }  directory (along side Utils) and
+    rm -r *                        }  then delete the contents of Temp
+    # repeat all of the above again but with regard to Data (vs Info)
+    # download from google drive the 'data'
+    # Again we assume downloads go to ~/Downloads
+    # Adapt if yours don't
+    # you should still be in the Temp directory...
+    mv ~/Downloads/22-10-30_09-06.tar.gz ./
+    tar -vxzf 22-10-30_09-06.tar.gz 
+    cd 22-10-30_09-06
+    ls -lA
+    mv Data ../   } confusing again
+    cd ..         } The object is to get the decompressed "Data"
+    mv Data/ ..   } directory under the Club directory (beside Utils)
+    rm -r *
+    cd ../Utils/
+    # Now you are in the 'working' (Utils) directory and
+    # can test out a command:
+    ./utils.py show -o 4web.txt
+    vim 4web.txt   # to double check all went well
+    exit  # leave vim
+    # It would also be good to create an 'Archive' Directory under
+    # Club and under it create the following directories:
+    # Data  Mailings  Receipts  Reports  Stable
+    # These (or at least some of them) are used by archive.py
+    # From them, archived data can be sent to google drive as backup
+
+At this stage I expect everything to work EXCEPT the send_emails command.
+It depends on authentication with my mail transfer agent (easydns.com.)
+We can get that sorted out if/when it becomes necessary.
+
+The one dependency that will be necessary is the docopt module:
+$ python3 -m pip install docopt
+There might be other dependencies for sending emails but I don't think so.
+I believe that most if not all (except docopt) in the requirements.txt file
+are _not_ needed.
+
+
+The following can probably be redacted....
+
+Old method when I was backing up to local media rather than google drive:
+Can be redacted...
     $ cd  # Begin from within your home directory (~/).
     $ mkdir Mnt  # Create a mount point for non repo data.[1]
     $ su -  # Mounting requires root privileges.
