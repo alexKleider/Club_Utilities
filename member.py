@@ -50,18 +50,20 @@ STATUS_KEY_VALUES = {
     'z5_d_odd': "Director- term ends next odd year",
     'z6_d_even': "Director- term ends next even year",
     'zae': "Application expired or withdrawn",
+    'zzz': "No longer a member"
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
-SPECIAL_NOTICE_STATI = set(                        # 'b' for bad!
+SPECIAL_NOTICE_STATI = set(      # 'b' for bad!
     [status for status in STATI if status.startswith('b')])
-APPLICANT_STATI = [                               # 'a' for bad!
+APPLICANT_STATI = [              # 'a' for applicant!
     status for status in STATI if status.startswith('a')]
 APPLICANT_SET = set(APPLICANT_STATI)
 EXEC_STATI = [ status for status in STATI if (
                    status.startswith('z') and (status != 'zae'))]
 EXEC_SET = set(EXEC_STATI)
 MISCELANEOUS_STATI = "m|w|be"
-NON_MEMBER_SET = APPLICANT_SET | {"h", "m", 't', 'zae'}  # bitwise OR
+NON_MEMBER_SET = APPLICANT_SET | {
+        "h", "m", 't', 'zae', 'zzz'}  # bitwise OR
 NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
