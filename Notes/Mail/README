@@ -7,6 +7,12 @@ be deleted after dumping it here...
 
 # File: Utils/Notes/emailREADME (DELETED after copying here...)
 
+Sat 05 Nov 2022 06:18:41 PM PDT
+Some time ago gmail took away the possibility of using an account
+as a mail transfer agent (necessary to send batch emails in an
+automated way.) For this reason I've switched to using my easydns.com
+account which provides MTA facilities.  
+
 Wed 20 May 2020 06:38:19 PM PDT
 Embarking on a rewrite of the emailing component of the utilities.
 Issue(s):
@@ -20,6 +26,10 @@ Possible MTAs: gmail, easydns, sonic, ...
 Possible methodologies (emailers:)
     Bash via the subprocess module or
     the python emailing modules.
+With regard to the above: If I remember correctly one allows me to
+include attachments and the other doesn't.  Can't remember which.
+So far there's been no need for attachments.
+See under "--emailer" below.
 
 
 Implemention is through two indepentant command line options:
@@ -79,7 +89,7 @@ rfc5322
 =======
 https://tools.ietf.org/html/rfc5322
 
-From: John Dow <jdoe@machine.example>
+From: John Doe <jdoe@machine.example>
 Sender: Mike Jones <mjones@machine.example>
 Reply-To: "Mary Smith: Personal Account" <smith@home.example>
 To: Mary Smith <mary@example.net>

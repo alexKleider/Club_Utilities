@@ -32,6 +32,8 @@ if len(sys.argv) > 1:
         file_name = sys.argv[2]
 else:
     print("Usage: ./sql.py cmd [file_name]")
+    print("\nMust specify one of the following commands:")
+    print("\tnew_db, table_names, add_data, display")
     sys.exit()
 
 def check_read(rec):
@@ -50,7 +52,10 @@ def data_generator(filename):
 def new_db_cmd(db_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
-    cur.execute("CREATE TABLE people (first,last,phone,address,town,state,postal_code,country,email,dues,dock,kayak,mooring,status)")
+    cur.execute("""CREATE TABLE people
+            (id INTEGER NOT NULL PRIMARY KEY,
+            first,last,phone,address,town,state,postal_code,country,
+            email,dues,dock,kayak,mooring,status)""")
     cur.execute("SELECT name FROM sqlite_master")
     names = cur.fetchone()
     print(f"Tables now in existence: {names}")
@@ -81,14 +86,15 @@ def add_data_cmd(db_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.executemany(
-        'INSERT INTO people VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        '''INSERT INTO people VALUES(NULL,
+        ?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
         data)
     con.commit()
 
 def display_cmd(db_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
-    res = cur.execute("SELECT first, last FROM people ORDER BY first")
+    res = cur.execute("SELECT id, first, last FROM people ORDER BY first")
     for name in res.fetchall():
         print(name)
 
@@ -101,3 +107,4 @@ elif cmd == 'add_data':
     add_data_cmd(db_name)
 elif cmd == 'display':
     display_cmd(db_name)
+
