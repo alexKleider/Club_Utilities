@@ -377,7 +377,10 @@ def populate_sponsor_data(club):
         club.applicant_set,
         club.sponsor_emails,
         club.sponsor_set.
+    Is the following true???  (Should be 'last,first'!!!)
     All names (whether keys or values) are formated "last, first".
+    Should be: keys are in format 'last,first' and 
+    values in format 'last, first'
     """
     club.sponsor_set = set()  # eschew duplicates!
     club.sponsor_emails = dict()
