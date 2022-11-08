@@ -18,6 +18,7 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
+  ./utils.py extra_fees_report [-O -q -o <outfile>] 
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
@@ -94,6 +95,7 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Ensure correct alignment of text with envelope windows
             when printing letters. [default: peter_e10]
+  -q  Quiet; no headers, just the data
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
@@ -133,6 +135,7 @@ Commands:
     show: Returns membership demographics a copy of which can then
         be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
+    extra_fees_report: Prepares a listing of those paying fees.
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
             shown) or a glbs.SEPARATOR separated set of stati
@@ -1129,7 +1132,6 @@ def emailing_cmd(args=args):
                                        member.send_attachment,
                                        club=club)
 
-
 def restore_fees_cmd(args=args):
     """
     If records are found with balance still outstanding, these are
@@ -1157,6 +1159,22 @@ def restore_fees_cmd(args=args):
                    + club.errors),
                destination=club.errors_file,
                announce_write=True)
+
+
+def extra_fees_report_cmd(args=args):
+    print("'extra_fees_report' is in development")
+    club = Club()
+    data.populate_extra_fees(club)
+    if args['-q']:
+        res = []
+    else:
+        res = ["Members paying extra fees",
+               "=========================",
+               ]
+    for key, value in club.by_name.items():
+        res.append(f"{key}: {value}")
+    for entry in res:
+        print(entry)
 
 
 def fee_intake_totals_cmd(args=args):
@@ -1314,6 +1332,8 @@ if __name__ == "__main__":
         emailing_cmd()
     elif args['restore_fees']:
         restore_fees_cmd()
+    elif args['extra_fees_report']:
+        extra_fees_report_cmd()
     elif args['fee_intake_totals']:
         fee_intake_totals_cmd()
     elif args["labels"]:
