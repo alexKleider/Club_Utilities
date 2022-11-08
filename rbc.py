@@ -188,7 +188,7 @@ class Club(object):
         ######  Set all defaults  #####
         self.infile = Club.MEMBERSHIP_SPoT
         self.applicant_spot = Club.APPLICANT_SPoT
-        self.sponsor_spot = Club.SPONSORS_SPoT
+        self.sponsors_spot = Club.SPONSORS_SPoT
         self.contacts_spot = Club.CONTACTS_SPoT
         self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
         self.json_file = Club.EMAIL_JSON

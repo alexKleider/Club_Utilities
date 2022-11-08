@@ -1,4 +1,4 @@
-
+-- SQL schema which replaces memlist.csv
     CREATE TABLE people
             (id INTEGER NOT NULL PRIMARY KEY,
             first,last,phone,address,town,state,postal_code,

@@ -352,11 +352,12 @@ def get_applicants_by_status(club):
 
 def parse_sponsor_data_line(line):
     """
-    !?UNUSED?!
+    Not use in current code which needs modification.
     Assumes blank and commented lines have already been removed.
     returns a 2 tuple: (for subsequent use as a key/value pair)
-    t1 is "last, first" name
-    t2 is a tuple of sponsors ('last, first')
+    t1 is "last,first" of applicant (can be used as a key)
+    t2 is a tuple of sponsors ('first last')
+    eg: ('Catz,John', ('Joe Shmo', 'Tom Duley'))
     Fails if encounters an invalid line!!!
     """
     parts = line.split(":")
@@ -364,9 +365,11 @@ def parse_sponsor_data_line(line):
     names = sponsored.split()
     name = '{},{}'.format(names[1], names[0])
     part2 = parts[1]
-    sponsors = tuple([
-        helpers.tofro_first_last(sponsor.strip())
-        for sponsor in parts[1].split(", ")])
+    sponsors = (parts[1].split(', '))
+    sponsors = tuple([sponsor.strip() for sponsor in sponsors])
+#   sponsors = tuple([
+#       helpers.tofro_first_last(sponsor.strip())
+#       for sponsor in parts[1].split(", ")])
     return (name, sponsors)
 
 
@@ -385,9 +388,12 @@ def populate_sponsor_data(club):
     club.sponsor_set = set()  # eschew duplicates!
     club.sponsor_emails = dict()
     club.sponsors_by_applicant = dict()
-    with open(club.sponsor_spot, 'r') as stream:
+    club.sponsor_tuple_by_applicant = dict()
+    with open(club.sponsors_spot, 'r') as stream:
         print('Reading file "{}"...'.format(stream.name))
         for line in helpers.useful_lines(stream, comment='#'):
+            name, sponsors = parse_sponsor_data_line(line)
+            club.sponsor_tuple_by_applicant[name] = sponsors
             parts = line.split(':')
             names = parts[0].split()  # applicant 1st and 2nd names
             name = "{},{}".format(names[1], names[0])
@@ -396,6 +402,7 @@ def populate_sponsor_data(club):
             except IndexError:
                 print("IndexError: {} sponsors???".format(name))
                 sys.exit()
+#           _ = input("sponsors = {}".format(repr(sponsors)))
             sponsors = [helpers.tofro_first_last(name)
                         for name in sponsors]
             for sponsor in sponsors:

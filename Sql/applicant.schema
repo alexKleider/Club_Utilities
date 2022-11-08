@@ -1,0 +1,7 @@
+
+-- SQL schema which replaces applicants.txt/applicants.csv
+    CREATE TABLE applicants
+            (id INTEGER NOT NULL PRIMARY KEY,
+            first,last,app_rcvd,fee_rcvd,first_m,second_m,third_m,
+            inducted,dues_paid,sponsor1,sponsor2,status
+            )

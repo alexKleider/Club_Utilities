@@ -1,0 +1,33 @@
+
+# File: Sanitized/applicants.txt
+
+# The SPoT for BR&BC Applicants.
+# (Best printed in 'landscape' mode: lpr -o orientation-requested=4 applicants.txt)
+# Formatting is important for the 'auto-reader': data.applicant_data_line2record
+# Comment all lines that do not contain data formatted appropriately.
+# A final date might be "waiting" for a vacancy. (Or just a 'w' by itself.
+# See member.STATUS_KEY_VALUES for how stati are used.
+# (a > a0) and (ai > (ad or aw)) after notice is sent.
+# Name alone indicates an interest in joining.  REDACTED- we no longer
+# keep track of 'interested' parties.
+#
+#                     +----------  Application Status -------------------------------\
+#                     |  App  | App fee |    Meetings Attended     |  Exec  |  Fees  |
+#  Applicants         | rcv'd |  rcv'd  |   1st  |   2nd  |  3rd   | appr'd |  paid  |
+#                     |   a-  \  a > a0 |   a1   |   a2   |  a3    | ai >   |   m    |
+#---------------------+--------+--------+--------+--------+--------+--------+--------|
+Jason Fiddle          | 171006 | 171006 | ?????? | ?????? | ?????? | ?????? | ?????? |
+Liz Verity            | 180105 | 180105 | 180105 | 180202 | 180302 | 180406 | 180618 |
+Melissa Shorn         | 171201 | 171201 | Application expired. 
+Melissa Shorn         | 180601 | 180601 | 180601 | 180706 | 180803 | 181005 | 1901?? |
+Percilla Brown        | 180726 | 180726 | 180706 | 180906 | 181005 | 181207 | 18???? | 
+Herbert Tully         | 200214 | 200214 | 200306 | 201204 | Application withdrawn (Remick)
+Jacob Murchant        | 220315 | 220315 | 220506 | 220701 | 221007 |
+George Applebaulm     | 220326 | 220326 | 220506 | 220603 | 220805 | 220831 | 221002 |
+Will Smithers         | 220506 | 220506 | 220506 | 220701 | 220805 | 220831 | waiting
+Carl Nesbitt          | 220805 | 220902 | 220902 | 221007 |
+Lori Middleman        | 220915 | 220915 |
+# John Castle           | 221007 | 221007 | 221007 |
+Leam Rose             | 221007 | 221007 | 221104 |
+
+

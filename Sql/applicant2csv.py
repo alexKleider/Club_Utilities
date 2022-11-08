@@ -11,9 +11,16 @@ import helpers
 import data
 from rbc import Club
 
+infile = 'Sanitized/applicants.txt'
+outfile = Club.APPLICANT_CSV
+outfile = 'Sanitized/applicant.csv'
+response = input(f"OK to overwrite {outfile}: (y/n)?  ")
+if not (response and response[0] in 'yY'):
+    sys.exit()
 
 def line2record(line):
     """
+    parses a valid line of applicant file
     a modified version of what's in data.py
     """
     keys = (
@@ -77,21 +84,37 @@ def line2record(line):
     return ret
 
 
-infile = Club.APPLICANT_SPoT
-outfile =  Club.APPLICANT_CSV
-print(infile)
-print(outfile)
 club = Club()
+club.sponsors_spot = 'Sanitized/sponsors.txt'
+club.infile = 'Sanitized/members.csv'
 data.populate_sponsor_data(club)
-sponsored_applicant_keys = set(club.sponsors_by_applicant.keys())
+sponsored_applicant_keys = set(club.sponsor_tuple_by_applicant.keys())
+collector = []
 with open(infile, 'r') as instream:
+    got_keys = False
     for line in helpers.useful_lines(instream, comment='#'):
         rec = line2record(line)
+        if not got_keys:
+            keys = rec.keys()
+            collector.append(keys)
+            got_keys = True
+#           _ = input(rec.keys())
         appl_key = "{last},{first}".format(**rec)
         if appl_key in sponsored_applicant_keys:
-            rec['sponsor1'] = club.sponsors_by_applicant[
+            rec['sponsor1'] = club.sponsor_tuple_by_applicant[
                     appl_key][0]
-            rec['sponsor2'] = club.sponsors_by_applicant[
+            rec['sponsor2'] = club.sponsor_tuple_by_applicant[
                     appl_key][1]
-        print(repr(rec))
+        collector.append(rec.values())
+#       for key in rec.keys():
+#           print(rec[key] + ', ', end='')
+
+just_keys = [key for key in keys]
+key_line = ','.join(just_keys)
+with open(outfile, 'w') as outstream:
+    print("Writing to {}.".format(outstream.name))
+    for datum in collector:
+        outstream.write(','.join([item for item in datum])+'\n')
+
+
 
