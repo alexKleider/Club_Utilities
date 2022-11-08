@@ -2,6 +2,12 @@
 
 # File: applicant2csv.py
 
+"""
+Code: "use_sanitized = True/False"
+must be changed depending on whether we are serious or testing.
+Default is True
+"""
+
 import os
 import sys
 import csv
@@ -11,12 +17,21 @@ import helpers
 import data
 from rbc import Club
 
-infile = 'Sanitized/applicants.txt'
-outfile = Club.APPLICANT_CSV
-outfile = 'Sanitized/applicant.csv'
-response = input(f"OK to overwrite {outfile}: (y/n)?  ")
-if not (response and response[0] in 'yY'):
-    sys.exit()
+use_sanitized = True
+if use_sanitized:
+    infile = 'Sanitized/applicants.txt'
+    outfile = 'Sanitized/applicant.csv'
+    sponsors_file = 'Sanitized/sponsors.txt'
+    members_csv = 'Sanitized/members.csv'
+else:
+    infile = Club.APPLICANTS_SPoT
+    outfile = Club.APPLICANT_CSV
+    sponsors_file = Club.SPONSORS_SPoT
+    members_csv = Club.MEMBERSHIP_SPoT
+if os.path.exists(outfile):
+    response = input(f"OK to overwrite {outfile}: (y/n)?  ")
+    if not (response and response[0] in 'yY'):
+        sys.exit()
 
 def line2record(line):
     """
@@ -85,8 +100,8 @@ def line2record(line):
 
 
 club = Club()
-club.sponsors_spot = 'Sanitized/sponsors.txt'
-club.infile = 'Sanitized/members.csv'
+club.sponsors_spot = sponsors_file
+club.infile = members_csv
 data.populate_sponsor_data(club)
 sponsored_applicant_keys = set(club.sponsor_tuple_by_applicant.keys())
 collector = []

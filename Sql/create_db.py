@@ -1,17 +1,37 @@
 #!/usr/bin/env python3
 
+# File: Sql/create_db.py
+
 # Ref File://home/alex/WebSites/Python/python-sqlite-module
 
+"""
+Currently db in created only in memory.
+
+Code: "use_sanitized = True/False"
+must be changed depending on whether we are serious or testing.
+Default is True
+"""
+
+import os
+import sys
 import csv
 import sqlite3
+sys.path.insert(0, os.path.split(sys.path[0])[0])
+from rbc import Club
 
 # need to explicitly close the connection so use context manager
 
 db_name = ':memory:'
 memlist_schema = 'memlist.schema'
 applicant_schema = 'applicant.schema'
-mem_csv = "Sanitized/members.csv"
-applicant_csv = 'Sanitized/applicant.csv'
+
+use_sanitized = True
+if use_sanitized:
+    mem_csv = "Sanitized/members.csv"
+    applicant_csv = 'Sanitized/applicant.csv'
+else:
+    mem_csv = Club.MEMBERSHIP.SPoT
+    applicant_csv = Club.APPLICANT_CSV
 
 def data_generator(filename):
     """
