@@ -18,11 +18,11 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py extra_fees_report [-O -q -o <outfile>] 
+  ./utils.py extra_fees_report [-O -q -f -H -o <outfile> -j <json>] 
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
-  ./utils.py usps [-O -i <infile> -o <outfile>]
+  ./utils.py usps [-O -i <infile> -q --be -H -j <json>  -o <outfile> --csv csv_file]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --mta <mta> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -42,6 +42,7 @@ Options:
   --version  Print version.
   -a <app_csv>  csv version of applicant data file.
   -A <app_spot>   Applicant data file.
+  --be   Include those with an email deemed 'bad'/not working
   --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
         If a single string "sponsors" is specified, then one assumes
@@ -50,6 +51,7 @@ Options:
         implementation within the "--which" option vs the command line level.
   -c <content>   The name of a file containing the body of an email.
   -C <contacts_spot>   Contacts data file.
+  --csv <csv_file>  Specifies output to be written to a csv file
   -d   Include details: fee inconsistency for ck_data,
   --dir <mail_dir>   The directory (to be created and/or read)
                      containing letters for batch printing.
@@ -58,10 +60,12 @@ Options:
   --emailer <emailer>  Use bash (via smtp or mutt) or python
                     to send emails.  [default: python]
   --exec  Within 'show' cmnd: include listing of executive commitee.
+  -f <fees>  Include fee charded. (extra_fees_report)
   -F <function>  Name of function to apply. (new_db command)
         Implemented so far: member.set_kayak_fee
   -G <data_gathering_function>  Function to gather required data.
         Implemented so far: data.populate_kayak_fees
+  -H   include headers in textual output
   -i <infile>  Specify file used as input. Usually defaults to
                 the MEMBERSHIP_SPoT attribute of the Club class.
   -I <included>  Specify what's to be included by specifying the key
@@ -95,7 +99,7 @@ Options:
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Ensure correct alignment of text with envelope windows
             when printing letters. [default: peter_e10]
-  -q  Quiet; no headers, just the data
+  -q  Quiet; no announcements, progress notes, etc
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
@@ -148,11 +152,13 @@ Commands:
         up to three meeting dates and the two sponsors. If -o outfile
         is explicitly specified it must end in ".csv".
     zeros: Reports on whether dues field is zero or NULL
-    usps: Creates a csv file containing names and addresses of
-        members without an email address who therefore receive Club
-        minutes by post. Also includes any one with a 'be' or an 's'
-        status (... a mechanism for sending a copy to the secretary.)
-        but is no longer required by the restore_fees_cmd.)
+    usps: Provides a listing of names and addresses of members who do
+        not have an email address as a json or a text file or both. 
+        | -j <json>  Creates a csv file
+        | -o <outfile>  Creates a text file (with a header unless
+        the -q option is specified.
+        Also includes any one with a 'be' or an 's' status
+        (... a mechanism for sending a copy to the secretary.)
     payables: Reports on non zero money fields.
         | -T  Present as a table rather than a listing.
         | -w <width>  Maximum number of characters per line if -T.
@@ -341,17 +347,19 @@ def output(data, destination=Club.STDOUT, announce_write=True):
         with open(TEMP_FILE, "w") as fileobj:
             fileobj.write(data)
             if announce_write:
-                print('Data written to temp file "{}".'.format(fileobj.name))
+                print(
+        '...data written to temp file "{}".'.format(fileobj.name))
             subprocess.run(["lpr", TEMP_FILE])
             subprocess.run(["rm", TEMP_FILE])
             if announce_write:
-                print('Temp file "{}" deleted after printing.'
+                print('...temp file "{}" deleted after printing.'
                       .format(fileobj.name))
     else:
         with open(destination, "w") as fileobj:
             fileobj.write(data)
             if announce_write:
-                print('...data written to "{}".'.format(fileobj.name))
+                print(
+                '...output written to "{}".'.format(fileobj.name))
 
 
 # Medium specific classes:
@@ -831,35 +839,41 @@ def usps_cmd(args=args):
         first,last,address,town,state,postal_code
     (Members who are NOT in the 'email only' category.)
     """
-    print("Preparing a csv file listing showing members who")
-    print("receive meeting minutes by mail. i.e. don't have (or")
-    print("haven't provided) an email address (to the Club.)")
+    if not args['-q']:
+        print("Preparing a csv, json &/or text file listing showing")
+        print("members who receive meeting minutes by mail.")
     club = Club(args)
-    club.usps_only = []
     err_code = member.traverse_records(club.infile, [
                 member.get_usps,
-                member.get_secretary,
+#               member.get_secretary,
                 member.get_bad_emails,
                 ], club)
-    print("There are {} members without an email address."
+    if not args['-q']:
+        print("There are {} 'mail only' members."
           .format(len(club.usps_only)))
-    res = []
     header = []
     for key in club.fieldnames:
         header.append(key)
         if key == "postal_code":
             break
-    res.append(",".join(header))
-    res.extend(club.usps_only)
-    # The following 2 lines are commented out because former
-    # secretary Michael Rafferty didn't need/want to be on the list.
-#   if hasattr(club, 'secretary'):
-#       res.append(club.secretary)
-    if club.bad_emails:
-        print("... and {} more with a non functioning email."
-              .format(len(club.bad_emails)))
-        res.extend(club.bad_emails)
-    output('\n'.join(res))
+    if args['--csv']:
+        with open(args['--csv'], 'w', newline='') as outstream:
+            writer = csv.DictWriter(outstream,
+                    fieldnames=club.fieldnames)
+            writer.writeheader()
+            for rec in club.usps_only:
+                writer.writerow(rec)
+    if args['-o']:
+        with open(args['-o'], 'w') as outstream:
+            if args['-H']:
+                outstream.write((','.join(header)+'\n'))
+            for rec in club.usps_only:
+                outstream.write(
+            (member.demographic_f.format(**rec)+'\n'))
+
+    if args['-j']:
+        with open(args['-j'], 'w') as outstream:
+            json.dump(club.usps_only, outstream)
 
 
 def club_setup4extra_charges(args=args):
@@ -1162,19 +1176,35 @@ def restore_fees_cmd(args=args):
 
 
 def extra_fees_report_cmd(args=args):
-    print("'extra_fees_report' is in development")
-    club = Club()
+    if not args['-q']:
+        print("'extra_fees_report' is in development")
+    club = Club(args)
+#   _ = input("json file set to {}".format(club.json_file))
     data.populate_extra_fees(club)
-    if args['-q']:
-        res = []
-    else:
-        res = ["Members paying extra fees",
-               "=========================",
-               ]
-    for key, value in club.by_name.items():
-        res.append(f"{key}: {value}")
-    for entry in res:
-        print(entry)
+    keys = sorted(club.by_name.keys())
+    res = []
+    for key in keys:
+        value = club.by_name[key]
+        if not args['-f']: # don't include fee amnts
+            l = []
+            for k in value.keys():
+                l.append(k)
+            l = set(l)
+            res.append(f"{key}: {l}")
+        else:
+            res.append(f"{key}: {value}")
+    if args['-j']:
+        with open(args['-j'], 'w') as stream:
+            json.dump(res, stream)
+    if args['-o']:
+        collector = []
+        if args['-H']:
+            collector.extend(["Members paying extra fees",
+                              "=========================",
+                             ])
+        for entry in res:
+            name = 
+            pass
 
 
 def fee_intake_totals_cmd(args=args):
@@ -1268,9 +1298,10 @@ def unused_func():
     pass
 
 if __name__ == "__main__":
-    print("Architecture: {}  Platform: {}".
-            format(platform.architecture(), sys.platform))
-    print(helpers.get_os_release())
+    if not args['-q']:
+        print("Architecture: {}  Platform: {}".
+                format(platform.architecture(), sys.platform))
+        print(helpers.get_os_release())
     using_curses = False
     confirm = True  # check google contacts is up to date
 

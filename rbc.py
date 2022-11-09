@@ -57,6 +57,9 @@ class Club(object):
     # "Archiving" provides for backup.
     # Two categories of data to be archived:
     # 1. constantly changing data
+    INCLUDE_HEADERS = False
+    INCLUDE_FEES = False
+    QUIET = False
     DATA_DIR = os.path.join(root_dir, data_dir)
     CHANGING_DATA = [os.path.join(root_dir, entry)
                         for entry in changing_data]
@@ -161,6 +164,7 @@ class Club(object):
     PATTERN = '{last}, {first}'
     PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
                    ' {state}, {postal_code} [{email}]')
+    INCLUDE_BAD_EMAILS = False
     with open(MEMBERSHIP_SPoT) as db_stream:
         reader = csv.DictReader(db_stream)
         DB_FIELDNAMES = reader.fieldnames
@@ -186,6 +190,10 @@ class Club(object):
         self.inc_n_instances()
         
         ######  Set all defaults  #####
+        self.include_headers = Club.INCLUDE_HEADERS
+        self.include_bad_emails = Club.INCLUDE_BAD_EMAILS
+        self.include_fees = Club.INCLUDE_FEES
+        self.quiet = Club.QUIET
         self.infile = Club.MEMBERSHIP_SPoT
         self.applicant_spot = Club.APPLICANT_SPoT
         self.sponsors_spot = Club.SPONSORS_SPoT
@@ -203,12 +211,17 @@ class Club(object):
         if args:  # override defaults if provided by docopts
             # the body of this if statement replaces the need for
             # <utils.file_name_args2attributes(self, params)>
+            self.include_headers = args['-H']
+            self.include_bad_emails = args['--be']
+            self.json_file = args['-j']
+            self.include_fees = args['-f']
+            self.quiet = args['-q']
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
             if args['-X']: self.extra_fees_spots = args['-X']
-            if args['-j']: self.json_file = args['-j']
+#           if args['-j']: self.json_file = args['-j']
             if args["--dir"]: self.mail_dir = args["--dir"]
             if args['-t']: self.thank_file = args['-t']
             if args['--thanked']:

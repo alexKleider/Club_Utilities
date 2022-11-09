@@ -37,7 +37,7 @@ def get_fieldnames(csv_file: "name of csv file", report=True
     Returns the field names of the csv file named.
     """
     with open(csv_file, 'r', newline='') as file_object:
-        if report:
+        if report and not club.quiet:
             print('DictReading file "{}"...'.format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         return dict_reader.fieldnames
@@ -127,14 +127,14 @@ def gather_contacts_data(club):
     club.g_by_group = dict()  # >set of names
 
     # Traverse contacts.csv => g_by_name
-    with open(club.CONTACTS_SPoT, 'r',
+    with open(club.contacts_spot, 'r',
         encoding='utf-8', newline='') as file_obj:
         google_reader = csv.DictReader(file_obj)
-        print('DictReading Google contacts file "{}"...'
-            .format(file_obj.name))
+        if not club.quiet:
+            print('DictReading Google contacts file "{}"...'
+                .format(file_obj.name))
         for g_rec in google_reader:
             g_dict = get_gmail_record(g_rec)
-
 
             club.gmail_by_name[g_dict['gname']] = g_dict['g_email']
             club.groups_by_name[g_dict['gname']] = g_dict['groups']
@@ -253,11 +253,11 @@ def get_dict(source_file, sep=":", maxsplit=1):
             if len(parts) != 2: assert False
             names = parts[0].split()
             try:
-                name = '{}, {}'.format(names[1], names[0])
+                name_key = '{},{}'.format(names[1], names[0])
             except IndexError:
                 _ = input("IndexError re line: '{}'"
                         .format(line))
-            ret[name] = parts[1].strip()
+            ret[name_key] = parts[1].strip()
     return ret
 
 

@@ -187,7 +187,8 @@ def traverse_records(infile, custom_funcs, club):
         custom_funcs = [custom_funcs]  # place it into a list.
     setup_required_attributes(custom_funcs, club)
     with open(infile, 'r', newline='') as file_object:
-        print("DictReading {}...".format(file_object.name))
+        if not club.quiet:
+            print("DictReading {}...".format(file_object.name))
         dict_reader = csv.DictReader(file_object)
         # fieldnames is used by get_usps and restore_fees cmds.
         club.fieldnames = dict_reader.fieldnames
@@ -374,20 +375,25 @@ def get_usps(record, club):
     postal_code.
     """
     if not record['email']:
-        club.usps_only.append(demographic_f.format(**record))
+        rec = helpers.Rec(record)
+        club.usps_only.append(rec)
 
 
 def get_bad_emails(record, club):
     if 'be' in get_status_set(record):
         club.bad_emails.append(demographic_f.format(**record))
+        if hasattr(club, 'usps_only') and club.be:
+            rec = helpers.Rec(record)
+            club.usps_only.append(rec)
 
 
 def get_secretary(record, club):
     """
     If record is that of the club secretary,
     assigns secretary's demographics to club.secretary
+    z3_sec
     """
-    if 's' in record['status']:
+    if 'z3_sec' in get_status_set(record):
         club.secretary = demographic_f.format(**record)
 
 
@@ -1280,6 +1286,7 @@ prerequisites = {   # collectors needed by the
         ],
     get_usps: [
         'club.usps_only = []',
+        'club.usps_csv = []',
         ],
     get_zeros_and_nulls: [
         'club.nulls = []',
