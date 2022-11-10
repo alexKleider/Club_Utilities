@@ -18,7 +18,7 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py extra_fees_report [-O -q -f -H -o <outfile> -j <json>] 
+  ./utils.py extra_fees_report [-O -q -f -H -o <outfile> -j <json> --csv <csv_file>] 
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
@@ -801,8 +801,9 @@ def create_applicant_csv_cmd(args=args):
         print("Applicant csv file name must end in '.csv'!")
         print("'{}' doesn't qualify!".format(club.applicant_csv))
         sys.exit()
-    applicant_data = data.get_applicant_data(club.applicant_spot,
-                                             club.sponsor_spot)
+    data.populate_sponsor_data(club)
+    data.populate_applicant_data(club)
+    applicant_data = club.applicant_data
     applicant_keys = sorted(applicant_data.keys())  # sort names
 
     helpers.save_db(filtered_data(applicant_data,
@@ -1136,7 +1137,7 @@ def emailing_cmd(args=args):
     the input file calling member.send_attachment
     on each record.
     """
-    club = Club()
+    club = Club(args)
     club.mutt_send = mutt_send
     if not args["-i"]:
         args["-i"] = club.MEMBERSHIP_SPoT
@@ -1181,30 +1182,34 @@ def extra_fees_report_cmd(args=args):
     club = Club(args)
 #   _ = input("json file set to {}".format(club.json_file))
     data.populate_extra_fees(club)
-    keys = sorted(club.by_name.keys())
-    res = []
-    for key in keys:
-        value = club.by_name[key]
-        if not args['-f']: # don't include fee amnts
-            l = []
-            for k in value.keys():
-                l.append(k)
-            l = set(l)
-            res.append(f"{key}: {l}")
-        else:
-            res.append(f"{key}: {value}")
+    by_name = club.by_name  # a dict (name keys) of
+                            # dicts (fee keys => dollar amts)
     if args['-j']:
         with open(args['-j'], 'w') as stream:
-            json.dump(res, stream)
+            json.dump(by_name, stream)
+
+    if args['--csv']:
+        print(
+        "extra_fees_report_cmd --csv option not yet implemented")
+
     if args['-o']:
-        collector = []
+        res = []
         if args['-H']:
-            collector.extend(["Members paying extra fees",
-                              "=========================",
-                             ])
-        for entry in res:
-            name = 
-            pass
+            res.extend(["Members paying extra fees",
+                        "=========================",
+                        ])
+        name_keys = sorted(by_name.keys())
+        for name_key in name_keys:  # names alphabetically:
+            fees = club.by_name[name_key]
+            l = []
+            for fee_key in sorted(fees.keys()):
+                if args['-f']: # include fee amnts
+                    l.append("{}: {}".format(fee_key, fees[fee_key]))
+                else:
+                    l.append("{}".format(fee_key))
+            fees_paid = ', '.join(l)
+            res.append("{}: {}".format(name_key, fees_paid))
+        helpers.output('\n'.join(res), args['-o'], not args['-q'])
 
 
 def fee_intake_totals_cmd(args=args):
@@ -1242,6 +1247,11 @@ def labels_cmd(args=args):
 
 
 def envelopes_cmd(args=args):
+    """
+    Creating a Club instance with param medium makes no sense.
+    This function is not used and will probably be redacted
+    so no point in wasting time figuring it out!
+    """
     if args["-P"]:
         medium = media[args["-P"]]
     else:

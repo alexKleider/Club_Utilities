@@ -708,7 +708,7 @@ def output(data, destination=None, announce=True):
     Sends data (text) to (a file called) <destination>
     (which defaults to stdout.)
     """
-    if destination is None:
+    if not destination:
         print(data)
     else:
         with open(destination, "w") as fileobj:
