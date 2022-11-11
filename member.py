@@ -425,24 +425,6 @@ def add2email_by_m(record, club):
         club.email_by_m[name] = email
 
 
-redacted = '''
-def add2db_emails(record, club):  #?!unused
-    """
-    Populates club.db_emails
-    'ex' for experimental
-    db_emails is a dict with all members included but
-    with a special key for those without email
-    """
-#   print("called add2db_emails")
-    record = helpers.Rec(record)
-    name = record(fstrings['last_first'])
-    email = record['email']
-    if not email:
-        email = NO_EMAIL_KEY
-    club.db_emails[name] = email
-'''
-
-
 def add2ms_by_email(record, club):
     """
     Populates club.ms_by_email, a dict keyed by emails one of which
@@ -505,20 +487,6 @@ def add2bad_demographics(record, club):  #?!unused
             record(fstrings['first_last_w_all_staggered']))
 
 
-redacted = '''
-def add2demographics(record, club):
-    """
-    Appends a record to club.demographics:
-        Each key is a member name in last_first format
-        Each value is the record in format specified
-            by club.format
-    """
-    record = helpers.Rec(record)
-    club.demographics[record(fstrings['last_first'])] = (
-          record(club.format)) 
-'''
-
-
 def add2member_with_email_set(record, club):
     """
     Appends a record to club.member_with_email_set if record
@@ -547,7 +515,7 @@ def add2fee_data(record, club):
     Tested by Tests.xtra_fees.py
     """
     record = helpers.Rec(record)
-    name = record(fstrings['last_first'])
+    name = record(fstrings['key'])
     # print(repr(FEES_KEYS))
     for f_key in FEES_KEYS:
         try:

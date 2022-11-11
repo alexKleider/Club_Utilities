@@ -18,11 +18,11 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py extra_fees_report [-O -q -f -H -o <outfile> -j <json> --csv <csv_file>] 
+  ./utils.py extra_fees_report (-o <outfile>|-j <json>|--csv <csv_file>) [-O -i <infile> -q -f -H --by_fee_category]
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
-  ./utils.py usps [-O -i <infile> -q --be -H -j <json>  -o <outfile> --csv csv_file]
+  ./utils.py usps [-O -i <infile> -q --be -H -j <json> -o <outfile> --csv csv_file]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --mta <mta> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -42,6 +42,8 @@ Options:
   --version  Print version.
   -a <app_csv>  csv version of applicant data file.
   -A <app_spot>   Applicant data file.
+  --by_fee_category  extra_fee_report command defaults to reporting
+        by name; this makes report keyed by fee category
   --be   Include those with an email deemed 'bad'/not working
   --bcc <bcc>   Comma separated listing of blind copy recipients
   --cc <cc>   Comma separated listing of cc recipients
@@ -60,7 +62,7 @@ Options:
   --emailer <emailer>  Use bash (via smtp or mutt) or python
                     to send emails.  [default: python]
   --exec  Within 'show' cmnd: include listing of executive commitee.
-  -f <fees>  Include fee charded. (extra_fees_report)
+  -f  Include fee charged. (extra_fees_report)
   -F <function>  Name of function to apply. (new_db command)
         Implemented so far: member.set_kayak_fee
   -G <data_gathering_function>  Function to gather required data.
@@ -140,6 +142,7 @@ Commands:
         be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
     extra_fees_report: Prepares a listing of those paying fees.
+        Note an ouput mode must be specified.
     stati: Returns a listing of stati (entries in 'status' field.)
         <mode> if set can be 'applicants' (Applicants only will be
             shown) or a glbs.SEPARATOR separated set of stati
@@ -1178,38 +1181,23 @@ def restore_fees_cmd(args=args):
 
 def extra_fees_report_cmd(args=args):
     if not args['-q']:
-        print("'extra_fees_report' is in development")
+        print("'extra_fees_report' is still in development")
     club = Club(args)
+    club.quiet = args['-q']
+    club.by_fee_category = args['--by_fee_category']
+    club.include_fee_charged = args['-f']
+    club.include_headers = args['-H']
+    club.text_file4output = args['-o']
+    club.json_file4output = args['-j']
+    club.csv_file4output = args['--csv']
+
 #   _ = input("json file set to {}".format(club.json_file))
-    data.populate_extra_fees(club)
-    by_name = club.by_name  # a dict (name keys) of
-                            # dicts (fee keys => dollar amts)
-    if args['-j']:
-        with open(args['-j'], 'w') as stream:
-            json.dump(by_name, stream)
-
-    if args['--csv']:
-        print(
-        "extra_fees_report_cmd --csv option not yet implemented")
-
-    if args['-o']:
-        res = []
-        if args['-H']:
-            res.extend(["Members paying extra fees",
-                        "=========================",
-                        ])
-        name_keys = sorted(by_name.keys())
-        for name_key in name_keys:  # names alphabetically:
-            fees = club.by_name[name_key]
-            l = []
-            for fee_key in sorted(fees.keys()):
-                if args['-f']: # include fee amnts
-                    l.append("{}: {}".format(fee_key, fees[fee_key]))
-                else:
-                    l.append("{}".format(fee_key))
-            fees_paid = ', '.join(l)
-            res.append("{}: {}".format(name_key, fees_paid))
-        helpers.output('\n'.join(res), args['-o'], not args['-q'])
+    if club.by_fee_category:
+        print("by fee category")
+        data.yield_extra_fees_report_by_category(club)
+    else:
+        print("by name")
+        data.yield_extra_fees_report_by_name(club)
 
 
 def fee_intake_totals_cmd(args=args):

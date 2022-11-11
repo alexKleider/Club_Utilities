@@ -57,18 +57,20 @@ def gather_membership_data(club):
     both 'email' collectors.
     """
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-                                       (
-#                                       member.add2db_emails,
-#                                       member.add2email_data,
-                                        member.add2email_by_m,
-                                        member.add2fee_data,
-                                        member.add2stati_by_m,
-                                        member.add2ms_by_status,
-                                        member.increment_napplicants,
-                                        member.add2malformed,
-                                        member.add2member_with_email_set,
-                                        member.add2applicant_with_email_set,
-                                        ), club)
+            (
+#           member.add2db_emails,
+#           member.add2email_data,
+            member.add2email_by_m,
+            member.get_usps,  # > usps_only
+            member.add2fee_data,  # > fee_category_by_m(ember)
+                                  # & ms_by_fee_category  
+            member.add2stati_by_m,
+            member.add2ms_by_status,
+            member.increment_napplicants,
+            member.add2malformed,
+            member.add2member_with_email_set,
+            member.add2applicant_with_email_set,
+            ), club)
     if err_code:
         print("Error condition! #{}".format(err_code))
 
@@ -105,6 +107,13 @@ def get_gmail_record(g_rec):
         groups=group_membership,
         )
 
+
+def mail_only_keys(club):
+    member.traverse_records(club.infile,
+            (member.get_usps,  # populates club.usps_only
+            ),
+            club)  
+    return helpers.collect_last_first_keys(club.usps_only)
 
 
 def gather_contacts_data(club):
@@ -292,6 +301,97 @@ def populate_extra_fees(club):
     club.by_name = by_name
 
 
+def yield_extra_fees_report_by_name(club):
+    """
+    Client (utils.extra_fees_report_cmd) has already
+    set all the options as attributes of club.
+    """
+    populate_extra_fees(club)
+    by_name = club.by_name  # a dict (name keys) of
+                            # dicts (fee keys => dollar amts)
+    if club.json_file4output:
+        with open(club.json_file4output, 'w') as stream:
+            if not club.quiet:
+                print('Data written to "{}".'.format(stream.name))
+            json.dump(by_name, stream)
+
+    if club.csv_file4output:
+        print(
+"--csv option of extra_fees_report_cmd by name not yet implemented")
+
+    if club.text_file4output:
+        res = []
+        if club.include_headers:
+            res.extend(["Members paying extra fees",
+                        "=========================",
+                        ])
+        name_keys = sorted(by_name.keys())
+        for name_key in name_keys:  # names alphabetically:
+            fees = by_name[name_key]
+            l = []
+            for fee_key in sorted(fees.keys()):
+                if club.include_fee_charged: # include fee amnts
+                    l.append("{}: {}".format(fee_key, fees[fee_key]))
+                else:
+                    l.append("{}".format(fee_key))
+            fees_paid = ', '.join(l)
+            res.append("{}: {}".format(name_key, fees_paid))
+        helpers.output('\n'.join(res),
+                club.text_file4output, not club.quiet)
+
+
+def yield_extra_fees_report_by_category(club):
+    """
+    Client (utils.extra_fees_report_cmd) has already
+    set all the options as attributes of club.
+    """
+    print("fees_report_by_category not yet implemented")
+    populate_extra_fees(club)
+    by_category = club.by_category  # a dict (category keys) of
+                            # dicts (name keys => dollar amts)
+    if club.json_file4output:
+        with open(club.json_file4output, 'w') as stream:
+            if not club.quiet:
+                print('Data written to "{}".'.format(stream.name))
+            json.dump(by_category, stream)
+
+    if club.csv_file4output:
+        print(
+"--csv option of extra_fees_report_cmd by category not yet implemented")
+
+    if club.text_file4output:
+        res = []
+        if club.include_headers:
+            res.extend(["Extra Fees (and who pays them)",
+                        "==============================",
+                        ])
+        category_keys = sorted(by_category.keys())
+        for category_key in category_keys:  #  alphabetically:
+            names = by_category[category_key]
+            if category_key == 'dock':
+                header = (category_key +
+                        ' (${})'.format(club.DOCK_FEE))
+            elif category_key == 'kayak':
+                header = (category_key +
+                        ' (${})'.format(club.KAYAK_FEE))
+            elif category_key == 'mooring':
+               header = (category_key +
+                       ' (fee varies)')
+            else:
+                print("Should never get here!!!!")
+                sys.exit()
+            res.append(header)
+            for name_key in sorted(names.keys()):
+                if (club.include_fee_charged
+                and category_key == "mooring"): # include fee amnts
+                    res.append("\t{}: {}".format(name_key, names[name_key]))
+                else:
+                    res.append("\t{}".format(name_key))
+
+        helpers.output('\n'.join(res),
+                club.text_file4output, not club.quiet)
+
+
 def add_sponsors(rec, sponsors):
     """
     Returns a record with sponsor fields added.
@@ -431,6 +531,37 @@ def line_of_meeting_dates(applicant_datum):
     return ', '.join(dates)
 
 
+def get_fee_paying_contacts(club):
+    """
+    Assumes club attribute <groups_by_name> has already been
+    assigned (by data.gather_contacts_data.)
+    Creates a list of dicts keyed by contact name
+    and each value is a list of fee categories.
+    This list of dicts is returned after being assigned
+    to the club attribute <fee_paying_contacts>.
+    """
+    collector = {}
+    fee_groups = ["DockUsers", "Kayak", "Moorings"]
+    fee_set = set(fee_groups)
+    names = sorted(club.groups_by_name.keys())
+    for name in names:
+        intersect = club.groups_by_name[name].intersection(fee_set)
+        if intersect:
+            renamed_group = []
+            for category in intersect:
+                if category == 'DockUsers':
+                    renamed_group.append('dock')
+                if category == 'Kayak':
+                    renamed_group.append('kayak')
+                if category == 'Moorings':
+                    renamed_group.append('mooring')
+            if renamed_group:
+                collector[name] = renamed_group
+    club.fee_paying_contacts = collector
+    return collector
+
+
+
 def ck_data(club,
             fee_details=False):
     """
@@ -467,6 +598,46 @@ def ck_data(club,
 
 
     ## First check that google groups match club data:
+    # Deal with extra fees...
+    fee_paying_m_set = club.fee_category_by_m.keys()
+    no_email_recs = club.usps_only  # a list of records
+    fee_paying_contacts_set = set(
+            get_fee_paying_contacts(club).keys())
+    no_email_set = {member.fstrings['key'].format(**rec)
+                    for rec in no_email_recs}
+    fee_paying_w_email_set = fee_paying_m_set - no_email_set
+    ##############################################################
+    # Note: we're checking names but not specifically which fees #
+    # Will want to address this in the future.                   #
+    ##############################################################
+    old_code = '''
+    if fee_paying_contacts_set == fee_paying_w_email_set:
+        _ = input('sets match')
+    else:
+        print("sets don't match")
+        print("contacts - members:")
+        print(repr(fee_paying_contacts_set -
+            fee_paying_w_email_set))
+        print("members - contacts:")
+        print(repr(fee_paying_w_email_set -
+            fee_paying_contacts_set))
+        _ = input("sets don't match")
+    '''
+    fee_missmatches = helpers.check_sets(
+        fee_paying_contacts_set,
+        fee_paying_w_email_set,
+        "Fee paying contacts not in member listing",
+        "Fee paying members not in google contacts",
+        )
+    if fee_missmatches:
+        helpers.add_header2list(
+            "Extra fees missmatches",
+            ret, underline_char='=', extra_line=True)
+        ret.extend(fee_missmatches)
+    else:
+        ok.append('No fee missmatches')
+
+   
     # Deal with applicants...
 # if get a KeyError such as the following:
 #     File "/home/alex/Git/Club/Utils/data.py", line ???, in ck_data
@@ -616,7 +787,7 @@ def ck_data(club,
                                 ))
             else:
                 not_matching_notice = (
-                    "Fee amounts don't match (try -d option for details)")
+            "Fee amounts don't match (try -d option for details)")
         else:
             print("club_keys != file_keys")
             club_set = set(club_keys)
@@ -626,12 +797,15 @@ def ck_data(club,
 #           print(sorted(club_keys))
 #           print(sorted(file_keys))
             ret.append("\nFees problem (by name):")
-            ret.append("extra_fees_info[club.NAME_KEY]:")
+            ret.append(
+                    "club.fee_category_by_m[club.NAME_KEY]:")
             sorted_keys = sorted(
-                [key for key in extra_fees_info[club.NAME_KEY].keys()])
-            #  extra_fees_info not defined????
+#               [key for key in club.fee_category_by_m[
+#                   club.NAME_KEY].keys()])
+                [key for key in club.fee_category_by_m.keys()])
             for key in sorted_keys:
-                ret.append("{}: {}".format(key, extra_fees_info[club.NAME_KEY][key]))
+                ret.append("{}: {}".format(key, 
+                    club.fee_category_by_m[key]))
 #           ret.append(repr(fees_by_name))
             ret.append("###  !=  ###")
             ret.append("club.fee_category_by_m:")

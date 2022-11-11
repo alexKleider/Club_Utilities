@@ -280,6 +280,13 @@ class Rec(dict):
         return fstr.format(**self)
 
 
+def collect_last_first_keys(listofdicts):
+    ret = []
+    for rec in listofdicts:
+        ret.append('{last},{first}'.format(**rec))
+    return ret
+
+
 def str_add(*args):
     total = 0
     for arg in args:
