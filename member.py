@@ -465,7 +465,7 @@ def add2ms_by_status(record, club):
         Each value is a list of keys (member key format.)
     """
     if record['status']:
-        entry = format_record(record, club.format)
+        entry = format_record(record, fstrings['key'])
         stati = get_status_set(record)
         key = format_record(record, fstrings['key'])
         for status in stati:

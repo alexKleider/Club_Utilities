@@ -561,6 +561,21 @@ def get_fee_paying_contacts(club):
     return collector
 
 
+def ck4fee_consistency(contact_data,
+                        member_data,
+                        no_email_set):
+    """
+    expect to be passed:
+        fee_paying_contacts,
+        club.fee_category_by_m,
+        no_email_set.
+    returns text to place in report
+    """
+    for contact in contact_data:
+        pass
+    contacts_set = set(contact_data.keys())
+    pass
+
 
 def ck_data(club,
             fee_details=False):
@@ -599,10 +614,10 @@ def ck_data(club,
 
     ## First check that google groups match club data:
     # Deal with extra fees...
+    fee_paying_contacts = get_fee_paying_contacts(club)
+    fee_paying_contacts_set = set(fee_paying_contacts.keys())
     fee_paying_m_set = club.fee_category_by_m.keys()
     no_email_recs = club.usps_only  # a list of records
-    fee_paying_contacts_set = set(
-            get_fee_paying_contacts(club).keys())
     no_email_set = {member.fstrings['key'].format(**rec)
                     for rec in no_email_recs}
     fee_paying_w_email_set = fee_paying_m_set - no_email_set
