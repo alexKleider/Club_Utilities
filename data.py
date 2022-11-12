@@ -645,9 +645,21 @@ def ck_data(club,
         "Fee paying members not in google contacts",
         )
     if fee_missmatches:
+        only_in_contact_set = (fee_paying_contacts_set
+                                    - fee_paying_w_email_set)
+        only_in_paying_w_email_set = (fee_paying_w_email_set
+                                    - fee_paying_contacts_set)
         helpers.add_header2list(
             "Extra fees missmatches",
             ret, underline_char='=', extra_line=True)
+        if only_in_contact_set:
+            ret.append("Only in Contacts:")
+            for item in only_in_contact_set:
+                ret.append("\t{}".format(repr(item)))
+        if only_in_paying_w_email_set:
+            ret.append("Only in Member DB:")
+            for item in only_in_paying_w_email_set:
+                ret.append("\t{}".format(repr(item)))
         ret.extend(fee_missmatches)
     else:
         ok.append('No fee missmatches')

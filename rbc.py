@@ -84,6 +84,9 @@ class Club(object):
     
     # # Constants and Defaults...
     YEARLY_DUES = 100
+    DOCK_FEE = 75
+    KAYAK_FEE = 70
+    SECRETARY = "Ed Mann" 
     # meetings are held on (the first[1]) Friday (of each month) and
     # elections are held at the February meeting.
     # [1] Second Friday if the first falls on January 1st.
@@ -95,8 +98,6 @@ class Club(object):
     APPLICANT_SPoT = os.path.join(DATA_DIR, "applicants.txt")
     APPLICANT_CSV = os.path.join(DATA_DIR, "applicants.csv")
     SPONSORS_SPoT = os.path.join(DATA_DIR, "sponsors.txt")
-#   redacted:
-#   EXTRA_FEES_SPoT = os.path.join(DATA_DIR, 'extra_fees.txt')
     DOCK_SPoT = os.path.join(DATA_DIR, 'dock.txt')
     KAYAK_SPoT = os.path.join(DATA_DIR, 'kayak.txt')
     MOORING_SPoT = os.path.join(DATA_DIR, 'mooring.txt')
@@ -115,19 +116,6 @@ class Club(object):
 #   EXTRA_FEES_TBL = os.path.join(DATA_DIR, 'extra_fees.tbl')  # not used!
 #   TEMP_MEMBERSHIP_SPoT = os.path.join(DATA_DIR, 'new_memlist.csv')
 
-    # Non repo directories (used by archive.py:)
-#   print(os.path.split(os.getcwd()))
-    (head, tail) = os.path.split(os.getcwd())
-#   NONREPO_DIRS = ("Data",
-#                   "Exclude",
-#                   "Info",
-#                   "Mydata",
-#                   )
-#   NONREPO_DIRS = [os.path.join(
-#       os.path.split(os.getcwd())[0],
-#       'NR',
-#       f) for f in NONREPO_DIRS]
-    
     NAME_KEY = "by_name"          # } Used in context of
     CATEGORY_KEY = "by_category"  # } the extra fees.
 
@@ -140,7 +128,7 @@ class Club(object):
         )
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
 
-    # # Google Contact Groups in use:
+    # # Google Contact Groups in use:  ("Labels", not "Groups")
     APPLICANT_GROUP = "applicant"
     MEMBER_GROUP = "LIST"
     OFFICER_GROUP = 'Officers'
@@ -153,21 +141,16 @@ class Club(object):
                      MEMBER_GROUP, MOORING_GROUP, OFFICER_GROUP,
                      SECRETARY_GROUP, INACTIVE_GROUP, 
                      }
-    # # could use the above to check data integrity!! ####
-    # # Yet to be implemented. ###
-    DOCK_FEE = 75
-    KAYAK_FEE = 70
-    SECRETARY = "Ed Mann" 
     
     # Miscelaneous 
     DEFAULT_FORMAT = 'listings'
-    PATTERN = '{last}, {first}'
+#   PATTERN = '{last}, {first}'
     PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
                    ' {state}, {postal_code} [{email}]')
     INCLUDE_BAD_EMAILS = False
-    with open(MEMBERSHIP_SPoT) as db_stream:
-        reader = csv.DictReader(db_stream)
-        DB_FIELDNAMES = reader.fieldnames
+#   with open(MEMBERSHIP_SPoT) as db_stream:
+#       reader = csv.DictReader(db_stream)
+#       DB_FIELDNAMES = reader.fieldnames
 
     # # ...end of Constants and Defaults.
 
@@ -209,8 +192,6 @@ class Club(object):
         self.bcc = ''
 
         if args:  # override defaults if provided by docopts
-            # the body of this if statement replaces the need for
-            # <utils.file_name_args2attributes(self, params)>
             self.include_headers = args['-H']
             self.include_bad_emails = args['--be']
             self.json_file = args['-j']
