@@ -60,6 +60,7 @@ class Club(object):
     INCLUDE_HEADERS = False
     INCLUDE_FEES = False
     QUIET = False
+    QUIET = True
     DATA_DIR = os.path.join(root_dir, data_dir)
     CHANGING_DATA = [os.path.join(root_dir, entry)
                         for entry in changing_data]
@@ -148,11 +149,9 @@ class Club(object):
     PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
                    ' {state}, {postal_code} [{email}]')
     INCLUDE_BAD_EMAILS = False
-#   with open(MEMBERSHIP_SPoT) as db_stream:
-#       reader = csv.DictReader(db_stream)
-#       DB_FIELDNAMES = reader.fieldnames
 
     # # ...end of Constants and Defaults.
+
 
     n_instances = 0
 
@@ -179,6 +178,7 @@ class Club(object):
         self.quiet = Club.QUIET
         self.infile = Club.MEMBERSHIP_SPoT
         self.applicant_spot = Club.APPLICANT_SPoT
+        self.applicant_csv = Club.APPLICANT_CSV
         self.sponsors_spot = Club.SPONSORS_SPoT
         self.contacts_spot = Club.CONTACTS_SPoT
         self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
@@ -199,6 +199,7 @@ class Club(object):
             self.quiet = args['-q']
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
+            if args['--csv']: self.applicant_csv = args['--csv']
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
             if args['-X']: self.extra_fees_spots = args['-X']

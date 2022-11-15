@@ -555,6 +555,9 @@ def add2malformed(record, club=None):
         club.malformed.append("{}: {} Problem /w email.".format(
                                             name, record['email']))
     if name < club.previous_name:
+#       print("name & previous_name are")
+#       _ = input(f"{name} & {club.previous_name}")
+
         club.malformed.append("Record out of order: {}".format(name))
     club.previous_name = name
 

@@ -1,156 +1,54 @@
 #!/usr/bin/env python3
 
-# File: data.py
+# File: ck_data.py
 
 """
-# Originally called ck_data.py
-Renamed data.py because it deals with reading data files:
-    specifically the non csv (SPoT) files.
-To avoid cross import problem, the class Club requires
-a module of its own.
+# This began as a copy of the data.ck_data() function.
 
-Provides automated access to the
-Bolinas Rod and Boat Club's data files:
-... those identified by the constants ending in "SPoT".
-Motivated by the desire to have a way of checking for data integrity,
-it then morphed into a way of collecting data for presentation:
-    eg list of applicants by number of meetings attended.
-Current version checks for data consistency across the four
-files containing membership related data.
+# A work in progress:
+#  Goal is to clarify the data.ck_data() code.
+#  This function is 280 lines long and somewhat confusing to
+#  say the least!
 """
 
 import os
-import sys
 import csv
-import json
+import sys_globals as glbs
 import helpers
 import member
-import sys_globals as glbs
 from rbc import Club
 
-DEBUGGING_FILE = 'debug.txt'
 
-
-def get_fieldnames(csv_file: "name of csv file", report=True
-        ) -> "list of the csv file's field names":
+def get_applicants_by_status(club):
     """
-    Returns the field names of the csv file named.
+    Uses the <club> attribute <applicant_data> to return
+    a dict keyed by status;
+    values are each a list of applicant ('last, first') names.
+    Note: also possible to get applicants by status from the main data
+    base- this function uses data supplied by get_applicant_data which
+    uses the applicant data files (rather than the main data base.)
+    NOTE: May want to refactor so this function uses
+    <club_applicant_data> as a parameter rather than <club>.
     """
-    with open(csv_file, 'r', newline='') as file_object:
-        if report and not club.quiet:
-            print('DictReading file "{}"...'.format(file_object.name))
-        dict_reader = csv.DictReader(file_object, restkey='extra')
-        return dict_reader.fieldnames
+    ret = {}
+    for name in club.applicant_data.keys():
+        status = club.applicant_data[name]['status']
+        _ = ret.setdefault(status, [])
+        ret[status].append(name)
+    return ret
 
 
-def gather_membership_data(club):
+
+def add_sponsors(rec, sponsors):
     """
-    Gathers the info we want from the membership csv file
-    which is defined by club.MEMBERSHIP_SPoT.
-
-    Calls member.traverse_records which sets up and then populates
-    a number of collectors (attributes of <club>.)
-    See member.add2... functions corresponding to each[1] of the
-    following <club> attributes.
-    [1] except both 'fee_category' collectors are populated by
-    member.add2fee_data function and
-    both 'email' collectors.
+    Returns a record with sponsor fields added.
     """
-    err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-            (
-#           member.add2db_emails,
-#           member.add2email_data,
-            member.add2email_by_m,
-            member.get_usps,  # > usps_only
-            member.add2fee_data,  # > fee_category_by_m(ember)
-                                  # & ms_by_fee_category  
-            member.add2stati_by_m,
-            member.add2ms_by_status,
-            member.increment_napplicants,
-            member.add2malformed,
-            member.add2member_with_email_set,
-            member.add2applicant_with_email_set,
-            ), club)
-    if err_code:
-        print("Error condition! #{}".format(err_code))
-
-
-def get_gmail_record(g_rec):
-    """
-    <g_rec> is a record from the gmail contacts file.
-    Returns a dict with only the info we need.
-    """
-    g_email = g_rec["E-mail 1 - Value"]
-    group_membership = (
-        g_rec["Group Membership"].split(" ::: "))
-    if (group_membership and
-            group_membership[-1] == '* myContacts'):
-        group_membership = group_membership[:-1]
-    group_membership = set(group_membership)
-    first_name = " ".join((
-        g_rec["Given Name"],
-        g_rec["Additional Name"],
-        )).strip()
-    last_name = " ".join((
-        g_rec["Family Name"],
-        g_rec["Name Suffix"],
-        )).strip()
-#   gname = "{}, {}".format(last_name, first_name)
-    gname = "{},{}".format(last_name, first_name)
-    alias = "{}{}".format(first_name, last_name)
-    muttname = '{} {}'.format(first_name, last_name)
-    return dict(
-        gname=gname,
-        alias=alias,
-        muttname=muttname,
-        g_email=g_email,
-        groups=group_membership,
-        )
-
-
-def mail_only_keys(club):
-    member.traverse_records(club.infile,
-            (member.get_usps,  # populates club.usps_only
-            ),
-            club)  
-    return helpers.collect_last_first_keys(club.usps_only)
-
-
-def gather_contacts_data(club):
-    """
-    Gathers up the info we want from a gmail contacts.csv file.
-    Sets up three dict attributes of the Club instance specified
-    by club and then populates them by reading the gmail contacts
-    csv file.
-    In what follows, "name" == "{}, {}".format(last, first).
-    The attributes are :
-        g_by_name: keyed by "name" /w values indexed as follows:
-          ["email"] => email
-          ["groups"] => set of group memberships
-        g_by_group: keyed by group membership /w values
-        each a set of "names" of contacts sharing that group membership.
-    """
-    club.gmail_by_name = dict()  # => string
-    club.groups_by_name = dict()  # => set
-
-    club.g_by_group = dict()  # >set of names
-
-    # Traverse contacts.csv => g_by_name
-    with open(club.contacts_spot, 'r',
-        encoding='utf-8', newline='') as file_obj:
-        google_reader = csv.DictReader(file_obj)
-        if not club.quiet:
-            print('DictReading Google contacts file "{}"...'
-                .format(file_obj.name))
-        for g_rec in google_reader:
-            g_dict = get_gmail_record(g_rec)
-
-            club.gmail_by_name[g_dict['gname']] = g_dict['g_email']
-            club.groups_by_name[g_dict['gname']] = g_dict['groups']
-
-            for key in g_dict["groups"]:
-                _ = club.g_by_group.setdefault(key, set())
-                club.g_by_group[key].add(g_dict["gname"])
+    first_last = [member.names_reversed(sponsor) for sponsor in
+            sponsors]
+    ret = helpers.Rec(rec)
+    ret['sponsor1'] = first_last[0]
+    ret['sponsor2'] = first_last[1]
+    return ret
 
 
 def move_date_listing_into_record(dates, record):
@@ -241,6 +139,109 @@ def applicant_data_line2record(line):
     return ret
 
 
+
+def populate_applicant_data(club):
+    """
+    Reads applicant data file populating two attributes:
+    1. club.applicant_data: a dict with keys == applicants
+        and each value is a record with fields as listed in
+        rbc.Club.APPLICANT_DATA_FIELD_NAMES.
+    2. club.applicant_data_keys
+    Note: Sponsor data is included if populate_sponsor_data has
+    already been run, othwise, the values remain as empty strings.
+    """
+    sponsors = hasattr(club, 'sponsors_by_applicant')
+    # ... populate_sponsor_data must have been run
+    if sponsors:
+        sponsored = club.sponsors_by_applicant.keys()
+    club.applicant_data = {}
+    with open(club.applicant_spot, 'r') as stream:
+        if not club.quiet:
+            print('Reading file "{}"...'.format(stream.name))
+        for line in helpers.useful_lines(stream, comment='#'):
+            rec = applicant_data_line2record(line)
+            name_key = member.fstrings['key'].format(**rec)
+            if sponsors and name_key in sponsored:
+                rec = add_sponsors(rec,
+                        club.sponsors_by_applicant[name_key])
+            club.applicant_data[name_key] = rec
+        club.applicant_data_keys = club.applicant_data.keys()
+
+
+
+def parse_sponsor_data_line(line):
+    """
+    Not use in current code which needs modification.
+    Assumes blank and commented lines have already been removed.
+    returns a 2 tuple: (for subsequent use as a key/value pair)
+    t1 is "last,first" of applicant (can be used as a key)
+    t2 is a tuple of sponsors ('first last')
+    eg: ('Catz,John', ('Joe Shmo', 'Tom Duley'))
+    Fails if encounters an invalid line!!!
+    """
+    parts = line.split(":")
+    sponsored = parts[0].strip()
+    names = sponsored.split()
+    name = '{},{}'.format(names[1], names[0])
+    part2 = parts[1]
+    sponsors = (parts[1].split(', '))
+    sponsors = tuple([sponsor.strip() for sponsor in sponsors])
+#   sponsors = tuple([
+#       helpers.tofro_first_last(sponsor.strip())
+#       for sponsor in parts[1].split(", ")])
+    return (name, sponsors)
+
+
+
+def populate_sponsor_data(club):
+    """
+    Reads sponsor & membership data files populating attributes:
+        club.sponsors_by_applicant, 
+        club.applicant_set,
+        club.sponsor_emails,
+        club.sponsor_set.
+    Is the following true???  (Should be 'last,first'!!!)
+    All names (whether keys or values) are formated "last, first".
+    Should be: keys are in format 'last,first' and 
+    values in format 'last, first'
+    """
+    club.sponsor_set = set()  # eschew duplicates!
+    club.sponsor_emails = dict()
+    club.sponsors_by_applicant = dict()
+    club.sponsor_tuple_by_applicant = dict()
+    with open(club.sponsors_spot, 'r') as stream:
+        if not club.quiet:
+            print('Reading file "{}"...'.format(stream.name))
+        for line in helpers.useful_lines(stream, comment='#'):
+            name, sponsors = parse_sponsor_data_line(line)
+            club.sponsor_tuple_by_applicant[name] = sponsors
+            parts = line.split(':')
+            names = parts[0].split()  # applicant 1st and 2nd names
+            name = "{},{}".format(names[1], names[0])
+            try:
+                sponsors = parts[1].split(',')
+            except IndexError:
+                print("IndexError: {} sponsors???".format(name))
+                sys.exit()
+#           _ = input("sponsors = {}".format(repr(sponsors)))
+            sponsors = [helpers.tofro_first_last(name)
+                        for name in sponsors]
+            for sponsor in sponsors:
+                club.sponsor_set.add(sponsor)
+            club.sponsors_by_applicant[name] = sponsors
+            # key: applicant name
+            # value: list of two sponsors in "last, first" format.
+    with open(club.infile, 'r') as stream:
+        dictreader = csv.DictReader(stream)
+        for record in dictreader:
+            record = helpers.Rec(record)
+            name = record(member.fstrings['last_first'])
+            if name in club.sponsor_set:
+                club.sponsor_emails[name] = record['email']
+    club.applicant_set = club.sponsors_by_applicant.keys()
+
+
+
 def get_dict(source_file, sep=":", maxsplit=1):
     """
     A generic function to parse files.
@@ -268,6 +269,7 @@ def get_dict(source_file, sep=":", maxsplit=1):
                         .format(line))
             ret[name_key] = parts[1].strip()
     return ret
+
 
 
 def populate_extra_fees(club):
@@ -301,235 +303,6 @@ def populate_extra_fees(club):
     club.by_name = by_name
 
 
-def yield_extra_fees_report_by_name(club):
-    """
-    Client (utils.extra_fees_report_cmd) has already
-    set all the options as attributes of club.
-    """
-    populate_extra_fees(club)
-    by_name = club.by_name  # a dict (name keys) of
-                            # dicts (fee keys => dollar amts)
-    if club.json_file4output:
-        with open(club.json_file4output, 'w') as stream:
-            if not club.quiet:
-                print('Data written to "{}".'.format(stream.name))
-            json.dump(by_name, stream)
-
-    if club.csv_file4output:
-        print(
-"--csv option of extra_fees_report_cmd by name not yet implemented")
-
-    if club.text_file4output:
-        res = []
-        if club.include_headers:
-            res.extend(["Members paying extra fees",
-                        "=========================",
-                        ])
-        name_keys = sorted(by_name.keys())
-        for name_key in name_keys:  # names alphabetically:
-            fees = by_name[name_key]
-            l = []
-            for fee_key in sorted(fees.keys()):
-                if club.include_fee_charged: # include fee amnts
-                    l.append("{}: {}".format(fee_key, fees[fee_key]))
-                else:
-                    l.append("{}".format(fee_key))
-            fees_paid = ', '.join(l)
-            res.append("{}: {}".format(name_key, fees_paid))
-        helpers.output('\n'.join(res),
-                club.text_file4output, not club.quiet)
-
-
-def yield_extra_fees_report_by_category(club):
-    """
-    Client (utils.extra_fees_report_cmd) has already
-    set all the options as attributes of club.
-    """
-    print("fees_report_by_category not yet implemented")
-    populate_extra_fees(club)
-    by_category = club.by_category  # a dict (category keys) of
-                            # dicts (name keys => dollar amts)
-    if club.json_file4output:
-        with open(club.json_file4output, 'w') as stream:
-            if not club.quiet:
-                print('Data written to "{}".'.format(stream.name))
-            json.dump(by_category, stream)
-
-    if club.csv_file4output:
-        print(
-"--csv option of extra_fees_report_cmd by category not yet implemented")
-
-    if club.text_file4output:
-        res = []
-        if club.include_headers:
-            res.extend(["Extra Fees (and who pays them)",
-                        "==============================",
-                        ])
-        category_keys = sorted(by_category.keys())
-        for category_key in category_keys:  #  alphabetically:
-            names = by_category[category_key]
-            if category_key == 'dock':
-                header = (category_key +
-                        ' (${})'.format(club.DOCK_FEE))
-            elif category_key == 'kayak':
-                header = (category_key +
-                        ' (${})'.format(club.KAYAK_FEE))
-            elif category_key == 'mooring':
-               header = (category_key +
-                       ' (fee varies)')
-            else:
-                print("Should never get here!!!!")
-                sys.exit()
-            res.append(header)
-            for name_key in sorted(names.keys()):
-                if (club.include_fee_charged
-                and category_key == "mooring"): # include fee amnts
-                    res.append("\t{}: {}".format(name_key, names[name_key]))
-                else:
-                    res.append("\t{}".format(name_key))
-
-        helpers.output('\n'.join(res),
-                club.text_file4output, not club.quiet)
-
-
-def add_sponsors(rec, sponsors):
-    """
-    Returns a record with sponsor fields added.
-    """
-    first_last = [member.names_reversed(sponsor) for sponsor in
-            sponsors]
-    ret = helpers.Rec(rec)
-    ret['sponsor1'] = first_last[0]
-    ret['sponsor2'] = first_last[1]
-    return ret
-
-
-def populate_applicant_data(club):
-    """
-    Reads applicant data file populating two attributes:
-    1. club.applicant_data: a dict with keys == applicants
-        and each value is a record with fields as listed in
-        rbc.Club.APPLICANT_DATA_FIELD_NAMES.
-    2. club.applicant_data_keys
-    Note: Sponsor data is included if populate_sponsor_data has
-    already been run, othwise, the values remain as empty strings.
-    """
-    sponsors = hasattr(club, 'sponsors_by_applicant')
-    # ... populate_sponsor_data must have been run
-    if sponsors:
-        sponsored = club.sponsors_by_applicant.keys()
-    club.applicant_data = {}
-    with open(club.applicant_spot, 'r') as stream:
-        print('Reading file "{}"...'.format(stream.name))
-        for line in helpers.useful_lines(stream, comment='#'):
-            rec = applicant_data_line2record(line)
-            name_key = member.fstrings['key'].format(**rec)
-            if sponsors and name_key in sponsored:
-                rec = add_sponsors(rec,
-                        club.sponsors_by_applicant[name_key])
-            club.applicant_data[name_key] = rec
-        club.applicant_data_keys = club.applicant_data.keys()
-
-
-def get_applicants_by_status(club):
-    """
-    Uses the <club> attribute <applicant_data> to return
-    a dict keyed by status;
-    values are each a list of applicant ('last, first') names.
-    Note: also possible to get applicants by status from the main data
-    base- this function uses data supplied by get_applicant_data which
-    uses the applicant data files (rather than the main data base.)
-    NOTE: May want to refactor so this function uses
-    <club_applicant_data> as a parameter rather than <club>.
-    """
-    ret = {}
-    for name in club.applicant_data.keys():
-        status = club.applicant_data[name]['status']
-        _ = ret.setdefault(status, [])
-        ret[status].append(name)
-    return ret
-
-
-def parse_sponsor_data_line(line):
-    """
-    Not use in current code which needs modification.
-    Assumes blank and commented lines have already been removed.
-    returns a 2 tuple: (for subsequent use as a key/value pair)
-    t1 is "last,first" of applicant (can be used as a key)
-    t2 is a tuple of sponsors ('first last')
-    eg: ('Catz,John', ('Joe Shmo', 'Tom Duley'))
-    Fails if encounters an invalid line!!!
-    """
-    parts = line.split(":")
-    sponsored = parts[0].strip()
-    names = sponsored.split()
-    name = '{},{}'.format(names[1], names[0])
-    part2 = parts[1]
-    sponsors = (parts[1].split(', '))
-    sponsors = tuple([sponsor.strip() for sponsor in sponsors])
-#   sponsors = tuple([
-#       helpers.tofro_first_last(sponsor.strip())
-#       for sponsor in parts[1].split(", ")])
-    return (name, sponsors)
-
-
-def populate_sponsor_data(club):
-    """
-    Reads sponsor & membership data files populating attributes:
-        club.sponsors_by_applicant, 
-        club.applicant_set,
-        club.sponsor_emails,
-        club.sponsor_set.
-    Is the following true???  (Should be 'last,first'!!!)
-    All names (whether keys or values) are formated "last, first".
-    Should be: keys are in format 'last,first' and 
-    values in format 'last, first'
-    """
-    club.sponsor_set = set()  # eschew duplicates!
-    club.sponsor_emails = dict()
-    club.sponsors_by_applicant = dict()
-    club.sponsor_tuple_by_applicant = dict()
-    with open(club.sponsors_spot, 'r') as stream:
-        print('Reading file "{}"...'.format(stream.name))
-        for line in helpers.useful_lines(stream, comment='#'):
-            name, sponsors = parse_sponsor_data_line(line)
-            club.sponsor_tuple_by_applicant[name] = sponsors
-            parts = line.split(':')
-            names = parts[0].split()  # applicant 1st and 2nd names
-            name = "{},{}".format(names[1], names[0])
-            try:
-                sponsors = parts[1].split(',')
-            except IndexError:
-                print("IndexError: {} sponsors???".format(name))
-                sys.exit()
-#           _ = input("sponsors = {}".format(repr(sponsors)))
-            sponsors = [helpers.tofro_first_last(name)
-                        for name in sponsors]
-            for sponsor in sponsors:
-                club.sponsor_set.add(sponsor)
-            club.sponsors_by_applicant[name] = sponsors
-            # key: applicant name
-            # value: list of two sponsors in "last, first" format.
-    with open(club.infile, 'r') as stream:
-        dictreader = csv.DictReader(stream)
-        for record in dictreader:
-            record = helpers.Rec(record)
-            name = record(member.fstrings['last_first'])
-            if name in club.sponsor_set:
-                club.sponsor_emails[name] = record['email']
-    club.applicant_set = club.sponsors_by_applicant.keys()
-
-
-def line_of_meeting_dates(applicant_datum):
-    """
-    Returns a string: comma separated listing of meeting dates.
-    """
-    dates = []
-    for date_key in Club.MEETING_DATE_NAMES:
-        if applicant_datum[date_key]:
-            dates.append(applicant_datum[date_key])
-    return ', '.join(dates)
-
 
 def get_fee_paying_contacts(club):
     """
@@ -561,6 +334,112 @@ def get_fee_paying_contacts(club):
     return collector
 
 
+
+def get_gmail_record(g_rec):
+    """
+    <g_rec> is a record from the gmail contacts file.
+    Returns a dict with only the info we need.
+    """
+    g_email = g_rec["E-mail 1 - Value"]
+    group_membership = (
+        g_rec["Group Membership"].split(" ::: "))
+    if (group_membership and
+            group_membership[-1] == '* myContacts'):
+        group_membership = group_membership[:-1]
+    group_membership = set(group_membership)
+    first_name = " ".join((
+        g_rec["Given Name"],
+        g_rec["Additional Name"],
+        )).strip()
+    last_name = " ".join((
+        g_rec["Family Name"],
+        g_rec["Name Suffix"],
+        )).strip()
+#   gname = "{}, {}".format(last_name, first_name)
+    gname = "{},{}".format(last_name, first_name)
+    alias = "{}{}".format(first_name, last_name)
+    muttname = '{} {}'.format(first_name, last_name)
+    return dict(
+        gname=gname,
+        alias=alias,
+        muttname=muttname,
+        g_email=g_email,
+        groups=group_membership,
+        )
+
+
+def gather_contacts_data(club):
+    """
+    Gathers up the info we want from a gmail contacts.csv file.
+    Sets up three dict attributes of the Club instance specified
+    by club and then populates them by reading the gmail contacts
+    csv file.
+    In what follows, "name" == "{}, {}".format(last, first).
+    The attributes are :
+        g_by_name: keyed by "name" /w values indexed as follows:
+          ["email"] => email
+          ["groups"] => set of group memberships
+        g_by_group: keyed by group membership /w values
+        each a set of "names" of contacts sharing that group membership.
+    """
+    club.gmail_by_name = dict()  # => string
+    club.groups_by_name = dict()  # => set
+
+    club.g_by_group = dict()  # >set of names
+
+    # Traverse contacts.csv => g_by_name
+    with open(club.contacts_spot, 'r',
+        encoding='utf-8', newline='') as file_obj:
+        google_reader = csv.DictReader(file_obj)
+        if not club.quiet:
+            print('DictReading Google contacts file "{}"...'
+                .format(file_obj.name))
+        for g_rec in google_reader:
+            g_dict = get_gmail_record(g_rec)
+
+            club.gmail_by_name[g_dict['gname']] = g_dict['g_email']
+            club.groups_by_name[g_dict['gname']] = g_dict['groups']
+
+            for key in g_dict["groups"]:
+                _ = club.g_by_group.setdefault(key, set())
+                club.g_by_group[key].add(g_dict["gname"])
+
+
+
+def gather_membership_data(club):
+    """
+    Gathers the info we want from the membership csv file
+    which is defined by club.MEMBERSHIP_SPoT.
+
+    Calls member.traverse_records which sets up and then populates
+    a number of collectors (attributes of <club>.)
+    See member.add2... functions corresponding to each[1] of the
+    following <club> attributes.
+    [1] except both 'fee_category' collectors are populated by
+    member.add2fee_data function and
+    both 'email' collectors.
+    """
+    club.previous_name = ''
+    err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
+            (
+#           member.add2db_emails,
+#           member.add2email_data,
+            member.add2email_by_m,
+            member.get_usps,  # > usps_only
+            member.add2fee_data,  # > fee_category_by_m(ember)
+                                  # & ms_by_fee_category  
+            member.add2stati_by_m,
+            member.add2ms_by_status,
+            member.increment_napplicants,
+            member.add2malformed,
+            member.add2member_with_email_set,
+            member.add2applicant_with_email_set,
+            ), club)
+    if err_code:
+        print("Error condition! #{}".format(err_code))
+
+
+
 def ck_data(club,    # 280 lines of code!! ?needs breaking up?
             fee_details=False):
     """
@@ -590,6 +469,8 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     # Collect data from csv files ==> club attributes:
     # collect info from main data base:
     gather_membership_data(club)
+    print("club.malformed:")
+    print(repr(club.malformed))
     # collect info from club gmail account contacts:
     gather_contacts_data(club)  # Sets up and populates:
     # club.gmail_by_name (string)
@@ -827,7 +708,8 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
         ok.append("No fees by name problem.")
 
     if ok:
-        helpers.add_sub_list("No Problems with the Following", ok, ret)
+        helpers.add_sub_list(
+                "No Problems with the Following", ok, ret)
     ai_notice = "Acceptable Inconsistency"
     if not_matching_notice:
         helpers.add_header2list(ai_notice,
@@ -841,184 +723,92 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     return ret
 
 
-def club_with_payables_dict(infile=None, args=None):
+def current_applicant(applicant_record):
     """
-    !?UNUSED?!
-    Returns an instance of Club with required attributes:
-        owing_dict     } both of which
-        credits_dict   }  are dicts
-    <args> provides for optional docopt args
+    Returns <True> if <applicant_record> has a <status> key
+    compatable with being an applicant.
     """
-    club = Club(args)
-    if infile: club.infile = infile
-    club.owing_dict = {}
-    club.credits_dict = {}
-    err_code = member.traverse_records(club.infile,
-                                       member.get_payables_dict,
-                                       club)
-    return club
+    if applicant_record["status"] in {'a0', 'a1', 'a2', 'a3',
+            'ai', 'ad', 'av', 'aw'}:
+        return True
+    return False
 
 
-def club_with_payables_listing(args=None, asterixUSPS=False):
+def applicant_csv(club):
     """
-    Returns an instance of Club with required attributes:
-        still_owing         } both of which
-        advance_payments    }  are lists
-    <args> provides for optional docopt args
-    <asterixUSPS> if True adds an "*" to those without email
+    Expects it's parameter <club> to have the attribute
+    club.applicant_data created by running both
+    populate_sponsor_data and populate_applicant_dat (in that order.)
+    Returns a list (ordered by last,first) of dicts with the following keys:
+    'first', 'last', 'status', 'app_rcvd' 'fee_rcvd',
+    '1st', '2nd' '3rd', 'inducted', 'dues_paid', 'sponsor1', 'sponsor2'
+    If club.applicant_csv is set, the data is sent to that file.
+    If boolean club.current_applicants_only is set,
+    only those who are still applicants will be included.
     """
-    club = Club(args)
-    club.still_owing = []
-    club.advance_payments = []
-    club.asterixUSPS = asterixUSPS
-    err_code = member.traverse_records(club.infile,
-                                       member.get_payables,
-                                       club)
-    return club
+    data = [club.applicant_data[key] for key in
+            sorted(club.applicant_data.keys())]
+    with open(club.applicant_csv, 'w', newline='') as stream:
+        dictwriter = csv.DictWriter(stream,
+                fieldnames=club.APPLICANT_DATA_FIELD_NAMES)
+        dictwriter.writeheader()
+        print("current_applicants_only set to " +
+        f"{repr(club.current_applicants_only)}")
+        for row in data:
+            ca = current_applicant(row)
+            if club.current_applicants_only:
+                if current_applicant(row):
+                    dictwriter.writerow(row)
+            else:
+                dictwriter.writerow(row)
+    return data
 
 
-def payables_report(club, tabulate=False, max_width=None):
-    ret = []
-    if club.still_owing:
-        helpers.add_header2list(
-            "Members owing ({} in number)"
-            .format(len(club.still_owing)),
-            ret, underline_char='=', extra_line=True)
-        if not max_width: max_width = 80
-        else: max_width = int(max_width)
-        if tabulate:
-            tabulated = helpers.tabulate(club.still_owing,
-                                         max_width=max_width,
-                                         separator='  ')
-            ret.extend(tabulated)
-        else:
-            ret.extend(club.still_owing)
-    if club.advance_payments:
-        ret.append("\n")
-        ret.extend(["Members with a Credit",
-                       "---------------------"])
-        ret.extend(club.advance_payments)
-#   print('\n'.join(ret))
-    ret.append("\n\nReport prepared {}".format(helpers.date))
-    ret.append(
-            "(*) names ({}) with an asterix indicate usps vs email"
-            .format(club.n_no_email))
-    return ret
-
-
-
-def restore_fees(club):
+def applicants_by_status(applicant_data):
     """
-    Sets up and leaves a new list of records in club.new_db:
-    Dues and relevant fees are applied to each member's record.
-    Also populates <club.name_set> & <club.errors>
-    The <club.errors> includes names that are found in the
-    <fees_json_file> but not in the <membership_csv_file> and 
-    those still owing before new fees/dues are added.
+    Expects its parameter (<applicant_data>) to be
+    what's returned by the applicant_csv function.
+    See its docstring for details.
+    Returns a dict keyed by status, values are lists
+    of the corresponsing entries in <applicant_data>.
     """
-    print("Restore dues and fees to the data base...")
-    club.errors = []; club.new_db = [];
-    club.non0balance = {}; club.name_set = set();
-    populate_extra_fees(club)
-    club.extra_fee_names = set([key for key in club.by_name.keys()])
-    err_code = member.traverse_records(club.infile, (
-        member.populate_non0balance_func,
-        member.populate_name_set_func,
-        member.add_dues_fees2new_db_func,
-        ), club)
-    if club.non0balance:
-        warning = "Non zero balances..."
-#       print(warning)
-        club.errors.append(warning)
-        for name in sorted(club.non0balance.keys()):
-            club.errors.append("{}: {}"
-                    .format(name, repr(club.non0balance[name])))
-    names_not_members = club.extra_fee_names - club.name_set
-    if names_not_members:
-        warning = "Not all listed as paying extra fees are members!"
-#       print(warning)
-        club.errors.append(warning)
-        for name in names_not_members:
-            club.errors.append(
-                "\t{}: non member listed as paying fee(s)."
-                .format(name))
-
-# save_db moved to helpers
+    collector = {}
+    for record in applicant_data:
+        _ = collector.setdefault(record['status'], [])
+        collector[record['status']].append(record)
+    return collector
 
 
-def data_listed(data, underline_char='=', inline=False):
-    """
-    Assumes 'data' is a dict with list values.
-    Returns a list of lines: each key as a header +/- underlining
-    followed by its values one per line, or (if 'inline'=True) on
-    the same line separated by commas after a colon.
-    """
-    ret = []
-    keys = sorted(data.keys())
-    for key in keys:
-        values = sorted(data[key])
-        if inline:
-            ret.append(key + " :" + ", ".join(values))
-        else:
-            ret.append("\n" + key)
-            ret.append(underline_char * len(key))
-            ret.extend(values)
-    return ret
-
-
-# the following (compare function) is not used?  Redact?
-def compare(data1, data2, underline_char='=', inline=False):
-    """
-    !?UNUSED?!
-    """
-    ret = []
-    if data1 == data2:
-        ret.append("Good News: data1 == data2")
-    else:
-        ret.append("Bad News: data1 != data2")
-    ret.append("\nListing1...")
-    ret.extend(data_listed(data1, underline_char, inline))
-    ret.append("\nListing2...")
-    ret.extend(data_listed(data2, underline_char, inline))
-    ret.append("... end of listings")
-    return ret
-
-
-def parse_kayak_data(raw_dict):
-    """
-    Modifies values in <raw_dict> as appropriate
-    for the KAYAK.SPoT file.
-    ## One time use for when fee has already been paid
-    """
-    for key in raw_dict.keys():
-        value = raw_dict[key].split()
-        l = len(value)
-        if l > 2 or l < 1: assert False
-        if value[-1] == '*': amt = 0
-        else: amt = int(value[0])
-        raw_dict[key] = amt
-
-
-def populate_kayak_fees(club):
-    """
-    !?UNUSED?!
-    NOTE: one time use; should be REDACTed!!!
-    Parse club.KAYAK_SPoT and set up club.kayak_fees, a dict:
-        keys- last/first name
-        value- amount to be paid
-    Lines terminating in an asterix have already paid
-    and 'amount to be paid' for them should be 0.
-    Must be referenced within func_dict.
-    # Note: non kayak storage members should have a null in the
-    # 'kayak' field of the main db.
-    Format of each line in KAYAK_SPoT: "First Last:  AMT  [*]"
-    """
-    club.kayak_fees = parse_kayak_data(get_dict(club.KAYAk_SPoT))
-
-func_dict = {
-        "populate_kayak_fees": populate_kayak_fees,
-        }
+def send2file(text, filename, silent=False):
+    if not silent:
+        print(f"sending text to {filename}")
+    with open(filename, 'w') as stream:
+        stream.write(text)
 
 
 if __name__ == '__main__':
-    print("data.py compiles OK.")
+    club = Club()
+    populate_sponsor_data(club)    # { Must do this before
+    populate_applicant_data(club)  # { this
+               # { for club.applicant_data to be complete. 
+    club.applicant_csv = "applicant.csv"
+#   club.current_applicants_only = False
+    club.current_applicants_only = True
+    res = applicant_csv(club)
+    by_status = applicants_by_status(res)
+    collector = []
+    for key in by_status.keys():
+        collector.append(key)
+        for item in by_status[key]:
+            collector.append( ', '.join(item.values()))
+    send2file('\n'.join(collector), 'by_status.txt')
+
+#   for key in club.applicant_data.keys():
+#       print(f"{key}: {club.applicant_data[key]}")
+#   _ = input(club.applicant_data)
+#   get_applicants_by_status(club)
+#   ck_data(club)
+#   print("\n".join(ck_data(club)))
+
+
+
