@@ -23,12 +23,11 @@ def get_applicants_by_status(club):
     """
     Uses the <club> attribute <applicant_data> to return
     a dict keyed by status;
-    values are each a list of applicant ('last, first') names.
-    Note: also possible to get applicants by status from the main data
-    base- this function uses data supplied by get_applicant_data which
-    uses the applicant data files (rather than the main data base.)
-    NOTE: May want to refactor so this function uses
-    <club_applicant_data> as a parameter rather than <club>.
+    Values are each a list of applicant ('last, first') names.
+    Note: club.applicant_data is derived from the applicant.txt
+    file. It is also possible to get applicant data directly
+    from the main data => club.db_applicants.
+    Implement use of club.current
     """
     ret = {}
     for name in club.applicant_data.keys():
@@ -171,7 +170,6 @@ def populate_applicant_data(club):
 
 def parse_sponsor_data_line(line):
     """
-    Not use in current code which needs modification.
     Assumes blank and commented lines have already been removed.
     returns a 2 tuple: (for subsequent use as a key/value pair)
     t1 is "last,first" of applicant (can be used as a key)
@@ -746,22 +744,23 @@ def applicant_csv(club):
     If boolean club.current_applicants_only is set,
     only those who are still applicants will be included.
     """
+    ret = []
     data = [club.applicant_data[key] for key in
             sorted(club.applicant_data.keys())]
     with open(club.applicant_csv, 'w', newline='') as stream:
         dictwriter = csv.DictWriter(stream,
                 fieldnames=club.APPLICANT_DATA_FIELD_NAMES)
         dictwriter.writeheader()
-        print("current_applicants_only set to " +
-        f"{repr(club.current_applicants_only)}")
         for row in data:
             ca = current_applicant(row)
             if club.current_applicants_only:
                 if current_applicant(row):
                     dictwriter.writerow(row)
+                    ret.append(row)
             else:
                 dictwriter.writerow(row)
-    return data
+                ret.append(row)
+    return ret
 
 
 def applicants_by_status(applicant_data):
@@ -780,10 +779,13 @@ def applicants_by_status(applicant_data):
 
 
 def send2file(text, filename, silent=False):
+    """Write <text> to <filename> (silently (or not))"""
     if not silent:
-        print(f"sending text to {filename}")
+        print(f"Sending text to {filename} ...")
     with open(filename, 'w') as stream:
         stream.write(text)
+    if not silent:
+        print(f"... write to {filename} successfull.")
 
 
 if __name__ == '__main__':
