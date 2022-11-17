@@ -21,6 +21,7 @@ from rbc import Club
 
 def get_applicants_by_status(club):
     """
+    # only used by ck_data which we are trying to rewrite #
     Uses the <club> attribute <applicant_data> to return
     a dict keyed by status;
     Values are each a list of applicant ('last, first') names.
@@ -40,6 +41,7 @@ def get_applicants_by_status(club):
 
 def add_sponsors(rec, sponsors):
     """
+    # used by populate_applicant_data #
     Returns a record with sponsor fields added.
     """
     first_last = [member.names_reversed(sponsor) for sponsor in
@@ -52,6 +54,7 @@ def add_sponsors(rec, sponsors):
 
 def move_date_listing_into_record(dates, record):
     """
+    # used by applicant_data_line2record #
     <dates>: a listing (possibly incomplete) of relevant dates.
     <record>: a dict to which to add those dates by relevant key.
     returns the record
@@ -73,6 +76,7 @@ def move_date_listing_into_record(dates, record):
 
 def applicant_data_line2record(line):
     """
+    # used only by populate_applicant_data #
     Assumes a valid line from the Data/applicant.txt file.
     Returns a dict with keys as listed in 
     Club.APPLICANT_DATA_FIELD_NAMES = (
@@ -141,6 +145,7 @@ def applicant_data_line2record(line):
 
 def populate_applicant_data(club):
     """
+    # used by new code as well as ck_data #
     Reads applicant data file populating two attributes:
     1. club.applicant_data: a dict with keys == applicants
         and each value is a record with fields as listed in
@@ -170,6 +175,7 @@ def populate_applicant_data(club):
 
 def parse_sponsor_data_line(line):
     """
+    # used by populate_sponsor_data #
     Assumes blank and commented lines have already been removed.
     returns a 2 tuple: (for subsequent use as a key/value pair)
     t1 is "last,first" of applicant (can be used as a key)
@@ -193,6 +199,7 @@ def parse_sponsor_data_line(line):
 
 def populate_sponsor_data(club):
     """
+    # used by new code as well as ck_data #
     Reads sponsor & membership data files populating attributes:
         club.sponsors_by_applicant, 
         club.applicant_set,
@@ -242,6 +249,7 @@ def populate_sponsor_data(club):
 
 def get_dict(source_file, sep=":", maxsplit=1):
     """
+    # used by populate_extra_fees #
     A generic function to parse files.
     Blank lines or comments ('#') are ignored.
     All other lines must contains a 'first last' name followed by
@@ -272,6 +280,7 @@ def get_dict(source_file, sep=":", maxsplit=1):
 
 def populate_extra_fees(club):
     """
+    # used by ck_data only (so far) #
     Assumes <club> has attribute 'extra_fees_spots'.
     Populates club.by_name and club.by_category.
     Note also member.add2fee_data which (upon data traversal)
@@ -304,6 +313,7 @@ def populate_extra_fees(club):
 
 def get_fee_paying_contacts(club):
     """
+    # so far used only by ck_data #
     Assumes club attribute <groups_by_name> has already been
     assigned (by data.gather_contacts_data.)
     Creates a list of dicts keyed by contact name
@@ -335,6 +345,7 @@ def get_fee_paying_contacts(club):
 
 def get_gmail_record(g_rec):
     """
+    # used by gather_contacts_data #
     <g_rec> is a record from the gmail contacts file.
     Returns a dict with only the info we need.
     """
@@ -368,6 +379,7 @@ def get_gmail_record(g_rec):
 
 def gather_contacts_data(club):
     """
+    # used by ck_data #
     Gathers up the info we want from a gmail contacts.csv file.
     Sets up three dict attributes of the Club instance specified
     by club and then populates them by reading the gmail contacts
@@ -406,6 +418,7 @@ def gather_contacts_data(club):
 
 def gather_membership_data(club):
     """
+    # used by ck_data #
     Gathers the info we want from the membership csv file
     which is defined by club.MEMBERSHIP_SPoT.
 
@@ -767,7 +780,7 @@ def applicants_by_status(applicant_data):
     """
     Expects its parameter (<applicant_data>) to be
     what's returned by the applicant_csv function.
-    See its docstring for details.
+    (See its docstring for details.)
     Returns a dict keyed by status, values are lists
     of the corresponsing entries in <applicant_data>.
     """
@@ -776,16 +789,6 @@ def applicants_by_status(applicant_data):
         _ = collector.setdefault(record['status'], [])
         collector[record['status']].append(record)
     return collector
-
-
-def send2file(text, filename, silent=False):
-    """Write <text> to <filename> (silently (or not))"""
-    if not silent:
-        print(f"Sending text to {filename} ...")
-    with open(filename, 'w') as stream:
-        stream.write(text)
-    if not silent:
-        print(f"... write to {filename} successfull.")
 
 
 if __name__ == '__main__':
@@ -803,7 +806,7 @@ if __name__ == '__main__':
         collector.append(key)
         for item in by_status[key]:
             collector.append( ', '.join(item.values()))
-    send2file('\n'.join(collector), 'by_status.txt')
+    helpers.send2file('\n'.join(collector), 'by_status.txt')
 
 #   for key in club.applicant_data.keys():
 #       print(f"{key}: {club.applicant_data[key]}")

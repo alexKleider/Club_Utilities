@@ -710,6 +710,16 @@ def tabulate(data,
     return new_data
 
 
+def send2file(text, filename, silent=False):
+    """Write <text> to <filename> (silently (or not))"""
+    if not silent:
+        print(f"Sending text to {filename} ...")
+    with open(filename, 'w') as stream:
+        stream.write(text)
+    if not silent:
+        print(f"... write to {filename} successfull.")
+
+
 def output(data, destination=None, announce=True):
     """
     Sends data (text) to (a file called) <destination>
