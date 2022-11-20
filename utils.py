@@ -20,7 +20,7 @@ Usage:
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py extra_fees_report (-o <outfile>|-j <json>|--csv <csv_file>) [-O -i <infile> -q -f -H --by_fee_category]
   ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
-  ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> --all_applicants -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -q --be -H -j <json> -o <outfile> --csv csv_file]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
@@ -42,6 +42,8 @@ Options:
   --version  Print version.
   -a <app_csv>  csv version of applicant data file.
   -A <app_spot>   Applicant data file.
+  --all_applicants   Rarely used flag to signal that we want to
+          include all applicants, not just the current ones.
   --by_fee_category  extra_fee_report command defaults to reporting
         by name; this makes report keyed by fee category
   --be   Include those with an email deemed 'bad'/not working
@@ -503,8 +505,6 @@ def show_cmd(args=args):
 THE TELEPHONE NUMBERS, ADDRESSES AND EMAIL ADDRESSES OF THE BOLINAS ROD &
 BOAT CLUB MEMBERSHIP CONTAINED HEREIN ARE NOT TO BE REPRODUCED OR DISTRIBUTED
 FOR ANY PURPOSE WITHOUT THE EXPRESS PERMISSION OF THE BOARD OF THE BRBC.
-
-Data maintained by the Membership Chair and posted here by Secretary {}.
 """.format(club.SECRETARY)]
 
 

@@ -465,8 +465,8 @@ def add2ms_by_status(record, club):
         Each value is a list of keys (member key format.)
     """
     if record['status']:
-        entry = format_record(record, fstrings['key'])
         stati = get_status_set(record)
+        entry = format_record(record, fstrings['first_last'])
         key = format_record(record, fstrings['key'])
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
@@ -723,8 +723,8 @@ def show_by_status(by_status,  # dict: key: status, value: name_keys
             helpers.add_header2list(STATUS_KEY_VALUES[status],
                                     ret, underline_char='-')
             for name_key in by_status[status]:
-#               print('name_key:', name_key)
-                ret.append(club.entries_w_status[name_key])
+                entry = club.entries_w_status[name_key]
+                ret.append(entry)
                 if status in APPLICANT_STATI:
                     if hasattr(club, 'applicant_data'):
                         if name_key in club.applicant_data_keys:
@@ -1372,9 +1372,6 @@ prerequisites = {   # collectors needed by the
     add2modified2thank_dict: [
         'club.modified2thank_dict = {}',
         ],
-    #   add2status_data: [
-    #       'club.ms_by_status = {}',
-    #       ],
     add_dues_fees2new_db_func: [
         'club.new_db = []',
         ]

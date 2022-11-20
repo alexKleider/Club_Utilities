@@ -128,6 +128,7 @@ class Club(object):
         "sponsor1", "sponsor2",   # empty strings if not available
         )
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
+    ALL_APPLICANTS = False
 
     # # Google Contact Groups in use:  ("Labels", not "Groups")
     APPLICANT_GROUP = "applicant"
@@ -179,6 +180,7 @@ class Club(object):
         self.infile = Club.MEMBERSHIP_SPoT
         self.applicant_spot = Club.APPLICANT_SPoT
         self.applicant_csv = Club.APPLICANT_CSV
+        self.all_applicants = Club.ALL_APPLICANTS
         self.sponsors_spot = Club.SPONSORS_SPoT
         self.contacts_spot = Club.CONTACTS_SPoT
         self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
@@ -200,6 +202,7 @@ class Club(object):
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
             if args['--csv']: self.applicant_csv = args['--csv']
+            if args['--all_applicants']: self.all_applicants = True
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
             if args['-X']: self.extra_fees_spots = args['-X']

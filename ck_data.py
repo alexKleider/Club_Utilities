@@ -3,12 +3,13 @@
 # File: ck_data.py
 
 """
-# This began as a copy of the data.ck_data() function.
+# This file began as a copy of the data.ck_data() function.
 
 # A work in progress:
 #  Goal is to clarify the data.ck_data() code.
-#  This function is 280 lines long and somewhat confusing to
-#  say the least!
+#  'data.ck_data()' is 280 lines long and somewhat confusing
+#  to say the least!  I'm hoping to replace it, perhaps with
+#  a number of different functions.
 """
 
 import os
@@ -754,8 +755,8 @@ def applicant_csv(club):
     'first', 'last', 'status', 'app_rcvd' 'fee_rcvd',
     '1st', '2nd' '3rd', 'inducted', 'dues_paid', 'sponsor1', 'sponsor2'
     If club.applicant_csv is set, the data is sent to that file.
-    If boolean club.current_applicants_only is set,
-    only those who are still applicants will be included.
+    If boolean club.all_applicants is set then all past as well as
+    current applicants will be included.  i.e. All that are in the DB.
     """
     ret = []
     data = [club.applicant_data[key] for key in
@@ -766,13 +767,13 @@ def applicant_csv(club):
         dictwriter.writeheader()
         for row in data:
             ca = current_applicant(row)
-            if club.current_applicants_only:
+            if club.all_applicants:
+                dictwriter.writerow(row)
+                ret.append(row)
+            else:
                 if current_applicant(row):
                     dictwriter.writerow(row)
                     ret.append(row)
-            else:
-                dictwriter.writerow(row)
-                ret.append(row)
     return ret
 
 
@@ -797,23 +798,21 @@ if __name__ == '__main__':
     populate_applicant_data(club)  # { this
                # { for club.applicant_data to be complete. 
     club.applicant_csv = "applicant.csv"
-#   club.current_applicants_only = False
-    club.current_applicants_only = True
+#   club.all_applicants = True   # default is False
     res = applicant_csv(club)
     by_status = applicants_by_status(res)
     collector = []
-    for key in by_status.keys():
+    sorted_keys = sorted([key for key in by_status.keys()],
+            reverse=True)
+    for key in sorted_keys:
         collector.append(key)
         for item in by_status[key]:
-            collector.append( ', '.join(item.values()))
+            values = [value for value in item.values()]
+            output = [f"{values[0]} {values[1]}", ]
+            output.extend(values[2:])
+#           collector.append( ', '.join(item.values()))
+            collector.append( ', '.join(output))
     helpers.send2file('\n'.join(collector), 'by_status.txt')
-
-#   for key in club.applicant_data.keys():
-#       print(f"{key}: {club.applicant_data[key]}")
-#   _ = input(club.applicant_data)
-#   get_applicants_by_status(club)
-#   ck_data(club)
-#   print("\n".join(ck_data(club)))
 
 
 

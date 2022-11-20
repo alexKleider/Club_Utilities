@@ -764,6 +764,11 @@ def tofro_first_last(name):
         return f"{last}, {first}"
 
 
+def key2first_last(name):
+    first, last = name.split(',')
+    return f"{first} {last}"
+
+
 def loose_trailing_empty_strings(list_of_strings):
     if list_of_strings:
         while not list_of_strings[-1]:
