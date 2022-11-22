@@ -19,7 +19,7 @@ Usage:
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py extra_fees_report (-o <outfile>|-j <json>|--csv <csv_file>) [-O -i <infile> -q -f -H --by_fee_category]
-  ./utils.py stati [-O -D -M -B -m -s stati -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
+  ./utils.py stati [-O -D -M -B -m -s <stati> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> --all_applicants -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
   ./utils.py usps [-O -i <infile> -q --be -H -j <json> -o <outfile> --csv csv_file]
@@ -146,12 +146,15 @@ Commands:
     extra_fees_report: Prepares a listing of those paying fees.
         Note an ouput mode must be specified.
     stati: Returns a listing of stati (entries in 'status' field.)
-        <mode> if set can be 'applicants' (Applicants only will be
-            shown) or a glbs.SEPARATOR separated set of stati
-            (indicating which stati to show.)
-        May also include any combination of -D, -M, -S to
-        include adress/demographics, meeting dates &/or sponsors
-        for applicants.
+        Options include:
+          | -D   (demographics)
+          | -M   (meeting dates)
+          | -B   (backers/sponsors) 
+          | -m   (maximum data: all of the above three)
+          | -s <stati>  (see notes above re 'appl' and 'exec' and
+          |      the need for quotes if using the global separator)
+          | -A <applicant_spot>
+          | -S <sponsors_spot>
     create_applicant_csv:  Output is a csv file containing data
         relevant to current applicants: first & last names, status,
         up to three meeting dates and the two sponsors. If -o outfile

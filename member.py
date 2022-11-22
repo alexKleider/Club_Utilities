@@ -453,11 +453,12 @@ def add2ms_by_status(record, club):
     """
     Appends a record to club.ms_by_status:
         Each key is a status
-        Each value is a list of keys (member key format.)
+        Each value is a string formatted according
+        to club.format.)
     """
     if record['status']:
         stati = get_status_set(record)
-        entry = format_record(record, fstrings['first_last'])
+        entry = format_record(record, club.format)
         key = format_record(record, fstrings['key'])
         for status in stati:
             _ = club.ms_by_status.setdefault(status, [])
