@@ -286,7 +286,7 @@ if args["-p"] not in printer_choices:
     sys.exit()
 
 
-def set_default_args_4curses(args):
+def set_default_args4curses(args):
     """
     Run when utils is driven by curses interface.
     """
@@ -729,6 +729,13 @@ def report_cmd(args=args):
 
 
 def setup4stati(club):
+    """
+    Relevant options:
+    -D  include demographics
+    -M  include meeting dates
+    -B  include backers/sponsors
+    -m  maximum data: include all of the above.
+    """
     # Demographics...
     club.include_addresses = args['-D'] or args['-m']
     if club.include_addresses:
@@ -1390,7 +1397,7 @@ if __name__ == "__main__":
 else:  # Using curses interface.
     using_curses = True
     confirm = False  # Won't want to check contacts and lesssecureaps
-    set_default_args_4curses(args)
+    set_default_args4curses(args)
 #   def print(*args, **kwargs):
 #       pass
 

@@ -47,8 +47,8 @@ STATUS_KEY_VALUES = {
     'z2_vp': "VicePresident",
     'z3_sec': "Secretary of the Club",  # not used under Rafferty
     'z4_treasurer': "Treasurer",
-    'z5_d_odd': "Director- term ends next odd year",
-    'z6_d_even': "Director- term ends next even year",
+    'z5_d_odd': "Director- term ends Feb next odd year",
+    'z6_d_even': "Director- term ends Feb next even year",
     'zae': "Application expired or withdrawn",
     'zzz': "No longer a member"
     }
@@ -77,38 +77,29 @@ MONEY_HEADERS = {
     "mooring": "Mooring.......",
     "total":   "    TOTAL.........",
     }
-demographic_f = (
-    "{first} {last}  {address}, {town}, {state} {postal_code}")
-demographic_f_w_phone_and_email = (
-    "{first} {last} [{phone}] {address}, {town}, {state} " +
-    "{postal_code} [{email}]")
-demographic_f_last_first = (
-    "{last}, {first}  {address}, {town}, {state} {postal_code}")
-demographic_f_last_first_w_phone_and_email = (
-    "{last}, {first} [{phone}] {address}, {town}, {state} " +
-    "{postal_code} [{email}]")
-demographic_f_last_first_w_staggered_data = '\n'.join((
-    "{last}, {first} [{phone}]",
-    "\t{address}, {town}, {state} {postal_code}",
-    "\t[{email}]"))
-demographic_f_first_last_w_staggered_data = '\n'.join((
-    "{first}, {last} [{phone}]",
-    "\t{address}, {town}, {state} {postal_code}",
-    "\t[{email}]"))
-fstrings = {
-        'key': "{last},{first}",
-        'first_last': "{first} {last}",
-        "last_first": "{last}, {first}",
-        'first_last_w_address_only': demographic_f, 
-        'first_last_w_all_data': demographic_f_w_phone_and_email,
-        'last_first_w_address_only': demographic_f_last_first,
-        'last_first_w_all_data':
-                    demographic_f_last_first_w_phone_and_email,
-        'first_last_w_all_staggered':
-                    demographic_f_last_first_w_staggered_data,
-        'last_first_w_all_staggered': 
-                    demographic_f_first_last_w_staggered_data,
-    }
+
+fstrings = dict(
+        key = "{last},{first}",
+        first_last = "{first} {last}",
+        last_first = "{last}, {first}",
+        first_last_w_address_only = ("{first} {last}  " + 
+                    "{address}, {town}, {state} {postal_code}"), 
+        first_last_w_all_data = ("{first} {last} [{phone}] " + 
+            "{address}, {town}, {state} {postal_code} [{email}]") ,
+        last_first_w_address_only = ("{last}, {first}  " +
+                        "{address}, {town}, {state} {postal_code}"),
+        last_first_w_all_data = ("{last}, {first} [{phone}] " +
+            "{address}, {town}, {state} {postal_code} [{email}]"),
+        first_last_w_all_staggered = '\n'.join(
+            ( "{last}, {first} [{phone}]",
+            "\t{address}, {town}, {state} {postal_code}",
+            "\t[{email}]")),
+        last_first_w_all_staggered = '\n'.join((
+            "{first}, {last} [{phone}]",
+            "\t{address}, {town}, {state} {postal_code}",
+            "\t[{email}]")),
+        )
+    
 
 
 def format_record(record, f_str):

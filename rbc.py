@@ -145,11 +145,9 @@ class Club(object):
                      }
     
     # Miscelaneous 
-    DEFAULT_FORMAT = 'listings'
-#   PATTERN = '{last}, {first}'
-    PATTERN4WEB = ('{first} {last} [{phone}] {address}, {town},' +
-                   ' {state}, {postal_code} [{email}]')
     INCLUDE_BAD_EMAILS = False
+    # the following is used only in utils.set_default_args4curses:
+    DEFAULT_FORMAT = 'first_last'
 
     # # ...end of Constants and Defaults.
 

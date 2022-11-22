@@ -750,13 +750,15 @@ def applicant_csv(club):
     """
     Expects it's parameter <club> to have the attribute
     club.applicant_data created by running both
-    populate_sponsor_data and populate_applicant_dat (in that order.)
+    populate_sponsor_data and populate_applicant_data (in that order.)
     Returns a list (ordered by last,first) of dicts with the following keys:
     'first', 'last', 'status', 'app_rcvd' 'fee_rcvd',
     '1st', '2nd' '3rd', 'inducted', 'dues_paid', 'sponsor1', 'sponsor2'
     If club.applicant_csv is set, the data is sent to that file.
     If boolean club.all_applicants is set then all past as well as
     current applicants will be included.  i.e. All that are in the DB.
+    Data comes from applicant and sponsors data files, not from the 
+    main membership DB. Use get_applicant_data for that.
     """
     ret = []
     data = [club.applicant_data[key] for key in
