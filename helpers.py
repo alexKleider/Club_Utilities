@@ -552,6 +552,15 @@ def show_json_data(json_data, underlinechar=''):
     return collector
 
 
+def store(collector, filename):
+    """
+    Sends contents of <collector> (json format) to <filename>.
+    """
+    with open(filename, 'w') as stream:
+        stream.write('\n'.join(show_json_data(collector)))
+        print(f'Data written to {filename}')
+
+
 def dump2json_file(data, json_file, verbose=True):
     """
     !?UNUSED?!  Redact?!

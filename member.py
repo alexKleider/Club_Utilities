@@ -495,16 +495,11 @@ def add2member_with_email_set(record, club):
         club.no_email_set.add(entry)
 
 
-def add2fee_data(record, club):
+def add2fee_data(record, club):   # Tested by Tests.xtra_fees.py
     """
-    Populates club.fee_category_by_m  and
-    club.ms_by_fee_category.
-    Note: this gathers from main data base,
-    _not_ from extra fees SPoTs. See
-    data.populate_extra_fees(club) which populates
-    club.by_name & club.by_category.
-    Both produce dicts in the same formats respectively.
-    Tested by Tests.xtra_fees.py
+    Populates club attrs fee_category_by_m & ms_by_fee_category
+    from main data base, _not_ from extra fees SPoTs.
+    It includes data as to amount still owing.
     """
     record = helpers.Rec(record)
     name = record(fstrings['key'])
@@ -1232,9 +1227,6 @@ def send_attachment(record, club):
 
 prerequisites = {   # collectors needed by the
                     # various traversing functions
-#   add2db_emails: [  #?!unused
-#       "club.db_emails = {}",
-#       ],
     ck_number_of_fields: [
         "club.errors = []",
         ],
@@ -1264,12 +1256,6 @@ prerequisites = {   # collectors needed by the
     add2stati_by_m: [
         'club.stati_by_m = {}',
         ],
-    # Next one is ??? being redacted?
-#   add2email_data: [
-#       'club.email_by_m = {}',
-#       'club.ms_by_email = {}',
-#       'club.without_email = []',
-#       ],
     add2ms_by_status: [
         'club.ms_by_status = {}',
         'club.entries_w_status = {}',

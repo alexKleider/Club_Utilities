@@ -13,6 +13,7 @@
 """
 
 import os
+import sys
 import csv
 import sys_globals as glbs
 import helpers
@@ -191,9 +192,6 @@ def parse_sponsor_data_line(line):
     part2 = parts[1]
     sponsors = (parts[1].split(', '))
     sponsors = tuple([sponsor.strip() for sponsor in sponsors])
-#   sponsors = tuple([
-#       helpers.tofro_first_last(sponsor.strip())
-#       for sponsor in parts[1].split(", ")])
     return (name, sponsors)
 
 
@@ -312,15 +310,14 @@ def populate_extra_fees(club):
 
 
 
-def get_fee_paying_contacts(club):
+def get_fee_paying_contacts(club): # so far used only by ck_data
     """
-    # so far used only by ck_data #
     Assumes club attribute <groups_by_name> has already been
     assigned (by data.gather_contacts_data.)
-    Creates a list of dicts keyed by contact name
-    and each value is a list of fee categories.
-    This list of dicts is returned after being assigned
-    to the club attribute <fee_paying_contacts>.
+    Returns (and assigns to club.fee_paying_contacts) a list of
+    dicts keyed by contact name (last,first) with values a list
+    of dicts, keyed by fee categories (most are only one) with
+    values amount owed.
     """
     collector = {}
     fee_groups = ["DockUsers", "Kayak", "Moorings"]
@@ -340,8 +337,8 @@ def get_fee_paying_contacts(club):
             if renamed_group:
                 collector[name] = renamed_group
     club.fee_paying_contacts = collector
+    helpers.store(collector, 'fee-paying-contacts.txt')
     return collector
-
 
 
 def get_gmail_record(g_rec):
@@ -417,39 +414,34 @@ def gather_contacts_data(club):
 
 
 
-def gather_membership_data(club):
+def gather_membership_data(club):    # used by ck_data #
     """
-    # used by ck_data #
-    Gathers the info we want from the membership csv file
-    which is defined by club.MEMBERSHIP_SPoT.
-
-    Calls member.traverse_records which sets up and then populates
-    a number of collectors (attributes of <club>.)
-    See member.add2... functions corresponding to each[1] of the
-    following <club> attributes.
-    [1] except both 'fee_category' collectors are populated by
-    member.add2fee_data function and
-    both 'email' collectors.
+    Gathers info from club.infile (default club.MEMBERSHIP_SPoT)
+    into attributes of <club>.
     """
     club.previous_name = ''
     err_code = member.traverse_records(club.MEMBERSHIP_SPoT,
-            (
-#           member.add2db_emails,
-#           member.add2email_data,
-            member.add2email_by_m,
-            member.get_usps,  # > usps_only
-            member.add2fee_data,  # > fee_category_by_m(ember)
-                                  # & ms_by_fee_category  
-            member.add2stati_by_m,
-            member.add2ms_by_status,
-            member.increment_napplicants,
-            member.add2malformed,
-            member.add2member_with_email_set,
-            member.add2applicant_with_email_set,
-            ), club)
+        (
+        member.add2email_by_m,
+        member.get_usps,  # > usps_only & usps_csv
+        member.add2fee_data,  # > fee_category_by_m(ember)
+                              # & ms_by_fee_category  
+        member.add2stati_by_m,
+        member.add2ms_by_status, #  also > entries_w_status{}
+        member.increment_napplicants,
+        member.add2malformed,
+        member.add2member_with_email_set, # also > no_email_set
+        member.add2applicant_with_email_set,
+        ), club)
     if err_code:
         print("Error condition! #{}".format(err_code))
 
+def exercise_ck_data():
+    club = Club()
+    club.format = member.fstrings['last_first']
+    res = ck_data(club)
+    for line in res:
+        print(line)
 
 
 def ck_data(club,    # 280 lines of code!! ?needs breaking up?
@@ -471,50 +463,37 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     any discrepencies between what's billed each year vs what is
     still owed; useful after payments begin to come in.
     """
-    print("Entering data.ck_data")
+#   print("Entering data.ck_data")
     ret = []
     ok = []
     temp_list = []
     varying_amounts = []
     helpers.add_header2list("Report Regarding Data Integrity",
-                            ret, underline_char='#', extra_line=True)
+                        ret, underline_char='#', extra_line=True)
     # Collect data from csv files ==> club attributes:
     # collect info from main data base:
     gather_membership_data(club)
-    print("club.malformed:")
-    print(repr(club.malformed))
     # collect info from club gmail account contacts:
     gather_contacts_data(club)  # Sets up and populates:
     # club.gmail_by_name (string)
     # club.groups_by_name (set)     # club.g_by_group (set)
 
-
     ## First check that google groups match club data:
     # Deal with extra fees...
     fee_paying_contacts = get_fee_paying_contacts(club)
     fee_paying_contacts_set = set(fee_paying_contacts.keys())
-    fee_paying_m_set = club.fee_category_by_m.keys()
+    fee_paying_m_set = club.fee_category_by_m.keys()  #NOTE#
     no_email_recs = club.usps_only  # a list of records
     no_email_set = {member.fstrings['key'].format(**rec)
                     for rec in no_email_recs}
     fee_paying_w_email_set = fee_paying_m_set - no_email_set
-    ##############################################################
-    # Note: we're checking names but not specifically which fees #
-    # Will want to address this in the future.                   #
-    ##############################################################
-    old_code = '''
-    if fee_paying_contacts_set == fee_paying_w_email_set:
-        _ = input('sets match')
-    else:
-        print("sets don't match")
-        print("contacts - members:")
-        print(repr(fee_paying_contacts_set -
-            fee_paying_w_email_set))
-        print("members - contacts:")
-        print(repr(fee_paying_w_email_set -
-            fee_paying_contacts_set))
-        _ = input("sets don't match")
-    '''
+    collector = {}
+    for name in sorted(fee_paying_w_email_set):
+        collector[name] = [key for key in 
+                sorted(club.fee_category_by_m[name].keys())]
+    helpers.store(collector, 'fee-paying-members.txt')
+    if not club.fee_paying_contacts==collector:
+        ret.append("\nfee_paying_contacts|=fee paying members")
     fee_missmatches = helpers.check_sets(
         fee_paying_contacts_set,
         fee_paying_w_email_set,
@@ -735,17 +714,6 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     return ret
 
 
-def current_applicant(applicant_record):
-    """
-    Returns <True> if <applicant_record> has a <status> key
-    compatable with being an applicant.
-    """
-    if applicant_record["status"] in {'a0', 'a1', 'a2', 'a3',
-            'ai', 'ad', 'av', 'aw'}:
-        return True
-    return False
-
-
 def applicant_csv(club):
     """
     Expects it's parameter <club> to have the attribute
@@ -768,12 +736,12 @@ def applicant_csv(club):
                 fieldnames=club.APPLICANT_DATA_FIELD_NAMES)
         dictwriter.writeheader()
         for row in data:
-            ca = current_applicant(row)
+            ca = member.is_applicant(row)
             if club.all_applicants:
                 dictwriter.writerow(row)
                 ret.append(row)
             else:
-                if current_applicant(row):
+                if member.is_applicant(row):
                     dictwriter.writerow(row)
                     ret.append(row)
     return ret
@@ -795,6 +763,8 @@ def applicants_by_status(applicant_data):
 
 
 if __name__ == '__main__':
+    exercise_ck_data()
+    sys.exit()
     club = Club()
     populate_sponsor_data(club)    # { Must do this before
     populate_applicant_data(club)  # { this

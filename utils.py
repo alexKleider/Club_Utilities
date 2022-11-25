@@ -687,7 +687,7 @@ def report_cmd(args=args):
                         stati2show="m|w".split('|'),
                         club=club)
     if misc_stati:
-        header = "Miscelaneous Info"
+        header = "Miscellaneous Info"
         helpers.add_header2list(header, report, underline_char='=')
         report.extend(misc_stati)
     if club.ba_stati:
@@ -707,7 +707,7 @@ def report_cmd(args=args):
             if addendum:
                 print('Appending addendum as found in file: {}'
                         .format(fobj.name))
-                report.append("\n\n")
+                report.append("")
                 report.append(addendum)
             else:
                 print("No addendum found in file: {}"

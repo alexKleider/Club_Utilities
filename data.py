@@ -580,7 +580,7 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     any discrepencies between what's billed each year vs what is
     still owed; useful after payments begin to come in.
     """
-    print("Entering data.ck_data")
+#   print("Entering data.ck_data")
     ret = []
     ok = []
     temp_list = []
