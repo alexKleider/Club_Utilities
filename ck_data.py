@@ -277,14 +277,10 @@ def get_dict(source_file, sep=":", maxsplit=1):
 
 
 
-def populate_extra_fees(club):
+def populate_extra_fees(club):    # used by ck_data only (so far)
     """
-    # used by ck_data only (so far) #
-    Assumes <club> has attribute 'extra_fees_spots'.
-    Populates club.by_name and club.by_category.
-    Note also member.add2fee_data which (upon data traversal)
-    populates club.fee_category_by_m and club.ms_by_fee_category.
-    Both produce dicts in the same formats.
+    Populates club attrs by_name & by_category
+    based on attr 'extra_fees_spots'..
     Tested by Tests.xtra_fees.py
     """
     def category(f):
@@ -335,9 +331,9 @@ def get_fee_paying_contacts(club): # so far used only by ck_data
                 if category == 'Moorings':
                     renamed_group.append('mooring')
             if renamed_group:
-                collector[name] = renamed_group
+                collector[name] = sorted(renamed_group)
     club.fee_paying_contacts = collector
-    helpers.store(collector, 'fee-paying-contacts.txt')
+#   helpers.store(collector, 'fee-paying-contacts.txt')
     return collector
 
 
@@ -491,7 +487,7 @@ def ck_data(club,    # 280 lines of code!! ?needs breaking up?
     for name in sorted(fee_paying_w_email_set):
         collector[name] = [key for key in 
                 sorted(club.fee_category_by_m[name].keys())]
-    helpers.store(collector, 'fee-paying-members.txt')
+#   helpers.store(collector, 'fee-paying-members.txt')
     if not club.fee_paying_contacts==collector:
         ret.append("\nfee_paying_contacts|=fee paying members")
     fee_missmatches = helpers.check_sets(
