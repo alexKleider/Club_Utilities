@@ -190,6 +190,7 @@ class Club(object):
         self.errors_file = Club.ERRORS_FILE
         self.cc = ''
         self.bcc = ''
+        self.fee_details = False
 
         if args:  # override defaults if provided by docopts
             self.include_headers = args['-H']
@@ -197,6 +198,7 @@ class Club(object):
             self.json_file = args['-j']
             self.include_fees = args['-f']
             self.quiet = args['-q']
+            if args['-f']: self.fee_details = args['-f']
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
             if args['--csv']: self.applicant_csv = args['--csv']
