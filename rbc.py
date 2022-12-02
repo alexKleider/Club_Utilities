@@ -128,8 +128,9 @@ class Club(object):
         "sponsor1", "sponsor2",   # empty strings if not available
         )
     MEETING_DATE_NAMES = APPLICANT_DATA_FIELD_NAMES[5:8]
-    ALL_APPLICANTS = False
-
+    ALL_APPLICANTS = False  # when parsing the applicant SPoT
+                            # by default only current applicants
+                            # are considered.
     # # Google Contact Groups in use:  ("Labels", not "Groups")
     APPLICANT_GROUP = "applicant"
     MEMBER_GROUP = "LIST"
