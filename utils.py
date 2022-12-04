@@ -22,7 +22,7 @@ Usage:
   ./utils.py stati [-O -D -M -B -m -s <stati> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> --all_applicants -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
-  ./utils.py usps [-O -i <infile> -q --be -H -j <json> -o <outfile> --csv csv_file]
+  ./utils.py usps [-O -i <infile> -q --be --sec -H -j <json> -o <outfile> --csv csv_file]
   ./utils.py payables [-O -T -w <width> -i <infile> -o <outfile>]
   ./utils.py show_mailing_categories [-O -T -w <width> -o <outfile>]
   ./utils.py prepare_mailing --which <letter> [-O --oo -p <printer> -i <infile> -j <json_file> --dir <mail_dir> --mta <mta> --cc <cc> --bcc <bcc> ATTACHMENTS...]
@@ -117,6 +117,7 @@ Options:
         whole argument in quotes (like so: -s "ar1|arg2|arg3")
         to prevent shell from treating each one as a pipe!!
   -S <sponsor_SPoL>  Specify file from which to retrieve sponsors.
+  --sec   Include the secretary. (see usps command)
   --subject <subject>  The subject line of an email.
   -t <2thank>   Input for thank_cmd. It must be a csv file in same
         format as memlist.csv showing recent payments.
@@ -160,11 +161,13 @@ Commands:
         up to three meeting dates and the two sponsors. If -o outfile
         is explicitly specified it must end in ".csv".
     zeros: Reports on whether dues field is zero or NULL
-    usps: Provides a listing of names and addresses of members who do
-        not have an email address as a json or a text file or both. 
-        | -j <json>  Creates a csv file
+    usps: Provides a text listing of names and addresses of members
+        who do not have an email address.
+        Options available to provide json &/or csv files. 
+        | --csv <csv>  Creates a csv file
+        | -j <json>  Creates a json file
         | -o <outfile>  Creates a text file (with a header unless
-        the -q option is specified.
+        the -q option is specified.)
         Also includes any one with a 'be' or an 's' status
         (... a mechanism for sending a copy to the secretary.)
     payables: Reports on non zero money fields.
@@ -853,18 +856,23 @@ def usps_cmd(args=args):
         first,last,address,town,state,postal_code
     (Members who are NOT in the 'email only' category.)
     """
+    club = Club(args)
+    club.be = args['--be']
+    club.include_secretary = args['--sec']
+    club.format = member.fstrings['first_last_w_address_only']
     if not args['-q']:
         print("Preparing a csv, json &/or text file listing showing")
         print("members who receive meeting minutes by mail.")
-    club = Club(args)
-    err_code = member.traverse_records(club.infile, [
-                member.get_usps,
-#               member.get_secretary,
+    filters = [ member.get_usps,
                 member.get_bad_emails,
-                ], club)
+                ]
+    if club.include_secretary:
+        filters.append(member.get_secretary)
+    err_code = member.traverse_records(
+            club.infile, filters, club)
     if not args['-q']:
         print("There are {} 'mail only' members."
-          .format(len(club.usps_only)))
+          .format(club.n_no_email))
     header = []
     for key in club.fieldnames:
         header.append(key)
@@ -877,17 +885,22 @@ def usps_cmd(args=args):
             writer.writeheader()
             for rec in club.usps_only:
                 writer.writerow(rec)
+            if not args['-q']:
+                print(f"Output written to {outstream.name}.")
     if args['-o']:
         with open(args['-o'], 'w') as outstream:
             if args['-H']:
                 outstream.write((','.join(header)+'\n'))
             for rec in club.usps_only:
-                outstream.write(
-            (member.demographic_f.format(**rec)+'\n'))
+                outstream.write(club.format.format(**rec)+'\n')
+            if not args['-q']:
+                print(f"Output written to {outstream.name}.")
 
     if args['-j']:
         with open(args['-j'], 'w') as outstream:
             json.dump(club.usps_only, outstream)
+            if not args['-q']:
+                print(f"Output written to {outstream.name}.")
 
 
 def club_setup4extra_charges(args=args):
@@ -944,6 +957,7 @@ def prepare4mailing(club):
     club.which['cc'] is left as a set.
     """
     # give user opportunity to abort if files are still present:
+    _ = input(f"{club.json_file}, {club.mail_dir}")
     helpers.check_before_deletion((club.json_file, club.mail_dir))
     if os.path.exists(club.mail_dir): shutil.rmtree(club.mail_dir)
     os.mkdir(club.mail_dir)

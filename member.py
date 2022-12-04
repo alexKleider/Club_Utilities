@@ -45,12 +45,13 @@ STATUS_KEY_VALUES = {
     "w" : "Fees being waived",  # a rarely applied special status
     'z1_pres': "President",
     'z2_vp': "VicePresident",
-    'z3_sec': "Secretary of the Club",  # not used under Rafferty
+    'z3_sec': "Secretary of the Club",
     'z4_treasurer': "Treasurer",
     'z5_d_odd': "Director- term ends Feb next odd year",
     'z6_d_even': "Director- term ends Feb next even year",
     'zae': "Application expired or withdrawn",
-    'zzz': "No longer a member"
+    'zzz': "No longer a member"  # not implemented
+            # may use if keep people in db when no longer members
     }
 STATI = sorted([key for key in STATUS_KEY_VALUES.keys()])
 SPECIAL_NOTICE_STATI = set(      # 'b' for bad!
@@ -69,7 +70,7 @@ NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).
 MONEY_KEYS = ("dues", "dock", "kayak", "mooring")
 MONEY_KEYS_CAPPED = [item.capitalize() for item in MONEY_KEYS]
-FEES_KEYS = MONEY_KEYS[1:]
+FEE_KEYS = MONEY_KEYS[1:]
 MONEY_HEADERS = {
     "dues":    "Dues..........",
     "dock":    "Dock Usage....",
@@ -368,6 +369,7 @@ def get_usps(record, club):
     if not record['email']:
         rec = helpers.Rec(record)
         club.usps_only.append(rec)
+        club.n_no_email += 1
 
 
 def get_bad_emails(record, club):
@@ -385,7 +387,11 @@ def get_secretary(record, club):
     z3_sec
     """
     if 'z3_sec' in get_status_set(record):
-        club.secretary = demographic_f.format(**record)
+        club.secretary = club.format.format(**record)
+        if (hasattr(club, 'usps_only')
+        and hasattr(club, 'include_secretary')):
+            rec = helpers.Rec(record)
+            club.usps_only.append(rec)
 
 
 def get_zeros_and_nulls(record, club):
@@ -503,8 +509,8 @@ def add2fee_data(record, club):   # Tested by Tests.xtra_fees.py
     """
     record = helpers.Rec(record)
     name = record(fstrings['key'])
-    # print(repr(FEES_KEYS))
-    for f_key in FEES_KEYS:
+    # print(repr(FEE_KEYS))
+    for f_key in FEE_KEYS:
         try:
             fee = int(record[f_key])
         except ValueError:
@@ -1242,6 +1248,7 @@ prerequisites = {   # collectors needed by the
     get_usps: [
         'club.usps_only = []',
         'club.usps_csv = []',
+        'club.n_no_email = 0',
         ],
     get_zeros_and_nulls: [
         'club.nulls = []',

@@ -438,7 +438,19 @@ def gather_membership_data(club):    # used by ck_data #
         print("Error condition! #{}".format(err_code))
 
 
-def ck_0(club):
+def ck_malformed(club):
+    """
+    Deal with malformed memlist records (if any)
+    """
+    if not club.malformed:
+        club.ok.append("No malformed records found.")
+    else:
+        print("Found Malformed Records.")
+        helpers.add_sub_list("Malformed Records", club.malformed,
+                club.ret)
+
+
+def ck_fee_paying_labels(club):
     """
     Checks fee paying labels against memlist data.
     Appends results to club.ret.
@@ -485,10 +497,9 @@ def ck_0(club):
                 'No memlist vs contacts fee missmatches')
 
 
-def ck_1(club):
+def ck_gmail(club):
     """
-    Checks 1. for malformed records in main db and 
-    2. that the main db matches gmail with regard to
+    Checks that the main db matches gmail with regard to
     members & applicants and other stati (e.g. inactive.)
     """
     applicant_set = club.g_by_group[club.APPLICANT_GROUP]
@@ -535,17 +546,9 @@ def ck_1(club):
         club.ret.extend(member_missmatches + applicant_missmatches)
     else:
         club.ok.append("No Google Groups vs Member/Applicant Missmatch.")
-    # Deal with MEMBERSHIP data-
-    # First check for malformed records:
-    if not club.malformed:
-        club.ok.append("No malformed records found.")
-    else:
-        print("Found Malformed Records.")
-        helpers.add_sub_list("Malformed Records", club.malformed,
-                club.ret)
 
 
-def ck_2(club):
+def ck_applicants(club):
     g_members = club.g_by_group[club.MEMBER_GROUP]
     g_applicants = club.g_by_group[club.APPLICANT_GROUP]
     keys = sorted(club.ms_by_status.keys(), reverse=True)
@@ -568,7 +571,7 @@ def ck_2(club):
         club.ok.append("No applicant problem.")
 
 
-def ck_3(club):
+def ck_fees_spots(club):
     """
     Checks extra fees SPoTs against memlist data.
     Appends results to club.ret.
@@ -628,10 +631,6 @@ def ck_3(club):
                 club.ret.append("{}: {}".format(key, repr(value)))
     else:
         club.ok.append("No fees by name problem.")
-
-
-def ck_4(club):
-    pass
 
 
 def applicant_csv(club):
@@ -717,8 +716,9 @@ def ck_data(club):
 
     ## First check that google groups match club data:
     # Deal with extra fees...
-    ck_0(club)  # google groups vs club data
-    ck_3(club)  # mem list vs extra fees SPoT
+    ck_malformed(club)
+    ck_fee_paying_labels(club)  # google groups vs club data
+    ck_fees_spots(club)  # mem list vs extra fees SPoT
     # Keep in mind that after payment amounts won't match
     # Can use '-d' options for details.
 
@@ -730,11 +730,10 @@ def ck_data(club):
 #   KeyError: 'applicant'
 # ... check that the contacts.cvs file came from the Club's gmail
 # account, not someone else's!!!
-    ck_1(club)
+    ck_gmail(club)
 
 
-    # Compare gmail vs memlist emails and then memlist vs gmail
-    # now that both listings have names rather than sets of names:
+    ## do we compare gmail vs memlist emails anywhere????
     ## None of the following are populated!!!
     email_problems = []
     missing_emails = []
@@ -758,7 +757,7 @@ def ck_data(club):
         club.ok.append("No emails missing from gmail contacts.")
 '''
 
-    ck_2(club)
+    ck_applicants(club)
 
     if club.ok:
         helpers.add_sub_list(

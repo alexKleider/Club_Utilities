@@ -381,15 +381,16 @@ I know I speak for all members in saying we're sorry to see you go
 and wish you all the best in the future.""",
 
     membership_termination="""
-Regrettably the Club Executive Committee has been obliged to
-terminate your membership because of non payment of dues.
+Since your membership dues have not been received by the Sept 1st
+dead line set by the club by-laws, it is my sad duty to inform
+you that your membership has been terminated.  Should you wish
+to become a member again, it'll be necessary for you to reapply.
 
 Let me add my own personal sentiment of regret that you have
 chosen to leave the club.
 
-I've been asked that you return the club house key that you
-got from Ralph.  A stamped addressed envelope has been included
-for your convenience.""",
+If you have a club house key (issued by Ralph) please return it
+to the Bolinas Rod & Boat Club, PO Box 248, Bolinas, CA 94924.""",
 
     tpmg_social_security="""
 Please find enclosed the documentation I believe you require from the

@@ -183,6 +183,7 @@ class Club(object):
         self.sponsors_spot = Club.SPONSORS_SPoT
         self.contacts_spot = Club.CONTACTS_SPoT
         self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
+        self.email_json_file = Club.EMAIL_JSON
         self.json_file = Club.EMAIL_JSON
         self.mail_dir = self.MAILING_DIR
         self.thank_file = Club.THANK_FILE
@@ -196,7 +197,6 @@ class Club(object):
         if args:  # override defaults if provided by docopts
             self.include_headers = args['-H']
             self.include_bad_emails = args['--be']
-            self.json_file = args['-j']
             self.include_fees = args['-f']
             self.quiet = args['-q']
             if args['-f']: self.fee_details = args['-f']
@@ -207,7 +207,9 @@ class Club(object):
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
             if args['-X']: self.extra_fees_spots = args['-X']
-#           if args['-j']: self.json_file = args['-j']
+            if args['-j']:
+                self.json_file = args['-j']
+                self.email_json_file = args['-j']
             if args["--dir"]: self.mail_dir = args["--dir"]
             if args['-t']: self.thank_file = args['-t']
             if args['--thanked']:
