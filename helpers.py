@@ -362,7 +362,7 @@ def save_db(new_db, outfile, key_list, report=None):
                                 dialect='unix',
                                 quoting=csv.QUOTE_MINIMAL,
                                 )
-        writer.writeheader()
+        _writer.writeheader()
         for record in new_db:
             writer.writerow(record)
         if not report:
@@ -759,18 +759,24 @@ def clarify_cc(s, word2remove='sponsors'):
     return (removed, res)
 
 
-def tofro_first_last(name):
+def tofro_first_last(name, as_key=True):
     """
     Parameter <name> is parsed and 
-    if of the form "John Doe", "Doe, John" is returned,
-    if of the form "Doe, John", "John Doe" is returned.
+    if of the form "John Doe":
+        returns "Doe,John", or
+            Doe, John if as_key==False
+    if of the form "Doe, John" or "Doe,John":
+            "John Doe" is returned.
     """
-    if ', ' in name:
-        last, first = name.split(', ')
-        return f"{first} {last}"
+    if ',' in name:
+        last, first = name.split(',')
+        return f"{first.strip()} {last.strip()}"
     else:
         first, last = name.split()
-        return f"{last}, {first}"
+        if as_key:
+            return f"{last},{first}"
+        else:
+            return f"{last}, {first}"
 
 
 def key2first_last(name):

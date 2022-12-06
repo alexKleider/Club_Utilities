@@ -146,7 +146,7 @@ def replace_with_in(s, rl, l):
             ret.append(item)
     return sorted(set(ret))
 
-
+redacted = '''
 def names_reversed(name):
     """
     Changes first last to last, first
@@ -158,7 +158,7 @@ def names_reversed(name):
     else:
         parts = name.rsplit(maxsplit=1)
         return '{}, {}'.format(parts[1].strip(), parts[0].strip())
-
+'''
 
 def traverse_records(infile, custom_funcs, club):
     # Fundamentally different from <modify_data>/<modified_data>!

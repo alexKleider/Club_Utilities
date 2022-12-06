@@ -282,10 +282,22 @@ def test_clarify__cc_w_keyword(source, keyword, expected):
 
 
 @pytest.mark.parametrize("source, expected", [
+    ("Alex Kleider", "Kleider,Alex"),
+    ("Kleider, Alex", "Alex Kleider"),
+    ("Kleider,Alex", "Alex Kleider"),
+    ])
+def test_tofro_first_last_1(source, expected):
+    assert (helpers.tofro_first_last(source)
+            == expected)
+
+
+@pytest.mark.parametrize("source, expected", [
     ("Alex Kleider", "Kleider, Alex"),
     ("Kleider, Alex", "Alex Kleider"),
+    ("Kleider,Alex", "Alex Kleider"),
     ])
-def test_tofro_first_last(source, expected):
-    assert helpers.tofro_first_last(source) == expected
+def test_tofro_first_last_2(source, expected):
+    assert (helpers.tofro_first_last(source, as_key=False)
+            == expected)
 
 
