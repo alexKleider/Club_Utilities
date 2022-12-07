@@ -489,7 +489,7 @@ def ck_data_cmd(args=args):
     club.format = member.fstrings['last_first']
     if confirm:
         confirm_file_present_and_up2date(club.CONTACTS_SPoT)
-    output("\n".join(data.ck_data(club, fee_details=args['-d'])),
+    output("\n".join(data.ck_data(club)),
            club.outfile)
 
 

@@ -199,11 +199,11 @@ class Club(object):
             self.include_bad_emails = args['--be']
             self.include_fees = args['-f']
             self.quiet = args['-q']
-            if args['-f']: self.fee_details = args['-f']
+            self.fee_details = args['-d']
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
             if args['--csv']: self.applicant_csv = args['--csv']
-            if args['--all_applicants']: self.all_applicants = True
+            self.all_applicants = True
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
             if args['-X']: self.extra_fees_spots = args['-X']

@@ -198,7 +198,6 @@ def ck_fees_spots(club):
             club.ret.append(repr(club.ms_by_fee_category))
     else:
         club.ok.append("No fees by category problem.")
-
     if (club.fees_by_name != club.fee_category_by_m):
         club_keys = set(club.fees_by_name.keys())
         file_keys = set(club.fee_category_by_m.keys())
@@ -1140,6 +1139,7 @@ func_dict = {
         }
 
 
+redact = '''
 def exercise_ck_data(args=None):
     club = Club()
     if args and '-d' in args[1:]:
@@ -1148,10 +1148,10 @@ def exercise_ck_data(args=None):
     res = ck_data(club)
     for line in res:
         print(line)
-
+'''
 
 if __name__ == '__main__':
-    exercise_ck_data(sys.argv)
+    print("data.py compiles without errors.")
     sys.exit()
     club = Club()
     populate_sponsor_data(club)    # { Must do this before

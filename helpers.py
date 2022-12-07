@@ -720,9 +720,14 @@ def tabulate(data,
 
 
 def send2file(text, filename, silent=False):
-    """Write <text> to <filename> (silently (or not))"""
+    """
+    Write <text> to <filename> (silently (or not))
+    <text> must be either a string or a list of strings.
+    """
     if not silent:
         print(f"Sending text to {filename} ...")
+    if isinstance(text, list):
+        text = '\n'.join(text)
     with open(filename, 'w') as stream:
         stream.write(text)
     if not silent:
