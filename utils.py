@@ -18,7 +18,7 @@ Usage:
   ./utils.py ck_data [-O -d -i <infile> -A <app_spot> -S <sponsors_spot> -X <fees_spots> -C <contacts_spot> -o <outfile>]
   ./utils.py show [-O --exec -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
   ./utils.py report [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile> ]
-  ./utils.py extra_fees_report (-o <outfile>|-j <json>|--csv <csv_file>) [-O -i <infile> -q -f -H --by_fee_category]
+  ./utils.py extra_fees_report (-o <outfile>|-j <json>|--csv <csv_file>) [-O -q -f -H --by_fee_category]
   ./utils.py stati [-O -D -M -B -m -s <stati> -i <infile> -A <applicant_spot> -S <sponsors_spot> -o <outfile>]
   ./utils.py create_applicant_csv [-O -i <infile> -A <applicant_spot> -S <sponsors_spot> --all_applicants -o <outfile>]
   ./utils.py zeros [-O -i <infile> -o <outfile]
@@ -145,7 +145,8 @@ Commands:
         be sent to the web master for display on the web site.
     report: Prepares a 'Membership Report".
     extra_fees_report: Prepares a listing of those paying fees.
-        Note an ouput mode must be specified.
+        Note: an ouput mode must be specified.
+        Data comes from rbc.Club.EXTRA_FEES_SPoTs. 
     stati: Returns a listing of stati (entries in 'status' field.)
         Options include:
           | -D   (demographics)
@@ -1204,24 +1205,18 @@ def restore_fees_cmd(args=args):
 
 
 def extra_fees_report_cmd(args=args):
-    if not args['-q']:
-        print("'extra_fees_report' is still in development")
     club = Club(args)
-    club.quiet = args['-q']
     club.by_fee_category = args['--by_fee_category']
     club.include_fee_charged = args['-f']
-    club.include_headers = args['-H']
     club.text_file4output = args['-o']
     club.json_file4output = args['-j']
     club.csv_file4output = args['--csv']
 
 #   _ = input("json file set to {}".format(club.json_file))
     if club.by_fee_category:
-        print("by fee category")
-        data.yield_extra_fees_report_by_category(club)
+        data.output_extra_fees_report_by_category(club)
     else:
-        print("by name")
-        data.yield_extra_fees_report_by_name(club)
+        data.output_extra_fees_report_by_name(club)
 
 
 def fee_intake_totals_cmd(args=args):

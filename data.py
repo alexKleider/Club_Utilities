@@ -618,7 +618,7 @@ def populate_extra_fees(club):
     club.by_name = by_name
 
 
-def yield_extra_fees_report_by_name(club):
+def output_extra_fees_report_by_name(club):
     """
     Client (utils.extra_fees_report_cmd) has already
     set all the options as attributes of club.
@@ -632,9 +632,25 @@ def yield_extra_fees_report_by_name(club):
                 print('Data written to "{}".'.format(stream.name))
             json.dump(by_name, stream)
 
-    if club.csv_file4output:
-        print(
-"--csv option of extra_fees_report_cmd by name not yet implemented")
+    name_keys = sorted(by_name.keys())
+
+    if club.csv:
+        if club.by_fee_category:
+            print(
+            "csv format not available for 'by_fee_category'")
+        fieldnames = ["first","last","dock","kayak","mooring"]
+        with open(club.csv_file4output, 'w', newline='') as f:
+            dictwriter = csv.DictWriter(f, fieldnames)
+            dictwriter.writeheader()
+            for name in name_keys:
+                names = helpers.tofro_first_last(name).split()
+                rec = dict(first=names[0], last=names[1],
+                        dock='', kayak='', mooring='')
+                for key in by_name[name].keys():
+                    rec[key] = by_name[name][key]
+                dictwriter.writerow(rec)
+            if not club.quiet:
+                print(f"Data written to {f.name}")
 
     if club.text_file4output:
         res = []
@@ -642,7 +658,6 @@ def yield_extra_fees_report_by_name(club):
             res.extend(["Members paying extra fees",
                         "=========================",
                         ])
-        name_keys = sorted(by_name.keys())
         for name_key in name_keys:  # names alphabetically:
             fees = by_name[name_key]
             l = []
@@ -657,12 +672,11 @@ def yield_extra_fees_report_by_name(club):
                 club.text_file4output, not club.quiet)
 
 
-def yield_extra_fees_report_by_category(club):
+def output_extra_fees_report_by_category(club):
     """
     Client (utils.extra_fees_report_cmd) has already
     set all the options as attributes of club.
     """
-    print("fees_report_by_category not yet implemented")
     populate_extra_fees(club)
     by_category = club.by_category  # a dict (category keys) of
                             # dicts (name keys => dollar amts)
@@ -674,7 +688,8 @@ def yield_extra_fees_report_by_category(club):
 
     if club.csv_file4output:
         print(
-"--csv option of extra_fees_report_cmd by category not yet implemented")
+"'--csv' and 'by_fee_category' are mutually exclusive options")
+        sys.exit()
 
     if club.text_file4output:
         res = []
@@ -699,8 +714,8 @@ def yield_extra_fees_report_by_category(club):
                 sys.exit()
             res.append(header)
             for name_key in sorted(names.keys()):
-                if (club.include_fee_charged
-                and category_key == "mooring"): # include fee amnts
+                if (category_key == "mooring"
+                and club.include_fee_charged): # include fee amnts
                     res.append("\t{}: {}".format(name_key, names[name_key]))
                 else:
                     res.append("\t{}".format(name_key))

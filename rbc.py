@@ -202,7 +202,9 @@ class Club(object):
             self.fee_details = args['-d']
             if args['-i']: self.infile = args['-i']
             if args['-A']: self.applicant_spot = args['-A']
-            if args['--csv']: self.applicant_csv = args['--csv']
+            if args['--csv']:
+                self.applicant_csv = args['--csv']
+                self.csv = args['--csv']
             self.all_applicants = True
             if args['-S']: self.sponsor_spot = args['-S']
             if args['-C']: self.contacts_spot = args['-C']
