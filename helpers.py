@@ -332,6 +332,9 @@ def useful_lines(stream, comment="#"):
 
 
 def lists2sets(dict_with_iterable_values):
+    """
+    Converts list values (of a dict) into sets.
+    """
     ret = {}
     for key in dict_with_iterable_values:
         ret[key] = set(dict_with_iterable_values[key])
@@ -892,6 +895,28 @@ def modify_csv_data(csv_file, func=None, params=None, outfile=None):
                 else:
                         writer.writerow(record)
     return outfile
+
+
+def compare_dicts(d1, d2,
+            name1='first', name2='second'):
+    """
+    """
+    ret = []
+    keys1 = set([key for key in d1.keys()])
+    keys2 = set([key for key in d2.keys()])
+    only_in1 = keys1 - keys2
+    only_in2 = keys2 - keys1
+    if only_in1:
+        ret.append(f"Only in {name1}:")
+        for key in sorted(only_in1):
+            values = sorted([value for value in d1[key]])
+            ret.append(f"\t{key}: "+', '.join(values))
+    if only_in2:
+        ret.append(f"Only in {name2}:")
+        for key in sorted(only_in2):
+            values = sorted([value for value in d2[key]])
+            ret.append(f"\t{key}: "+', '.join(values))
+    return '\n'.join(ret)
 
 
 def main():

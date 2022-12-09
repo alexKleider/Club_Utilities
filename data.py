@@ -150,7 +150,8 @@ def ck_gmail(club):
             club.ret, underline_char='=', extra_line=True)
         club.ret.extend(member_missmatches + applicant_missmatches)
     else:
-        club.ok.append("No Google Groups vs Member/Applicant Missmatch.")
+        club.ok.append(
+                "No Google Groups vs Member/Applicant Missmatch.")
 
 
 def ck_applicants(club):
@@ -165,13 +166,34 @@ def ck_applicants(club):
     applicants_by_status = helpers.lists2sets(applicants_by_status)
     ms_by_status_sets = helpers.lists2sets(club.ms_by_status)
     if applicants_by_status != ms_by_status_sets:
+#       ### debugging ###
+#       helpers.send2file(
+#           '\n'.join(
+#               sorted(
+#                   [key for key in applicants_by_status.keys()])),
+#           'applicants_by_status')
+#       helpers.send2file(
+#           '\n'.join(
+#               sorted(
+#                   [key for key in ms_by_status_sets.keys()])),
+#           'ms_by_status_sets')
+#       helpers.store(applicants_by_status,
+#               'applicants_by_status.json')
+#       helpers.store(ms_by_status_sets,
+#               'ms_by_status_sets.json')
+#       ### debugging ###
         club.ret.append("\nApplicant problem:")
-        club.ret.append("The following data from applicant SPoT-")
-        club.ret.extend(helpers.show_dict(applicants_by_status, extra_line=False))
-        club.ret.append("- does not match the following membership SPot-")
-        club.ret.extend(helpers.show_dict(club.ms_by_status,
-                   extra_line=False))
-        club.ret.append("- End of comparison -")
+#       club.ret.append("The following data from applicant SPoT-")
+#       club.ret.extend(helpers.show_dict(applicants_by_status,
+#                                               extra_line=False))
+#       club.ret.append(
+#               "- does not match the following membership SPot-")
+#       club.ret.extend(helpers.show_dict(club.ms_by_status,
+#                  extra_line=False))
+#       club.ret.append("- End of comparison -")
+        club.ret.append(helpers.compare_dicts(
+            applicants_by_status, ms_by_status_sets,
+            "applicant_spot", "membership_spot"))
     else:
         club.ok.append("No applicant problem.")
 
