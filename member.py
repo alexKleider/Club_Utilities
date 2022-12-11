@@ -262,6 +262,13 @@ def is_member(record):
     return True
 
 
+def is_ralph(record):
+    """
+    """
+    if record['first'] == 'Ralph':
+        return True
+
+
 def is_non_fee_paying(record):
     """
     """
@@ -394,19 +401,27 @@ def get_secretary(record, club):
             club.usps_only.append(rec)
 
 
-def get_zeros_and_nulls(record, club):
+def ck_dues_field(record, club):
     """
-    Populates club.zeros and club.nulls lists.
+    Populates club list attributes 'zeros', 'dues_owing', 'nulls'.
     """
     dues = record['dues']
+    is_m = is_member(record)
     try:
         value = int(dues)
     except ValueError:
-        club.nulls.append("{last}, {first}: {dues}".format(**record))
+        if is_m:
+            club.errors.append("{last}, {first}"
+                    .format(**record))
+        club.nulls.append("{last}, {first}: {dues}"
+                .format(**record))
     else:
         if value == 0:
-            club.zeros.append("{last}, {first}: {dues}".format(
-                                                    **record))
+            club.zeros.append("{last}, {first}: nothing owed"
+                    .format(**record))
+        else:
+            club.dues_owing.append("{last}, {first}: {dues}"
+                    .format(**record))
 
 
 # # Beginning of 'add2' functions:
@@ -1250,9 +1265,11 @@ prerequisites = {   # collectors needed by the
         'club.usps_csv = []',
         'club.n_no_email = 0',
         ],
-    get_zeros_and_nulls: [
+    ck_dues_field: [
         'club.nulls = []',
         'club.zeros = []',
+        'club.dues_owing = []',
+        'club.errors = []',
         ],
     add2email_by_m: [
         'club.email_by_m = {}',

@@ -802,12 +802,10 @@ def create_applicant_csv_cmd(args=args):
     def filtered_data(a_dict_w_dict_values,
                    test_key, excluded):
         for key in sorted(a_dict_w_dict_values.keys()):
-            if not a_dict_w_dict_values[key][test_key] in excluded:
+            if not (a_dict_w_dict_values[key][test_key]
+                    in excluded):
                 yield a_dict_w_dict_values[key]
-
-
     EXCLUDED_STATI = {'m', 'zae'}
-
     club = Club(args)
     if args['-o'] in {"stdout", "printer"}:
         args['-o'] = None
@@ -816,38 +814,44 @@ def create_applicant_csv_cmd(args=args):
         club.applicant_csv = club.APPLICANT_CSV
     if not club.applicant_csv.endswith('.csv'):
         print("Applicant csv file name must end in '.csv'!")
-        print("'{}' doesn't qualify!".format(club.applicant_csv))
+        print(f"'{club.applicant_csv}' doesn't qualify!")
         sys.exit()
     data.populate_sponsor_data(club)
     data.populate_applicant_data(club)
     applicant_data = club.applicant_data
     applicant_keys = sorted(applicant_data.keys())  # sort names
-
     helpers.save_db(filtered_data(applicant_data,
                                   'status',
                                   EXCLUDED_STATI,
                                   ),
-                    club.APPLICANT_CSV,
+                    club.applicant_csv,
                     club. APPLICANT_DATA_FIELD_NAMES,  #
                     report='applicants in csv format')
-    
 
 
 def zeros_cmd(args=args):
     """
-    Reports those with zero vs NULL in dues field.
-    Useful in that a NULL value implies that it isn't a fee that is
-    charged to this particular member.
+    Reports those with zero vs NULL in dues fields.
+    Useful in that a NULL value implies that dues are
+    not being charged while zero indicates nothing owing.
     """
     club = Club(args)
     err_code = member.traverse_records(
-        club.infile, [member.get_zeros_and_nulls, ], club)
+        club.infile, [member.ck_dues_field, ], club)
     res = ["Nulls:",
            "======", ]
     res.extend(club.nulls)
     res.extend(["\nZeros:",
                "======", ])
     res.extend(club.zeros)
+    if club.dues_owing:
+        res.extend(["\nDues Owing:",
+                      "===========",])
+        res.extend(club.dues_owing)
+    if club.errors:
+        res.extend(["\nErrors:",
+                      "=======",])
+        res.extend(club.errors)
     output('\n'.join(res), club.outfile)
 
 
@@ -958,7 +962,6 @@ def prepare4mailing(club):
     club.which['cc'] is left as a set.
     """
     # give user opportunity to abort if files are still present:
-    _ = input(f"{club.json_file}, {club.mail_dir}")
     helpers.check_before_deletion((club.json_file, club.mail_dir))
     if os.path.exists(club.mail_dir): shutil.rmtree(club.mail_dir)
     os.mkdir(club.mail_dir)

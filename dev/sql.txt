@@ -1,0 +1,13 @@
+
+each table is connected to another table using the Primary-Foreign Key constraints
+
+Table relationships in SQL Server database are of three types:
+1. One-to-One: one record of the first table will be linked to zero or one record of another table
+    Zero or One-to-One relationship
+    Primary Key in one table serves as the foreign key in another.
+2. One-to-Many:  the most commonly used relationship
+    Primary Key in one table may have zero or any number of
+    entries in another table where it is a foreign key.
+3. Many-to-Many: requires a junction table.
+
+

@@ -62,6 +62,31 @@ that must be subsequently filled in by the '..._funcs'.
 # # double braces fields are populated by the record data.
 letter_bodies = dict(
 
+    canvas4leaders="""
+The Bolinas Rod & Boat Club is facing a crisis!
+
+Leadership positions are being vacated and need to be filled.
+
+Our Secretary is retiring; we need at least a Vice President
+and may need a President as well; Four of our directors are
+ending their terms in February and it's unclear how many will
+be willing to stay on for another two year term.
+
+This letter is an urgent appeal for volunteers who might be
+willing to stand for election to these important positions.
+Important because the Club is facing challenges that it can
+only meet if there is a complete and dedicated leadership.
+
+If the Club falters and goes in a direction of which you don't
+approve, members will have only themselves to blame for not
+stepping up to provide guidance.
+
+If willing to serve please nominate yourself. You can do so
+by email (rodandboatclub@gmail.com) or post (94924-0148.)
+The annual general meeting is coming up the first Friday of
+February so time is running out.
+""",
+
     find_enclosed="""
 Please find enclosed.
 """,
@@ -424,6 +449,13 @@ Thank you for your services.
 ### !!!!!!!!!!!!!!!!!!!! POSTSCRIPTS !!!!!!!!!!!!!!!!! ##
 post_scripts = dict(
 
+    canvas4leaders="""
+Please respond by either replying to this email or by post:
+    The Bolinas Rod & Boat Club
+    PO Box 248
+    Bolinas, CA 94924
+""",
+
     remittance=""" Please send remittances to:
     The Bolinas Rod & Boat Club
     PO Box 248
@@ -541,11 +573,24 @@ content_types = dict(  # which_letter
     # ## instead of a 'Dear {first} {last},' line.
     # ## The first 4 listed values for each are used for first
     # ## stage formatting.
+    canvas4leaders={
+        "subject": "Executive Commitee Members Needed",
+        "from": authors["membership"],
+        "body": letter_bodies["canvas4leaders"],
+        "post_scripts": (
+#           post_scripts['canvas4leaders'],
+            ),
+        "funcs": [member.std_mailing_func, ],
+        "test": member.is_ralph,
+        "e_and_or_p": "both",
+        },
     for_testing={
         "subject": "This is a test.",
         "from": authors["ak"],
         "body": letter_bodies["for_testing"],
-        "post_scripts": ('forgive_duplicate',),
+        "post_scripts": (
+            post_scripts['forgive_duplicate'],
+            ),
         "funcs": [member.testing_func, ],
         "test": lambda record: True,
         "e_and_or_p": "one_only",

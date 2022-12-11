@@ -365,7 +365,7 @@ def save_db(new_db, outfile, key_list, report=None):
                                 dialect='unix',
                                 quoting=csv.QUOTE_MINIMAL,
                                 )
-        _writer.writeheader()
+        writer.writeheader()
         for record in new_db:
             writer.writerow(record)
         if not report:

@@ -3,20 +3,9 @@
 # File: data.py
 
 """
-# Originally called ck_data.py
-Renamed data.py because it deals with reading data files:
-    specifically the non csv (SPoT) files.
-To avoid cross import problem, the class Club requires
-a module of its own.
-
-Provides automated access to the
-Bolinas Rod and Boat Club's data files:
-... those identified by the constants ending in "SPoT".
-Motivated by the desire to have a way of checking for data integrity,
-it then morphed into a way of collecting data for presentation:
-    eg list of applicants by number of meetings attended.
-Current version checks for data consistency across the four
-files containing membership related data.
+Originally called ck_data.py
+Deals with data files checking for data integrity and 
+collecting data for presentation.
 """
 
 import os
@@ -38,7 +27,8 @@ def get_fieldnames(csv_file: "name of csv file", report=True
     """
     with open(csv_file, 'r', newline='') as file_object:
         if report and not club.quiet:
-            print('DictReading file "{}"...'.format(file_object.name))
+            print('DictReading file "{}"...'
+                    .format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
         return dict_reader.fieldnames
 
@@ -73,20 +63,21 @@ def ck_fee_paying_labels(club):
                 sorted(club.fee_category_by_m[name].keys())]
 #   helpers.store(collector, 'fee-paying-members.txt')
     if not club.fee_paying_contacts==collector:
-        club.ret.append("\nfee_paying_contacts|=fee paying members")
-    fee_missmatches = helpers.check_sets(
+        club.ret.append(
+                "\nfee_paying_contacts|=fee paying members")
+    fee_mismatches = helpers.check_sets(
         fee_paying_contacts_set,
         fee_paying_w_email_set,
         "Fee paying contacts not in member listing",
         "Fee paying members not in google contacts",
         )
-    if fee_missmatches:
+    if fee_mismatches:
         only_in_contact_set = (fee_paying_contacts_set
                                     - fee_paying_w_email_set)
         only_in_paying_w_email_set = (fee_paying_w_email_set
                                     - fee_paying_contacts_set)
         helpers.add_header2list(
-            "Memlist vs contacts fee missmatches",
+            "Memlist vs contacts fee label mimatches",
             club.ret, underline_char='=', extra_line=True)
         if only_in_contact_set:
             club.ret.append("Only in Contacts:")
@@ -96,10 +87,10 @@ def ck_fee_paying_labels(club):
             club.ret.append("Only in Member DB:")
             for item in only_in_paying_w_email_set:
                 club.ret.append("\t{}".format(repr(item)))
-        club.ret.extend(fee_missmatches)
+        club.ret.extend(fee_mismatches)
     else:
         club.ok.append(
-                'No memlist vs contacts fee missmatches')
+                'No memlist vs contacts fee label mismatches')
 
 
 def ck_gmail(club):
@@ -109,7 +100,7 @@ def ck_gmail(club):
     """
     applicant_set = club.g_by_group[club.APPLICANT_GROUP]
 #   _ = input(f"applicant_set: {applicant_set}")
-    applicant_missmatches = helpers.check_sets(
+    applicant_mismatches = helpers.check_sets(
         applicant_set,
         club.applicant_with_email_set,  # populated by 
                                         # gather_membership_data
@@ -117,7 +108,7 @@ def ck_gmail(club):
         "Applicant(s) in Member Listing not in Google Contacts"
         )
     # Deal with members...
-    member_missmatches = helpers.check_sets(
+    member_mismatches = helpers.check_sets(
         club.g_by_group[club.MEMBER_GROUP],
         club.member_with_email_set,
         "Member(s) in Google Contacts not in Member Listing",
@@ -126,7 +117,7 @@ def ck_gmail(club):
 
     g_inactive = club.g_by_group[club.INACTIVE_GROUP]
     m_inactive = set(club.ms_by_status['m'])
-    special_status_missmatches = helpers.check_sets(
+    special_status_mismatches = helpers.check_sets(
         g_inactive,
         m_inactive,
         "{} doesn't match membership listing"
@@ -135,20 +126,20 @@ def ck_gmail(club):
         )
 
 
-    if special_status_missmatches:
+    if special_status_mismatches:
         helpers.add_header2list(
-            "Special status missmatches",
+            "Special status mismatches",
             club.ret, underline_char='=', extra_line=True)
-        club.ret.extend(special_status_missmatches)
+        club.ret.extend(special_status_mismatches)
     else:
-        club.ok.append("No special status missmatches")
+        club.ok.append("No special status mismatches")
 
 
-    if applicant_missmatches or member_missmatches:
+    if applicant_mismatches or member_mismatches:
         helpers.add_header2list(
             "Missmatch: Gmail groups vs Club data",
             club.ret, underline_char='=', extra_line=True)
-        club.ret.extend(member_missmatches + applicant_missmatches)
+        club.ret.extend(member_mismatches + applicant_mismatches)
     else:
         club.ok.append(
                 "No Google Groups vs Member/Applicant Missmatch.")
@@ -166,31 +157,7 @@ def ck_applicants(club):
     applicants_by_status = helpers.lists2sets(applicants_by_status)
     ms_by_status_sets = helpers.lists2sets(club.ms_by_status)
     if applicants_by_status != ms_by_status_sets:
-#       ### debugging ###
-#       helpers.send2file(
-#           '\n'.join(
-#               sorted(
-#                   [key for key in applicants_by_status.keys()])),
-#           'applicants_by_status')
-#       helpers.send2file(
-#           '\n'.join(
-#               sorted(
-#                   [key for key in ms_by_status_sets.keys()])),
-#           'ms_by_status_sets')
-#       helpers.store(applicants_by_status,
-#               'applicants_by_status.json')
-#       helpers.store(ms_by_status_sets,
-#               'ms_by_status_sets.json')
-#       ### debugging ###
         club.ret.append("\nApplicant problem:")
-#       club.ret.append("The following data from applicant SPoT-")
-#       club.ret.extend(helpers.show_dict(applicants_by_status,
-#                                               extra_line=False))
-#       club.ret.append(
-#               "- does not match the following membership SPot-")
-#       club.ret.extend(helpers.show_dict(club.ms_by_status,
-#                  extra_line=False))
-#       club.ret.append("- End of comparison -")
         club.ret.append(helpers.compare_dicts(
             applicants_by_status, ms_by_status_sets,
             "applicant_spot", "membership_spot"))
@@ -225,9 +192,10 @@ def ck_fees_spots(club):
         file_keys = set(club.fee_category_by_m.keys())
         if club_keys == file_keys:
             if club.fee_details:
-                club.not_matching_notice = "Fee amounts don't match"
-                # traverse keys and specify which amounts don't match
-                sorted_club_keys = sorted([key for key in club_keys])
+                club.not_matching_notice = "Fee amounts mismatch"
+                # traverse and specify mismatches
+                sorted_club_keys = sorted(
+                        [key for key in club_keys])
                 for key in sorted_club_keys:
                     if (club.fees_by_name[key] !=
                             club.fee_category_by_m[key]):
@@ -239,7 +207,7 @@ def ck_fees_spots(club):
                                 ))
             else:
                 club.not_matching_notice = (
-            "Fee amounts don't match (try -d option for details)")
+            "Fee amount mismatch (try -d option for details)")
         else:
             club_set = set(club_keys)
             file_set = set(file_keys)
@@ -261,17 +229,17 @@ def ck_fees_spots(club):
 
 def applicant_csv(club):
     """
-    Expects it's parameter <club> to have the attribute
-    club.applicant_data created by running both
-    populate_sponsor_data and populate_applicant_data (in that order.)
-    Returns a list (ordered by last,first) of dicts with the following keys:
-    'first', 'last', 'status', 'app_rcvd' 'fee_rcvd',
-    '1st', '2nd' '3rd', 'inducted', 'dues_paid', 'sponsor1', 'sponsor2'
+    <club> attribute applicant_data already in place (by running
+    both populate_sponsor_data and populate_applicant_data.)
+    Returns a list (ordered by last,first) of dicts with the
+    following keys: 'first', 'last', 'status',
+    'app_rcvd' 'fee_rcvd', '1st', '2nd' '3rd', 'inducted',
+    'dues_paid', 'sponsor1', 'sponsor2'
     If club.applicant_csv is set, the data is sent to that file.
     If boolean club.all_applicants is set then all past as well as
-    current applicants will be included.  i.e. All that are in the DB.
-    Data comes from applicant and sponsors data files, not from the 
-    main membership DB. Use get_applicant_data for that.
+    current applicants will be included. (All that are in the DB.)
+    Data comes from applicant and sponsors data files, not from
+    the main membership DB. Use get_applicant_data for that.
     """
     ret = []
     data = [club.applicant_data[key] for key in
@@ -663,7 +631,8 @@ def output_extra_fees_report_by_name(club):
             l = []
             for fee_key in sorted(fees.keys()):
                 if club.include_fee_charged: # include fee amnts
-                    l.append("{}: {}".format(fee_key, fees[fee_key]))
+                    l.append("{}: {}".format(fee_key,
+                                            fees[fee_key]))
                 else:
                     l.append("{}".format(fee_key))
             fees_paid = ', '.join(l)
@@ -716,7 +685,8 @@ def output_extra_fees_report_by_category(club):
             for name_key in sorted(names.keys()):
                 if (category_key == "mooring"
                 and club.include_fee_charged): # include fee amnts
-                    res.append("\t{}: {}".format(name_key, names[name_key]))
+                    res.append("\t{}: {}".format(name_key,
+                                                names[name_key]))
                 else:
                     res.append("\t{}".format(name_key))
 
@@ -915,7 +885,7 @@ def ck_data(club):
     Consistency checks required:
     -memlist-    names emails stati&fees  which_fee&amt
     -contacts-   names emails  labels
-    -sponsors-   names  (all sponsors (of current applicants) members?)
+    -sponsors-   names (all sponsors are members?) 
     -applicants- names        stati
     -extra_fees- names                    which_fee&amt
     [1] in future may keep records of non (no longer) members (and
@@ -947,7 +917,7 @@ def ck_data(club):
    
     # Deal with applicants...
 # if get a KeyError such as the following:
-#     File "/home/alex/Git/Club/Utils/data.py", line ???, in ck_data
+#  File "/home/alex/Git/Club/Utils/data.py", line ???, in ck_data
 #       applicant_set = club.g_by_group[club.APPLICANT_GROUP]
 #   KeyError: 'applicant'
 # ... check that the contacts.cvs file came from the Club's gmail
@@ -974,7 +944,7 @@ def ck_data(club):
 
     if emails_missing_from_contacts:
         helpers.add_sub_list("Emails Missing from Google Contacts",
-                             emails_missing_from_contacts, club.ret)
+                         emails_missing_from_contacts, club.ret)
     else:
         club.ok.append("No emails missing from gmail contacts.")
 '''
@@ -983,7 +953,7 @@ def ck_data(club):
 
     if club.ok:
         helpers.add_sub_list(
-                "No Problems with the Following", club.ok, club.ret)
+            "No Problems with the Following", club.ok, club.ret)
     ai_notice = "Acceptable Inconsistency"
     if club.not_matching_notice:
         helpers.add_header2list(ai_notice,
@@ -1076,7 +1046,8 @@ def restore_fees(club):
     club.errors = []; club.new_db = [];
     club.non0balance = {}; club.name_set = set();
     populate_extra_fees(club)
-    club.extra_fee_names = set([key for key in club.by_name.keys()])
+    club.extra_fee_names = set(
+                    [key for key in club.by_name.keys()])
     err_code = member.traverse_records(club.infile, (
         member.populate_non0balance_func,
         member.populate_name_set_func,
@@ -1091,15 +1062,12 @@ def restore_fees(club):
                     .format(name, repr(club.non0balance[name])))
     names_not_members = club.extra_fee_names - club.name_set
     if names_not_members:
-        warning = "Not all listed as paying extra fees are members!"
+        warning = "Non members listed as paying extra fees!"
 #       print(warning)
         club.errors.append(warning)
         for name in names_not_members:
             club.errors.append(
-                "\t{}: non member listed as paying fee(s)."
-                .format(name))
-
-# save_db moved to helpers
+                f"\t{name}: non member listed as paying fee(s).")
 
 
 def data_listed(data, underline_char='=', inline=False):
