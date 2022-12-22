@@ -16,7 +16,6 @@ import csv
 import json
 import helpers
 import sys_globals as glbs
-from rbc import Club
 import data
 
 NO_EMAIL_KEY = 'no_email'
