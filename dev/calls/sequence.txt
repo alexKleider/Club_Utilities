@@ -1,0 +1,32 @@
+utils.prepare_mailing_cmd
+    initiates club = Club(args)
+    calls
+        utils.prepare4mailing
+            checks for existing files/dirs
+            deals with 'which'
+                specifically with "cc" key
+                    sets boolean club.cc_sponsors prn
+                    adds other (real) email addresses to club.cc
+            initiates
+              club.json_data to []
+              club.lpr  & verifies with user
+              club.applicant_stati_set  (stati)
+              club.email (content.prepare_email_template)
+              club.letter (content.prepare_letter_template)
+            runs data.populate_(sponsor & applicant)_data =>
+              club.sponsor_data & club.applicant_data
+        member.prepare_mailing(club)
+          traverses with club.which functions
+            (member.std_mailing_func)
+              which runs 'test' and if passes:
+                checks for club.owing_only boolean
+                runs q_mailing which runs one or both:
+                    append_email
+                      sets up email dict
+                      acts if club.cc_sponsors is True
+                    file_letter
+                  which dispatches to emails &/or letters
+                  
+          and if club.json_data: dumps to emails.csv
+
+

@@ -96,13 +96,15 @@ Options:
             a file name which must end in ".csv".
             NOTE: when a new db is created, this option is
             over-ridden: defaults to "new_" + <name of input file>.
-  --oo   Owing_Only: Only consider members with dues/fees outstanding.
-            (Sets owing_only attribute of instance of Club.)
+  --oo   Owing_Only: Only if dues/fees outstanding.
+            Sets 'owing_only' attribute of instance of Club.
+            Not in use: rely on content.content_type.test.
+            When implemented, use to over-ride the above.
   -P <params>  This option will probably be redacted
             since old methods of mailing are no longer used.
             Defaults are A5160 for labels & E000 for envelopes.
   -p <printer>  Ensure correct alignment of text with envelope windows
-            when printing letters. [default: peter_e10]
+            when printing letters. [default: X6505_e9]
   -q  Quiet; no announcements, progress notes, etc
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
   -s <stati>   Used with stati command; specifies stati to show.
@@ -965,19 +967,21 @@ def prepare4mailing(club):
     helpers.check_before_deletion((club.json_file, club.mail_dir))
     if os.path.exists(club.mail_dir): shutil.rmtree(club.mail_dir)
     os.mkdir(club.mail_dir)
-    club.cc_sponsors = False
     if not args['--which']:
         club.which = content.content_types["thank"]
+        _ = input("in prepare4mailing: not args['--which']")
     else:
         club.which = content.content_types[args["--which"]]
         if "cc" in club.which.keys():
-            cc = set(club.which['cc'].split(','))
+            cc = set(club.which['cc'].split(',')) - {''}
             if 'sponsors' in cc:
-                club.which['cc'] = cc - {'sponsors'}
                 club.cc_sponsors = True
+                club.cc = club.cc.union(cc) - {','} - {'sponsors'}
+        else:
+            _ = input("no 'cc' in club.which.keys()")
     club.json_data = []
     club.lpr = content.printers[args["-p"]]
-    club.applicant_set = member.APPLICANT_SET
+    club.applicant_stati_set = member.APPLICANT_SET
     helpers.verify("Printer is set to <{}>. Continue? "
             .format(args['-p']))
     club.email = content.prepare_email_template(club.which)
@@ -985,6 +989,7 @@ def prepare4mailing(club):
                                                   club.lpr)
     if club.cc_sponsors:
         data.populate_sponsor_data(club)
+        data.populate_applicant_data(club)
 
 
 def prepare_mailing_cmd(args=args):

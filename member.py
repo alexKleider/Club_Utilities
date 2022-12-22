@@ -563,9 +563,6 @@ def add2malformed(record, club=None):
         club.malformed.append("{}: {} Problem /w email.".format(
                                             name, record['email']))
     if name < club.previous_name:
-#       print("name & previous_name are")
-#       _ = input(f"{name} & {club.previous_name}")
-
         club.malformed.append("Record out of order: {}".format(name))
     club.previous_name = name
 
@@ -1060,38 +1057,33 @@ def append_email(record, club):
     of content.content_types
     Appends an email to club.json_data
     """
-#   print(club.email)
     body = club.email.format(**record)
     sender = club.which['from']['email']
     email = {
         'From': sender,    # Mandatory field.
         'Sender': sender,   # 0 or 1
         'Reply-To': club.which['from']['reply2'],  # 0 or 1
-        'To': record['email'],  # at least one ',' separated address
-        'Cc': '',             # O or 1 comma separated list.
-        'Bcc': '',            # O or 1 comma separated list.
+        'To': record['email'],  # 1 or more, ',' separated
+        'Cc': '',             # O or more comma separated
+        'Bcc': '',            # O or more comma separated
         'Subject': club.which['subject'],  # 0 or 1
         'attachments': [],
         'body': body,
     }
-    sponsor_email_addresses = ''
+    sponsor_email_addresses = []
     if club.cc_sponsors:
         record = helpers.Rec(record)
         name_key = record(fstrings['key'])
         if name_key in club.applicant_set:
             sponsors = club.sponsors_by_applicant[name_key]
-            # Use list comprehension for the following:
-            sponsor_email_addresses = []
             for sponsor in club.sponsors_by_applicant[name_key]:
-                addr = club.sponsor_emails[sponsor]
-                if addr:
-                    sponsor_email_addresses.append(addr)
-            sponsor_email_addresses = ','.join(
-                    sponsor_email_addresses)
-    if club.cc: ccs = club.cc
-    else: ccs = ''
-    email['Cc'] = helpers.join_email_listings(
-                                    sponsor_email_addresses, ccs)
+                keys = club.sponsor_emails.keys()
+                if sponsor in set(club.sponsor_emails.keys()):
+                    sponsor_email_addresses.append(club.sponsor_emails[sponsor])
+            emails_set = set(sponsor_email_addresses)
+            club.cc = club.cc.union(set(sponsor_email_addresses))
+            club.cc = club.cc.difference({''})
+    email['Cc'] = ','.join(club.cc)
     if club.bcc:
         email['Bcc'] = club.bcc
     club.json_data.append(email)

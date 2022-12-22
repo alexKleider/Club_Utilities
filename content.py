@@ -242,6 +242,9 @@ in your remittance to the
     Bolinas Rod and Boat Club,
     PO Box 248, Bolinas, CA 94924.
 at your earliest convenience.
+
+Remember: by-laws dictate that membership is
+terminated if dues are not paid by September 1st.
 """,
 
     # Send in early August:
@@ -302,7 +305,10 @@ our By-Laws.)
 To become eligible for membership (and not waste your application
 fee) you must attend a minimum of three meetings with in a six
 month period.  You may attend as the guest of any member; your
-sponsors are where you might want to turn in this regard as well.
+sponsors are expected to introduce you although that is not a
+mandatory requirement.
+
+Looking forward to meeting you in person.
 """,
 
     awaiting_vacancy="""
@@ -799,11 +805,10 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "cc": "sponsors",
         "body": letter_bodies["new_applicant_welcome"],
-        "post_scripts": (post_scripts["covid19"],),
+        "post_scripts": (),
         "funcs": (member.std_mailing_func,),
-        "test": (lambda record: True if
-                 (record["status"]
-                  and 'a' in record["status"].split("|"))
+        "test": (lambda record: True
+                 if member.is_new_applicant(record)
                  else False),
         "e_and_or_p": "one_only",
         },

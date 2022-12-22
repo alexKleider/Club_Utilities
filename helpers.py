@@ -295,8 +295,10 @@ def str_add(*args):
     return str(total)
 
 
+redact = '''
 def join_email_listings(*args):
     """
+    ## Will probably redact since usint set rather than csv. ##
     Accepts any number of args, each of which must be a string
     expected to be a comma (with no spaces, as demanded when provided
     as a commandline parameter/argument) separated listing of email
@@ -311,7 +313,7 @@ def join_email_listings(*args):
             arg = [item.strip() for item in arg]
             res.extend(arg)
     return ','.join(sorted(set(res)))
-
+'''
 
 def useful_lines(stream, comment="#"):
     """

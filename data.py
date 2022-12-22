@@ -15,7 +15,8 @@ import json
 import helpers
 import member
 import sys_globals as glbs
-from rbc import Club
+import rbc
+
 
 DEBUGGING_FILE = 'debug.txt'
 
@@ -26,7 +27,7 @@ def get_fieldnames(csv_file: "name of csv file", report=True
     Returns the field names of the csv file named.
     """
     with open(csv_file, 'r', newline='') as file_object:
-        if report and not club.quiet:
+        if report:
             print('DictReading file "{}"...'
                     .format(file_object.name))
         dict_reader = csv.DictReader(file_object, restkey='extra')
@@ -99,7 +100,6 @@ def ck_gmail(club):
     members & applicants and other stati (e.g. inactive.)
     """
     applicant_set = club.g_by_group[club.APPLICANT_GROUP]
-#   _ = input(f"applicant_set: {applicant_set}")
     applicant_mismatches = helpers.check_sets(
         applicant_set,
         club.applicant_with_email_set,  # populated by 
@@ -408,7 +408,7 @@ def applicant_data_line2record(line):
     Note: terminates program if no dates are provided.
     """
     ret = {}
-    for key in Club.APPLICANT_DATA_FIELD_NAMES:
+    for key in rbc.Club.APPLICANT_DATA_FIELD_NAMES:
         ret[key] = ''
     parts = line.split(glbs.SEPARATOR)
     while not parts[-1]:  # lose trailing empty fields
@@ -812,11 +812,12 @@ def populate_sponsor_data(club):
             club.sponsors_by_applicant[name] = sponsors
             # key: applicant name
             # value: list of two sponsors in "last, first" format.
+#   _ = input(f"sponsors are {repr(club.sponsor_set)}")
     with open(club.infile, 'r') as stream:
         dictreader = csv.DictReader(stream)
         for record in dictreader:
             record = helpers.Rec(record)
-            name = record(member.fstrings['last_first'])
+            name = record(member.fstrings['key'])
             if name in club.sponsor_set:
                 club.sponsor_emails[name] = record['email']
     club.applicant_set = club.sponsors_by_applicant.keys()
@@ -827,7 +828,7 @@ def line_of_meeting_dates(applicant_datum):
     Returns a string: comma separated listing of meeting dates.
     """
     dates = []
-    for date_key in Club.MEETING_DATE_NAMES:
+    for date_key in rbc.Club.MEETING_DATE_NAMES:
         if applicant_datum[date_key]:
             dates.append(applicant_datum[date_key])
     return ', '.join(dates)
@@ -914,14 +915,6 @@ def ck_data(club):
     # Keep in mind that after payment amounts won't match
     # Can use '-d' options for details.
 
-   
-    # Deal with applicants...
-# if get a KeyError such as the following:
-#  File "/home/alex/Git/Club/Utils/data.py", line ???, in ck_data
-#       applicant_set = club.g_by_group[club.APPLICANT_GROUP]
-#   KeyError: 'applicant'
-# ... check that the contacts.cvs file came from the Club's gmail
-# account, not someone else's!!!
     ck_gmail(club)
 
 
@@ -975,7 +968,7 @@ def club_with_payables_dict(infile=None, args=None):
         credits_dict   }  are dicts
     <args> provides for optional docopt args
     """
-    club = Club(args)
+    club = rbc.Club(args)
     if infile: club.infile = infile
     club.owing_dict = {}
     club.credits_dict = {}
@@ -993,7 +986,7 @@ def club_with_payables_listing(args=None, asterixUSPS=False):
     <args> provides for optional docopt args
     <asterixUSPS> if True adds an "*" to those without email
     """
-    club = Club(args)
+    club = rbc.Club(args)
     club.still_owing = []
     club.advance_payments = []
     club.asterixUSPS = asterixUSPS
@@ -1146,7 +1139,7 @@ func_dict = {
 
 redact = '''
 def exercise_ck_data(args=None):
-    club = Club()
+    club = rbc.Club()
     if args and '-d' in args[1:]:
         club.fee_details = True
     club.format = member.fstrings['last_first']
@@ -1158,7 +1151,7 @@ def exercise_ck_data(args=None):
 if __name__ == '__main__':
     print("data.py compiles without errors.")
     sys.exit()
-    club = Club()
+    club = rbc.Club()
     populate_sponsor_data(club)    # { Must do this before
     populate_applicant_data(club)  # { this
                # { for club.applicant_data to be complete. 

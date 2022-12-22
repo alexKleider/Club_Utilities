@@ -22,6 +22,7 @@ import sys
 import csv
 import shutil
 import helpers
+import data
 
 # these initial declarations provide a SPoT[1]
 # mainly for use by archive.py via the Club class.
@@ -190,8 +191,8 @@ class Club(object):
         self.thank_archive = Club.THANK_ARCHIVE
         self.outfile = Club.STDOUT
         self.errors_file = Club.ERRORS_FILE
-        self.cc = ''
-        self.bcc = ''
+        self.cc = set()
+        self.bcc = set()
         self.fee_details = False
 
         if args:  # override defaults if provided by docopts
@@ -218,18 +219,15 @@ class Club(object):
                 self.thank_archive = args['--thanked']
             if args['-o']: self.outfile = args['-o']
             self.owing_only = args['--oo']
-            Club.cc_sponsors = False
-            if args['--cc']:
-                (Club.cc_sponsors, Club.ccs) = helpers.clarify_cc(
-                                        args['--cc'], 'sponsors')
-            else:
-                (Club.cc_sponsors, Club.ccs) = (False, [])
-            if Club.cc_sponsors:  # collect applicant/sponsor data
-                data.populate_sponsor_data(Club)
-                data.populate_applicant_data(Club)
             if args['-e']: self.errors_file = args['-e']
-            if args["--cc"]: self.cc = args["--cc"]
-            if args["--bcc"]: self.bcc = args["--bcc"]
+            self.cc_sponsors = False
+            if args['--cc']:
+                self.cc = set(','.split(args['--cc'])) - {''}
+                if 'sponsors' in self.cc:
+                    self.cc_sponsors = True
+                    self.cc -= 'sponsors'
+            if args["--bcc"]:
+                self.bcc = set(','.split(args['--bcc']))
             if args['ATTACHMENTS']:
                 self.attachment = args['ATTACHMENTS']
             else:
