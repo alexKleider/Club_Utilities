@@ -373,8 +373,8 @@ which is password protected. The password is 'fish' and although not a
 very closely guarded secret, please do not share it with non members.
 By clicking on the "Membership" tab, you can find a listing of all
 your fellow members along with contact information. Please have a look
-and if you see any inaccuracies there, please make it known[1] so
-corrections can be made.
+and if you see any inaccuracies please make it known[1] so corrections
+can be made.
 
 There is a wealth of history on our website: recordings of past
 'marine moments' along with photos of events, and forms for renting
@@ -791,8 +791,8 @@ content_types = dict(  # which_letter
         "from": authors["membership"],
         "cc": "sponsors",
         "body": letter_bodies["waiting4application_fee"],
-        "post_scripts": (post_scripts["covid19"],
-                        post_scripts['remittance'],),
+        "post_scripts": (post_scripts['remittance'],
+                        ),
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if
                  (record["status"]
@@ -868,7 +868,6 @@ content_types = dict(  # which_letter
         "cc": "sponsors",
         "body": letter_bodies["welcome2full_membership"],
         "post_scripts": (post_scripts["ref1_email_or_PO"],
-                         post_scripts["covid19"],
                          ),
         "funcs": (member.std_mailing_func,),
         "test": (lambda record: True if member.is_new_member(record)
