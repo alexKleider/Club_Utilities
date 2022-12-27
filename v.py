@@ -3,20 +3,29 @@
 # File: v.py
 
 """
-Keep track of for what applicants have volunteered.
-Must provide a minimum of 2 command line parameters as follows:
+Applicant Volunteerism
+======================
+Unless using the '?' option, the user must
+provide a minimum of 2 command line parameters as follows:
     1. a command
-    2. a file name which can be 'default'.
-Some commands allow or demand a third parameter specific
-to the command.
+    2. a file name (which can be 'default'.)
+Some commands may allow or demand one (or possibly several)
+more parameter(s) specific to the command in question.
 
 Usage:
-    .v.py cmd fname|default [options...]
+    .v.py (? | (cmd fname|default [options...]))
 
-    .v.py init fname
-    .v.py add fname first_last
-    .v.py by_category fname [category...]
-    .v.py by_name fname [name...
+    .v.py ?   # print this docstring
+    .v.py init fname  # initialize an empty data base
+    .v.py add fname first_last  # add data pertaining to ..
+    .v.py by_category fname [categories]  # report volunteers for
+                # specific categories, for all if not specified.
+    .v.py by_name fname [names]  # report jobs for which 
+                    # listed members have volunteered,
+                    # all if names is not specified.
+
+Both 'categories' and 'names' parameters (if specified)
+must be a comma separated (no spaces) listing.
 """
 
 import sys
@@ -64,6 +73,8 @@ empty_data = dict(
         ),
     )
 
+special_data = {}
+
 
 def confirm_file(fname):
     if fname == 'default':
@@ -76,40 +87,6 @@ def confirm_file(fname):
             f"Use file '{fname}' (rather than '{DEFAULT_DATA_FILE}'? (y/n): ")
         if response and response[0] in ('yY'):
             return fname
-
-
-def init_json_file(args):
-    print(f"Writing to {args[2]}")
-    with open(args[2], 'w') as outstr:
-        json.dump(empty_data, outstr)
-
-
-def populate_values(data, name, header=None):
-    """
-    Assumes <data> is a dict of lists.
-    For each key within <data>, provides option to
-    add <name> to its list value.
-    """
-    keys = [key for key in data.keys()]
-    for key in keys:
-        res = input(f"Add {name} to {key}? (y/n) ") 
-        if res and res[0] in 'yY':
-            data[key].append(name)
-
-
-def populate_names(data, names, res, header=None):
-    """
-    """
-    pass
-
-
-def populate_categories(data, categories, res, header=None):
-    """
-    """
-    keys = [key for key in data.keys()]
-    for key in keys:
-        if data[key]:
-            res.append(f"\t{key}: {repr(data[key])}")
 
 
 def traverse_data(args, func, params, res):
@@ -131,7 +108,8 @@ def traverse_data(args, func, params, res):
                 if isinstance(res, dict):
                     pass
                 else:
-                    res.append(header)
+                    if isinstance(res, list):
+                        res.append(header)
                 func(data[key], *params, header=header)
             else:
                 header = ''
@@ -139,42 +117,6 @@ def traverse_data(args, func, params, res):
                 func(data, *params, header=header)
     return data  # only used by add command
             # other commands store data in one of the <params>
-
-def add(args):
-    """
-    Adds args[3] (a name) to categories in data (args[2].
-    """
-    print(f"Adding name {args[3]} into data file {args[2]}")
-    new_data = traverse_data(args,
-                        populate_values,
-                        (args[3],))
-    with open(args[2], 'w') as outstr:
-        json.dump(new_data, outstr)
-
-
-def by_category(args):
-    """
-    Display data by category (all or only those specified.)
-    """
-    print(f"Reading data from {args[2]}...")
-    if len(args) == 4:  # look at specific categories
-        categories = args[3].split(SEPARATOR)  # now a tuple
-    else:  # show all <categories> (which is an empty tuple.)
-        categories = ()
-    res = []
-    traverse_data(args, populate_categories,
-                        (categories, res), res)
-    print('\n'.join(res))
-
-
-def by_name(args):
-    """
-    Display data by name (all or only those specified.)
-    """
-    print(f"Readin data from {args[2]}")
-    res = {}
-    traverse_data(args, populate_names, (args[3], res))
-    print(res)
 
 
 def wrapper(args):
@@ -191,10 +133,105 @@ def wrapper(args):
         print(f"Aborting (Not authorized to use file {args[2]})")
 
 
+def init_json_file(args):
+    """
+    Initialize an empty data base.
+    """
+    print(f"Writing to {args[2]}")
+    with open(args[2], 'w') as outstr:
+        json.dump(empty_data, outstr)
+
+
+def dump_data(args, data):
+    """
+    Dump data (presumably after it's been read from the data
+    base and then modified) back into the data base.
+    """
+    print(f"Writing to {args[2]}")
+    with open(args[2], 'w') as outstr:
+        json.dump(data, outstr)
+
+
+def populate_values(data, name, header=None):
+    """
+    Assumes <data> is a dict of lists.
+    For each key within <data>, provides option to
+    add <name> to its list value.
+    """
+    keys = [key for key in data.keys()]
+    for key in keys:
+        res = input(f"Add {name} to {key}? (y/n) ") 
+        if res and res[0] in 'yY':
+            data[key].append(name)
+
+
+def add(args):
+    """
+    Adds args[3] (a name) to categories in data (args[2].
+    """
+    print(f"Adding name {args[3]} into data file {args[2]}")
+    new_data = traverse_data(args,
+                        populate_values,
+                        (args[3],), res=None)
+    with open(args[2], 'w') as outstr:
+        json.dump(new_data, outstr)
+
+
+def populate_categories(data, categories, res, header=None):
+    """
+    """
+    keys = [key for key in data.keys()]
+    for key in keys:
+        if categories == 'all' or key in categories:
+            if data[key]:
+                res.append(f"\t{key}: {repr(data[key])}")
+
+
+def by_category(args):
+    """
+    Display data by category (all or only those specified.)
+    """
+    print(f"Reading data from {args[2]}...")
+    if len(args) > 3:
+        categories = set(args[3].split(','))
+    else: categories = 'all'
+    res = []
+    traverse_data(args, populate_categories,
+                        (categories, res), res)
+    print('\n'.join(res))
+
+
+def by_name(args):
+    """
+    Display data by name (all or only those specified.)
+    """
+    print(f"Readin data from {args[2]}")
+    with open(args[2], 'r') as instr:
+        data = json.load(instr)
+    if len(args) > 3:
+        names = set(args[3].split(','))
+    else: names = 'all'
+    res = {}
+    for header in [key for key in data.keys()]:
+        for category in [key for key in data[header].keys()]:
+            for name in data[header][category]:
+                if names == 'all' or name in names:
+                    _ = res.setdefault(name, [])
+                    res[name].append(f"{header}:{category}")
+    ret = []
+    for key in res.keys():
+        ret.append(key)
+        for val in res[key]:
+            ret.append(f"\t{val}")
+    print('\n'.join(ret))
+
+
 if __name__ == "__main__":
     largs = len(sys.argv)
     cmd = sys.argv[1]
-    if cmd == 'init':
+    if cmd.startswith('?'):
+        print(__doc__)
+    elif cmd == 'init':
         sys.argv[1] = init_json_file
         wrapper(sys.argv)
     elif cmd == 'add':
