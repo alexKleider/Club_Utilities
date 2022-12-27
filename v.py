@@ -177,16 +177,6 @@ def add(args):
         json.dump(new_data, outstr)
 
 
-def populate_categories(data, categories, res, header=None):
-    """
-    """
-    keys = [key for key in data.keys()]
-    for key in keys:
-        if categories == 'all' or key in categories:
-            if data[key]:
-                res.append(f"\t{key}: {repr(data[key])}")
-
-
 def by_category(args):
     """
     Display data by category (all or only those specified.)
@@ -196,8 +186,20 @@ def by_category(args):
         categories = set(args[3].split(','))
     else: categories = 'all'
     res = []
-    traverse_data(args, populate_categories,
-                        (categories, res), res)
+    header = ''
+    with open(args[2], 'r') as instr:
+        data = json.load(instr)
+    headers = [header for header in data.keys()]
+    for header in headers:
+        entries = []
+        for category in data[header].keys():
+            if categories == 'all' or category in categories:
+                if data[header][category]:
+                    entries.append(
+                    f"\t{category}: {repr(data[header][category])}")
+        if entries:
+            res.append(header)
+            res.extend(entries)
     print('\n'.join(res))
 
 
