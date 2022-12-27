@@ -57,8 +57,6 @@ empty_data = dict(
         Decorating = [],
         ClubHouseMaintenance = [],
         ),
-    SKILLS_ABILITIES_INTERESTS = dict(
-        ),
     COMMITTEE_SERVICE = dict(
         Docks_Yards = [],
         Entertainment = [],
@@ -70,6 +68,8 @@ empty_data = dict(
         Maintenance = [],
         BuildingGrounds = [],
         ClubRentals = [],
+        ),
+    SKILLS_ABILITIES_INTERESTS = dict(
         ),
     )
 
@@ -152,29 +152,34 @@ def dump_data(args, data):
         json.dump(data, outstr)
 
 
-def populate_values(data, name, header=None):
-    """
-    Assumes <data> is a dict of lists.
-    For each key within <data>, provides option to
-    add <name> to its list value.
-    """
-    keys = [key for key in data.keys()]
-    for key in keys:
-        res = input(f"Add {name} to {key}? (y/n) ") 
-        if res and res[0] in 'yY':
-            data[key].append(name)
-
-
 def add(args):
     """
     Adds args[3] (a name) to categories in data (args[2].
     """
-    print(f"Adding name {args[3]} into data file {args[2]}")
-    new_data = traverse_data(args,
-                        populate_values,
-                        (args[3],), res=None)
-    with open(args[2], 'w') as outstr:
-        json.dump(new_data, outstr)
+    name = args[3]
+    print(f"Adding name {name} into data file {args[2]}")
+    with open(args[2], 'r') as instr:
+        data = json.load(instr)
+    for header in [header for header in data.keys()]:
+        if header == "SKILLS_ABILITIES_INTERESTS":
+            response = input(
+            "Are there any skills, abbilities or interests? ")
+            if response and response[0] in 'yY':
+                _ = data[header].setdefault(name, [])
+                while response:
+                    response = input("Entry: ")
+                    if response:
+                        data[header][name].append(response)
+        else:
+            keys = [key for key in data[header].keys()]
+            for key in keys:
+                res = input(f"Add {name} to {key}? (y/n) ") 
+                if res and res[0] in 'yY':
+                    data[header][key].append(name)
+    response = input("Input complete; OK to store? (y/n) ")
+    if response and response[0] in 'yY':
+        with open(args[2], 'w') as outstr:
+            json.dump(data, outstr)
 
 
 def by_category(args):
@@ -191,6 +196,8 @@ def by_category(args):
         data = json.load(instr)
     headers = [header for header in data.keys()]
     for header in headers:
+        if header == "SKILLS_ABILITIES_INTERESTS":
+            continue
         entries = []
         for category in data[header].keys():
             if categories == 'all' or category in categories:
@@ -215,6 +222,8 @@ def by_name(args):
     else: names = 'all'
     res = {}
     for header in [key for key in data.keys()]:
+        if header == "SKILLS_ABILITIES_INTERESTS":
+            continue
         for category in [key for key in data[header].keys()]:
             for name in data[header][category]:
                 if names == 'all' or name in names:
