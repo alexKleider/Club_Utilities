@@ -18,21 +18,28 @@ Usage:
     .v.py ?   # print this docstring
     .v.py init fname  # initialize an empty data base
     .v.py add fname first_last  # add data pertaining to ..
-    .v.py by_category fname [categories]  # report volunteers for
-                # specific categories, for all if not specified.
-    .v.py by_name fname [names]  # report jobs for which 
-                    # listed members have volunteered,
-                    # all if names is not specified.
+    .v.py by_category fname categories [out_file]
+                # report volunteers for specific categories,
+                # 'all' for all categories.
+    .v.py by_name fname names [out_file] # report jobs for which 
+                    # listed (in <names>) members have volunteered,
+                    # 'all' if to include everyone.
 
 Both 'categories' and 'names' parameters (if specified)
 must be a comma separated (no spaces) listing.
 """
 
+import os
 import sys
 import json
 
-DEFAULT_DATA_FILE = "vfile.json"
+ROOT_DIR = os.path.expandvars('$CLUB')
+DATA_DIR = "Data"
+DEFAULT_DATA_FILE_NAME = "vfile.json"
+DEFAULT_DATA_FILE = os.path.join(
+        ROOT_DIR, DATA_DIR, DEFAULT_DATA_FILE_NAME)
 SEPARATOR = '.'
+special_header = "SKILLS_ABILITIES_INTERESTS"
 
 empty_data = dict(
     EVENTS = dict(
@@ -44,13 +51,13 @@ empty_data = dict(
         ChristmasParty = [],
         OtherDinnerEvents = [],
         Bartending = [],
-        Stocking = [],
+        EventStocking = [],
         ),
     KITCHEN = dict(
         SetUp = [],
         CleanUp = [],
         Serving = [],
-        Stocking = [],
+        KitchenStocking = [],
         ),
     INFRASTRUCTURE = dict(
         DockDeckMaintenance = [],
@@ -65,7 +72,6 @@ empty_data = dict(
         ExecutiveCommittee = [],
         Finance = [],
         Website = [],
-        Maintenance = [],
         BuildingGrounds = [],
         ClubRentals = [],
         ),
@@ -158,13 +164,16 @@ def add(args):
     """
     name = args[3]
     print(f"Adding name {name} into data file {args[2]}")
+    no_entries = True
     with open(args[2], 'r') as instr:
         data = json.load(instr)
+    special_header = "SKILLS_ABILITIES_INTERESTS"
     for header in [header for header in data.keys()]:
-        if header == "SKILLS_ABILITIES_INTERESTS":
+        if header == special_header:
             response = input(
-            "Are there any skills, abbilities or interests? ")
+            f"Are there any {special_header}? ")
             if response and response[0] in 'yY':
+                no_entries = False
                 _ = data[header].setdefault(name, [])
                 while response:
                     response = input("Entry: ")
@@ -173,9 +182,13 @@ def add(args):
         else:
             keys = [key for key in data[header].keys()]
             for key in keys:
-                res = input(f"Add {name} to {key}? (y/n) ") 
+                res = input(f"Add {name} to {header}: {key}? (y/n) ") 
                 if res and res[0] in 'yY':
+                    no_entries = False
                     data[header][key].append(name)
+    if no_entries:
+        _ = data[special_header].setdefault(name, [])
+        data[special_header][name].append('NO ENTRIES')
     response = input("Input complete; OK to store? (y/n) ")
     if response and response[0] in 'yY':
         with open(args[2], 'w') as outstr:
@@ -186,63 +199,111 @@ def by_category(args):
     """
     Display data by category (all or only those specified.)
     """
-    print(f"Reading data from {args[2]}...")
-    if len(args) > 3:
+    categories = args[3]
+    if categories != 'all':
         categories = set(args[3].split(','))
-    else: categories = 'all'
+    if len(args) > 4:
+        outf = args[4]
+    else:
+        outf = None
     res = []
-    header = ''
+    addendum = None
     with open(args[2], 'r') as instr:
         data = json.load(instr)
     headers = [header for header in data.keys()]
     for header in headers:
-        if header == "SKILLS_ABILITIES_INTERESTS":
+        if header == special_header:
+            if data[header]:
+                addendum = [header]
+                addendum.extend([f"    {key}: {value}" for
+                    key, value in data[header].items()])
             continue
         entries = []
         for category in data[header].keys():
             if categories == 'all' or category in categories:
                 if data[header][category]:
                     entries.append(
-                    f"\t{category}: {repr(data[header][category])}")
+                    f"    {category}: {repr(data[header][category])}")
         if entries:
             res.append(header)
             res.extend(entries)
-    print('\n'.join(res))
+    if addendum:
+        res.extend(addendum)
+    text = '\n'.join(res)
+    if outf:
+        print(f"writing to {outf}")
+        with open(outf, 'w') as outstream:
+            outstream.write(text)
+    else:
+        print(text)
 
 
 def by_name(args):
     """
     Display data by name (all or only those specified.)
     """
-    print(f"Readin data from {args[2]}")
-    with open(args[2], 'r') as instr:
-        data = json.load(instr)
-    if len(args) > 3:
-        names = set(args[3].split(','))
-    else: names = 'all'
+    names2consider = args[3]
+    if names2consider != 'all':
+        names2consider = set(args[3].split(','))
+    if len(args) > 4:
+        outf = args[4]
+    else:
+        outf = None
+    with open(args[2], 'r') as instream:
+        data = json.load(instream)
     res = {}
+    addendum = None
     for header in [key for key in data.keys()]:
-        if header == "SKILLS_ABILITIES_INTERESTS":
+        if header == special_header:
+            names = [name for name in data[header].keys()]
+            if names:
+                _ = res.setdefault(header, {})
+                for name in names:
+                    _ = res[header].setdefault(name, [])
+                    for item in data[header][name]:
+                        res[header][name].append(item)
             continue
         for category in [key for key in data[header].keys()]:
             for name in data[header][category]:
-                if names == 'all' or name in names:
+                if names2consider == 'all' or name in names2consider:
                     _ = res.setdefault(name, [])
                     res[name].append(f"{header}:{category}")
+#               else:
+#                   _ = input(f"{name} not considered")
+    with open('2check.json', 'w') as outstream:
+        json.dump(res, outstream)
+    # now need to convert data into text:
     ret = []
     for key in res.keys():
         ret.append(key)
         for val in res[key]:
-            ret.append(f"\t{val}")
-    print('\n'.join(ret))
+            if key == special_header:
+                # val is dict keyed by names (id)
+                ids = res[special_header].keys()
+                for id in ids:
+                    if names == 'all' or id in names2consider:
+#                       _ = input(
+#                       f"id: {id} names2consider: {names2consider}")
+                        listing = ', '.join(res[special_header][id])
+#                       _ = input(f"appending '   {id}: {listing}'")
+                        ret.append(f"    {id}: {listing}")
+            else:
+                ret.append(f"    {val}")
+    text = '\n'.join(ret)
+    if outf:
+        print(f"writing to {outf}")
+        with open(outf, 'w') as outstream:
+            outstream.write(text)
+    else:
+        print(text)
 
 
 if __name__ == "__main__":
-    largs = len(sys.argv)
     cmd = sys.argv[1]
     if cmd.startswith('?'):
         print(__doc__)
-    elif cmd == 'init':
+        sys.exit()
+    if cmd == 'init':
         sys.argv[1] = init_json_file
         wrapper(sys.argv)
     elif cmd == 'add':
