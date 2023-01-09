@@ -32,7 +32,7 @@ Usage:
   ./utils.py send_emails [-O --mta <mta> --emailer <emailer>] -j <json_file>
   ./utils.py emailing [-O -i <infile> -F <muttrc>] --subject <subject> -c <content> [ATTACHMENTS...]
   ./utils.py restore_fees [-O -i <membership_file> -X <fees_spots> -o <temp_membership_file> -e <error_file>]
-  ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> -e <error_file>]
+  ./utils.py fee_intake_totals [-O -i <infile> -o <outfile> --receipts <receipts_file>  -e <error_file>]
   ./utils.py (labels | envelopes) [-O -i <infile> -P <params> -o <outfile> -x <file>]
   ./utils.py new_db -F function -G data_gathering_function [-O -i <membership_file> -o <new_membership_file> -e <error_file>]
 
@@ -107,6 +107,7 @@ Options:
             when printing letters. [default: X6505_e9]
   -q  Quiet; no announcements, progress notes, etc
   -r <rows>   Maximum number ot rows (screen height)  [default: 35]
+  --receipts <receipts_file>   Over-ride default receipts file.
   -s <stati>   Used with stati command; specifies stati to show.
         (<stati>: the desired stati separated by <glbs.SEPARATOR>.)
             If not specified, all stati are reported.
@@ -223,7 +224,8 @@ Commands:
         specific format. It defaults to 'Data/receipts-YYYY.txt'
         where YYYY is the current year.  Output yields subtotals and
         the grand total which can be copy/pasted into the 'receipts'
-        file.
+        file. Use --receipts option to override default
+        receipts_file.
     labels: print labels.       | default: -P A5160  | Both
     envelopes: print envelopes. | default: -P E000   | redacted.
     new_db:  # yet to be implemented.
@@ -725,10 +727,9 @@ def report_cmd(args=args):
         ['',
          "Respectfully submitted by...\n\n",
          "Alex Kleider, Membership Chair,",
-"for presentation (possibly by committee member Peter Gleckler) on",
-         "{} (or next board meeting, which ever comes first.)"
-         .format(
-             helpers.next_first_friday(exclude=True)),
+         "for presentation to the Executive Committee on {}"
+         .format(helpers.next_first_friday(exclude=True)),
+         "(or at their next meeting, which ever comes first.)",
          ])
     report.extend(
         ['',

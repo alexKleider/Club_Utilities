@@ -20,6 +20,10 @@ Lines that don't make proper sense (i.e. text in what should be
 numeric fields) are printed first. The rest of the output is
 a listing of payments she is reporting.
 
+We also read the main data base csv file in order to be able to
+check that all names correspond to members; any that don't are
+also sent to the default errors file (ERROR_FILE.)
+
 If an output file is not specified (as a second parameter:)
 output is printed to the screen so typical usage would be
     $ ./code/angie.py [input-file-name]  >  receipts.txt.txt
@@ -59,9 +63,6 @@ INFILE = '/home/alex/Git/Club/Data/angie220731.csv'
 INFILE = '/home/alex/Git/Club/Utils/code/fromAngie.csv'
 ERROR_FILE =  '/home/alex/Git/Club/Utils/code/errors.txt'
 
-club = data.club_with_payables_dict(MEMLIST)
-owers = club.owing_dict.keys()
-
 FIRST = 'First'        # Can't get rid of the 'endian' prefix...
 FIRST = '\ufeffFirst'  # ... which is contaminating header line.
 
@@ -97,7 +98,7 @@ def display(listing, header, stream):
             print(item, file=stream)
 
 
-def parse_angies_csv(infile, owers=None, errors=None):
+def parse_angies_csv(infile, owers=None, errors=None, club=None):
     """
     <infile> is an 'Angie generated' csv file.
     Returned is a dict:
@@ -130,6 +131,9 @@ def parse_angies_csv(infile, owers=None, errors=None):
             for key1, key2 in correspondence:
                 ret_rec[key1] = record[key2].strip()
             key = "{last},{first}".format(**ret_rec)
+            if club and errors!=None:
+                if not key in club.member_keys_set:
+                    errors.append(key)
             if ck == 0:
                 print(owers)
                 ck += 1
@@ -195,7 +199,8 @@ def main():
     errors = []
     money_keys = ('dues', 'dock', 'application', 'kayak', 'mooring', )
 
-    collector = parse_angies_csv(infile, owers=owers, errors=errors)
+    collector = parse_angies_csv(infile, owers=owers,
+            errors=errors, club = club)
     print(repr(errors))
     # convert what's been collected into useful format
     res = {}
@@ -250,8 +255,10 @@ def dev():
     errors = []
     infile = INFILE
     error_file = ERROR_FILE
-    res = parse_angies_csv(infile, owers=owers, errors=errors)
-    outfile = 'code/receipts.txt'
+    res = parse_angies_csv(infile, owers=owers, errors=errors,
+            club=club)
+#   _ = input(repr(res))
+    outfile = 'angies_receipts.txt'
     print("writing to {}".format(outfile))
     with open(outfile, 'w') as stream:
         for line in text4receipts(res):
@@ -264,4 +271,6 @@ def dev():
                 stream.write(item + '\n')
 
 if __name__ == '__main__':
+    club = data.club_with_owing_credits_and_keys(MEMLIST)
+    owers = club.owing_dict.keys()
     dev()

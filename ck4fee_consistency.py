@@ -19,6 +19,7 @@ data.gather_contacts_data(club)
 groups_by_name = club.groups_by_name
 fee_paying_contacts = data.get_fee_paying_contacts(club)
 
+club.format = member.fstrings['last_first']
 data.gather_membership_data(club)
 fee_paying_members = club.fee_category_by_m
 no_email_recs = club.usps_only  # a list of records

@@ -186,6 +186,7 @@ class Club(object):
         self.extra_fees_spots = Club.EXTRA_FEES_SPoTs
         self.email_json_file = Club.EMAIL_JSON
         self.json_file = Club.EMAIL_JSON
+        self.receipts_file = Club.RECEIPTS_FILE 
         self.mail_dir = self.MAILING_DIR
         self.thank_file = Club.THANK_FILE
         self.thank_archive = Club.THANK_ARCHIVE
@@ -232,6 +233,8 @@ class Club(object):
                 self.attachment = args['ATTACHMENTS']
             else:
                 self.attachment = None
+            if args['--receipts']:
+                self.receipts_file = args['--receipts']
 
         self.previous_name = ''              # } Used to
         self.previous_name_tuple = ('', '')  # } check
@@ -253,7 +256,7 @@ class Club(object):
         return ','.join(ret)
 
 
-    def fee_totals(self, infile=RECEIPTS_FILE):
+    def fee_totals(self):
         """
         Returns a list of strings: subtotals and grand total.
         Sets up and populates self.invalid_lines ....
@@ -270,7 +273,7 @@ class Club(object):
         total = 0
         subtotal = 0
 
-        with open(infile, "r") as file_obj:
+        with open(self.receipts_file, "r") as file_obj:
             print('Reading from file "{}".'.format(file_obj.name))
             for line in file_obj:
                 line = line.rstrip()  # get rid of trailing '\n'

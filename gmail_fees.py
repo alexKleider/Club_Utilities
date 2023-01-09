@@ -13,13 +13,10 @@ and see if the two correspond.
 """
 
 import json
+import helpers
 import data
 from rbc import Club
 
-outfile = "gmail_fee_info.json"
-club = Club()
-club.quiet = True
-data.gather_contacts_data(club)
 
 def get_fee_paying_contacts(club):
     """
@@ -52,6 +49,16 @@ def get_fee_paying_contacts(club):
 
 
 if __name__ == "__main__":
+    outfile = "gmail_fee_info.json"
+    club = Club()
+    club.quiet = True
+    data.gather_contacts_data(club)
+    collector = get_fee_paying_contacts(club)
     with open(outfile, 'w') as stream:
         json.dump(collector, stream)
-    exit()
+    res = []
+    for name in collector.keys():
+        listing = ', '.join(collector[name])
+        res.append(f'{name}: {listing}')
+    print('\n'.join(helpers.tabulate(res, separator='   ',
+        max_columns=2)))

@@ -860,6 +860,14 @@ def assign_statement2extra_func(record, club=None):
     record['extra'] = '\n'.join(extra)
 
 
+def get_member_keys_set(record, club):
+    """
+    Populate club.member_keys_set.
+    """
+    name_key = format_record(record, fstrings['key'])
+    club.member_keys_set.add(name_key)
+
+
 def get_payables_dict(record, club):
     """
     Populates club.owing_dict and club.credits_dict.
@@ -1328,6 +1336,9 @@ prerequisites = {   # collectors needed by the
     get_payables_dict: [
         'club.owing_dict = {}',
         'club.credits_dict = {}',
+        ],
+    get_member_keys_set: [
+        'club.member_keys_set = set()',
         ],
     get_secretary: [
         'club.secretary = ""',

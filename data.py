@@ -55,6 +55,7 @@ def ck_fee_paying_labels(club):
     fee_paying_contacts_set = set(fee_paying_contacts.keys())
     fee_paying_m_set = club.fee_category_by_m.keys()
     no_email_recs = club.usps_only  # a list of records
+#   _ = input("so far so good")
     no_email_set = {member.fstrings['key'].format(**rec)
                     for rec in no_email_recs}
     fee_paying_w_email_set = fee_paying_m_set - no_email_set
@@ -960,12 +961,13 @@ def ck_data(club):
     return club.ret
 
 
-def club_with_payables_dict(infile=None, args=None):
+def club_with_owing_credits_and_keys(infile=None, args=None):
     """
-    !?UNUSED?!
+    Client is code.angie.py
     Returns an instance of Club with required attributes:
-        owing_dict     } both of which
-        credits_dict   }  are dicts
+        owing_dict
+        credits_dict
+        keys_set
     <args> provides for optional docopt args
     """
     club = rbc.Club(args)
@@ -973,7 +975,10 @@ def club_with_payables_dict(infile=None, args=None):
     club.owing_dict = {}
     club.credits_dict = {}
     err_code = member.traverse_records(club.infile,
+                                       [
                                        member.get_payables_dict,
+                                       member.get_member_keys_set,
+                                       ],
                                        club)
     return club
 
