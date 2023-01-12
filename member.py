@@ -261,6 +261,12 @@ def is_member(record):
     return True
 
 
+def is_angie(record):
+    """
+    """
+    if record['first'] == 'Angie':
+        return True
+
 def is_ralph(record):
     """
     """
@@ -1100,7 +1106,8 @@ def file_letter(record, club):
     entry = club.letter.format(**record)
     path2write = os.path.join(club.MAILING_DIR,
                               "_".join((record["last"],
-                                        record["first"])))
+                                        record["first"]))
+                              + '.txt')
     with open(path2write, 'w') as file_obj:
         file_obj.write(helpers.indent(entry,
                                       club.lpr["indent"]))

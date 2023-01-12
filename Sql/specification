@@ -1,0 +1,32 @@
+Field types: TEXT INTEGER REAL NUMERIC BLOB NULL 
+
+Tables: 
+    people
+        PersonID, first,last,suffix, phone,address,
+        town, state,postal_code,country,email
+    sponsors
+        applicantID, sponsorID
+    stati
+        StatusID, status
+    person_status
+        personID, statusID
+    applicant_sponsor
+        applicantID, sponsorID
+    dues
+        duesID, personID, balance
+    dock
+        dockID, personID, balance
+    mooring_Sites
+        MooringSite (UNIQUE), fee
+    ??? can one person have more than one Kayak slot or mooring?
+    kayak
+        personID (UNIQUE), balance
+    mooring
+        personID (UNIQUE), mooringSieID, balance
+
+Relationships:
+    Each applicant (and some members, former applicants)
+        have up to 2 sponsors
+    Each member may have entries in
+        Dock, Kayak &/or Mooring tables
+    Each member and each applicant may have any number of stati

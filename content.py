@@ -62,7 +62,7 @@ that must be subsequently filled in by the '..._funcs'.
 # # double braces fields are populated by the record data.
 letter_bodies = dict(
 
-    canvas4leaders="""
+    angie_print="""
 The Bolinas Rod & Boat Club is facing a crisis!
 
 Leadership positions are being vacated and need to be filled.
@@ -455,7 +455,7 @@ Thank you for your services.
 ### !!!!!!!!!!!!!!!!!!!! POSTSCRIPTS !!!!!!!!!!!!!!!!! ##
 post_scripts = dict(
 
-    canvas4leaders="""
+    angie_print="""
 Please respond by either replying to this email or by post:
     The Bolinas Rod & Boat Club
     PO Box 248
@@ -579,16 +579,16 @@ content_types = dict(  # which_letter
     # ## instead of a 'Dear {first} {last},' line.
     # ## The first 4 listed values for each are used for first
     # ## stage formatting.
-    canvas4leaders={
+    angie_print={
         "subject": "Executive Commitee Members Needed",
         "from": authors["membership"],
-        "body": letter_bodies["canvas4leaders"],
+        "body": letter_bodies["angie_print"],
         "post_scripts": (
-#           post_scripts['canvas4leaders'],
+#           post_scripts['angie_print'],
             ),
         "funcs": [member.std_mailing_func, ],
-        "test": member.is_ralph,
-        "e_and_or_p": "both",
+        "test": member.is_angie,
+        "e_and_or_p": "usps",
         },
     for_testing={
         "subject": "This is a test.",
@@ -986,7 +986,15 @@ printers = dict(
         to=(6, 29),  # recipient window
         re=3,  # below windows => fold
         ),
-    )
+    angie_e9=dict(    # Smaller envelope.  #9: 3-7/8 x 8-7/8"
+        indent=0,
+        top=0,  # blank lines at top
+        frm=(4, 40),  # return window
+        date=7,  # between windows
+        to=(7, 40),  # recipient window
+        re=3,  # below windows => fold
+        ),
+   )
 # ## ... end of printers (dict specifying printer being used.)
 
 
