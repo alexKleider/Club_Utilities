@@ -4,11 +4,6 @@
 
 """
 https://docs.python.org/3/library/sqlite3.html
-
-Assume club.db has already been created as follows:
-$ sqlite3 club.db
-sqlite> .read specification.sql
-sqlite> .quit
 """
 
 import os
@@ -23,16 +18,25 @@ import helpers
 insert_template = """INSERT INTO {table} ({keys})
     VALUES({values});"""
 
-sql_commands_file =  'create_tables.sql'
+db_file_name = "club.db"
+sql_commands_file = 'create_tables.sql'  # table creating commands
+membership_csv_file = "Sanitized/members.csv"
+applicant_text_file = 'Sanitized/applicants.txt'
+sponsor_text_file = 'Sanitized/sponsors.txt'
 
 
-def get_commands(in_file):
+def get_commands(sql_file):
     """
     Assumes <in_file> contains valid SQL commands.
     i.e. could be read by sqlite3 > .read <in_file>
     Yeilds the commands one at a time.
+    Usage:
+        con = sqlite3.connect("sql.db")
+        cur = con.cursor()
+        for command in get_commands(sql_commands_file):
+            cur.execute(command)
     """
-    with open(in_file, 'r') as in_stream:
+    with open(sql_file, 'r') as in_stream:
         command = ''
         for line in in_stream:
             line = line.strip()
@@ -95,7 +99,8 @@ def data_generator(filename):
 
 def populate_people(source, connection, cursor):
     """
-    Adds all data from <source> into the "people" table.
+    Adds all data from <source> into the "people" SQL table.
+    Note: a suffix field is added to each record.
     """
     for rec in data_generator(source):
         ret = add_suffix_field(rec)
@@ -110,6 +115,7 @@ def populate_people(source, connection, cursor):
 
 def get_applicant_data(applicant_source, sponsor_source):
     """
+    Parses the two files/parameters returning a dict.
     """
     club = rbc.Club()
     club.applicant_spot = applicant_source
@@ -123,6 +129,9 @@ def get_applicant_data(applicant_source, sponsor_source):
 def populate_applicant_data(applicant_data, valid_names,
                                 con, cur):
     """
+    <applicant_data> is a dict collected by get_applicant_data
+    <valid_names> provided to ensure that all applicants and
+    sponsors are already in the 'People' table of the db.
     """
     names = set()
     for key in applicant_data.keys():
@@ -146,24 +155,25 @@ def get_table_names(cur):
     tups = [tup[0] for tup in res.fetchall()]
     return ', '.join(tups)
 
+def get_people_keys(cur):
+    cur.execute('SELECT first, last FROM people')
+    people = cur.fetchall()
+    return set([f"{names[1]},{names[0]}" for names in people])
+
 
 def main():
-    con = sqlite3.connect("club.db")
+    con = sqlite3.connect(db_file_name)
     cur = con.cursor()
-    # set up the tables (first deleting any that exist)
+    ## set up the tables (first deleting any that exist)
     for command in get_commands(sql_commands_file):
         cur.execute(command)
 #   _ = input(f"Table Names: {get_table_names(cur)}")
-    populate_people("Sanitized/members.csv", con, cur)
+    populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)
-    cur.execute('SELECT first, last FROM people')
-#   print("First and last names from 'people' table:")
-    people = cur.fetchall()
-    people_keys = [f"{names[1]},{names[0]}" for names in people]
+    people_keys = get_people_keys(cur)
 
-    applicant_data = get_applicant_data(
-            'Sanitized/applicants.txt',
-            'Sanitized/sponsors.txt')
+    applicant_data = get_applicant_data(applicant_text_file,
+                                        sponsor_text_file)
     populate_applicant_data(applicant_data, people_keys, con, cur)
     con.close()
 
