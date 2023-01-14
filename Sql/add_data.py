@@ -11,15 +11,37 @@ sqlite> .read specification.sql
 sqlite> .quit
 """
 
+import os
 import sys
+sys.path.insert(0, os.path.split(sys.path[0])[0])
 import csv
 import sqlite3
+import rbc
+import data
+import helpers
+
+insert_template = """INSERT INTO {table} ({keys})
+    VALUES({values});"""
+
+sql_commands_file =  'create_tables.sql'
 
 
-def check_read(rec):
-        print(repr(rec))
-        for key, value  in rec.items():
-            print(f"{key}: {value}")
+def get_commands(in_file):
+    """
+    Assumes <in_file> contains valid SQL commands.
+    i.e. could be read by sqlite3 > .read <in_file>
+    Yeilds the commands one at a time.
+    """
+    with open(in_file, 'r') as in_stream:
+        command = ''
+        for line in in_stream:
+            line = line.strip()
+            if line.startswith('--'):
+                continue
+            command = command + line.strip()
+            if line.endswith(';'):
+                yield command[:-1]
+                command = ''
 
 
 def return_name_suffix_tuple(name):
@@ -86,6 +108,37 @@ def populate_people(source, connection, cursor):
     connection.commit()
 
 
+def get_applicant_data(applicant_source, sponsor_source):
+    """
+    """
+    club = rbc.Club()
+    club.applicant_spot = applicant_source
+    club.sponsors_spot = sponsor_source
+    club.infile = 'Sanitized/members.csv'
+    data.populate_sponsor_data(club)
+    data.populate_applicant_data(club)
+    return club.applicant_data
+
+
+def populate_applicant_data(applicant_data, valid_names,
+                                con, cur):
+    """
+    """
+    names = set()
+    for key in applicant_data.keys():
+        names.add(key)
+        sponsors = set()
+        for name in ('sponsor1', 'sponsor2'):
+            if name:
+                sponsors.add(helpers.tofro_first_last(
+                    applicant_data[key][name]))
+        names.update(sponsors)
+    if not set(valid_names).issuperset(names):
+        _ = input(names.difference(set(valid_names)))
+    else:
+        print("so far so good")
+
+
 def get_table_names(cur):
     res = cur.execute("SELECT name FROM sqlite_master")
     # returns a list of tuples!
@@ -94,17 +147,25 @@ def get_table_names(cur):
     return ', '.join(tups)
 
 
-insert_template = """INSERT INTO {table} ({keys})
-    VALUES({values});"""
+def main():
+    con = sqlite3.connect("club.db")
+    cur = con.cursor()
+    # set up the tables (first deleting any that exist)
+    for command in get_commands(sql_commands_file):
+        cur.execute(command)
+#   _ = input(f"Table Names: {get_table_names(cur)}")
+    populate_people("Sanitized/members.csv", con, cur)
+    # collect a set of valid name keys (people_keys)
+    cur.execute('SELECT first, last FROM people')
+#   print("First and last names from 'people' table:")
+    people = cur.fetchall()
+    people_keys = [f"{names[1]},{names[0]}" for names in people]
 
-con = sqlite3.connect("club.db")
-cur = con.cursor()
-print(f"Table Names: {get_table_names(cur)}")
-populate_people("eg_memlist.csv", con, cur)
+    applicant_data = get_applicant_data(
+            'Sanitized/applicants.txt',
+            'Sanitized/sponsors.txt')
+    populate_applicant_data(applicant_data, people_keys, con, cur)
+    con.close()
 
-cur.execute('SELECT * FROM people')
-print("Data from 'people' table:")
-for item in cur.fetchall():
-    print('  ', item)
-
-con.close()
+if __name__ == '__main__':
+    main()
