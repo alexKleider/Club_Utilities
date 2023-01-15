@@ -1,3 +1,5 @@
+# My notes as to db design
+
 Field types: TEXT INTEGER REAL NUMERIC BLOB NULL 
 #  RDB: A set of tables of rows (records) and columns (fields) #
 #  where a cell in one table may refer to a row in another.    #

@@ -32,8 +32,10 @@ sqlite> .tables
 Employee  Salary
 sqlite>
 
->.help >> listing of 'dot commands' of which '.tables' is one.
-#see help.txt file...
+> .help >> listing of 'dot commands' of which '.tables' is one.
+    .quit
+    .read <a file of sql commands>
+    .tables
 
 Start the interpreter:
 -simply a case of calling it with a filename as an argument.
@@ -191,4 +193,66 @@ SQLite will simply store the string 'Freddy' in the field! This can cause
 some strange behaviour if you are not aware of this foible. Most databases
 treat the type declaration as a strict constraint and will fail if an
 illegal value is passed.
+
+Extracting Data
+===============
+SELECT column1, column2... FROM table1, table2...; 
+sqlite> SELECT Name
+   ...> FROM Employee
+   ...> WHERE Employee.Grade = 'Labourer';
+                                ^  case sensitive!
+Could extend the condition using AND, OR, NOT etc.
+Dot notation is often needed:
+sqlite> SELECT Name, Amount FROM Employee, Salary
+   ...> WHERE  Employee.Grade = Salary.Grade  } and SQL
+   ...> AND    Salary.Amount > '50000';       } "join"*
+* https://www.guru99.com/sqlite-join.html
+** the SQL documentation for SELECT: http://www.sqlite.org/lang_select.html
+SELECT columns FROM tables WHERE expression ORDER BY columns;
+Can have any number of columns not necessarily just one:
+Note: WHERE clause (if used) must precede ORDER BY clause.
+
+Changing Data
+=============
+UPDATE tablename SET column = value WHERE condition;
+
+DELETE FROM Tablename WHERE condition
+So if we wanted to delete Anne Jones from our Employee table we could do this:
+sqlite> DELETE FROM Employee WHERE Name = 'Anne Jones';
+Also can use DROP command (to delete a whole table.
+
+Linking Data Across Tables
+==========================
+Data Constraints: applied when we define (CREATE) the database structure.
+The most common constraints are:
+    NOT NULL
+    PRIMARY KEY [AUTOINCREMENT]
+    UNIQUE (often used for non INTEGER type PRIMARY KEY columns)
+    DEFAULT value
+Note that the AUTOINCREMENT "keyword" is not actually used,
+rather it is implied from a type/constraint combination of
+INTEGER PRIMARY KEY. A quirk of the SQLite documentation
+that trips up! http://www.sqlite.org/faq.html
+Table Constraints: not discussed in any detail.
+Column Type Constraints:
+    TEXT
+    INTEGER
+    REAL
+    NUMERIC
+    BLOB
+    NULL 
+The modified SQL (using constraints) looks like this:
+sqlite> CREATE TABLE Employee (
+   ...> EmpID INTEGER pRIMARY kEY,
+   ...> Name NOT NULL,
+   ...> HireDate NOT NULL,
+   ...> Grade NOT NULL,
+   ...> ManagerID INTEGER
+   ...> );
+sqlite> CREATE TABLE Salary (
+   ...> SalaryID INTEGER PRIMARY KEY,
+   ...> Grade  UNIQUE,
+   ...> Amount INTEGER DEFAULT 10000
+   ...> );
+
 

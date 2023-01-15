@@ -7,7 +7,6 @@ CREATE TABLE People (
     PersonID INTEGER PRIMARY KEY,
     first TEXT NOT NULL,
     last TEXT NOT NULL,
-    suffix TEXT DEFAULT '',
     phone TEXT DEFAULT '',
     address TEXT DEFAULT '',
     town TEXT DEFAULT '',
@@ -36,8 +35,8 @@ CREATE TABLE Person_Status (
     statusID INTEGER NOT NULL
     );
 
-DROP TABLE IF EXISTS Applicant_Sponsor;
-CREATE TABLE Applicant_Sponsor (
+DROP TABLE IF EXISTS Applicant_Sponsors;
+CREATE TABLE Applicant_Sponsors (
     personID INTEGER NOT NULL,
     sponsorID INTEGER NOT NULL
     );
@@ -57,7 +56,7 @@ CREATE TABLE Applicant_Dates (
 DROP TABLE IF EXISTS Dues;
 CREATE TABLE Dues (
     personID INTEGER UNIQUE NOT NULL,
-    dues_owed INTEGER NOT NULL
+    dues_owed NUMERIC DEFAULT 100
     );
 
 DROP TABLE IF EXISTS Kayak_Slots;
