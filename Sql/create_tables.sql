@@ -50,7 +50,8 @@ CREATE TABLE Applicant_Dates (
     meeting2 TEXT DEFAULT '',
     meeting3 TEXT DEFAULT '',
     approved TEXT DEFAULT '',
-    inducted TEXT DEFAULT ''
+    inducted TEXT DEFAULT '',
+    dues_paid TEXT DEFAULT ''
     );
 
 DROP TABLE IF EXISTS Attrition;

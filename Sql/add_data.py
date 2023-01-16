@@ -112,14 +112,19 @@ def populate_people(source, connection, cursor):
     Note: a suffix field is added to each record.
     """
     for rec in data_generator(source):
-#       ret = add_suffix_field(rec)
         ret = shorten_rec(rec)
         keys = ', '.join([key for key in ret.keys()])
         values = [value for value in ret.values()]
         values = ', '.join([f"'{value}'" for value in ret.values()])
         command = insert_template.format(
-                    table='people', keys=keys, values=values)
-        cursor.execute(command)
+                    table='People', keys=keys, values=values)
+#       _ = input(command)
+        try:
+            cursor.execute(command)
+        except sqlite3.IntegrityError:
+            print("Unable to execute following query:")
+            print(command)
+            raise
     connection.commit()
 
 
@@ -222,7 +227,7 @@ def populate_applicant_data(applicant_data, valid_names,
         names.update(sponsors)  # adding sponsors
     if not set(valid_names).issuperset(names):
         print("Invalid names found...")
-        _ = input(names.difference(set(valid_names)))
+#       _ = input(names.difference(set(valid_names)))
     else:
         pass
 #       print(names)
@@ -231,49 +236,115 @@ def populate_applicant_data(applicant_data, valid_names,
         last, first = name.split(',')
         query = f"""SELECT personID from People
 WHERE People.first = "{first}" AND People.last = "{last}" """
-        cur.execute(query)
+        try:
+            cur.execute(query)
+        except sqlite3.IntegrityError:
+            print("Unable to execute following query:")
+            print(query)
+            raise
         query_result = cur.fetchall()
         ids_by_name[name] = query_result[0][0]
 #   print(ids_by_name)
-    query_template = """INSERT INTO Applicant_Sponsors
+    sponsor_insertion_template = """INSERT INTO
+                    Applicant_Sponsors
                     (personID, sponsorID)
                     VALUES ({}, {});"""
+    date_insertion_template = """INSERT INTO
+                    Applicant_Dates
+                    (personID, app_rcvd, fee_rcvd,
+                    meeting1, meeting2, meeting3,
+                    inducted, dues_paid)
+                    VALUES ({data['applicantID']},
+                    {data['app_rcvd']},
+                    {data['fee_rcvd']},
+                    {data['meeting1']},
+                    {data['meeting2']},
+                    {data['meeting3']},
+                    {data['inducted']},
+                    {data['dues_paid']}
+                    ;"""
+    date_insertion_template = """INSERT INTO
+                    Applicant_Dates
+                    (personID, app_rcvd, fee_rcvd,
+                    meeting1, meeting2, meeting3,
+                    inducted, dues_paid)
+                    VALUES (
+                    {applicantID},
+                    {app_rcvd},
+                    {fee_rcvd},
+                    {1st},
+                    {2nd},
+                    {3rd},
+                    {inducted},
+                    {dues_paid}
+                    );"""
     for applicant in applicant_data.keys():
         applicantID = ids_by_name[applicant]
+        data = applicant_data[applicant]
         for sponsor in ('sponsor1', 'sponsor2',):
-            sponsor_name = applicant_data[applicant][sponsor]
+            sponsor_name = data[sponsor]
             if sponsor_name:
                 name_key = helpers.tofro_first_last(sponsor_name)
                 sponsorID = ids_by_name[name_key]
-                query = query_template.format(
+                query = sponsor_insertion_template.format(
                         int(applicantID), int(sponsorID))
 #               _ = input(query)
-                cur.execute(query)
+                try:
+                    cur.execute(query)
+                except sqlite3.IntegrityError:
+                    print("Unable to execute following query:")
+                    print(query)
+                    raise
+        data['applicantID'] = applicantID
+        for key in data.keys():
+            if not data[key]:
+                data[key] = 'NULL'
+#       _ = input(data)
+        query = date_insertion_template.format(**data)
+#       print("query is ..")
+#       _ = input(query)
+        try:
+            cur.execute(query)
+        except sqlite3.IntegrityError:
+            print("Unable to execute following query:")
+            print(query)
+            raise
     con.commit()
     print("so far so good")
-    pass
 
 
 def get_table_names(cur):
-    res = cur.execute("SELECT name FROM sqlite_master")
+    try:
+        res = cur.execute("SELECT name FROM sqlite_master")
+    except sqlite3.IntegrityError:
+        print("Unable to execute following query:")
+        print("SELECT name FROM sqlite_master")
+        raise
     # returns a list of tuples!
     # in this case: each one tuple is a table name
     tups = [tup[0] for tup in res.fetchall()]
     return ', '.join(tups)
 
 def get_people_keys(cur):
-    cur.execute('SELECT first, last FROM people')
+    try:
+        cur.execute('SELECT first, last FROM people')
+    except sqlite3.IntegrityError:
+        print("Unable to execute following query:")
+        print('SELECT first, last FROM people')
+        raise
     people = cur.fetchall()
     return set([f"{names[1]},{names[0]}" for names in people])
 
 
 def main():
+    if os.path.exists(db_file_name):
+        os.remove(db_file_name)
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     ## set up the tables (first deleting any that exist)
-#   for command in get_commands(sql_commands_file):
+    for command in get_commands(sql_commands_file):
 #       print(command)
-#       cur.execute(command)
+        cur.execute(command)
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)
