@@ -121,7 +121,7 @@ def populate_people(source, connection, cursor):
 #       _ = input(command)
         try:
             cursor.execute(command)
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, sqlite3.OperationalError):
             print("Unable to execute following query:")
             print(command)
             raise
@@ -212,12 +212,9 @@ def populate_applicant_data(applicant_data, valid_names,
         sponsor1: Al Forest
         sponsor2: George Krugger
     """
-    applicant_keys = applicant_data.keys()
-    sponsors = {}
-    dates = {}
     # first check validity of names (both applicant and sponsors)
     names = set()  # set of names we will want to check
-    for key in applicant_keys:
+    for key in applicant_data.keys():
         names.add(key)  # add applicants to the names to check
         sponsors = set()  # collect sponsor names (in key format)
         for sponsor in ('sponsor1', 'sponsor2'):
@@ -231,45 +228,33 @@ def populate_applicant_data(applicant_data, valid_names,
     else:
         pass
 #       print(names)
+
+    # must get <personID>s for applicants and sponsors
     ids_by_name = {}
-    for name in names:
+    for name in names:   # names of applicants & sponsors
         last, first = name.split(',')
         query = f"""SELECT personID from People
 WHERE People.first = "{first}" AND People.last = "{last}" """
         try:
             cur.execute(query)
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, sqlite3.OperationalError):
             print("Unable to execute following query:")
             print(query)
             raise
         query_result = cur.fetchall()
         ids_by_name[name] = query_result[0][0]
 #   print(ids_by_name)
-    sponsor_insertion_template = """INSERT INTO
-                    Applicant_Sponsors
-                    (personID, sponsorID)
-                    VALUES ({}, {});"""
-    date_insertion_template = """INSERT INTO
-                    Applicant_Dates
-                    (personID, app_rcvd, fee_rcvd,
+
+    # now ready to populate tables
+    applicant_insertion_template = """INSERT INTO
+                    Applicants (
+                    personID,
+                    app_rcvd, fee_rcvd,
                     meeting1, meeting2, meeting3,
-                    inducted, dues_paid)
-                    VALUES ({data['applicantID']},
-                    {data['app_rcvd']},
-                    {data['fee_rcvd']},
-                    {data['meeting1']},
-                    {data['meeting2']},
-                    {data['meeting3']},
-                    {data['inducted']},
-                    {data['dues_paid']}
-                    ;"""
-    date_insertion_template = """INSERT INTO
-                    Applicant_Dates
-                    (personID, app_rcvd, fee_rcvd,
-                    meeting1, meeting2, meeting3,
-                    inducted, dues_paid)
+                    inducted, dues_paid
+                    )
                     VALUES (
-                    {applicantID},
+                    {personID},
                     {app_rcvd},
                     {fee_rcvd},
                     {1st},
@@ -278,8 +263,12 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
                     {inducted},
                     {dues_paid}
                     );"""
+    sponsor_insertion_template = """INSERT INTO
+                    Sponsors
+                    (personID, sponsorID)
+                    VALUES ({}, {});"""
     for applicant in applicant_data.keys():
-        applicantID = ids_by_name[applicant]
+        personID = ids_by_name[applicant]
         data = applicant_data[applicant]
         for sponsor in ('sponsor1', 'sponsor2',):
             sponsor_name = data[sponsor]
@@ -287,25 +276,26 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
                 name_key = helpers.tofro_first_last(sponsor_name)
                 sponsorID = ids_by_name[name_key]
                 query = sponsor_insertion_template.format(
-                        int(applicantID), int(sponsorID))
+                        int(personID), int(sponsorID))
 #               _ = input(query)
                 try:
                     cur.execute(query)
-                except sqlite3.IntegrityError:
+                except (sqlite3.IntegrityError,
+                        sqlite3.OperationalError):
                     print("Unable to execute following query:")
                     print(query)
                     raise
-        data['applicantID'] = applicantID
+        data['personID'] = personID
         for key in data.keys():
             if not data[key]:
                 data[key] = 'NULL'
 #       _ = input(data)
-        query = date_insertion_template.format(**data)
+        query = applicant_insertion_template.format(**data)
 #       print("query is ..")
 #       _ = input(query)
         try:
             cur.execute(query)
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, sqlite3.OperationalError):
             print("Unable to execute following query:")
             print(query)
             raise
@@ -316,7 +306,7 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
 def get_table_names(cur):
     try:
         res = cur.execute("SELECT name FROM sqlite_master")
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, sqlite3.OperationalError):
         print("Unable to execute following query:")
         print("SELECT name FROM sqlite_master")
         raise
@@ -328,7 +318,7 @@ def get_table_names(cur):
 def get_people_keys(cur):
     try:
         cur.execute('SELECT first, last FROM people')
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, sqlite3.OperationalError):
         print("Unable to execute following query:")
         print('SELECT first, last FROM people')
         raise

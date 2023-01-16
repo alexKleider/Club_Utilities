@@ -16,9 +16,29 @@ CREATE TABLE People (
     email TEXT DEFAULT ''
     );
 
+DROP TABLE IF EXISTS Members;
+CREATE TABLE Members (
+    memberID INTEGER PRIMARY KEY,
+    personID UNIQUE
+    );
+
+DROP TABLE IF EXISTS Applicants;
+CREATE TABLE Applicants (
+    applicantID INTEGER PRIMARY KEY,
+    personID INTEGER NOT NULL UNIQUE,
+    app_rcvd TEXT NOT NULL,
+    fee_rcvd TEXT DEFAULT '',
+    meeting1 TEXT DEFAULT '',
+    meeting2 TEXT DEFAULT '',
+    meeting3 TEXT DEFAULT '',
+    approved TEXT DEFAULT '',
+    inducted TEXT DEFAULT '',
+    dues_paid TEXT DEFAULT ''
+    );
+
 DROP TABLE IF EXISTS Sponsors;
 CREATE TABLE Sponsors (
-    applicantID INTEGER NOT NULL,
+    personID INTEGER NOT NULL,
     sponsorID INTEGER NOT NULL
     );
 
@@ -33,25 +53,6 @@ DROP TABLE IF EXISTS Person_Status;
 CREATE TABLE Person_Status (
     personID INTEGER NOT NULL,
     statusID INTEGER NOT NULL
-    );
-
-DROP TABLE IF EXISTS Applicant_Sponsors;
-CREATE TABLE Applicant_Sponsors (
-    personID INTEGER NOT NULL,
-    sponsorID INTEGER NOT NULL
-    );
-
-DROP TABLE IF EXISTS Applicant_Dates;
-CREATE TABLE Applicant_Dates (
-    personID INTEGER NOT NULL UNIQUE,
-    app_rcvd TEXT NOT NULL,
-    fee_rcvd TEXT DEFAULT '',
-    meeting1 TEXT DEFAULT '',
-    meeting2 TEXT DEFAULT '',
-    meeting3 TEXT DEFAULT '',
-    approved TEXT DEFAULT '',
-    inducted TEXT DEFAULT '',
-    dues_paid TEXT DEFAULT ''
     );
 
 DROP TABLE IF EXISTS Attrition;

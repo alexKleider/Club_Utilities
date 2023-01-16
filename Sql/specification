@@ -25,6 +25,10 @@ Tables: (a cell in one may refer to a row in another)
     People
         PersonID, first,last,suffix, phone,address,
         town, state,postal_code,country,email
+    Members
+        MemberID UNIQUE, PersonID
+    Applicants
+        memberID INTEGER PRIMARY KEY
     Stati
         StatusID, description, symbol
     Person_status
