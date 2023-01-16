@@ -4,7 +4,7 @@
 
 DROP TABLE IF EXISTS People;
 CREATE TABLE People (
-    PersonID INTEGER PRIMARY KEY,
+    personID INTEGER PRIMARY KEY,
     first TEXT NOT NULL,
     last TEXT NOT NULL,
     phone TEXT DEFAULT '',
@@ -44,13 +44,37 @@ CREATE TABLE Applicant_Sponsors (
 DROP TABLE IF EXISTS Applicant_Dates;
 CREATE TABLE Applicant_Dates (
     personID INTEGER NOT NULL UNIQUE,
-    received TEXT NOT NULL,
-    fee_paid TEXT DEFAULT '',
+    app_rcvd TEXT NOT NULL,
+    fee_rcvd TEXT DEFAULT '',
     meeting1 TEXT DEFAULT '',
     meeting2 TEXT DEFAULT '',
     meeting3 TEXT DEFAULT '',
     approved TEXT DEFAULT '',
     inducted TEXT DEFAULT ''
+    );
+
+DROP TABLE IF EXISTS Attrition;
+CREATE TABLE Attrition (
+    attritionID INTEGER PRIMARY KEY,
+    oldID INTEGER NOT NULL,
+    first TEXT NOT NULL,
+    last TEXT NOT NULL,
+    phone TEXT DEFAULT '',
+    address TEXT DEFAULT '',
+    town TEXT DEFAULT '',
+    state TEXT DEFAULT '',
+    postal_code TEXT DEFAULT '',
+    country TEXT DEFAULT 'USA',
+    email TEXT DEFAULT '',
+    app_rcvd TEXT NOT NULL,
+    fee_rcvd TEXT DEFAULT '',
+    meeting1 TEXT DEFAULT '',
+    meeting2 TEXT DEFAULT '',
+    meeting3 TEXT DEFAULT '',
+    approved TEXT DEFAULT '',
+    inducted TEXT DEFAULT '',
+    sponsor1 TEXT DEFAULT '',
+    sponsor2 TEXT DEFAULT ''
     );
 
 DROP TABLE IF EXISTS Dues;

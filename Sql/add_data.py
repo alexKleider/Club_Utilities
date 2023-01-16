@@ -193,20 +193,65 @@ def populate_applicant_data(applicant_data, valid_names,
     <applicant_data> is a dict collected by get_applicant_data
     <valid_names> provided to ensure that all applicants and
     sponsors are already in the 'People' table of the db.
+    Murchant_Mr,Jacob
+        first: Jacob
+        last: Murchant_Mr
+        status: a3
+        app_rcvd: 220315
+        fee_rcvd: 220315
+        1st: 220506
+        2nd: 220701
+        3rd: 221007
+        inducted: 
+        dues_paid: 
+        sponsor1: Al Forest
+        sponsor2: George Krugger
     """
-    names = set()
-    for key in applicant_data.keys():
-        names.add(key)
-        sponsors = set()
+    applicant_keys = applicant_data.keys()
+    sponsors = {}
+    dates = {}
+    # first check validity of names (both applicant and sponsors)
+    names = set()  # set of names we will want to check
+    for key in applicant_keys:
+        names.add(key)  # add applicants to the names to check
+        sponsors = set()  # collect sponsor names (in key format)
         for sponsor in ('sponsor1', 'sponsor2'):
             if applicant_data[key][sponsor]:
                 sponsors.add(helpers.tofro_first_last(
                     applicant_data[key][sponsor]))
-        names.update(sponsors)
+        names.update(sponsors)  # adding sponsors
     if not set(valid_names).issuperset(names):
+        print("Invalid names found...")
         _ = input(names.difference(set(valid_names)))
     else:
-        print("so far so good")
+        pass
+#       print(names)
+    ids_by_name = {}
+    for name in names:
+        last, first = name.split(',')
+        query = f"""SELECT personID from People
+WHERE People.first = "{first}" AND People.last = "{last}" """
+        cur.execute(query)
+        query_result = cur.fetchall()
+        ids_by_name[name] = query_result[0][0]
+#   print(ids_by_name)
+    query_template = """INSERT INTO Applicant_Sponsors
+                    (personID, sponsorID)
+                    VALUES ({}, {});"""
+    for applicant in applicant_data.keys():
+        applicantID = ids_by_name[applicant]
+        for sponsor in ('sponsor1', 'sponsor2',):
+            sponsor_name = applicant_data[applicant][sponsor]
+            if sponsor_name:
+                name_key = helpers.tofro_first_last(sponsor_name)
+                sponsorID = ids_by_name[name_key]
+                query = query_template.format(
+                        int(applicantID), int(sponsorID))
+#               _ = input(query)
+                cur.execute(query)
+    con.commit()
+    print("so far so good")
+    pass
 
 
 def get_table_names(cur):
@@ -226,8 +271,9 @@ def main():
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     ## set up the tables (first deleting any that exist)
-    for command in get_commands(sql_commands_file):
-        cur.execute(command)
+#   for command in get_commands(sql_commands_file):
+#       print(command)
+#       cur.execute(command)
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)

@@ -8,7 +8,7 @@
 # All names (first and last) must be as they are presented in the
 # main data base "Data/memlist.csv"
 
-Jacob Murchant: Al Forest, George Krugger
+Jacob Murchant_Mr: Al Forest, George Krugger
 George Applebaulm: Eric Marr, Vance Argus
 Will Smithers: Dave Mix, Eric Marr
 Carl Nesbitt: Eric Marr, Jack Nixon

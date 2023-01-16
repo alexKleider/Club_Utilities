@@ -110,7 +110,7 @@ with open(infile, 'r') as instream:
     for line in helpers.useful_lines(instream, comment='#'):
         rec = line2record(line)
         if not got_keys:
-            keys = rec.keys()
+            keys = [key for key in rec.keys()]
             collector.append(keys)
             got_keys = True
 #           _ = input(rec.keys())
@@ -120,12 +120,14 @@ with open(infile, 'r') as instream:
                     appl_key][0]
             rec['sponsor2'] = club.sponsor_tuple_by_applicant[
                     appl_key][1]
-        collector.append(rec.values())
-#       for key in rec.keys():
-#           print(rec[key] + ', ', end='')
+        values = [value for value in rec.values()]
+        collector.append(values)
 
 just_keys = [key for key in keys]
 key_line = ','.join(just_keys)
+print(collector)
+for datum in collector:
+    print(datum)
 with open(outfile, 'w') as outstream:
     print("Writing to {}.".format(outstream.name))
     for datum in collector:
