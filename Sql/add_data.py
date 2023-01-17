@@ -106,6 +106,15 @@ def data_generator(filename):
             yield(rec)
 
 
+def execute(cursor, connection, command):
+    try:
+        cursor.execute(command)
+    except (sqlite3.IntegrityError, sqlite3.OperationalError):
+        print("Unable to execute following query:")
+        print(command)
+        raise
+    connection.commit()
+
 def populate_people(source, connection, cursor):
     """
     Adds all data from <source> into the "people" SQL table.
@@ -119,13 +128,7 @@ def populate_people(source, connection, cursor):
         command = insert_template.format(
                     table='People', keys=keys, values=values)
 #       _ = input(command)
-        try:
-            cursor.execute(command)
-        except (sqlite3.IntegrityError, sqlite3.OperationalError):
-            print("Unable to execute following query:")
-            print(command)
-            raise
-    connection.commit()
+        execute(cursor, connection, command)
 
 
 def get_applicant_data(applicant_source, sponsor_source):
@@ -235,12 +238,7 @@ def populate_applicant_data(applicant_data, valid_names,
         last, first = name.split(',')
         query = f"""SELECT personID from People
 WHERE People.first = "{first}" AND People.last = "{last}" """
-        try:
-            cur.execute(query)
-        except (sqlite3.IntegrityError, sqlite3.OperationalError):
-            print("Unable to execute following query:")
-            print(query)
-            raise
+        execute(cur, con, query)
         query_result = cur.fetchall()
         ids_by_name[name] = query_result[0][0]
 #   print(ids_by_name)
@@ -278,13 +276,7 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
                 query = sponsor_insertion_template.format(
                         int(personID), int(sponsorID))
 #               _ = input(query)
-                try:
-                    cur.execute(query)
-                except (sqlite3.IntegrityError,
-                        sqlite3.OperationalError):
-                    print("Unable to execute following query:")
-                    print(query)
-                    raise
+                execute(cur, con, query)
         data['personID'] = personID
         for key in data.keys():
             if not data[key]:
@@ -293,35 +285,19 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
         query = applicant_insertion_template.format(**data)
 #       print("query is ..")
 #       _ = input(query)
-        try:
-            cur.execute(query)
-        except (sqlite3.IntegrityError, sqlite3.OperationalError):
-            print("Unable to execute following query:")
-            print(query)
-            raise
-    con.commit()
+        execute(cur, con, query)
     print("so far so good")
 
 
 def get_table_names(cur):
-    try:
-        res = cur.execute("SELECT name FROM sqlite_master")
-    except (sqlite3.IntegrityError, sqlite3.OperationalError):
-        print("Unable to execute following query:")
-        print("SELECT name FROM sqlite_master")
-        raise
+    res = execute(cur, con, "SELECT name FROM sqlite_master")
     # returns a list of tuples!
     # in this case: each one tuple is a table name
     tups = [tup[0] for tup in res.fetchall()]
     return ', '.join(tups)
 
-def get_people_keys(cur):
-    try:
-        cur.execute('SELECT first, last FROM people')
-    except (sqlite3.IntegrityError, sqlite3.OperationalError):
-        print("Unable to execute following query:")
-        print('SELECT first, last FROM people')
-        raise
+def get_people_keys(cur, con):
+    execute(cur, con, 'SELECT first, last FROM people')
     people = cur.fetchall()
     return set([f"{names[1]},{names[0]}" for names in people])
 
@@ -338,7 +314,7 @@ def main():
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)
-    people_keys = get_people_keys(cur)
+    people_keys = get_people_keys(cur, con)
 #   print("people_keys:")
 #   _ = input(f"{people_keys}")
 
