@@ -24,6 +24,37 @@ sql_commands_file = 'create_tables.sql'  # table creating commands
 membership_csv_file = "Sanitized/members.csv"
 applicant_text_file = 'Sanitized/applicants.txt'
 sponsor_text_file = 'Sanitized/sponsors.txt'
+ids_by_name = dict()
+pull_ID_query = """SELECT personID from People
+WHERE People.first = "{first}" AND People.last = "{last}" """
+
+
+def get_id_by_name(cur, con, first, last):
+    """
+    Returns People.personID for person with <first> <last> name
+    """
+    query = pull_ID_query.format(first=first, last=last)
+#   _ = input(query)
+    execute(cur, con, query)
+    res = cur.fetchall()
+    if not res:
+        _ = input("No key for {} {}".format(first, last))
+        return
+    if len(res) > 1 or len(res[0]) > 1:
+        print("too many values returned by get_id_by_name")
+        sys.exit()
+    return res[0][0]
+
+
+def get_IDs_by_person(con, cur):
+    ret = dict()
+    query = """
+        SELECT personID, first, last 
+        From People; """
+    execute(cur, con, query)
+    for sequence in cur.fetchall():
+        ret[f"{sequence[2]},{sequence[1]}"] = sequence[0]
+    return ret
 
 
 def get_commands(sql_file):
@@ -303,7 +334,7 @@ def get_people_keys(con, cur):
     return set([f"{names[1]},{names[0]}" for names in people])
 
 
-def populate_stati_table(con, cur):
+def populate_Stati_table(con, cur):
     """
     """
     stati_insertion_template = """INSERT INTO
@@ -313,6 +344,42 @@ def populate_stati_table(con, cur):
     for key, value in member.STATUS_KEY_VALUES.items():
         query = stati_insertion_template.format(key, value)
         execute(cur, con, query)
+
+
+def get_statusIDs_by_key(con, cur):
+    query = "SELECT statusID, key FROM Stati;"
+    execute(cur, con, query)
+    ret = dict()
+    for tup in cur.fetchall():
+        ret[tup[1]] = tup[0]
+    return ret
+
+
+def retrieve_personID(con, cur, last_first_key):
+    pass
+
+
+def populate_Person_Status_table(con, cur,
+        IDs_by_person, statusIDs_by_key):
+    status_insertion_template = """INSERT INTO
+                    Person_Status
+                    (personID, statusID)
+                    VALUES ("{}", "{}");"""
+    with open(membership_csv_file, 'r', newline='') as instream:
+        reader = csv.DictReader(instream)
+        for record in reader:
+            first = record['first']
+            last = record['last']
+            stati = member.get_status_set(record)
+            if member.is_member(record):
+                stati.add('m')
+            personID = IDs_by_person[
+                f"{last},{first}"]
+            for status in stati:
+                statusID = statusIDs_by_key[status]
+                execute(cur, con,
+                    status_insertion_template.format(
+                    personID, statusID))
 
 
 def main():
@@ -327,15 +394,19 @@ def main():
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)
-    people_keys = get_people_keys(con, cur)
-#   print("people_keys:")
-#   _ = input(f"{people_keys}")
+#   key = get_id_by_name(cur, con, 'Bill', 'Smithers')
+#   sys.exit()
+    IDs_by_person = get_IDs_by_person(con, cur)
+    people_keys = IDs_by_person.keys()
 
     applicant_data = get_applicant_data(applicant_text_file,
                                 sponsor_text_file)
 #   _ = input(applicant_data)
-    populate_applicant_data(applicant_data, people_keys, con, cur)
-    populate_stati_table(con, cur)
+    populate_applicant_data(
+            applicant_data, people_keys, con, cur)
+    populate_Stati_table(con, cur)
+    populate_Person_Status_table(con, cur,
+            IDs_by_person, get_statusIDs_by_key(con, cur))
     con.close()
 
 if __name__ == '__main__':
