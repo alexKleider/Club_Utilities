@@ -692,7 +692,7 @@ def report_cmd(args=args):
 
     misc_stati = member.show_by_status(
                         club.ms_by_status,
-                        stati2show="m|w".split('|'),
+                        stati2show="i|w".split('|'),
                         club=club)
     if misc_stati:
         header = "Miscellaneous Info"

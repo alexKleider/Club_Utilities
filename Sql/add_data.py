@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.split(sys.path[0])[0])
 import csv
 import sqlite3
 import rbc
+import member
 import data
 import helpers
 
@@ -261,7 +262,7 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
                     {inducted},
                     {dues_paid}
                     );"""
-    sponsor_insertion_template = """INSERT INTO
+    sponsor_insertion_template =  """INSERT INTO
                     Sponsors
                     (personID, sponsorID)
                     VALUES ({}, {});"""
@@ -286,7 +287,6 @@ WHERE People.first = "{first}" AND People.last = "{last}" """
 #       print("query is ..")
 #       _ = input(query)
         execute(cur, con, query)
-    print("so far so good")
 
 
 def get_table_names(cur):
@@ -296,10 +296,23 @@ def get_table_names(cur):
     tups = [tup[0] for tup in res.fetchall()]
     return ', '.join(tups)
 
-def get_people_keys(cur, con):
+
+def get_people_keys(con, cur):
     execute(cur, con, 'SELECT first, last FROM people')
     people = cur.fetchall()
     return set([f"{names[1]},{names[0]}" for names in people])
+
+
+def populate_stati_table(con, cur):
+    """
+    """
+    stati_insertion_template = """INSERT INTO
+                    Stati
+                    (key, text)
+                    VALUES ("{}", "{}");"""
+    for key, value in member.STATUS_KEY_VALUES.items():
+        query = stati_insertion_template.format(key, value)
+        execute(cur, con, query)
 
 
 def main():
@@ -314,7 +327,7 @@ def main():
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     populate_people(membership_csv_file, con, cur)
     # collect a set of valid name keys (people_keys)
-    people_keys = get_people_keys(cur, con)
+    people_keys = get_people_keys(con, cur)
 #   print("people_keys:")
 #   _ = input(f"{people_keys}")
 
@@ -322,6 +335,7 @@ def main():
                                 sponsor_text_file)
 #   _ = input(applicant_data)
     populate_applicant_data(applicant_data, people_keys, con, cur)
+    populate_stati_table(con, cur)
     con.close()
 
 if __name__ == '__main__':

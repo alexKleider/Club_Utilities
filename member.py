@@ -36,7 +36,8 @@ STATUS_KEY_VALUES = {
     "be": "Email on record being rejected",   # => special notice
     "ba": "Postal address => mail returned",  # => special notice
     "h" : "Honorary Member",                             #10 > #12
-    'm' : "Inactive (continuing to receive minutes)",
+    'm' : "Member in good standing",
+    'i' : "Inactive (continuing to receive minutes)",
     'r' : "Retiring/Giving up Club Membership",
     't' : "Membership terminated (probably non payment of fees)",
             # a not yet implemented temporary
@@ -315,7 +316,7 @@ def is_inactive_member(record):
     """
     minutes only
     """
-    return 'm' in get_status_set(record)
+    return 'i' in get_status_set(record)
 
 
 def is_terminated(record):

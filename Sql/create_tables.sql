@@ -45,8 +45,8 @@ CREATE TABLE Sponsors (
 DROP TABLE IF EXISTS Stati;
 CREATE TABLE Stati (
     statusID INTEGER PRIMARY KEY,
-    symbol TEXT NOT NULL,
-    status TEXT NOT NULL
+    key TEXT NOT NULL,
+    text TEXT NOT NULL
     );
 
 DROP TABLE IF EXISTS Person_Status;
