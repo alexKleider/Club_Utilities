@@ -4,5 +4,5 @@
 > .read create_tables.sql
 > .quit
 $ ./add_data.py
-$ sqlite3
+$ sqlite3 club.db
 > .tables

@@ -1,6 +1,6 @@
 -- File: create_tables.sql
 -- Suggest use club.db
--- now parsed by add_data.py rather than .read by sqlite3
+-- parsed by add_data.py to set up tables
 
 DROP TABLE IF EXISTS People;
 CREATE TABLE People (
