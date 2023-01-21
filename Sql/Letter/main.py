@@ -98,11 +98,6 @@ def initiate_db():
             execute(cur, con, query)
 
 
-def find_contact():
-    contact = input("Which contact(s) to display?")
-    print(f"Displaying {contact}'s info:")
-
-
 def add_contact():
     print('Adding a contact.')
     con = sqlite3.connect(db_file_name)
@@ -115,7 +110,7 @@ def add_contact():
 
 
 def get_keys():
-    print('Collecting keys.')
+    print('Collecting keys:')
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     query = """Select personID, first, last 
@@ -126,10 +121,27 @@ def get_keys():
     print(' --  -----  ----')
     for item in res:
         print("{:3}: {} {}".format(*item))
+    return [item[0] for item in res]
+
+
+def find_contact():
+    keys = get_keys()
+    while True:
+        peopleID = input("Which contact to display? ")
+        if not peopleID:
+            return
+        if int(peopleID) in keys:
+            break
+    con = sqlite3.connect(db_file_name)
+    cur = con.cursor()
+    query = "SELECT * FROM People WHERE personID = {}"
+    execute(cur, con, query.format(peopleID))
+    res = cur.fetchall()
+    print('|'.join([item for item in res[0][1:]]))
 
 
 def main():
-    menu = '''I)initiate A)dd F)ind K)eys Q)uit..'''
+    menu = '\nI)initiate A)dd F)ind K)eys Q)uit..'
     while True:
         response = input(menu) 
         if response:
