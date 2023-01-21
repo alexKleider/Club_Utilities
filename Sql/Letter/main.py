@@ -15,7 +15,6 @@ db_file_name = 'Data/contacts.sqldb'
 source_csv = 'Data/my.csv'
 creation_script = 'creation_script.sql'
 
-menu = '''I)initiate A)dd F)ind Q)uit..'''
 insert_template = """INSERT INTO {table} ({keys})
     VALUES({values});"""
 
@@ -115,7 +114,22 @@ def add_contact():
     execute(cur, con, query)
 
 
+def get_keys():
+    print('Collecting keys.')
+    con = sqlite3.connect(db_file_name)
+    cur = con.cursor()
+    query = """Select personID, first, last 
+                    FROM People;"""
+    execute(cur, con, query)
+    res = cur.fetchall()
+    print(" ID  First  Last")
+    print(' --  -----  ----')
+    for item in res:
+        print("{:3}: {} {}".format(*item))
+
+
 def main():
+    menu = '''I)initiate A)dd F)ind K)eys Q)uit..'''
     while True:
         response = input(menu) 
         if response:
@@ -127,11 +141,13 @@ def main():
                 find_contact()
             elif response[0] in 'aA':
                 add_contact()
+            elif response[0] in 'kK':
+                get_keys()
             else:
                 print("Choose a valid entry!")
 
 
 if __name__ == '__main__':
-    print(get_field_names(source_csv))
+#   print(get_field_names(source_csv))
     main()
 
