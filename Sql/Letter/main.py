@@ -17,7 +17,7 @@ sys.path.insert(0, d)
 import content
 
 db_file_name = 'Data/contacts.sqldb'
-source_csv = 'Data/my.csv'
+source_csv = 'Data/new.csv'
 creation_script = 'creation_script.sql'
 
 insert_template = """INSERT INTO {table} ({keys})
@@ -62,6 +62,7 @@ def get_field_names(csv_file):
         reader = csv.DictReader(instream)
         return(reader.fieldnames)
 
+
 def get_insert_query(record, table):
     keys = ', '.join([key for key in record.keys()])
     values = [value for value in record.values()]
@@ -83,7 +84,7 @@ def execute(cursor, connection, command):
     connection.commit()
 
 
-def initiate_db():
+def initiate_db_cmd():
     print("Initiating the data base.")
     if os.path.exists(db_file_name):
         os.remove(db_file_name)
@@ -95,7 +96,8 @@ def initiate_db():
         execute(cur, con, command)
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     yes_no = input(
-            "Populate table with data from Data/my.csv? ")
+            "Populate table with data from {}? "
+            .format(source_csv))
     if yes_no and yes_no[0] in 'yY':
         for record in data_generator(source_csv):
             query = get_insert_query(record, 'People')
@@ -103,8 +105,11 @@ def initiate_db():
             execute(cur, con, query)
 
 
-def add_contact():
-    print('Adding a contact.')
+def add2existing():
+    pass
+
+
+def add_new_contact():
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     record = dict()
@@ -114,23 +119,46 @@ def add_contact():
     execute(cur, con, query)
 
 
-def get_keys():
-    print('Collecting keys:')
+def add_cmd():
+    while True:
+        response = input(
+        'N)ew contact, A)dd to existing, Q)uit .. ')
+        if response:
+            if response[0] in 'aA':
+                add2existing()
+            elif response[0] in 'nN':
+                add_new_contact()
+            elif response[0] in 'qQ':
+                return
+    con = sqlite3.connect(db_file_name)
+    cur = con.cursor()
+    record = dict()
+    for key in get_field_names(source_csv): 
+        record[key] = input(f"{key}: ")
+    query = get_insert_query(record, 'People')
+    execute(cur, con, query)
+
+
+def get_IDs_w_names():
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     query = """Select personID, first, last 
                     FROM People;"""
     execute(cur, con, query)
-    res = cur.fetchall()
+    return cur.fetchall()
+
+
+def show_keys_cmd():
+    print('Collecting keys:')
+    res = get_IDs_w_names()
     print(" ID  First  Last")
     print(' --  -----  ----')
     for item in res:
         print("{:3}: {} {}".format(*item))
-    return [item[0] for item in res]
 
 
-def find_contact():
-    keys = get_keys()
+def display_contact_cmd():
+    keys = [item[0] for item in get_IDs_w_names()]
     while True:
         peopleID = input("Which contact to display? ")
         if not peopleID:
@@ -151,13 +179,7 @@ def generate_letter(text_file, recipient, printer="X6505_e9"):
     print(letter)
 
 
-def generate_letter(text_file, recipientID, printer):
-    with open(text_file, 'r') as instream:
-        letter = instream.read()
-    print(letter)
-
-
-def prepare_letter():
+def prepare_letter_cmd():
     text_file = input("File containing letter text: ")
     recipientID = str(input("Recipient ID #: "))
     printer = "X6505_e9"
@@ -168,22 +190,22 @@ def prepare_letter():
 
 
 def main():
-    menu = '\nI)initiate A)dd F)ind K)eys L)etter Q)uit..'
+    menu = '\nI)initiate A)dd K)eys D)isplay L)etter Q)uit..'
     while True:
         response = input(menu) 
         if response:
-            if response[0] in 'qQ':
-                sys.exit()
-            elif response[0] in 'iI':
-                initiate_db()
-            elif response[0] in 'fF':
-                find_contact()
+            if response[0] in 'iI':
+                initiate_db_cmd()
             elif response[0] in 'aA':
-                add_contact()
+                add_cmd()
             elif response[0] in 'kK':
-                get_keys()
+                show_keys_cmd()
+            elif response[0] in 'dD':
+                display_contact_cmd()
             elif response[0] in 'lL':
-                prepare_letter()
+                prepare_letter_cmd()
+            elif response[0] in 'qQ':
+                sys.exit()
             else:
                 print("Choose a valid entry!")
 
