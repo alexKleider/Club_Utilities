@@ -10,6 +10,11 @@ import os
 import sys
 import csv
 import sqlite3
+d, f = os.path.split(sys.path[0])
+d, f = os.path.split(d)
+sys.path.insert(0, d)
+# print(sys.path)
+import content
 
 db_file_name = 'Data/contacts.sqldb'
 source_csv = 'Data/my.csv'
@@ -140,8 +145,30 @@ def find_contact():
     print('|'.join([item for item in res[0][1:]]))
 
 
+def generate_letter(text_file, recipient, printer="X6505_e9"):
+    with open(text_file, 'r') as instream:
+        letter = instream.read()
+    print(letter)
+
+
+def generate_letter(text_file, recipientID, printer):
+    with open(text_file, 'r') as instream:
+        letter = instream.read()
+    print(letter)
+
+
+def prepare_letter():
+    text_file = input("File containing letter text: ")
+    recipientID = str(input("Recipient ID #: "))
+    printer = "X6505_e9"
+    response = input(f"Change printer from {printer} to .. ")
+    if response:
+        printer = response
+    generate_letter(text_file, recipientID, printer)
+
+
 def main():
-    menu = '\nI)initiate A)dd F)ind K)eys Q)uit..'
+    menu = '\nI)initiate A)dd F)ind K)eys L)etter Q)uit..'
     while True:
         response = input(menu) 
         if response:
@@ -155,6 +182,8 @@ def main():
                 add_contact()
             elif response[0] in 'kK':
                 get_keys()
+            elif response[0] in 'lL':
+                prepare_letter()
             else:
                 print("Choose a valid entry!")
 
