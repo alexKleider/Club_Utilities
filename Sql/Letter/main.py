@@ -4,6 +4,8 @@
 
 """
 Manage data base for a letter writing app.
+
+Note: access to original source
 """
 
 import os
@@ -26,9 +28,8 @@ insert_template = """INSERT INTO {table} ({keys})
 
 def get_commands(sql_file):
     """
-    Assumes <in_file> contains valid SQL commands.
-    i.e. could be read by sqlite> .read <in_file>
-    Yeilds the commands one at a time.
+    Reads what are assumed to be valid SQL commands
+    from <sql_file> 'yield'ing them one at a time.
     Usage:
         con = sqlite3.connect("sql.db")
         cur = con.cursor()
@@ -47,9 +48,10 @@ def get_commands(sql_file):
                 command = ''
 
 
-def data_generator(filename):
+def csv_data_generator(filename):
     """
     Yield records from a csv data base.
+    Used to populate the data base from a csv file.
     """
     with open(filename, 'r', newline='') as instream:
         reader = csv.DictReader(instream, restkey='extra')
@@ -57,13 +59,20 @@ def data_generator(filename):
             yield(rec)
 
 
-def get_field_names(csv_file):
+def get_csv_field_names(csv_file):
+    """
+    Not used.  See get_fieldnames()
+    We get field names from the data base instead
+    """
     with open(csv_file, 'r', newline='') as instream:
         reader = csv.DictReader(instream)
         return(reader.fieldnames)
 
 
 def get_insert_query(record, table):
+    """
+    Returns valid sql syntax to add <record> to <table>
+    """
     keys = ', '.join([key for key in record.keys()])
     values = [value for value in record.values()]
     values = ', '.join([f"'{value}'" for
@@ -74,17 +83,26 @@ def get_insert_query(record, table):
     return query
 
 
-def execute(cursor, connection, command):
+def execute(cursor, connection, query):
+    """
+    Wrapper to provide debugging
+    information should a query fail.
+    """
     try:
-        cursor.execute(command)
+        cursor.execute(query)
     except (sqlite3.IntegrityError, sqlite3.OperationalError):
         print("Unable to execute following query:")
-        print(command)
+        print(query)
         raise
     connection.commit()
 
 
 def initiate_db_cmd():
+    """
+    Re-initializes the data base as per content of files
+    declared as globals: db_file_name, creation_script;
+    with option to populate with data from source_csv
+    """
     print("Initiating the data base.")
     if os.path.exists(db_file_name):
         os.remove(db_file_name)
@@ -99,21 +117,80 @@ def initiate_db_cmd():
             "Populate table with data from {}? "
             .format(source_csv))
     if yes_no and yes_no[0] in 'yY':
-        for record in data_generator(source_csv):
+        for record in csv_data_generator(source_csv):
             query = get_insert_query(record, 'People')
     #       _ = input(query)
             execute(cur, con, query)
 
 
-def add2existing():
-    pass
+def get_fieldnames(includeID=False):
+    """
+    Returns an iterable of the fieldnames 
+    (in the only/People table.)
+    Option allows inclusion of the primary key
+    (which is left out by default.)
+    """
+    con = sqlite3.connect(db_file_name)
+    cur = con.execute("SELECT * FROM People")
+    res = ([item[0] for item in cur.description])
+    if not includeID:
+        res = res[1:]
+    return res
+
+
+def update():
+    show_index()
+    idkey = input("Key of record to modify: ")
+    display_row(idkey, display=True)
+    response = input(
+        'Continue with modification of above record? (y/n)')
+    if not response or not response in 'yY':
+        return
+    update_query_template = """UPDATE {table}
+        SET {clauses}
+        WHERE personID = {personID}
+    """
+    fieldnames = get_fieldnames()
+#   _ = input(fieldnames)
+    rec = get_record(idkey)
+#   _ = input(rec)
+    updates = []
+    print("Change fields:")
+    print("\t* don't change")
+    print("\t$ leave remaining")
+    print("\t^ leave blank")
+    for key in rec.keys():
+        entry = input(f'{key}: {rec[key]}  change to ..  ')
+        if entry:
+            if entry == '*':  # don't change field
+                continue
+            if entry == '$':  # leave remaining fields
+                break
+            if entry == '^':  # blank out
+                updates.append((key, '',))
+                continue
+            updates.append((key, entry,))
+#   _ = input(f"updates: {updates}")
+    clauses = []
+    for key, entry in updates:
+        clauses.append(f"{key} = '{entry}'")
+    if not clauses:
+        print("No update performed.")
+        return
+    clauses = ', '.join(clauses)
+    con = sqlite3.connect(db_file_name)
+    cur = con.cursor()
+    execute(cur, con,
+        update_query_template.format(table='People',
+                                    clauses=clauses,
+                                    personID=idkey))
 
 
 def add_new_contact():
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     record = dict()
-    for key in get_field_names(source_csv): 
+    for key in get_fieldnames(): 
         record[key] = input(f"{key}: ")
     query = get_insert_query(record, 'People')
     execute(cur, con, query)
@@ -122,21 +199,14 @@ def add_new_contact():
 def add_cmd():
     while True:
         response = input(
-        'N)ew contact, A)dd to existing, Q)uit .. ')
+        'N)ew, U)pdate, Q)uit .. ')
         if response:
-            if response[0] in 'aA':
-                add2existing()
+            if response[0] in 'uU':
+                update()
             elif response[0] in 'nN':
                 add_new_contact()
             elif response[0] in 'qQ':
                 return
-    con = sqlite3.connect(db_file_name)
-    cur = con.cursor()
-    record = dict()
-    for key in get_field_names(source_csv): 
-        record[key] = input(f"{key}: ")
-    query = get_insert_query(record, 'People')
-    execute(cur, con, query)
 
 
 def get_IDs_w_names():
@@ -148,7 +218,7 @@ def get_IDs_w_names():
     return cur.fetchall()
 
 
-def show_keys_cmd():
+def show_index():
     print('Collecting keys:')
     res = get_IDs_w_names()
     print(" ID  First  Last")
@@ -157,20 +227,41 @@ def show_keys_cmd():
         print("{:3}: {} {}".format(*item))
 
 
-def display_contact_cmd():
-    keys = [item[0] for item in get_IDs_w_names()]
-    while True:
-        peopleID = input("Which contact to display? ")
-        if not peopleID:
-            return
-        if int(peopleID) in keys:
-            break
+def get_values(peopleID):
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     query = "SELECT * FROM People WHERE personID = {}"
     execute(cur, con, query.format(peopleID))
     res = cur.fetchall()
-    print('|'.join([item for item in res[0][1:]]))
+    return [item for item in res[0][1:]]
+
+
+def get_record(peopleID):
+    values = get_values(peopleID)
+    keys = get_fieldnames()
+#   _ = input(f'keys: {keys}')
+#   _ = input(f'values: {values}')
+    ret = dict()
+    for key, value in zip(keys, values):
+        ret[key] = value
+    return ret
+
+
+def display_row(id=None, display=False):
+    keys = [item[0] for item in get_IDs_w_names()]
+    if id:
+        peopleID = id
+    else:
+        while True:
+            peopleID = input("Which contact to display? ")
+            if not peopleID:
+                return
+            if int(peopleID) in keys:
+                break
+    values = get_values(peopleID)
+    ret = '|'.join(values)
+    if display:
+        print(ret)
 
 
 def generate_letter(text_file, recipient, printer="X6505_e9"):
@@ -190,18 +281,18 @@ def prepare_letter_cmd():
 
 
 def main():
-    menu = '\nI)initiate A)dd K)eys D)isplay L)etter Q)uit..'
+    menu = '\nI)initiate K)eys D)isplay A)dd L)etter Q)uit..'
     while True:
         response = input(menu) 
         if response:
             if response[0] in 'iI':
                 initiate_db_cmd()
+            elif response[0] in 'kK':
+                show_index()
+            elif response[0] in 'dD':
+                display_row(display=True)
             elif response[0] in 'aA':
                 add_cmd()
-            elif response[0] in 'kK':
-                show_keys_cmd()
-            elif response[0] in 'dD':
-                display_contact_cmd()
             elif response[0] in 'lL':
                 prepare_letter_cmd()
             elif response[0] in 'qQ':
@@ -211,6 +302,5 @@ def main():
 
 
 if __name__ == '__main__':
-#   print(get_field_names(source_csv))
     main()
 
