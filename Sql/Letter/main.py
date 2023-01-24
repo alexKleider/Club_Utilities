@@ -5,6 +5,9 @@
 """
 Manage data base for a letter writing app.
 
+Can initiate data from any csv file that does not have any
+field names not contained in the <creation_script> file.
+
 Note: access to original source
 """
 
@@ -20,10 +23,11 @@ import content
 
 db_file_name = 'Data/contacts.sqldb'
 source_csv = 'Data/new.csv'
+source_csv = 'Data/my-old.csv'
 creation_script = 'creation_script.sql'
 
 insert_template = """INSERT INTO {table} ({keys})
-    VALUES({values});"""
+    VALUES ({values});"""
 
 
 def get_commands(sql_file):
@@ -54,6 +58,7 @@ def csv_data_generator(filename):
     Used to populate the data base from a csv file.
     """
     with open(filename, 'r', newline='') as instream:
+#       reader = csv.DictReader(instream)
         reader = csv.DictReader(instream, restkey='extra')
         for rec in reader:
             yield(rec)
@@ -71,12 +76,23 @@ def get_csv_field_names(csv_file):
 
 def get_insert_query(record, table):
     """
-    Returns valid sql syntax to add <record> to <table>
+    Returns valid sql syntax to populate <table>
+    with all of <record>'s non empty fields.
     """
-    keys = ', '.join([key for key in record.keys()])
-    values = [value for value in record.values()]
-    values = ', '.join([f"'{value}'" for
-                    value in record.values()])
+    keys_w_values = []
+    values = []
+    for key in [key for key in record.keys()]:
+        if key == 'extra':
+            continue
+        value = record[key]
+        if value:
+            keys_w_values.append(key)
+            if not isinstance(value, str):
+                _ = input(f"{key}: {value}")
+            value = '"{}"'.format(value)
+            values.append(value)
+    keys = ', '.join(keys_w_values)
+    values = ', '.join(values)
     query = insert_template.format(
             table=table, keys=keys, values=values)
 #       _ = input(query)
