@@ -1,6 +1,7 @@
 -- File: create_tables.sql
 -- Suggest use club.db
 -- parsed by add_data.py to set up tables
+-- see associated specifications.txt file
 
 DROP TABLE IF EXISTS People;
 CREATE TABLE People (

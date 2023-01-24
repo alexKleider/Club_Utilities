@@ -3,6 +3,11 @@
 # File: add_data.py
 
 """
+This module takes data in the format (csv and text files)
+I've been using for maintaining Club data and moving it
+all into an sqlite3 data base. See the ## GLOBALS section:
+these will need to be changed if/when going live with
+our real data.
 https://docs.python.org/3/library/sqlite3.html
 """
 
@@ -16,15 +21,16 @@ import member
 import data
 import helpers
 
-insert_template = """INSERT INTO {table} ({keys})
-    VALUES({values});"""
-
+## GLOBALS
 db_file_name = "club.db"
 sql_commands_file = 'create_tables.sql'  # table creating commands
 membership_csv_file = "Sanitized/members.csv"
 applicant_text_file = 'Sanitized/applicants.txt'
 sponsor_text_file = 'Sanitized/sponsors.txt'
-ids_by_name = dict()
+## END of GLOBALS
+
+insert_template = """INSERT INTO {table} ({keys})
+    VALUES({values});"""
 pull_ID_query = """SELECT personID from People
 WHERE People.first = "{first}" AND People.last = "{last}" """
 

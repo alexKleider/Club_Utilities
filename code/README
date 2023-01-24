@@ -20,9 +20,7 @@ each file importing from it will (probably) need the following:
 
 from code import  <listing of files required from code>
 
-The following is needed if code in this ("code") directory needs
-modules located in 'code's parent directory:
-    import os
-    import sys
-    sys.path.insert(0, os.path.split(sys.path[0])[0])
+See ~/Notes/Py/import_from_aove to solve problem of importing
+from higher up the directory tree.
+
 
