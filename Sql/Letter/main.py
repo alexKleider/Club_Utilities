@@ -25,6 +25,7 @@ db_file_name = 'Data/contacts.sqldb'
 source_csv = 'Data/new.csv'
 source_csv = 'Data/my-old.csv'
 creation_script = 'creation_script.sql'
+test_letter = 'Data/test_letter.txt'
 
 insert_template = """INSERT INTO {table} ({keys})
     VALUES ({values});"""
@@ -287,8 +288,22 @@ def generate_letter(text_file, recipient, printer="X6505_e9"):
 
 
 def prepare_letter_cmd():
-    text_file = input("File containing letter text: ")
-    recipientID = str(input("Recipient ID #: "))
+    text_file = test_letter
+    response = input(f"File (default is '{text_file}'): ")
+    if response:
+        text_file = response
+    recipientID = ''
+    while True:
+        recipientID = str(input("Recipient ID #: "))
+        if not recipientID:
+            print('Choices are:')
+            for item in get_IDs_w_names():
+                print("{:3}: {} {}".format(*item))
+        else:
+            if len(recipientID) == 1 and recipientID[0] in 'qQ':
+                return
+            else:
+                break
     printer = "X6505_e9"
     response = input(f"Change printer from {printer} to .. ")
     if response:
