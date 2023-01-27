@@ -19,6 +19,8 @@ d, f = os.path.split(sys.path[0])
 d, f = os.path.split(d)
 sys.path.insert(0, d)
 # print(sys.path)
+
+import letters
 import content
 
 db_file_name = 'Data/contacts.sqldb'
@@ -31,26 +33,26 @@ insert_template = """INSERT INTO {table} ({keys})
     VALUES ({values});"""
 
 
-def get_commands(sql_file):
+def get_sql(sql_file):
     """
-    Reads what are assumed to be valid SQL commands
+    Reads what are assumed to be valid SQL queries
     from <sql_file> 'yield'ing them one at a time.
     Usage:
         con = sqlite3.connect("sql.db")
         cur = con.cursor()
-        for command in get_commands(sql_commands_file):
-            cur.execute(command)
+        for query in get_sql(sql_commands_file):
+            cur.execute(query)
     """
     with open(sql_file, 'r') as in_stream:
-        command = ''
+        query = ''
         for line in in_stream:
             line = line.strip()
             if line.startswith('--'):
                 continue
-            command = command + line.strip()
+            query = query + line.strip()
             if line.endswith(';'):
-                yield command[:-1]
-                command = ''
+                yield query[:-1]
+                query = ''
 
 
 def csv_data_generator(filename):
@@ -126,9 +128,9 @@ def initiate_db_cmd():
     con = sqlite3.connect(db_file_name)
     cur = con.cursor()
     ## set up the tables (first deleting any that exist)
-    for command in get_commands(creation_script):
-#       print(command)
-        execute(cur, con, command)
+    for query in get_sql(creation_script):
+#       print(query)
+        execute(cur, con, query)
 #   _ = input(f"Table Names: {get_table_names(cur)}")
     yes_no = input(
             "Populate table with data from {}? "
@@ -281,34 +283,44 @@ def display_row(id=None, display=False):
         print(ret)
 
 
-def generate_letter(text_file, recipient, printer="X6505_e9"):
-    with open(text_file, 'r') as instream:
-        letter = instream.read()
-    print(letter)
+def get_record_id(prompt):
+    id_number = input("Id of {}: ".format(prompt))
+    return id_number
+
+
+def get_letter_content(default=None):
+    if default:
+        file_name = default
+    else: 
+        file_name = input("File with letter content: ")
+    with open(file_name, 'r') as instream:
+        content = instream.read()
+    return content
 
 
 def prepare_letter_cmd():
-    text_file = test_letter
-    response = input(f"File (default is '{text_file}'): ")
-    if response:
-        text_file = response
-    recipientID = ''
-    while True:
-        recipientID = str(input("Recipient ID #: "))
-        if not recipientID:
-            print('Choices are:')
-            for item in get_IDs_w_names():
-                print("{:3}: {} {}".format(*item))
-        else:
-            if len(recipientID) == 1 and recipientID[0] in 'qQ':
-                return
-            else:
-                break
-    printer = "X6505_e9"
-    response = input(f"Change printer from {printer} to .. ")
-    if response:
-        printer = response
-    generate_letter(text_file, recipientID, printer)
+    """
+    pick letter
+    pick sender
+    pick recipient
+    set optional re: field
+    show_index()
+    sender = get_record(get_record_id("Sender Id: "))
+    recipient = get_record(get_record_id("Recipient Id: "))
+    """
+    sender = get_record(2)
+    recipient = get_record(7)
+    content = get_letter_content(default='Data/test_letter.txt')
+    printer = letters.printers["X6505_e9"]
+    sink = 'Data/generated_letter.txt'
+#   response = input(f"Change printer from {printer} to .. ")
+#   if response:
+#       printer = response
+    letter = letters.letter_text(content, recipient,
+            sender, printer, formality=0)
+    with open(sink, 'w') as outstream:
+        outstream.write(letter)
+    print(letter)
 
 
 def main():

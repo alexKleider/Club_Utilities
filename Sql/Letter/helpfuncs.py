@@ -193,6 +193,25 @@ def expand_string(content, n):
     return '\n'.join(ret)
 
 
+def expand_array(content, n):
+    """
+    Assumes <content> is a sequence of <=n items.
+    Returns a sequence of n itmes by padding both ends with empty
+    strings.
+    """
+    if len(content) > n:
+        print("ERROR: too many lines in <content>")
+        print("    parameter of helpers.expand_array()!")
+        assert False
+    a = [item for item in content]
+    while n > len(a):
+        if n - len(a) >= 2:
+            a = [''] + a + ['']
+        else:
+            a.append('')
+    return a
+
+
 def expand(content, nlines):
     """
     Takes <content> which can be a list of strings or
