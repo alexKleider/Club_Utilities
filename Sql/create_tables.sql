@@ -3,11 +3,15 @@
 -- parsed by add_data.py to set up tables
 -- see associated specifications.txt file
 
+-- first,last,phone,address,town,state,postal_code,country,
+--           email,dues,dock,kayak,mooring,status
+
 DROP TABLE IF EXISTS People;
 CREATE TABLE People (
     personID INTEGER PRIMARY KEY,
     first TEXT NOT NULL,
     last TEXT NOT NULL,
+    suffix TEXT DEFAULT '',
     phone TEXT DEFAULT '',
     address TEXT DEFAULT '',
     town TEXT DEFAULT '',

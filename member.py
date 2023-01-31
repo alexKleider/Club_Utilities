@@ -64,7 +64,7 @@ EXEC_STATI = [ status for status in STATI if (
 EXEC_SET = set(EXEC_STATI)
 MISCELANEOUS_STATI = "m|w|be"
 NON_MEMBER_SET = APPLICANT_SET | {
-        "h", "m", 't', 'zae', 'zzz'}  # bitwise OR
+        'i', 't', 'zae', 'zzz'}  # bitwise OR
 NON_FEE_PAYING_STATI = {"w", "t", "r", "h"}
 
 N_FIELDS = 14  # Only when unable to use len(dict_reader.fieldnames).

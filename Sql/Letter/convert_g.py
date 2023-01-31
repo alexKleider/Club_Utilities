@@ -3,7 +3,11 @@
 # File: convert_g.py
 
 """
-Convert a google contacts csv file into my csv format.
+Convert a google contacts csv file into my csv format[1].
+Input and output files are hard coded (and could easily
+be changed.)
+A changing of "my csv" format[1] would require more editing.
+[1] "my csv" format is expressed by the 'my_fields' tuple.
 """
 
 import csv
@@ -21,14 +25,12 @@ corresponding_fields = (
     ('Family Name',             'last'),
     ('Name Prefix',             'prefix'),
     ('Name Suffix',             'suffix'),
-
     ('Address 1 - Street',      'address'),
     ('Address 1 - City',        'town'),
     ('Address 1 - PO Box',      'address1'),
     ('Address 1 - Region',      'state'),
     ('Address 1 - Postal Code', 'postal_code'),
     ('Address 1 - Country',     'country'),
-
     ('Organization 1 - Name',   'company'),
     )
 phone_fields = (

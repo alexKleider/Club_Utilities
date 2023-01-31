@@ -4,7 +4,7 @@
 
 """
 This module takes data in the format (csv and text files)
-I've been using for maintaining Club data and moving it
+I've been using for maintaining Club data and moves it
 all into an sqlite3 data base. See the ## GLOBALS section:
 these will need to be changed if/when going live with
 our real data.
@@ -22,7 +22,7 @@ import data
 import helpers
 
 ## GLOBALS
-db_file_name = "club.db"
+db_file_name = "Sanitized/club.db"
 sql_commands_file = 'create_tables.sql'  # table creating commands
 membership_csv_file = "Sanitized/members.csv"
 applicant_text_file = 'Sanitized/applicants.txt'
@@ -75,15 +75,16 @@ def get_commands(sql_file):
             cur.execute(command)
     """
     with open(sql_file, 'r') as in_stream:
-        command = ''
+        command = []
         for line in in_stream:
             line = line.strip()
             if line.startswith('--'):
                 continue
-            command = command + line.strip()
+            command.append(line.strip())
             if line.endswith(';'):
-                yield command[:-1]
-                command = ''
+                line = line[:-1]
+                yield ' '.join(command)
+                command = []
 
 
 def return_name_suffix_tuple(name):
@@ -152,6 +153,7 @@ def execute(cursor, connection, command):
         print(command)
         raise
     connection.commit()
+
 
 def populate_people(source, connection, cursor):
     """
