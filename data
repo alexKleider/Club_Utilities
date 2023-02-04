@@ -1,0 +1,74 @@
+sqlite> SELECT personID, first, last From People;
+1|Al|Forest          m
+2|George|Krugger     m
+3|Eric|Marr          m sec
+4|Vance|Argus_Sr     m
+5|Dave|Mix           m odd 
+6|Jack|Nixon_Jr      m
+7|Rudi|Cameron       m odd
+8|Toni|Cameron       m
+9|Joe|Farmer         m even
+10|Jerry|Donaldson   m
+11|Leam|Rose         1
+12|Lori|Middleman    0
+13|Carl|Nesbitt_Mr   2
+14|Will|Smithers     aw
+15|George|Applebaulm m
+16|Jacob|Murchant_Mr 3
+17|Melissa|Shorn     m
+18|Liz|Verity        m
+
+sqlite> SELECT personID, statusID from Person_Status;
+1|15
+2|15
+3|22
+3|15
+4|15
+5|24
+5|15
+6|15
+7|24
+7|15
+8|15
+9|15
+9|25
+10|15
+11|4
+12|3
+13|5
+14|10
+15|15
+16|6
+17|15
+18|15
+
+sqlite> SELECT * FROM Stati;
+1|a-|Application received without fee
+2|a|Application complete but not yet acknowledged
+3|a0|Applicant (no meetings yet)
+4|a1|Attended one meeting
+5|a2|Attended two meetings
+6|a3|Attended three (or more) meetings
+7|ai|Inducted, needs to be notified
+8|ad|Inducted & notified, membership pending payment of dues
+9|av|Vacancy ready to be filled pending payment of dues
+10|aw|Inducted & notified, awaiting vacancy
+11|am|New Member
+12|be|Email on record being rejected
+13|ba|Postal address => mail returned
+14|h|Honorary Member
+15|m|Member in good standing
+16|i|Inactive (continuing to receive minutes)
+17|r|Retiring/Giving up Club Membership
+18|t|Membership terminated (probably non payment of fees)
+19|w|Fees being waived
+20|z1_pres|President
+21|z2_vp|VicePresident
+22|z3_sec|Secretary of the Club
+23|z4_treasurer|Treasurer
+24|z5_d_odd|Director- term ends Feb next odd year
+25|z6_d_even|Director- term ends Feb next even year
+26|zae|Application expired or withdrawn
+27|zzz|No longer a member
+
+

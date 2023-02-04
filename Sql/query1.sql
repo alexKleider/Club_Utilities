@@ -1,14 +1,15 @@
--- query
+-- query1.sql
 -- sqlite> .tables
 -- Applicants       Dues             Moorings         Sponsors       
 -- Attrition        Kayak_Slots      People           Stati          
 -- Dock_Privileges  Members          Person_Status
 -- People p; Person_Status; Stati
-SELECT People.personID, first, last
-    FROM People, Person_status
+SELECT People.personID, first, last, Stati.text, Stati.key
+    FROM People, Person_Status, Stati
     WHERE Person_Status.personID = People.personID 
     AND Person_Status.statusID = (SELECT statusID  
-        FROM Stati WHERE key = 'aw');
+        FROM Stati WHERE key = 'aw')
+    ;
 
 -- sqlite> SELECT title FROM book, book_author
 --    ...> WHERE book_author.bookID = book.ID

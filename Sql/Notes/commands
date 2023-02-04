@@ -1,4 +1,36 @@
 
+    https://www.sqlitetutorial.net/sqlite-commands/
+
+    $ sqlite3  %Connects to a transient in-memory database.%
+
+    sqlite3> .open data.db
+    or..
+    $ sqlite3 data.db
+    
+    sqlite3> .help
+    sqlite3> .databases  %show all databases currently connected%
+    sqlite3> ATTACH DATABASE  %adds DATABASE to connections%
+    sqlite3> .exit ?CODE?  % }  both the
+    sqlite3> .quit         % }   same?
+    sqlite3> .tables
+    sqlite3> .table '%es'  % return table ends with 'es'
+    sqlite3> .table 'es%'  % return table starts with 'es'
+            % don't need the quotes!
+    sqlite3> .schema   % all tables' schema returned
+    sqlite3> .schema TABLE
+    sqlite3> .fullschema  % includes sqlite_stat tables: advanced
+    sqlite3> .indexes Moorings
+    sqlite3> .indexes %es
+    sqlite3> .output FILENAME  % redirect to FILENAME
+    sqlite3> .output  % no parameter redirect back to stdout
+    sqlite3> .once FILENAME  % redirect to FILENAME only next cmd
+    sqlite3> .read FILENAME  % reads and execute query in FILENAME
+
+
+
+
+======================================================
+
 CREATE DATABASE PetHotel;  # not in sqlite!
 $ sqlite3 sql.db
 

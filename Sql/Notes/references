@@ -1,0 +1,83 @@
+Fundamentals of Relationships and Joins in SQLite:
+https://towardsdatascience.com/fundamentals-of-relationships-and-joins-in-sqlite-82ab47806d00
+
+https://www.techonthenet.com/sqlite/joins.php  Best yet
+
+https://www.sqlitetutorial.net/sqlite-inner-join/   >2 tables joined Good
+
+https://www.w3resource.com/sqlite/sqlite-inner-join.php  
+SELECT a.doctor_id,a.doctor_name,
+b.spl_descrip,c.patient_name,c.vdate
+FROM doctors a 
+INNER JOIN speciality b
+ON a.doctor_id=b.doctor_id
+INNER JOIN visits c
+ON a.doctor_id=c.doctor_id
+WHERE a.doctor_id=212 AND c.vdate='2013-10-16';
+
+https://stackoverflow.com/questions/10195451/sql-inner-join-with-3-tables
+I have a table that contains information of students who are applying to live on this College Campus. I have another table that lists the Hall Preferences (3 of them) for each Student. But each of these preferences are merely an ID Number, and the ID Number has a corresponding Hall Name in a third table
+
+SELECT s.studentname
+    , s.studentid
+    , s.studentdesc
+    , h.hallname
+FROM students s
+INNER JOIN hallprefs hp
+    on s.studentid = hp.studentid
+INNER JOIN halls h
+    on hp.hallid = h.hallid
+
+Based on your request for multiple halls you
+could just join on your Hall table multiple
+times for each room pref id:
+SELECT     s.StudentID
+    , s.FName
+    , s.LName
+    , s.Gender
+    , s.BirthDate
+    , s.Email
+    , r.HallPref1
+    , h1.hallName as Pref1HallName
+    , r.HallPref2 
+    , h2.hallName as Pref2HallName
+    , r.HallPref3
+    , h3.hallName as Pref3HallName
+FROM  dbo.StudentSignUp AS s 
+INNER JOIN RoomSignUp.dbo.Incoming_Applications_Current AS r 
+    ON s.StudentID = r.StudentID 
+INNER JOIN HallData.dbo.Halls AS h1 
+    ON r.HallPref1 = h1.HallID
+INNER JOIN HallData.dbo.Halls AS h2
+    ON r.HallPref2 = h2.HallID
+INNER JOIN HallData.dbo.Halls AS h3
+    ON r.HallPref3 = h3.HallID
+
+
+Another answer:
+If you have 3 tables with the same ID to be joined,
+I think it would be like this:
+SELECT * FROM table1 a
+JOIN table2 b ON a.ID = b.ID
+JOIN table3 c ON a.ID = c.ID
+
+Just replace * with what you want to get from the tables.
+
+Another answer:
+SELECT column_Name1,column_name2,......
+  From tbl_name1,tbl_name2,tbl_name3
+  where tbl_name1.column_name = tbl_name2.column_name
+  and tbl_name2.column_name = tbl_name3.column_name
+
+
+TA: ID, name 
+TI: taID, tbID      -- mapping or intersection table
+TB: ID, quality
+
+SELECT  TA.name, TB.quality
+FROM TA
+INNER JOIN TI
+    ON TA.ID = TI.taID
+INNER JOIN TB
+    ON TB.ID =TI.btID
+
