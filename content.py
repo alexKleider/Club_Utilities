@@ -308,7 +308,7 @@ month period.  You may attend as the guest of any member; your
 sponsors are expected to introduce you although that is not a
 mandatory requirement.
 
-Looking forward to meeting you in person.
+Looking forward to seeing each other at future meetings.
 """,
 
     awaiting_vacancy="""

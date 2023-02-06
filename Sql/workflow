@@ -1,9 +1,0 @@
-#
-# Redacted; everything is now in ./add_data.py
-
-> sqlite3
-> .read create_tables.sql
-> .quit
-$ ./add_data.py
-$ sqlite3 club.db
-> .tables

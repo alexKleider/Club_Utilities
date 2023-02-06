@@ -117,7 +117,7 @@ def ck_gmail(club):
         )
 
     g_inactive = club.g_by_group[club.INACTIVE_GROUP]
-    m_inactive = set(club.ms_by_status['m'])
+    m_inactive = set(club.ms_by_status['i'])
     special_status_mismatches = helpers.check_sets(
         g_inactive,
         m_inactive,
