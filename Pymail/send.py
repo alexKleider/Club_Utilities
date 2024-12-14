@@ -2,10 +2,14 @@
 
 # File: send.py
 
-## Two hard links:
-# this file is used by the ~/Git/Club/Utils code base where it is found
-# as Pymail/send.py
-# and by the ~/Git/Lib code base where it is found as code/send.py.
+## Three hard links:
+# this file is used by
+# 1. the ~/Git/Club/Utils code base where it is found
+#    as Pymail/send.py
+# 2. the ~/Git/Lib code base where it is found as
+#    code/send.py.
+# 3. the ~/Git/Sql code base where it is found as
+#    code/Pymail/send.py
 
 """
 Used to send an email using Python modules only.

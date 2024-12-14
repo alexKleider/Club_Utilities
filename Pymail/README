@@ -4,3 +4,8 @@ be in the Bashmail directory.
 
 No time to look into it now but perhaps some day.
 
+NOTE: This directory has two hard links:
+    send.py
+&   config.py
+shared by Club/Utils, Lib/code and Sql/ code bases.
+

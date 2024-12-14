@@ -3,16 +3,17 @@
 # File: helpers.py
 
 """
-Helper functions developed for the Club/Utils repo.
+Helper functions (initially developed for the Club/Utils repo
+but now used in the following places unified by hard linking.)
 This file appears in
     ~/Git/Club/Utils
-    ~/Git/PyLib
     ~/Git/Lib/code
-(by means of hard links.)
+    ~/Git/Sql/code
 """
 
 import os
 import sys
+import shutil
 import csv
 import json
 import datetime
@@ -63,7 +64,6 @@ def verify(notice, report=None):
 
 def equal_float(a, b):
     """
-    # Not used but might be helpful.
     compares floats for equality to limit of machine's accuracy
     # from Mark Summerfield
     """
@@ -72,18 +72,17 @@ def equal_float(a, b):
 
 def get_attributes(r):
     """
-    # Not used but might be helpful.
     """
     return sorted([attribute for attribute in dir(r)
             if not attribute.startswith('__')])
 
 
-def check_before_deletion(file_names):
+def check_before_deletion(file_names, delete=False):
     """
     Parameter <file_names> may be one name or a sequence of names.
     For each- check with user if ok to delete or overwrite.
     Aborts program execution if permission is not granted.
-    Does not itself do any deletion.
+    Does not itself do any deletion unless delete is set to True.
     """
     if isinstance(file_names, str):
         file_names = (file_names, )
@@ -95,6 +94,11 @@ def check_before_deletion(file_names):
             if not(response and response[0] in 'yY'):
                 print('Aborting program execution.')
                 sys.exit()
+            elif delete:
+                if os.path.isdir(f):
+                    shutil.rmtree(f)
+                elif os.path.isfile(f):
+                    os.remove(f)
 
 
 def get_first_friday_of_month(date=None):
@@ -158,7 +162,6 @@ def club_year(which='this', now=datetime.date.today()):
 
 def expand_date(date_string):
     """
-    # Not used but might be helpful.
     Assumes date_string is in form yymmdd or yyyymmdd;
     Returns date in 'yyyy-mm-dd' format
     or "BAD DATE" if len(date_string) != 6 or 8.
@@ -190,13 +193,6 @@ def get_datestamp(date=None):
     else:
         d = datetime.date.today()
     return d.strftime(date_template)
-
-
-def do_nothing(text):
-    """
-    !?UNUSED?!  redact!?
-    """
-    print(text)
 
 
 def print_args(args, argument):
@@ -295,16 +291,13 @@ def str_add(*args):
     return str(total)
 
 
-redact = '''
 def join_email_listings(*args):
     """
-    ## Will probably redact since usint set rather than csv. ##
-    Accepts any number of args, each of which must be a string
-    expected to be a comma (with no spaces, as demanded when provided
-    as a commandline parameter/argument) separated listing of email
-    addresses.
-    Returned is a single string of "," separated emails with no
-    duplicates suitable for placement into a 'cc' (or 'bcc') listing.
+    Accepts any number of args, each of which must be a string.
+    Each string might contain more than one email separated by
+    comas.  Returned is a single string of "," separated emails
+    with no duplicates suitable for placement into a 'cc'
+    (or 'bcc') listing.
     """
     res = []
     for arg in args:
@@ -313,7 +306,11 @@ def join_email_listings(*args):
             arg = [item.strip() for item in arg]
             res.extend(arg)
     return ','.join(sorted(set(res)))
-'''
+
+
+def script_location():
+    return os.getcwd()
+
 
 def useful_lines(stream, comment="#"):
     """
@@ -568,13 +565,34 @@ def store(collector, filename):
 
 def dump2json_file(data, json_file, verbose=True):
     """
-    !?UNUSED?!  Redact?!
+    <json_file> if it exists will be overwritten!!
     """
     with open(json_file, "w") as json_file_obj:
         if verbose:
             print('Dumping (json) data to "{}".'.format(
                   json_file_obj.name))
         json.dump(data, json_file_obj)
+
+
+def add2json_file(data, json_file, verbose=True):
+    """
+    <data> will be appended to <json_file> if it exists,
+    it'll be created with <data> as a dict in a list of 1 item.
+    """
+    if os.path.exists(json_file):
+        with open(json_file, 'r', encoding='utf-8') as j_file:
+            if verbose:
+                print('Loading existing (json) data from "{}".'
+                        .format(j_file.name))
+            data2add = json.load(j_file)
+        data2add.append(data)
+    else:
+        data2add = [data, ]
+    with open(json_file, 'w', encoding='utf-8') as j_file:
+        if verbose:
+            print('Dumping (json) data to "{}".'.format(
+                  j_file.name))
+        json.dump(data2add, j_file)
 
 
 def get_json(file_name, report=False):
@@ -590,7 +608,6 @@ def get_json(file_name, report=False):
 
 def longest(x, y):
     """
-    Not used but could be helpful
     """
     if len(x) > len(y):
         return x
@@ -808,7 +825,6 @@ def loose_spaces(line):
 
 def add_fields(fieldnames, csv_file, prefix='new_'):
     """
-    !?UNUSED?!
     <csv_file> field_names must be a subset of <fieldnames>.
     Output has the same data but with blank entries for
     any field name not previously present.
